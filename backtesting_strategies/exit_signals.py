@@ -1,4 +1,18 @@
 from data_queries.polygon_queries import get_intraday
+from datetime import datetime, timedelta
+
+
+def add_two_hours(time_str):
+    # Parse the string to a datetime object
+    time_obj = datetime.strptime(time_str, '%H:%M:%S')
+
+    # Add two hours
+    new_time_obj = time_obj + timedelta(hours=2)
+
+    # Format back to a string
+    new_time_str = new_time_obj.strftime('%H:%M:%S')
+
+    return new_time_str
 
 
 def remove_halts(df):
@@ -55,13 +69,21 @@ class exitSignals:
     def __init__(self, trade):
         self.trade = trade
         self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=5, timespan='second')
-        self.search_time = '09:30:00'
+        self.search_time = self.trade.signal_time[11:]
+        self.check_stop()
+
+    def check_stop(self):
+        df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
+        if self.trade.side == 1:
+            df['stopped_out'] = df['low'] < self.trade.stop_price
+        else:
+            df['stopped_out'] = df['high'] > self.trade.stop_price
 
     def multi_bar_exit(self, exit_strategy):
         results = {}
         for bar_type in [2, 3, 4, 5]:
             self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=bar_type, timespan='minute')
-            df = self.data.between_time(self.trade.signal_time, '16:00:00')
+            df = self.data.between_time(self.search_time, '16:00:00')
             if exit_strategy == 'delayed':
                 results[f'{bar_type}-minute_{exit_strategy}'] = get_delaystrat_exit(df, self.trade.side, bar_type)
             elif exit_strategy == 'quick':
@@ -76,7 +98,7 @@ class exitSignals:
 #
 # trade = backtestTrade('2024-01-29', 'AAPL', 'SELL')
 # trade.position_size = -1000
-# trade.signal_time = '09:30:00'
+# trade.signal_time = '2024-01-29 09:30:00'
 # e = exitSignals(trade)
 # print(e.multi_bar_exit('quick'))
 # print(e.multi_bar_exit('delayed'))
