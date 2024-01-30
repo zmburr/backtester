@@ -1,4 +1,4 @@
-from data_queries.polygon_queries import get_intraday
+from data_queries.polygon_queries import get_intraday, timestamp_to_string
 
 
 class entrySignals:
@@ -19,7 +19,7 @@ class entrySignals:
             breakout_row = df[df['close'] < premarket_low].first_valid_index()
             index_pos = df.index.get_loc(breakout_row)
             row = df.iloc[index_pos]
-            self.trade.premarket_low_break_time = row.name
+            self.trade.premarket_low_break_time = timestamp_to_string(row.name)
             self.trade.premarket_low_break_price = row.close
         except KeyError:
             pass  # Handle exception or leave empty
@@ -31,7 +31,7 @@ class entrySignals:
             breakout_row = df[df['close'] > premarket_high].first_valid_index()
             index_pos = df.index.get_loc(breakout_row)
             row = df.iloc[index_pos]
-            self.trade.premarket_high_break_time = row.name
+            self.trade.premarket_high_break_time = timestamp_to_string(row.name)
             self.trade.premarket_high_break_price = row.close
         except KeyError:
             pass
@@ -46,7 +46,7 @@ class entrySignals:
                 breakout_row = df[df['close'] < open_price].first_valid_index()
             index_pos = df.index.get_loc(breakout_row)
             row = df.iloc[index_pos]
-            self.trade.open_price_break_time = row.name
+            self.trade.open_price_break_time = timestamp_to_string(row.name)
             self.trade.open_price_break_price = row.close
         except KeyError:
             pass
@@ -60,7 +60,7 @@ class entrySignals:
                 breakout_row = df[df['close'] < df['low'].shift(1)].first_valid_index()
             index_pos = df.index.get_loc(breakout_row)
             row = df.iloc[index_pos]
-            self.trade.two_min_break_time = row.name
+            self.trade.two_min_break_time = timestamp_to_string(row.name)
             self.trade.two_min_break_price = row.close
         except KeyError:
             pass
