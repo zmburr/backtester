@@ -73,7 +73,7 @@ class exitSignals:
         self.check_stop()
 
     def check_stop(self):
-        df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
+        df = self.data.between_time(self.search_time, add_two_hours(self.search_time)).copy()
         if self.trade.side == 1:
             df['stopped_out'] = df['low'] < self.trade.stop_price
         else:
