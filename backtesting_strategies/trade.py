@@ -80,3 +80,6 @@ class backtestTrade:
         self._4_minute_delayed_exit_price = delayed_exit_info['4-minute_delayed']['exit_price']
         self._5_minute_delayed_exit_time = delayed_exit_info['5-minute_delayed']['exit_time']
         self._5_minute_delayed_exit_price = delayed_exit_info['5-minute_delayed']['exit_price']
+
+    def to_dict(self):
+        return self.__dict__
