@@ -1,9 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
-from polygon import RESTClient
-from data_collectors.momentum_data_collection import get_intraday
+from data_queries.polygon_queries import get_intraday
 import logging
-from pct_captured import PercentCaptured
 
 exit_dict = {'one': 1,
              'two': 2,
@@ -11,7 +9,6 @@ exit_dict = {'one': 1,
              'four': 4,
              'five': 5}
 
-poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 
 df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\reversal_data.csv")
 
