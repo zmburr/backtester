@@ -33,7 +33,7 @@ def get_delaystrat_exit(df, side, bar_type):
     else:
         time = countertrends.index[0]
         exit_price = countertrends.iloc[0]["close"]
-    return {'exit_time': time, 'exit_price': round(exit_price, 2), 'bar_type': bar_type}
+    return {'exit_time': time, 'exit_price': round(exit_price, 2)}
 
 
 def get_quickstrat_exit(df, side, bar_type):
@@ -48,7 +48,7 @@ def get_quickstrat_exit(df, side, bar_type):
             exit_price = countertrends.iloc[0]["prev_low"] - .01
         else:
             exit_price = countertrends.iloc[0]["prev_high"] + .01
-    return {'exit_time': time, 'exit_price': round(exit_price, 2), 'bar_type': bar_type}
+    return {'exit_time': time, 'exit_price': round(exit_price, 2)}
 
 
 class exitSignals:
