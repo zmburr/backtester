@@ -63,9 +63,9 @@ class exitSignals:
             self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=bar_type, timespan='minute')
             df = self.data.between_time(self.trade.signal_time, '16:00:00')
             if exit_strategy == 'delayed':
-                results[f'{bar_type}-minute'] = get_delaystrat_exit(df, self.trade.side, bar_type)
+                results[f'{bar_type}-minute_{exit_strategy}'] = get_delaystrat_exit(df, self.trade.side, bar_type)
             elif exit_strategy == 'quick':
-                results[f'{bar_type}-minute'] = get_quickstrat_exit(df, self.trade.side, bar_type)
+                results[f'{bar_type}-minute_{exit_strategy}'] = get_quickstrat_exit(df, self.trade.side, bar_type)
         return results
 
     def on_close(self):
