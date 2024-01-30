@@ -15,6 +15,7 @@ class contingencyData:
         self.thirty_min_vol_pct = None
         # price return off open
         self.premarket_return = None
+        self.two_min_return = None
         self.five_min_return = None
         self.ten_min_return = None
         self.fifteen_min_return = None
@@ -39,6 +40,7 @@ class contingencyData:
         self.avg_daily_vol = self.adv['volume'].sum() / len(self.adv['volume'])
         self.data = get_intraday(self.ticker, self.date, multiplier=5, timespan='second')
         self.premarket_data = self.data.between_time('06:00:00', '09:29:59')
+        self.two_min_data = self.data.between_time('09:30:00', '09:32:00')
         self.five_min_data = self.data.between_time('09:30:00', '09:35:00')
         self.ten_min_data = self.data.between_time('09:30:00', '09:40:00')
         self.fifteen_min_data = self.data.between_time('09:30:00', '09:45:00')
@@ -60,6 +62,7 @@ class contingencyData:
 
     def get_return(self):
         self.premarket_return = self.premarket_data['close'].iloc[-1] / self.premarket_data['open'].iloc[0] - 1
+        self.two_min_return = self.two_min_data['close'].iloc[-1] / self.two_min_data['open'].iloc[0] - 1
         self.five_min_return = self.five_min_data['close'].iloc[-1] / self.five_min_data['open'].iloc[0] - 1
         self.ten_min_return = self.ten_min_data['close'].iloc[-1] / self.ten_min_data['open'].iloc[0] - 1
         self.fifteen_min_return = self.fifteen_min_data['close'].iloc[-1] / self.fifteen_min_data['open'].iloc[0] - 1
@@ -89,7 +92,7 @@ class contingencyData:
         initially_none_fields = [
             'premarket_vol_pct', 'five_min_vol_pct', 'ten_min_vol_pct', 'fifteen_min_vol_pct',
             'twenty_min_vol_pct', 'twenty_five_min_vol_pct', 'thirty_min_vol_pct',
-            'premarket_return', 'five_min_return', 'ten_min_return', 'fifteen_min_return',
+            'premarket_return', 'two_min_return','five_min_return', 'ten_min_return', 'fifteen_min_return',
             'twenty_min_return', 'twenty_five_min_return', 'thirty_min_return',
             'break_pre_low_5', 'break_pre_high_5', 'break_pre_low_10', 'break_pre_high_10',
             'break_pre_low_15', 'break_pre_high_15', 'break_pre_low_20', 'break_pre_high_20',

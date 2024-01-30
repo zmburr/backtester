@@ -7,8 +7,28 @@ from datetime import datetime
 import os
 from pytz import timezone
 from datetime import datetime, timedelta
+from pandas import Timestamp
 
 poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
+
+def add_two_hours(time_str):
+    # Parse the string to a datetime object
+    time_obj = datetime.strptime(time_str, '%H:%M:%S')
+
+    # Add two hours
+    new_time_obj = time_obj + timedelta(hours=2)
+
+    # Format back to a string
+    new_time_str = new_time_obj.strftime('%H:%M:%S')
+
+    return new_time_str
+
+
+def timestamp_to_string(timestamp_obj):
+    if isinstance(timestamp_obj, Timestamp):
+        return timestamp_obj.strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        raise TypeError("The provided object is not a Timestamp.")
 
 
 def _adjust_date(original_date, days_to_subtract):

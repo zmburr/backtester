@@ -1,18 +1,6 @@
-from data_queries.polygon_queries import get_intraday
+from data_queries.polygon_queries import get_intraday, add_two_hours
 from datetime import datetime, timedelta
 
-
-def add_two_hours(time_str):
-    # Parse the string to a datetime object
-    time_obj = datetime.strptime(time_str, '%H:%M:%S')
-
-    # Add two hours
-    new_time_obj = time_obj + timedelta(hours=2)
-
-    # Format back to a string
-    new_time_str = new_time_obj.strftime('%H:%M:%S')
-
-    return new_time_str
 
 
 def remove_halts(df):
@@ -75,9 +63,9 @@ class exitSignals:
     def check_stop(self):
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time)).copy()
         if self.trade.side == 1:
-            df['stopped_out'] = df['low'].min() < self.trade.stop_price
+            self.trade.stopped_out = True if df['low'].min() < self.trade.stop_price else False
         else:
-            df['stopped_out'] = df['high'].max() > self.trade.stop_price
+            self.trade.stopped_out = True if df['high'].max() > self.trade.stop_price else False
 
     def multi_bar_exit(self, exit_strategy):
         results = {}
