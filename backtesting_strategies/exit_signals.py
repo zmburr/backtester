@@ -75,9 +75,9 @@ class exitSignals:
     def check_stop(self):
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time)).copy()
         if self.trade.side == 1:
-            df['stopped_out'] = df['low'] < self.trade.stop_price
+            df['stopped_out'] = df['low'].min() < self.trade.stop_price
         else:
-            df['stopped_out'] = df['high'] > self.trade.stop_price
+            df['stopped_out'] = df['high'].max() > self.trade.stop_price
 
     def multi_bar_exit(self, exit_strategy):
         results = {}
