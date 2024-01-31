@@ -6,6 +6,7 @@ import pandas_market_calendars as mcal
 import os
 from pytz import timezone
 import logging
+from tabulate import tabulate
 
 df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv")
 
@@ -22,8 +23,11 @@ def find_time_of_high_price(data):
 
 
 def get_current_price(ticker, date):
-    wrong_date = datetime.strptime(date, '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    try:
+        wrong_date = datetime.strptime(date, '%m/%d/%Y')
+        date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    except ValueError:
+        pass
     data = get_daily(ticker, date)
     return data.open
 
@@ -51,8 +55,8 @@ def check_pct_move(row):
     ticker = row['ticker']
     wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
     date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    current_price = get_current_price(ticker, date)
     logging.info(f'Running check_pct_move for {ticker} on {date}')
+    current_price = get_current_price(ticker, date)
     try:
         pct_return_dict = get_ticker_pct_move(ticker, date, current_price)
         for key, value in pct_return_dict.items():
@@ -106,26 +110,25 @@ def check_breakout_stats(row):
     date = datetime.strftime(wrong_date, '%Y-%m-%d')
     logging.info(f'Running check_breakout_stats for {ticker} on {date}')
 
-    try:
-        daily_data = get_daily(ticker, date)
-        open_price = daily_data.open
-        close_price = daily_data.close
-        high_price = daily_data.high
+    # try:
+    daily_data = get_daily(ticker, date)
+    open_price = daily_data.open
+    close_price = daily_data.close
+    high_price = daily_data.high
 
-        day_after_data = get_daily(ticker, adjust_date_forward(date, 1))
-        day_after_open = day_after_data.open
+    day_after_data = get_daily(ticker, adjust_date_forward(date, 1))
+    day_after_open = day_after_data.open
+    post_high_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+    post_high = post_high_data.between_time('16:00:00', '20:00:00').high.max()
 
-        post_high_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-        post_high = post_high_data.between_time('16:00:00', '20:00:00').high.max()
-
-        # Calculating percentages
-        row['breakout_open_high_pct'] = (high_price - open_price) / open_price
-        row['breakout_open_close_pct'] = (close_price - open_price) / open_price
-        row['breakout_open_post_high_pct'] = (post_high - open_price) / open_price
-        row['breakout_open_to_day_after_open_pct'] = (day_after_open - open_price) / open_price
-        row['price_over_time'] = row['breakout_open_high_pct'] / 6.5
-    except:
-        print(f'Data doesnt exist for {ticker}')
+    # Calculating percentages
+    row['breakout_open_high_pct'] = (high_price - open_price) / open_price
+    row['breakout_open_close_pct'] = (close_price - open_price) / open_price
+    row['breakout_open_post_high_pct'] = (post_high - open_price) / open_price
+    row['breakout_open_to_day_after_open_pct'] = (day_after_open - open_price) / open_price
+    row['price_over_time'] = row['breakout_open_high_pct'] / 6.5
+    # except:
+    #     print(f'Data doesnt exist for {ticker}')
     return row
 
 
@@ -260,12 +263,11 @@ fill_functions = {
 }
 
 if __name__ == '__main__':
-    try:
-        for column, fill_function in fill_functions.items():
-            try:
-                df = df.apply(lambda row: fill_function(row) if pd.isna(row[column]) else row, axis=1)
-            except ValueError:
-                print('data doesnt exist')
-        df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)
-    except:
-        df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)
+    # try:
+    for column, fill_function in fill_functions.items():
+        df = df.apply(lambda row: fill_function(row) if pd.isna(row[column]) else row, axis=1)
+        # except ValueError:
+        #     print('data doesnt exist')
+    df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)
+    # except:
+    #     df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)

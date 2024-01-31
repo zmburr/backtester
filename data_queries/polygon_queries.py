@@ -11,6 +11,7 @@ from pandas import Timestamp
 
 poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 
+
 def add_two_hours(time_str):
     # Parse the string to a datetime object
     time_obj = datetime.strptime(time_str, '%H:%M:%S')
@@ -101,8 +102,7 @@ def get_intraday(ticker, date, multiplier, timespan):
 def _adjust_date_forw(original_date, days_to_add):
     nyse = mcal.get_calendar('NYSE')
     new_date = original_date + pd.Timedelta(days=days_to_add)
-    trading_days = nyse.valid_days(start_date=new_date, end_date=original_date)
-
+    trading_days = nyse.valid_days(start_date=new_date, end_date=new_date)
     if not trading_days.empty:
         adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
         if adjusted_date == original_date.strftime("%Y-%m-%d"):
