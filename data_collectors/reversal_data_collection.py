@@ -7,7 +7,7 @@ import os
 from pytz import timezone
 import logging
 
-df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\reversal_data.csv")
+df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv")
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -69,12 +69,12 @@ def get_spy(row):
 
     daily_data = get_daily(ticker, date)
     open_price = daily_data.open
-    low_price = daily_data.low
+    close = daily_data.close
 
     # Calculating percentages
-    spy_open_low_pct = (low_price - open_price) / open_price
-    row['spy_open_low_pct'] = spy_open_low_pct
-    row['move_together'] = True if spy_open_low_pct < 0 else False
+    spy_open_close_pct = (close - open_price) / open_price
+    row['spy_open_close_pct'] = spy_open_close_pct
+    row['move_together'] = True if spy_open_close_pct < 0 else False
     return row
 
 
@@ -203,7 +203,7 @@ fill_functions = {
     'reversal_open_to_day_after_open_pct': check_breakout_stats,
     'price_over_time': check_breakout_stats,
 
-    'spy_open_low_pct': get_spy,
+    'spy_open_close_pct': get_spy,
     'move_together': get_spy,
 
     'reversal_duration': get_duration,
