@@ -2,7 +2,6 @@ from data_queries.polygon_queries import get_intraday, add_two_hours
 from datetime import datetime, timedelta
 
 
-
 def remove_halts(df):
     return df[df["open"].notna()]
 
@@ -59,6 +58,7 @@ class exitSignals:
         self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=5, timespan='second')
         self.search_time = self.trade.signal_time[11:]
         self.check_stop()
+        self.on_close()
 
     def check_stop(self):
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time)).copy()
@@ -79,8 +79,10 @@ class exitSignals:
         return results
 
     def on_close(self):
-        return {'exit_time': '16:00:00', 'exit_price': self.data.iloc[-1].close}
-
+        close_data = self.data.between_time('15:59:00', '16:00:00')
+        self.trade.close_price = close_data.iloc[-1].close
+        self.trade.high_price = self.data.high.max()
+        self.trade.low_price = self.data.low.min()
 
 # from backtesting_strategies.trade import backtestTrade
 #

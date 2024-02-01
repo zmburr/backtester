@@ -1,4 +1,5 @@
-from  data_collectors.contingency_data import contingencyData
+from data_collectors.contingency_data import contingencyData
+
 
 class backtestTrade:
     def __init__(self, date, ticker, recommendation):
@@ -8,6 +9,11 @@ class backtestTrade:
         self.recommendation = recommendation
         self.position_size = 1000 if self.recommendation == 'BUY' else -1000
         self.side = 1 if self.position_size > 0 else -1
+        # Risk metrics
+        self.max_loss = None
+        self.max_profit = None
+        self.max_close_profit = None
+        self.risk_reward_ratio = None
         # signal info
         self.premarket_low_break_price = None
         self.premarket_low_break_time = None
@@ -25,6 +31,7 @@ class backtestTrade:
         self.stop_price = None
         self.stop_strategy = 'high_of_day' if self.side == -1 else 'low_of_day'
         self.stopped_out = False
+        self.drawdown = None
         # exit info
         self._2_minute_quick_exit_time = None
         self._2_minute_quick_exit_price = None
@@ -42,6 +49,9 @@ class backtestTrade:
         self._5_minute_quick_exit_price = None
         self._5_minute_delayed_exit_time = None
         self._5_minute_delayed_exit_price = None
+        self.close_price = None
+        self.high_price = None
+        self.low_price = None
         self.contingency_data = contingencyData(self.ticker, self.date).get_data()
 
     def determine_signal(self):
@@ -54,7 +64,8 @@ class backtestTrade:
         }
 
         # Filter out signals where the price or time is None
-        valid_signals = {name: (price, time) for name, (price, time) in signal_map.items() if price is not None and time is not None}
+        valid_signals = {name: (price, time) for name, (price, time) in signal_map.items() if
+                         price is not None and time is not None}
 
         if not valid_signals:
             # No valid signals, you might want to handle this case
@@ -62,11 +73,12 @@ class backtestTrade:
 
         if self.side == -1:
             # For short positions, take the max price and its corresponding time and name
-            self.best_signal, (self.signal_price, self.signal_time) = max(valid_signals.items(), key=lambda item: item[1][0])
+            self.best_signal, (self.signal_price, self.signal_time) = max(valid_signals.items(),
+                                                                          key=lambda item: item[1][0])
         else:
             # For long positions, take the min price and its corresponding time and name
-            self.best_signal, (self.signal_price, self.signal_time) = min(valid_signals.items(), key=lambda item: item[1][0])
-
+            self.best_signal, (self.signal_price, self.signal_time) = min(valid_signals.items(),
+                                                                          key=lambda item: item[1][0])
 
     def parse_exit_dicts(self, delayed_exit_info, quick_exit_info):
         self._2_minute_quick_exit_time = quick_exit_info['2-minute_quick']['exit_time']
@@ -89,3 +101,16 @@ class backtestTrade:
 
     def to_dict(self):
         return self.__dict__
+
+    def calculate_risk_metrics(self):
+        if self.signal_price is None or self.signal_time is None:
+            return
+        if self.side == 1:
+            self.max_loss = self.signal_price - self.stop_price
+            self.max_profit = self.high_price - self.signal_price
+            self.max_close_profit = self.close_price - self.signal_price
+        else:
+            self.max_loss = self.stop_price - self.signal_price
+            self.max_profit = self.signal_price - self.low_price
+            self.max_close_profit = self.signal_price - self.close_price
+        self.risk_reward_ratio = self.max_close_profit / self.max_loss

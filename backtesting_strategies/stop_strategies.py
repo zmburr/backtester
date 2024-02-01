@@ -1,4 +1,4 @@
-from data_queries.polygon_queries import get_intraday
+from data_queries.polygon_queries import get_intraday, add_two_hours
 
 
 class stopStrategies:
@@ -32,4 +32,17 @@ class stopStrategies:
             self.trade.stop_price = strategy_method()
         else:
             print(f"Unknown strategy: {self.trade.stop_strategy}")
+
+    def drawdown_to_stop(self):
+        df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
+        if self.trade.side == 1:
+            low = df.low.min()
+            if self.trade.stop_price:
+                drawdown = (self.trade.signal_price - low) / (self.trade.signal_price - self.trade.stop_price)
+                return drawdown
+        else:
+            high = df.high.max()
+            if self.trade.stop_price:
+                drawdown = (high - self.trade.signal_price) / (self.trade.stop_price - self.trade.signal_price)
+                return drawdown
 

@@ -1,6 +1,7 @@
 from data_queries.polygon_queries import get_intraday, timestamp_to_string, add_two_hours
 import logging
 
+
 class entrySignals:
     def __init__(self, trade):
         self.trade = trade
@@ -25,7 +26,8 @@ class entrySignals:
         premarket_low = self.data.between_time('06:00:00', '09:29:59').low.min()
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
         # Check if the trade side is 1 and five_min_return is less than 0
-        if self.trade.side == 1 and (self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data['two_min_return'] < 0):
+        if self.trade.side == 1 and (self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data[
+            'two_min_return'] < 0):
             breakout_row = df[df['close'] < premarket_low].first_valid_index()
             first_break_index_pos = df.index.get_loc(breakout_row)
             first_break_row = df.iloc[first_break_index_pos]
@@ -77,8 +79,11 @@ class entrySignals:
             self.trade.premarket_high_break_time = timestamp_to_string(row.name)
             self.trade.premarket_high_break_price = row.close
 
-    def open_price_break(self):
-        if ((self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data['two_min_return'] < 0) and self.trade.side == 1) or (self.trade.contingency_data['five_min_return'] > 0 and self.trade.side == -1):
+    def open_price_break(
+            self):  # TODO - fix open price where checks for open price break after 2 min or 5 min return - not off open AMD on jan 24 is good optimizing ex
+        if ((self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data[
+            'two_min_return'] < 0) and self.trade.side == 1) or (
+                self.trade.contingency_data['five_min_return'] > 0 and self.trade.side == -1):
             open_price = self.data.between_time('09:30:00', '16:00:00').iloc[0].open
             df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
             if self.trade.side == 1:
@@ -103,7 +108,3 @@ class entrySignals:
         row = df.iloc[index_pos]
         self.trade.two_min_break_time = timestamp_to_string(row.name)
         self.trade.two_min_break_price = row.close
-
-
-
-

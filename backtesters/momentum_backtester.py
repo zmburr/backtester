@@ -31,8 +31,10 @@ if __name__ == '__main__':
         quick_dict = exit.multi_bar_exit('quick')
         delayed_dict = exit.multi_bar_exit('delayed')
         trade.parse_exit_dicts(delayed_dict, quick_dict)
+        trade.calculate_risk_metrics()
         trades.append(trade.__dict__)
-        create_chart(trade)
+        if ticker == 'PLUG':
+            create_chart(trade)
 
     # Create a DataFrame from the collected trade details
     trades_df = pd.DataFrame(trades)

@@ -27,7 +27,7 @@ def create_chart(trade):
     add_signal_to_chart(trade.open_price_break_time, trade.open_price_break_price, 'pink', 'Open Price Break')
     add_signal_to_chart(trade.two_min_break_time, trade.two_min_break_price, 'cyan', '2 Min Break')
     add_signal_to_chart(trade.signal_time, trade.signal_price, 'yellow', 'Signal')
-    add_signal_to_chart(trade._5_minute_delayed_exit_time, trade._5_minute_delayed_exit_price, 'green', '5 Min Delayed Exit')
+    add_signal_to_chart(f'{trade.signal_time[:10]} 15:59:59', trade.close_price, 'green', 'Close Price')
 
     # Add stop price line
     fig.add_shape(type='line', x0=min(lt_df.index), x1=max(lt_df.index), y0=trade.stop_price,
