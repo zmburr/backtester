@@ -1,5 +1,5 @@
 from data_queries.polygon_queries import get_intraday, get_levels_data
-
+from tabulate import tabulate
 
 class contingencyData:
     def __init__(self, ticker, date):
@@ -85,7 +85,6 @@ class contingencyData:
         self.break_pre_high_30 = self.thirty_min_data['high'].max() > self.premarket_high
 
     def get_data(self):
-
         self.get_vol()
         self.get_return()
         self.get_breaks()

@@ -30,9 +30,9 @@ def create_chart(trade):
     add_signal_to_chart(f'{trade.signal_time[:10]} 15:59:59', trade.close_price, 'green', 'Close Price')
 
     # Add stop price line
-    fig.add_shape(type='line', x0=min(lt_df.index), x1=max(lt_df.index), y0=trade.stop_price,
-                  y1=trade.stop_price, line=dict(color="red", dash="dash"))
-    fig.add_annotation(x=trade.signal_time, y=trade.stop_price, text="Stop Price",
+    fig.add_shape(type='line', x0=min(lt_df.index), x1=max(lt_df.index), y0=trade.best_stop_price,
+                  y1=trade.best_stop_price, line=dict(color="red", dash="dash"))
+    fig.add_annotation(x=trade.signal_time, y=trade.best_stop_price, text="Stop Price",
                        showarrow=False, yshift=10, bgcolor="red")
 
     # Chart details
