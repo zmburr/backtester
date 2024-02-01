@@ -99,23 +99,32 @@ def get_intraday(ticker, date, multiplier, timespan):
     return df
 
 
-def _adjust_date_forw(original_date, days_to_add):
-    nyse = mcal.get_calendar('NYSE')
-    new_date = original_date + pd.Timedelta(days=days_to_add)
-    trading_days = nyse.valid_days(start_date=new_date, end_date=new_date)
-    if not trading_days.empty:
-        adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
-        if adjusted_date == original_date.strftime("%Y-%m-%d"):
-            return _adjust_date_forw(original_date, days_to_add + 1)
-        else:
-            return adjusted_date
-    else:
-        return "No valid trading days found"
-
-
 def adjust_date_forward(date_string, days_to_add):
-    date = pd.to_datetime(date_string)
-    return _adjust_date_forw(date, days_to_add)
+    # Validate and convert input date string to pandas.Timestamp
+    try:
+        date = pd.to_datetime(date_string)
+    except ValueError:
+        return "Invalid date format"
+
+    # Validate days_to_add is a non-negative integer
+    if not isinstance(days_to_add, int) or days_to_add < 0:
+        return "days_to_add must be a non-negative integer"
+
+    # Initialize NYSE calendar
+    nyse = mcal.get_calendar('NYSE')
+
+    # Add days to date and find the next valid trading day
+    new_date = date
+    while True:
+        new_date += pd.Timedelta(days=1)  # Increment the day
+        # Check if the new date is a valid trading day
+        trading_days = nyse.valid_days(start_date=new_date, end_date=new_date)
+        if not trading_days.empty:
+            # Found a valid trading day, format and return it
+            adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
+            break
+
+    return adjusted_date
 
 
 def get_price_with_fallback(ticker, base_date, days_ago):
