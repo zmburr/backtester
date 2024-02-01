@@ -7,10 +7,9 @@ from backtesting_strategies.entry_signals import entrySignals
 from backtesting_strategies.stop_strategies import stopStrategies
 from backtesting_strategies.exit_signals import exitSignals
 import logging
-
+from data_collectors.momentum_data_collection import df
 from tabulate import tabulate
 
-df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv")
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -25,7 +24,9 @@ if __name__ == '__main__':
         trade = backtestTrade(date, ticker, 'BUY')
         entry = entrySignals(trade)
         trade.determine_signal()
-        stop = stopStrategies(trade).set_stop_price()
+        s = stopStrategies(trade)
+        stop = s.set_stop_price()
+        trade.drawdown = s.drawdown_to_stop()
         exit = exitSignals(trade)
         quick_dict = exit.multi_bar_exit('quick')
         delayed_dict = exit.multi_bar_exit('delayed')

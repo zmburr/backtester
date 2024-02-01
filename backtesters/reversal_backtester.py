@@ -2,15 +2,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 from data_queries.polygon_queries import get_intraday
 import logging
+from data_collectors.reversal_data_collection import df
 
 exit_dict = {'one': 1,
              'two': 2,
              'three': 3,
              'four': 4,
              'five': 5}
-
-
-df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\reversal_data.csv")
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

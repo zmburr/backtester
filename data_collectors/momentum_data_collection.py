@@ -8,7 +8,7 @@ from pytz import timezone
 import logging
 from tabulate import tabulate
 
-df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv")
+df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -136,19 +136,17 @@ def get_spy(row):
     ticker = 'SPY'
     wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
     date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    logging.info(f'Running get_spy for {ticker} on {date}')
+    row_ticker = row['ticker']
+    logging.info(f'Running get_spy for {row_ticker} on {date}')
 
     daily_data = get_daily(ticker, date)
     open_price = daily_data.open
-    high_price = daily_data.high
-
-    post_high_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-    post_high = post_high_data.between_time('16:00:00', '20:00:00').high.max()
+    close = daily_data.close
 
     # Calculating percentages
-    spy_open_high_pct = (high_price - open_price) / open_price
-    row['spy_open_high_pct'] = spy_open_high_pct
-    row['move_together'] = True if spy_open_high_pct > 0 else False
+    spy_open_close_pct = (close - open_price) / open_price
+    row['spy_open_close_pct'] = spy_open_close_pct
+    row['move_together'] = True if spy_open_close_pct > 0 else False
     return row
 
 
@@ -246,7 +244,7 @@ fill_functions = {
     'breakout_open_to_day_after_open_pct': check_breakout_stats,
     'price_over_time': check_breakout_stats,
 
-    'spy_open_high_pct': get_spy,
+    'spy_open_close_pct': get_spy,
     'move_together': get_spy,
 
     'breakout_duration': get_duration,

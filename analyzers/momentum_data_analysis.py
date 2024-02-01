@@ -5,8 +5,8 @@ import pytz
 import plotly.graph_objects as go
 from pytz import timezone
 import logging
+from data_collectors.momentum_data_collection import df
 
-df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv")
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
