@@ -229,5 +229,5 @@ if __name__ == '__main__':
                 df = df.apply(lambda row: fill_function(row) if pd.isna(row[column]) else row, axis=1)
             except ValueError:
                 print('data doesnt exist')
-        df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\reversal_data.csv", index=False)
+        df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv", index=False)
 

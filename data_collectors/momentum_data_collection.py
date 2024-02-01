@@ -115,13 +115,16 @@ def check_breakout_stats(row):
     open_price = daily_data.open
     close_price = daily_data.close
     high_price = daily_data.high
+    day_before_data = get_daily(ticker, adjust_date_to_market(date, 1))
 
+    prev_close = day_before_data.close
     day_after_data = get_daily(ticker, adjust_date_forward(date, 1))
     day_after_open = day_after_data.open
     post_high_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
     post_high = post_high_data.between_time('16:00:00', '20:00:00').high.max()
 
     # Calculating percentages
+    row['gap_pct'] = (open_price - prev_close) / prev_close
     row['breakout_open_high_pct'] = (high_price - open_price) / open_price
     row['breakout_open_close_pct'] = (close_price - open_price) / open_price
     row['breakout_open_post_high_pct'] = (post_high - open_price) / open_price
@@ -243,6 +246,7 @@ fill_functions = {
     'breakout_open_post_high_pct': check_breakout_stats,
     'breakout_open_to_day_after_open_pct': check_breakout_stats,
     'price_over_time': check_breakout_stats,
+    'gap_pct': check_breakout_stats,
 
     'spy_open_close_pct': get_spy,
     'move_together': get_spy,
@@ -266,6 +270,6 @@ if __name__ == '__main__':
         df = df.apply(lambda row: fill_function(row) if pd.isna(row[column]) else row, axis=1)
         # except ValueError:
         #     print('data doesnt exist')
-    df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)
+    df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv", index=False)
     # except:
     #     df.to_csv("C:\\Users\\zmbur\\PycharmProjects\\InOffice\\data\\breakout_data.csv", index=False)
