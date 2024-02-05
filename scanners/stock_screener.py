@@ -5,7 +5,7 @@ import pandas as pd
 from data_collectors.reversal_data_collection import df
 from scipy.stats import percentileofscore
 
-columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'premarket_vol']
+columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'percent_of_premarket_vol']
 ai_stocks = ['NVDA', 'AMD', 'ANET', 'SMCI', 'GOOG', 'PLTR', 'MSFT', 'VRT', 'AVGO']
 # ai_stocks = ['NVDA']
 date = datetime.now().strftime('%Y-%m-%d')
@@ -13,8 +13,8 @@ date = datetime.now().strftime('%Y-%m-%d')
 
 def add_percent_of_adv_columns(volume_data):
     # List of volume columns to compare with avg_daily_vol
-    volume_columns = ['premarket_volume', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
-                      'vol_in_first_30_min', 'total_volume']
+    volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
+                      'vol_in_first_30_min', 'vol_on_breakout_day']
 
     # Ensure 'avg_daily_vol' is not 0 to avoid division by zero error
     if volume_data.get('avg_daily_vol', 0) > 0:
@@ -116,7 +116,7 @@ def filter_stocks(all_stocks_data, stock_type):
 
             },
             'volume_criteria': {
-                'percent_of_premarket_volume': .01
+                'percent_of_premarket_vol': .01
             }
         },
         'reversal': {
@@ -124,10 +124,10 @@ def filter_stocks(all_stocks_data, stock_type):
                 'pct_change_120': 0.3,  # Example criteria; adjust as necessary
                 'pct_change_90': 0.25,  # Negative values for reversal
                 'pct_change_30': 0.2,
-                'pct_change_15': 0.15
+                'pct_change_15': 0.14
             },
             'volume_criteria': {
-                'percent_of_premarket_volume': .01  # Example criterion; adjust as necessary
+                'percent_of_premarket_vol': .001  # Example criterion; adjust as necessary
             }
         }
     }
