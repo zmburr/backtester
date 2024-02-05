@@ -10,7 +10,9 @@ from tabulate import tabulate
 from datetime import datetime
 
 df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
-
+df = df.dropna(subset=['ticker'])
+df = df.dropna(subset=['date'])
+print(tabulate(df,headers=df.columns))
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -22,6 +24,14 @@ def find_time_of_high_price(data):
         time_of_high_price = data.index[idx_high_price + 1]
     return time_of_high_price
 
+
+def get_pct_volume(row):
+    volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
+                      'vol_in_first_30_min']
+    for col in volume_columns:
+        if col in row:
+            row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
+    return row
 
 def get_volume(row):
     ticker = row['ticker']
@@ -167,6 +177,11 @@ fill_functions = {
     'vol_in_first_5_min': get_volume,
     'vol_in_first_10_min': get_volume,
     'vol_in_first_30_min': get_volume,
+    'percent_of_premarket_vol': get_pct_volume,
+    'percent_of_vol_in_first_5_min': get_pct_volume,
+    'percent_of_vol_in_first_10_min': get_pct_volume,
+    'percent_of_vol_in_first_15_min': get_pct_volume,
+    'percent_of_vol_in_first_30_min': get_pct_volume,
 
     'pct_change_120': check_pct_move,
     'pct_change_90': check_pct_move,

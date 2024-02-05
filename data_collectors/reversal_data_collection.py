@@ -29,6 +29,15 @@ def get_current_price(ticker, date):
     return data.open
 
 
+def get_pct_volume(row):
+    volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
+                      'vol_in_first_30_min']
+    for col in volume_columns:
+        if col in row:
+            row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
+    return row
+
+
 def check_breakout_stats(row):
     ticker = row['ticker']
     wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
@@ -55,7 +64,6 @@ def check_breakout_stats(row):
         row['reversal_open_close_pct'] = (close_price - open_price) / open_price
         row['reversal_open_post_low_pct'] = (post_low - open_price) / open_price
         row['reversal_open_to_day_after_open_pct'] = (day_after_open - open_price) / open_price
-        row['price_over_time'] = row['pct_change_15'] / 6.5
     except:
         print(f'Data doesnt exist for {ticker}')
     return row
@@ -73,9 +81,15 @@ def get_spy(row):
     close = daily_data.close
 
     # Calculating percentages
-    spy_open_close_pct = (close - open_price) / open_price
+    try:
+        spy_open_close_pct = (close - open_price) / open_price
+    except TypeError:
+        spy_open_close_pct = None
     row['spy_open_close_pct'] = spy_open_close_pct
-    row['move_together'] = True if spy_open_close_pct < 0 else False
+    try:
+        row['move_together'] = True if spy_open_close_pct < 0 else False
+    except TypeError:
+        row['move_together'] = None
     return row
 
 
@@ -191,6 +205,12 @@ fill_functions = {
     'vol_in_first_5_min': get_volume,
     'vol_in_first_10_min': get_volume,
     'vol_in_first_30_min': get_volume,
+    'percent_of_premarket_vol': get_pct_volume,
+    'percent_of_vol_in_first_5_min': get_pct_volume,
+    'percent_of_vol_in_first_10_min': get_pct_volume,
+    'percent_of_vol_in_first_15_min': get_pct_volume,
+    'percent_of_vol_in_first_30_min': get_pct_volume,
+
 
     'pct_change_120': check_pct_move,
     'pct_change_90': check_pct_move,
@@ -202,7 +222,6 @@ fill_functions = {
     'reversal_open_close_pct': check_breakout_stats,
     'reversal_open_post_low_pct': check_breakout_stats,
     'reversal_open_to_day_after_open_pct': check_breakout_stats,
-    'price_over_time': check_breakout_stats,
 
     'spy_open_close_pct': get_spy,
     'move_together': get_spy,
