@@ -5,6 +5,7 @@ import pandas as pd
 from data_collectors.reversal_data_collection import df
 from scipy.stats import percentileofscore
 
+columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'premarket_vol']
 ai_stocks = ['NVDA', 'AMD', 'ANET', 'SMCI', 'GOOG', 'PLTR', 'MSFT', 'VRT', 'AVGO']
 # ai_stocks = ['NVDA']
 date = datetime.now().strftime('%Y-%m-%d')
@@ -138,7 +139,6 @@ def filter_stocks(all_stocks_data, stock_type):
             volume_criteria = criteria[stock_type]['volume_criteria']
 
             if does_stock_meet_criteria(data, pct_criteria, volume_criteria):
-                columns_to_compare = ['pct_change_120', 'pct_change_90','pct_change_30', 'pct_change_15', 'premarket_vol']
                 filtered_stocks[ticker] = data
                 percentiles = calculate_percentiles(df, data, columns_to_compare)
                 print(ticker, percentiles)
@@ -170,3 +170,6 @@ def convert_dict_to_df(filtered_stocks):
 all_stock_data = get_all_stocks_data(ai_stocks)
 reversal_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'reversal'))
 print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
+for ticker, data in all_stock_data.items():
+    percentiles = calculate_percentiles(df, data, columns_to_compare)
+    print(ticker, percentiles)
