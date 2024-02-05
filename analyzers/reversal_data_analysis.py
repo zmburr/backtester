@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from analyzers.momentum_data_analysis import analyze_volume_data_plotly, add_percent_of_adv_columns, analyze_percent_columns
 import logging
-from data_collectors.momentum_data_collection import df
+from data_collectors.reversal_data_collection import df
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -161,14 +161,14 @@ def correlate_volume(df):
 if __name__ == '__main__':
     df = clean_df(df)
     df = add_percent_of_adv_columns(df)
-    correlate_volume(df)
-    analyze_volume_data_plotly(df)
-    generate_heatmap(df)
-    pct_change_reversal_scatters(df)
-    time_of_reversal(df)
+    # correlate_volume(df)
+    # analyze_volume_data_plotly(df)
+    # generate_heatmap(df)
+    # pct_change_reversal_scatters(df)
+    # time_of_reversal(df)
     pct_change_box(df)
     boolean(df)
-    duration_analysis(df)
+    # duration_analysis(df)
     reversal_pct_change(df)
     percent_analysis = analyze_percent_columns(df)
     analysis_df = df[pct_change_columns].describe()

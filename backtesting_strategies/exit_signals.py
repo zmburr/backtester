@@ -57,15 +57,9 @@ class exitSignals:
         self.trade = trade
         self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=5, timespan='second')
         self.search_time = self.trade.signal_time[11:]
-        self.check_stop()
         self.on_close()
 
-    def check_stop(self):
-        df = self.data.between_time(self.search_time, add_two_hours(self.search_time)).copy()
-        if self.trade.side == 1:
-            self.trade.stopped_out = True if df['low'].min() < self.trade.stop_price else False
-        else:
-            self.trade.stopped_out = True if df['high'].max() > self.trade.stop_price else False
+
 
     def multi_bar_exit(self, exit_strategy):
         results = {}

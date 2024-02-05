@@ -1,5 +1,5 @@
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
-    adjust_date_to_market, get_intraday
+    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes
 import pandas as pd
 from datetime import datetime, timedelta
 import pandas_market_calendars as mcal
@@ -7,6 +7,7 @@ import os
 from pytz import timezone
 import logging
 from tabulate import tabulate
+from datetime import datetime
 
 df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
 
@@ -22,85 +23,16 @@ def find_time_of_high_price(data):
     return time_of_high_price
 
 
-def get_current_price(ticker, date):
-    try:
-        wrong_date = datetime.strptime(date, '%m/%d/%Y')
-        date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    except ValueError:
-        pass
-    data = get_daily(ticker, date)
-    return data.open
-
-
-def get_ticker_pct_move(ticker, date, current_price):
-    price_120dago = get_price_with_fallback(ticker, date, 120)
-    price_90dago = get_price_with_fallback(ticker, date, 90)
-    price_30dago = get_price_with_fallback(ticker, date, 30)
-    price_15dago = get_price_with_fallback(ticker, date, 15)
-
-    pct_change_120 = (current_price - price_120dago) / price_120dago if price_120dago else None
-    pct_change_90 = (current_price - price_90dago) / price_90dago if price_90dago else None
-    pct_change_30 = (current_price - price_30dago) / price_30dago if price_30dago else None
-    pct_change_15 = (current_price - price_15dago) / price_15dago if price_15dago else None
-
-    return {
-        "pct_change_120": pct_change_120,
-        "pct_change_90": pct_change_90,
-        "pct_change_30": pct_change_30,
-        "pct_change_15": pct_change_15
-    }
-
-
-def check_pct_move(row):
-    ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    logging.info(f'Running check_pct_move for {ticker} on {date}')
-    current_price = get_current_price(ticker, date)
-    try:
-        pct_return_dict = get_ticker_pct_move(ticker, date, current_price)
-        for key, value in pct_return_dict.items():
-            row[key] = value
-    except:
-        print(f'data doesnt exist for {ticker}')
-    return row
-
-
-from datetime import datetime
-
-
 def get_volume(row):
     ticker = row['ticker']
     wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
     date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-    adv = get_levels_data(ticker, date, 30, 1, 'day')
     logging.info(f'Running get_volume for {ticker} on {date}')
 
-    # Calculate total volume for the breakout day
-    avg_daily_vol = adv['volume'].sum() / len(adv['volume'])
-    total_volume = data['volume'].sum()
+    metrics = fetch_and_calculate_volumes(ticker, date)
 
-    # Calculate premarket volume
-    premarket_volume = data.between_time('06:00:00', '09:30:00')['volume'].sum()
-
-    # Calculate market volume for the first 15 minutes
-    market_volume_first_15_min = data.between_time('09:30:00', '09:45:00')['volume'].sum()
-
-    # Assuming there is a need to calculate volumes for different time intervals within the first 30 minutes
-    vol_in_first_5_min = data.between_time('09:30:00', '09:35:00')['volume'].sum()
-    vol_in_first_10_min = data.between_time('09:30:00', '09:40:00')['volume'].sum()
-    vol_in_first_30_min = data.between_time('09:30:00', '10:00:00')['volume'].sum()
-
-    # Update the row with new values
-    row['avg_daily_vol'] = avg_daily_vol
-    row['vol_on_breakout_day'] = total_volume
-    row['premarket_vol'] = premarket_volume
-    row['vol_in_first_15_min'] = market_volume_first_15_min
-    row['vol_in_first_5_min'] = vol_in_first_5_min
-    row['vol_in_first_10_min'] = vol_in_first_10_min
-    row['vol_in_first_30_min'] = vol_in_first_30_min
-
+    for key, value in metrics.items():
+        row[key] = value
     return row
 
 

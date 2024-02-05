@@ -8,6 +8,7 @@ import os
 from pytz import timezone
 from datetime import datetime, timedelta
 from pandas import Timestamp
+import logging
 
 poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 
@@ -23,6 +24,26 @@ def add_two_hours(time_str):
     new_time_str = new_time_obj.strftime('%H:%M:%S')
 
     return new_time_str
+
+
+def fetch_and_calculate_volumes(ticker, date):
+    # Assuming get_intraday and get_levels_data are defined elsewhere and fetch data from an API
+    data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+    adv = get_levels_data(ticker, date, 30, 1, 'day')
+    logging.info(f'Fetching and calculating volumes for {ticker} on {date}')
+
+    # Calculate metrics
+    metrics = {
+        'avg_daily_vol': adv['volume'].sum() / len(adv['volume']) if len(adv['volume']) > 0 else 0,
+        'total_volume': data['volume'].sum(),
+        'premarket_volume': data.between_time('06:00:00', '09:30:00')['volume'].sum(),
+        'market_volume_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
+        'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum(),
+        'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum(),
+        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum()
+    }
+
+    return metrics
 
 
 def timestamp_to_string(timestamp_obj):
@@ -138,3 +159,53 @@ def get_price_with_fallback(ticker, base_date, days_ago):
             pass
         days_ago -= 1
     return None  # or handle this case as needed
+
+
+def get_ticker_pct_move(ticker, date, current_price):
+    price_120dago = get_price_with_fallback(ticker, date, 120)
+    price_90dago = get_price_with_fallback(ticker, date, 90)
+    price_30dago = get_price_with_fallback(ticker, date, 30)
+    price_15dago = get_price_with_fallback(ticker, date, 15)
+
+    pct_change_120 = (current_price - price_120dago) / price_120dago if price_120dago else None
+    pct_change_90 = (current_price - price_90dago) / price_90dago if price_90dago else None
+    pct_change_30 = (current_price - price_30dago) / price_30dago if price_30dago else None
+    pct_change_15 = (current_price - price_15dago) / price_15dago if price_15dago else None
+
+    return {
+        "pct_change_120": pct_change_120,
+        "pct_change_90": pct_change_90,
+        "pct_change_30": pct_change_30,
+        "pct_change_15": pct_change_15
+    }
+
+
+def get_current_price(ticker, date):
+    try:
+        wrong_date = datetime.strptime(date, '%m/%d/%Y')
+        date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    except ValueError:
+        pass
+    data = get_daily(ticker, date)
+    return data.open
+
+
+# TODO - sub in trillium data
+def get_actual_current_price(ticker):
+    data = get_intraday(ticker, datetime.now().strftime('%Y-%m-%d'), 1, 'second')
+    return data.iloc[-1].close
+
+
+def check_pct_move(row):
+    ticker = row['ticker']
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running check_pct_move for {ticker} on {date}')
+    current_price = get_current_price(ticker, date)
+    try:
+        pct_return_dict = get_ticker_pct_move(ticker, date, current_price)
+        for key, value in pct_return_dict.items():
+            row[key] = value
+    except:
+        print(f'data doesnt exist for {ticker}')
+    return row

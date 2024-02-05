@@ -40,7 +40,7 @@ def add_percent_of_adv_columns(df):
     # Add new columns representing percent of avg_daily_vol
     for col in volume_columns:
         percent_col_name = f'percent_of_adv_{col}'
-        df[percent_col_name] = (df[col] / df['avg_daily_vol']) * 100
+        df[percent_col_name] = (df[col] / df['avg_daily_vol'])
 
     return df
 
