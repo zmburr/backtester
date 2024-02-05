@@ -35,10 +35,10 @@ def fetch_and_calculate_volumes(ticker, date):
     # Calculate metrics
     metrics = {
         'avg_daily_vol': adv['volume'].sum() / len(adv['volume']) if len(adv['volume']) > 0 else 0,
-        'total_volume': data['volume'].sum(),
-        'premarket_volume': data.between_time('06:00:00', '09:30:00')['volume'].sum(),
-        'market_volume_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
+        'vol_on_breakout_day': data['volume'].sum(),
+        'premarket_vol': data.between_time('06:00:00', '09:30:00')['volume'].sum(),
         'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum(),
+        'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
         'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum(),
         'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum()
     }
