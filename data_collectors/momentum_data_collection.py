@@ -12,7 +12,7 @@ from datetime import datetime
 df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
 df = df.dropna(subset=['ticker'])
 df = df.dropna(subset=['date'])
-print(tabulate(df,headers=df.columns))
+# print(tabulate(df,headers=df.columns))
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
