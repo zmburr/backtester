@@ -2,8 +2,7 @@ from data_queries.polygon_queries import get_ticker_pct_move, get_actual_current
 from datetime import datetime
 from tabulate import tabulate
 import pandas as pd
-from data_collectors.reversal_data_collection import df as reversal_df
-from data_collectors.momentum_data_collection import df as momentum_df
+from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 
 columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'percent_of_premarket_vol']
