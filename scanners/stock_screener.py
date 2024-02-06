@@ -2,7 +2,8 @@ from data_queries.polygon_queries import get_ticker_pct_move, get_actual_current
 from datetime import datetime
 from tabulate import tabulate
 import pandas as pd
-from data_collectors.reversal_data_collection import df
+from data_collectors.reversal_data_collection import df as reversal_df
+from data_collectors.momentum_data_collection import df as momentum_df
 from scipy.stats import percentileofscore
 
 columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'percent_of_premarket_vol']
@@ -109,10 +110,8 @@ def filter_stocks(all_stocks_data, stock_type):
     criteria = {
         'momentum': {
             'pct_criteria': {
-                'pct_change_120': 0.1,
-                'pct_change_90': 0.1,
-                'pct_change_30': 0.1,
-                'pct_change_15': 0.1
+                'pct_change_30': 0.15,
+                'pct_change_15': 0.05
 
             },
             'volume_criteria': {
@@ -140,7 +139,7 @@ def filter_stocks(all_stocks_data, stock_type):
 
             if does_stock_meet_criteria(data, pct_criteria, volume_criteria):
                 filtered_stocks[ticker] = data
-                percentiles = calculate_percentiles(df, data, columns_to_compare)
+                percentiles = calculate_percentiles(reversal_df, data, columns_to_compare)
                 print(ticker, percentiles)
     else:
         print(f"Unknown stock type: {stock_type}")
@@ -169,7 +168,11 @@ def convert_dict_to_df(filtered_stocks):
 
 all_stock_data = get_all_stocks_data(ai_stocks)
 reversal_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'reversal'))
-print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
+momentum_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'momentum'))
+# print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
+# print(tabulate(momentum_stocks, headers=momentum_stocks.columns))
 for ticker, data in all_stock_data.items():
-    percentiles = calculate_percentiles(df, data, columns_to_compare)
-    print(ticker, percentiles)
+    reversal_percentiles = calculate_percentiles(reversal_df, data, columns_to_compare)
+    momentum_percentiles = calculate_percentiles(momentum_df, data, columns_to_compare)
+    print(ticker, reversal_percentiles)
+    print(ticker, momentum_percentiles)
