@@ -47,7 +47,7 @@ def clean_df(df, analysis_type):
         df[col] = df[col].astype('category')
 
     # Convert numeric columns to float, excluding specific non-numeric columns
-    exclude_cols = categorical_columns + ['date', time_col, duration_col]
+    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk']
     numeric_cols = [col for col in df.columns if col not in exclude_cols]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -188,7 +188,10 @@ def boolean(df):
     boolean_columns = [
         't', 'move_together', 'close_at_highs', 'breaks_ath', 'breaks_fifty_two_wk', 'close_at_lows',
          'close_green_red', 'hit_green_red', 'hit_prior_day_hilo']
-
+    for col in boolean_columns:
+        if col in df.columns:
+            # This assumes that the data might be in string format. Adjust the condition if needed.
+            df[col] = df[col].replace({'TRUE': True, 'FALSE': False}).astype(bool)
     # Calculate the percentage of True values for each boolean column
     percent_true = {col: (df[col].sum() / len(df) * 100) for col in boolean_columns if col in df.columns}
     percent_true_df = pd.DataFrame(list(percent_true.items()), columns=['Column', 'Percentage of True Values'])
@@ -271,11 +274,11 @@ def pct_change_analysis(df, analysis_type):
 if __name__ == '__main__':
     reversal_df = clean_df(reversal_df, 'reversal')
     breakout_df = clean_df(momentum_df, 'breakout')
-    pct_change_analysis(reversal_df, 'reversal')
-    pct_change_analysis(breakout_df, 'breakout')
+    # pct_change_analysis(reversal_df, 'reversal')
+    # pct_change_analysis(breakout_df, 'breakout')
     boolean(reversal_df)
     boolean(breakout_df)
-    duration_analysis(reversal_df, 'reversal')
-    duration_analysis(breakout_df, 'breakout')
-    time_of_event(reversal_df, 'reversal')
-    time_of_event(breakout_df, 'breakout')
+    # duration_analysis(reversal_df, 'reversal')
+    # duration_analysis(breakout_df, 'breakout')
+    # time_of_event(reversal_df, 'reversal')
+    # time_of_event(breakout_df, 'breakout')
