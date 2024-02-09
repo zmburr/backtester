@@ -1,6 +1,5 @@
 from data_queries.polygon_queries import get_intraday, timestamp_to_string, add_two_hours
 import logging
-from backtesting_strategies.stop_strategies import stopStrategies
 
 
 class entrySignals:
@@ -20,7 +19,7 @@ class entrySignals:
             logging.info('No premarket high break found')
         try:
             self.open_price_break()
-        except:
+        except KeyError:
             logging.info('No open price break found')
         self.two_min_break()
 
