@@ -258,11 +258,10 @@ def get_duration(row, analysis_type):
     premarket_data = data.between_time('6:00:00', '09:29:59')
     regular_session_data = data.between_time('09:30:00', '16:00:00')
 
-    if analysis_type == 'breakout':
+    if analysis_type == 'momentum':
         premarket_extreme = premarket_data.high.max()
         time_of_extreme = find_time_of_high_price(regular_session_data)
         breakout_row = regular_session_data[regular_session_data['close'] > premarket_extreme].first_valid_index()
-
     elif analysis_type == 'reversal':
         premarket_extreme = premarket_data.low.min()
         time_of_extreme = find_time_of_low_price(regular_session_data)
@@ -279,7 +278,7 @@ def get_duration(row, analysis_type):
             breakout_time = regular_session_data.index[breakout_row]
 
         duration = time_of_extreme - breakout_time
-        key_prefix = 'breakout' if analysis_type == 'breakout' else 'reversal'
+        key_prefix = 'breakout' if analysis_type == 'momentum' else 'reversal'
         row[f'time_of_{key_prefix}'] = breakout_time
         row[f'{key_prefix}_duration'] = duration
 
