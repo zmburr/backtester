@@ -1,13 +1,25 @@
-from scanners.stock_screener import calculate_percentiles
-from data_queries.trlm_live_data import TrlmData
 import threading
 from datetime import datetime, timedelta
 import warnings
 import logging
+import gtts
+import os
+from playsound import playsound
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import pytz
+
+
+def play_sounds(text):
+    try:
+        tts = gtts.gTTS(text)
+        tempfile = "./temps.mp3"
+        tts.save(tempfile)
+        playsound(tempfile)
+        os.remove(tempfile)
+    except AssertionError:
+        print("could not play sound")
 
 
 def get_time_elapsed(headline_time, current_time):
@@ -114,7 +126,7 @@ class TradeManager:
             # Watch stops for first x minutes: watch profit taking after x minutes
             if not self.time_elapsed > timedelta(minutes=60):
                 if self.count > 1:
-                    try:  # TODO - create code to set stop
+                    try:
                         self.run_stop_watcher(position_size=self.position_size, stop_price=self.trade.stop_price,
                                               last_price=self.stop_focus.close, profit_strategy='stopped_out')
                         self.watch_open_price()
@@ -186,10 +198,12 @@ class TradeManager:
 
         if position_size > 0 and last_price < stop_price:
             self.logger.info(f'STOP TRIGGERED - mkt sell {self.ticker} @ {last_price} after {self.time_elapsed}')
+            playsound(f'stopped out on {self.trade.ticker}')
             # self.close_trade(last_price, self.time_elapsed, profit_strategy)
 
         elif position_size < 0 and last_price > stop_price:
             self.logger.info(f'STOP TRIGGERED - mkt buy {self.ticker} @ {last_price} after {self.time_elapsed}')
+            playsound(f'stopped out on {self.trade.ticker}')
             # self.close_trade(last_price, self.time_elapsed, profit_strategy)
 
     def check_for_halt(self, df):
@@ -245,14 +259,15 @@ class TradeManager:
             self.trade.open_price = None
         else:
             self.trade.open_price = temp_df.iloc[0]
+            print(self.trade.open_price)
         if self.trade.open_price is not None:
             if self.trade.side == 1:
                 if self.stop_focus.close > self.trade.open_price:
-                    # TODO - insert playsound here
+                    playsound('open price break')
                     self.logger.info(f'Open Price Break - {self.ticker} @ {self.stop_focus.close}')
             else:
                 if self.stop_focus.close < self.trade.open_price:
-                    # TODO - insert playsound here
+                    playsound('open price break')
                     self.logger.info(f'Open Price Break - {self.ticker} @ {self.stop_focus.close}')
 
     def watch_premarket(self):
