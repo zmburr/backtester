@@ -12,12 +12,10 @@ time = now_time.strftime('%Y-%m-%d %H:%M:%S')
 
 live_test = {
     'headline_time': time,
-    'ticker': 'SOXL',
-    'recommendation': 'BUY',
+    'ticker': 'NVDA',
+    'recommendation': 'SELL',
     'profit_strategy': '5_min_close'
 }
-
-
 
 
 def live_main(headline_time, ticker, recommendation, profit_strategy):

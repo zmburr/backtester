@@ -21,6 +21,7 @@ class Trade:
         self.open_price = None
         self.profit_strategy = None
         self.stop_price = None
+        self.daily = get_daily(self.ticker, self.date)
 
     def set_low_high_of_day(self):
         self.low_of_day = self.data.between_time('09:30:00', self.current_time).low.min()
@@ -39,6 +40,5 @@ class Trade:
                 self.stop_price = self.premarket_high
 
     def set_open(self):
-        daily = get_daily(self.ticker, self.date)
-        self.open_price = daily['open']
+        self.open_price = self.daily['open']
         logging.info(f'set open price {self.open_price}')

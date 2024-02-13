@@ -72,6 +72,7 @@ def get_daily(ticker, date):
 
     # Get intraday data
     df = get_intraday(ticker, date, 'bar-1day')
+
     df.index = df.index.tz_convert(eastern)
 
     # Get open, close, high, and low prices
@@ -79,8 +80,8 @@ def get_daily(ticker, date):
     close_price = df['close'].iloc[0]
     high_price = df['high'].iloc[0]
     low_price = df['low'].iloc[0]
-
-    return {'open': open_price, 'close': close_price, 'high': high_price, 'low': low_price}
+    volume = df['volume'].iloc[0]
+    return {'open': open_price, 'close': close_price, 'high': high_price, 'low': low_price, 'volume' : volume}
 
 
 def get_vwap(ticker, date):
