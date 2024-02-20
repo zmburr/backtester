@@ -13,6 +13,18 @@ import logging
 poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 
 
+def get_atr(ticker, date):
+    # ATR is the greatest of the following: high-low / high - previous close / low - previous close
+    df = get_levels_data(ticker, date, 60, 1, 'day')
+    df['high-low'] = df['high'] - df['low']
+    df['high-previous_close'] = abs(df['high'] - df['close'].shift())
+    df['low-previous_close'] = abs(df['low'] - df['close'].shift())
+    df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+    df['ATR'] = df['TR'].rolling(window=14).mean()
+    atr = (df['ATR'][-1])
+    return atr
+
+
 def add_two_hours(time_str):
     # Parse the string to a datetime object
     time_obj = datetime.strptime(time_str, '%H:%M:%S')

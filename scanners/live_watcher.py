@@ -5,21 +5,27 @@ import logging
 import gtts
 import os
 from playsound import playsound
-from data_queries.polygon_queries import get_levels_data
+from data_queries.polygon_queries import get_levels_data, get_atr
+from data_queries.trillium_queries import adjust_date_to_market
 from scipy.stats import percentileofscore
+from data_collectors.combined_data_collection import reversal_df, momentum_df
+from stock_screener import get_stock_data
+from tabulate import tabulate
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import pytz
 from data_queries.trillium_queries import get_daily
 
+
 def play_sounds(text):
     try:
         tts = gtts.gTTS(text)
-        tempfile = "./temps.mp3"
+        tempfile = "C:\\Users\\zmbur\\PycharmProjects\\backtester\\scanners\\temps.mp3"
         tts.save(tempfile)
-        playsound(tempfile)
+        playsound(tempfile, block=False)
         os.remove(tempfile)
-    except AssertionError:
+    except:
         print("could not play sound")
 
 
@@ -95,13 +101,15 @@ class TradeManager:
     def __init__(self, trade, profit_strategy):
         self.trade = trade
         self.ticker = self.trade.ticker
+        self.stock_data = get_stock_data(self.ticker)
         self.start_time = self.trade.start_time
         self.position_size = self.trade.position_size
         self.closed = False
         self.profit_strategy = profit_strategy
         self.handle = None
         self.adv_data = get_levels_data(self.ticker, self.trade.date, 30, 1, 'day')
-        self.adv = self.adv_data['volume'].sum() / len(self.adv_data['volume']) if len(self.adv_data['volume']) > 0 else 0
+        self.adv = self.adv_data['volume'].sum() / len(self.adv_data['volume']) if len(
+            self.adv_data['volume']) > 0 else 0
         self.logger = logging.getLogger(self.__class__.__name__)
         self.time_elapsed = timedelta(0)
         self.trade_df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume', 'vwap', 'transactions', 'otc'])
@@ -109,15 +117,19 @@ class TradeManager:
         self.profit_df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume', 'vwap'])
         self.profit_df.index = pd.to_datetime(self.profit_df.index)
         self.current_time = None
+        self.percentiles = None
         self.stop_focus = None
         self.prior_bar_low = None
         self.prior_bar_high = None
         self.prior_bar_out = None
         self.acceleration = None
         self.pct_volume = None
+        self.open_break = False
+        self.premarket_break = False
         self.new_data_event = threading.Event()
         self.count = 0
         self.logger.info(f'managing starting for ticker: {self.ticker}')
+        self.run_range_watcher()
 
     def run(self):
         while self.closed is False:
@@ -136,6 +148,7 @@ class TradeManager:
                         self.watch_open_price()
                         self.run_volume_watcher()
                         self.watch_premarket()
+                        self.get_percentiles(reversal_df if self.trade.side == -1 else momentum_df, self.stock_data, 'percent_of_vol_on_breakout_day')
                     except TypeError:
                         # if TypeError: check for halt as None Type would be supplied for last price
                         self.check_for_halt(self.trade_df)
@@ -200,17 +213,34 @@ class TradeManager:
         :param profit_strategy: Type of watcher ('2_min_close' or 'stopped_out').
         :return: String indicating the result of the operation.
         """
-        self.logger.info(f'Time Elapsed: {self.time_elapsed} Last Price: {last_price}, Stop Price: {stop_price}, Percent Vol: {self.pct_volume}')
+        self.logger.info(
+            f'Time Elapsed: {self.time_elapsed} Last Price: {last_price}, Stop Price: {stop_price}, Percent Vol: {self.pct_volume}, Percentiles: {self.percentiles}')
 
         if position_size > 0 and last_price < stop_price:
             self.logger.info(f'STOP TRIGGERED - mkt sell {self.ticker} @ {last_price} after {self.time_elapsed}')
-            playsound(f'stopped out on {self.trade.ticker}')
-            # self.close_trade(last_price, self.time_elapsed, profit_strategy)
+            play_sounds(f'stopped out on {self.trade.ticker}')
+            self.close_trade(last_price, self.time_elapsed, profit_strategy)
 
         elif position_size < 0 and last_price > stop_price:
             self.logger.info(f'STOP TRIGGERED - mkt buy {self.ticker} @ {last_price} after {self.time_elapsed}')
-            playsound(f'stopped out on {self.trade.ticker}')
-            # self.close_trade(last_price, self.time_elapsed, profit_strategy)
+            play_sounds(f'stopped out on {self.trade.ticker}')
+            self.close_trade(last_price, self.time_elapsed, profit_strategy)
+
+    def get_percentiles(self, df, stock_data, columns):
+        percentiles = {}
+        df = df.dropna(subset=columns)
+        stock_data = stock_data[self.ticker]        # Ensure stock_data is a DataFrame for easier handling
+        if isinstance(stock_data, dict):
+            flat_data = {**stock_data, **stock_data['pct_data'], **stock_data['volume_data']}
+            flat_data.pop('pct_data', None)
+            flat_data.pop('volume_data', None)
+            stock_data_df = pd.DataFrame([flat_data])
+        else:
+            stock_data_df = stock_data
+        value = self.pct_volume
+        percentiles['percent_of_vol_on_breakout_day'] = percentileofscore(df['percent_of_vol_on_breakout_day'], value, kind='weak')
+
+        self.percentiles = percentiles
 
     def check_for_halt(self, df):
         """
@@ -260,26 +290,30 @@ class TradeManager:
         return filtered_df
 
     def watch_open_price(self):
-        if self.trade.open_price is not None:
+        if self.trade.open_price is not None and self.open_break is False:
             if self.trade.side == 1:
                 if self.stop_focus.close > self.trade.open_price:
-                    playsound('open price break')
+                    play_sounds('open price break')
+                    self.open_break = True
                     self.logger.info(f'Open Price Break - {self.ticker} @ {self.stop_focus.close}')
             else:
                 if self.stop_focus.close < self.trade.open_price:
-                    playsound('open price break')
+                    play_sounds('open price break')
+                    self.open_break = True
                     self.logger.info(f'Open Price Break - {self.ticker} @ {self.stop_focus.close}')
 
     def watch_premarket(self):
+        if self.premarket_break is False:
             if self.trade.side == 1:
                 if self.stop_focus.close > self.trade.premarket_high:
-                    playsound('premarket high break')
+                    play_sounds('premarket high break')
+                    self.premarket_break = True
                     self.logger.info(f'Premarket High Break - {self.ticker} @ {self.stop_focus.close}')
             else:
                 if self.stop_focus.close < self.trade.premarket_low:
-                    playsound('premarket low break')
+                    play_sounds('premarket low break')
+                    self.premarket_break = True
                     self.logger.info(f'Premarket Low Break - {self.ticker} @ {self.stop_focus.close}')
-
 
     def run_volume_watcher(self):
         """
@@ -297,10 +331,26 @@ class TradeManager:
             cumulative_volume = self.trade.daily['volume']
             self.pct_volume = cumulative_volume / self.adv
 
-
     def run_key_level_watcher(self):
         """
         Function will watch for key levels/call(put) walls - place orders infront or take note of key level breaks.
         :return:
         """
         pass
+
+    def run_range_watcher(self):
+        """
+        Function to watch for range expansion.
+        :return:
+        """
+        atr = get_atr(self.ticker, self.trade.date)
+        df = get_levels_data(self.ticker, self.trade.date, 60, 1, 'day')
+        df['high-low'] = df['high'] - df['low']
+        df['high-previous_close'] = abs(df['high'] - df['close'].shift())
+        df['low-previous_close'] = abs(df['low'] - df['close'].shift())
+        df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+        df['PCT_ATR'] = (df['TR'] / atr) * 100
+        print(tabulate(df, headers=df.columns))
+        range = df['TR'][-1]
+        pct_of_atr = (range / atr) * 100
+        self.logger.info(f'Range Expansion - {self.ticker}: Percent of ATR: {pct_of_atr} Range:{range} ATR: {atr}')
