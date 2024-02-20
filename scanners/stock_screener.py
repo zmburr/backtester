@@ -5,7 +5,7 @@ import pandas as pd
 from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 
-columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'percent_of_premarket_vol']
+columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'pct_change_3','percent_of_premarket_vol']
 ai_stocks = ['NVDA', 'AMD', 'ANET', 'SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'NTNX','SNOW', 'RXRX', 'CFLT', 'MDB', 'COHR', 'DELL']
 # ai_stocks = ['NVDA']
 date = datetime.now().strftime('%Y-%m-%d')
@@ -122,7 +122,8 @@ def filter_stocks(all_stocks_data, stock_type):
                 'pct_change_120': 0.3,  # Example criteria; adjust as necessary
                 'pct_change_90': 0.25,  # Negative values for reversal
                 'pct_change_30': 0.2,
-                'pct_change_15': 0.14
+                'pct_change_15': 0.14,
+                'pct_change_3': 0.01
             },
             'volume_criteria': {
                 'percent_of_premarket_vol': .001  # Example criterion; adjust as necessary
