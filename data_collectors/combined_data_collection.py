@@ -160,14 +160,13 @@ def get_conditionals(row, analysis_type):
 
     try:
         daily_data = get_daily(ticker, date)
-        fifty_two_week_high = get_levels_data(ticker, adjust_date_to_market(date, 1), 365, 1, 'day')
-        all_time_high = get_levels_data(ticker, adjust_date_to_market(date, 1), 1200, 1, 'day')
+        fifty_two_week_high = get_levels_data(ticker, adjust_date_to_market(date, 1), 365, 1, 'day').high.max()
+        all_time_high = get_levels_data(ticker, adjust_date_to_market(date, 1), 1200, 1, 'day').high.max()
         high_price = daily_data.high
         low_price = daily_data.low
         close_price = daily_data.close
         breaks_fifty_two_week_high = high_price > fifty_two_week_high
         breaks_all_time_high = high_price > all_time_high
-
         row['breaks_fifty_two_wk'] = breaks_fifty_two_week_high
         row['breaks_ath'] = breaks_all_time_high
 
@@ -307,6 +306,7 @@ fill_functions_momentum = {
     'pct_change_90': check_pct_move,
     'pct_change_30': check_pct_move,
     'pct_change_15': check_pct_move,
+    'pct_change_3': check_pct_move,
 
     'breakout_open_high_pct': check_breakout_stats,
     'breakout_open_close_pct': check_breakout_stats,
@@ -349,6 +349,7 @@ fill_functions_reversal = {
     'pct_change_90': check_pct_move,
     'pct_change_30': check_pct_move,
     'pct_change_15': check_pct_move,
+    'pct_change_3': check_pct_move,
 
     'gap_pct':check_breakout_stats,
     'reversal_open_low_pct': check_breakout_stats,
