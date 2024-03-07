@@ -40,5 +40,17 @@ class Trade:
                 self.stop_price = self.premarket_high
 
     def set_open(self):
-        self.open_price = self.daily['open']
-        logging.info(f'set open price {self.open_price}')
+        attempt = 0
+        max_attempts = 3
+
+        while attempt < max_attempts:
+            if self.daily.get('open') is not None:
+                self.open_price = self.daily['open']
+                logging.info(f'set open price {self.open_price}')
+                break
+            else:
+                attempt += 1
+                logging.warning(f'Attempt {attempt}: Open price not found, retrying...')
+
+        if attempt == max_attempts:
+            logging.error('Failed to set open price after 3 attempts')
