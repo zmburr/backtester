@@ -1,4 +1,4 @@
-from data_queries.polygon_queries import get_ticker_pct_move, get_actual_current_price, fetch_and_calculate_volumes
+from data_queries.polygon_queries import get_actual_current_price, get_levels_data, get_atr, fetch_and_calculate_volumes, get_ticker_pct_move
 from datetime import datetime
 from tabulate import tabulate
 import pandas as pd
@@ -6,10 +6,65 @@ from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 
 columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'pct_change_3','percent_of_premarket_vol']
-ai_stocks = ['NVDA', 'AMD', 'ANET', 'SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'NTNX','SNOW', 'RXRX', 'CFLT', 'MDB', 'COHR', 'DELL']
-# ai_stocks = ['NVDA']
+# watchlist = ['NVDA','ROOT','AMD','MSTR','SMR','BITO' ,'ANET', 'SYM','SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'COIN','SNOW', 'RXRX', 'DELL']
+watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','DJT','TSLA']
 date = datetime.now().strftime('%Y-%m-%d')
 
+
+def range_expansion_watcher(watchlist, date):
+    """
+    Function to watch for range expansion across a list of stocks.
+    :param watchlist: List of stock tickers to scan for range expansion.
+    :param date: The date for which to perform the analysis.
+    """
+    results = []
+
+    for ticker in watchlist:
+        try:
+            # Get the ATR and levels data for the stock
+            atr = get_atr(ticker, date)
+            df = get_levels_data(ticker, date, 60, 1, 'day')
+
+            # Calculate True Range (TR) components
+            df['high-low'] = df['high'] - df['low']
+            df['high-previous_close'] = abs(df['high'] - df['close'].shift())
+            df['low-previous_close'] = abs(df['low'] - df['close'].shift())
+
+            # Calculate the True Range (TR)
+            df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+
+            # Calculate the percentage of ATR
+            df['PCT_ATR'] = (df['TR'] / atr) * 100
+
+            # Get the latest range and percentage of ATR
+            latest_range = df['TR'].iloc[-1]
+            day_before_range = df['TR'].iloc[-2]
+            pct_of_atr = (latest_range / atr) * 100
+            day_before_pct_of_atr = (day_before_range/atr)  * 100
+
+            # Log the range expansion information
+            result = {
+                'Ticker': ticker,
+                'Range': latest_range,
+                'ATR': atr,
+                'Percent of ATR': pct_of_atr,
+                'Day Before % ATR': day_before_pct_of_atr
+            }
+            results.append(result)
+
+            # Print the table for each stock (optional)
+            print(f"\nRange Expansion Data for {ticker}:")
+            print(tabulate(df, headers=df.columns, tablefmt='grid'))
+
+        except Exception as e:
+            print(f"Error processing {ticker}: {e}")
+
+    # Convert results to DataFrame for better readability
+    results_df = pd.DataFrame(results)
+    print("\nSummary of Range Expansion for Watchlist:")
+    print(tabulate(results_df, headers=results_df.columns, tablefmt='grid'))
+
+    return results_df
 
 def add_percent_of_adv_columns(volume_data):
     # List of volume columns to compare with avg_daily_vol
@@ -39,12 +94,14 @@ def get_stock_data(ticker):
     pct_data = get_ticker_pct_move(ticker, date, current_price)
     volume_data = fetch_and_calculate_volumes(ticker, date)
     volume_data = add_percent_of_adv_columns(volume_data)
+    # if ticker =='ROOT':
+    #     print(pct_data)
     return {ticker: {'pct_data': pct_data, 'volume_data': volume_data}}
 
 
-def get_all_stocks_data(ai_stocks):
+def get_all_stocks_data(watchlist):
     all_data = {}
-    for ticker in ai_stocks:
+    for ticker in watchlist:
         ticker_data = get_stock_data(ticker)
         all_data.update(ticker_data)
     return all_data
@@ -165,14 +222,32 @@ def convert_dict_to_df(filtered_stocks):
     #     df.drop(each, axis=0, inplace=True)
     return df
 
+
 if __name__ == '__main__':
-    all_stock_data = get_all_stocks_data(ai_stocks)
+    all_stock_data = get_all_stocks_data(watchlist)
     reversal_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'reversal'))
     momentum_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'momentum'))
+    range_expansion_results = range_expansion_watcher(watchlist, date)
+    range_expansion_results_sorted = range_expansion_results.sort_values(by='Percent of ATR', ascending=False)
     # print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
     # print(tabulate(momentum_stocks, headers=momentum_stocks.columns))
+    reversal_results = []
+    momentum_results = []
     for ticker, data in all_stock_data.items():
         reversal_percentiles = calculate_percentiles(reversal_df, data, columns_to_compare)
         momentum_percentiles = calculate_percentiles(momentum_df, data, columns_to_compare)
-        print('reversal', ticker, reversal_percentiles)
-        print('momentum', ticker, momentum_percentiles)
+        reversal_results.append((ticker, reversal_percentiles))
+        momentum_results.append((ticker, momentum_percentiles))
+        # print('reversal', ticker, reversal_percentiles)
+        # print('momentum', ticker, momentum_percentiles)
+    reversal_sorted = sorted(reversal_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
+    momentum_sorted = sorted(momentum_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
+    print("Sorted Reversal Stocks:")
+    for ticker, percentiles in reversal_sorted:
+        print('reversal', ticker, percentiles)
+
+    print("\nRange Expansion Results:")
+    print(tabulate(range_expansion_results_sorted, headers=range_expansion_results_sorted.columns, tablefmt='grid'))
+    print("\nSorted Momentum Stocks:")
+    for ticker, percentiles in momentum_sorted:
+        print('momentum', ticker, percentiles)
