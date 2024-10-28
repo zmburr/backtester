@@ -53,17 +53,15 @@ def range_expansion_watcher(watchlist, date):
             results.append(result)
 
             # Print the table for each stock (optional)
-            print(f"\nRange Expansion Data for {ticker}:")
-            print(tabulate(df, headers=df.columns, tablefmt='grid'))
+            if result['Percent of ATR'] > 100:
+                print(f"\nRange Expansion Data for {ticker}:")
+                print(tabulate(df, headers=df.columns, tablefmt='grid'))
 
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
 
     # Convert results to DataFrame for better readability
     results_df = pd.DataFrame(results)
-    print("\nSummary of Range Expansion for Watchlist:")
-    print(tabulate(results_df, headers=results_df.columns, tablefmt='grid'))
-
     return results_df
 
 def add_percent_of_adv_columns(volume_data):
@@ -242,13 +240,16 @@ if __name__ == '__main__':
     momentum_sorted = sorted(momentum_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
     print("Sorted Reversal Stock Percentiles:")
     for ticker, percentiles in reversal_sorted:
-        print('reversal', ticker, percentiles)
+        # Extract pct_data values for the ticker from all_stock_data
+        pct_data = all_stock_data.get(ticker, {}).get('pct_data', {})
+        pct_data_str = ', '.join([f"{k}: {v}" for k, v in pct_data.items()])
+        print(f'reversal {ticker}, percentiles: {percentiles}, Absolute PCT Changes (in hundreds): {pct_data_str}')
 
     range_expansion_results = range_expansion_watcher(watchlist, date)
     range_expansion_results_sorted = range_expansion_results.sort_values(by='Percent of ATR', ascending=False)
     print("\nRange Expansion Results:")
     print(tabulate(range_expansion_results_sorted, headers=range_expansion_results_sorted.columns, tablefmt='grid'))
 
-    print("\nSorted Momentum Stocks Percentiles:")
-    for ticker, percentiles in momentum_sorted:
-        print('momentum', ticker, percentiles)
+    # print("\nSorted Momentum Stocks Percentiles:")
+    # for ticker, percentiles in momentum_sorted:
+    #     print('momentum', ticker, percentiles)
