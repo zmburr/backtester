@@ -227,8 +227,6 @@ if __name__ == '__main__':
     all_stock_data = get_all_stocks_data(watchlist)
     reversal_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'reversal'))
     momentum_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'momentum'))
-    range_expansion_results = range_expansion_watcher(watchlist, date)
-    range_expansion_results_sorted = range_expansion_results.sort_values(by='Percent of ATR', ascending=False)
     # print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
     # print(tabulate(momentum_stocks, headers=momentum_stocks.columns))
     reversal_results = []
@@ -242,12 +240,15 @@ if __name__ == '__main__':
         # print('momentum', ticker, momentum_percentiles)
     reversal_sorted = sorted(reversal_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
     momentum_sorted = sorted(momentum_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
-    print("Sorted Reversal Stocks:")
+    print("Sorted Reversal Stock Percentiles:")
     for ticker, percentiles in reversal_sorted:
         print('reversal', ticker, percentiles)
 
+    range_expansion_results = range_expansion_watcher(watchlist, date)
+    range_expansion_results_sorted = range_expansion_results.sort_values(by='Percent of ATR', ascending=False)
     print("\nRange Expansion Results:")
     print(tabulate(range_expansion_results_sorted, headers=range_expansion_results_sorted.columns, tablefmt='grid'))
-    print("\nSorted Momentum Stocks:")
+
+    print("\nSorted Momentum Stocks Percentiles:")
     for ticker, percentiles in momentum_sorted:
         print('momentum', ticker, percentiles)
