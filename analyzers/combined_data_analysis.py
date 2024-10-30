@@ -339,6 +339,27 @@ def pct_change_analysis(df, analysis_type):
     print(stats)
 
 
+def analyze_gaps(df):
+    # Define the list of setups
+    setups = ['1DMeanRevert', '2DGapFade', '3DGapFade', '2DBreakoutIB', '1DBreakoutIB']
+    fig_box = go.Figure()
+
+    for setup in setups:
+        # Filter DataFrame for each setup
+        setup_df = df[df['setup'] == setup]
+
+        # Add a box plot for 'gap_pct' with the setup name as the trace name
+        fig_box.add_trace(go.Box(y=setup_df['gap_pct'], name=setup))
+
+    # Update layout for better readability
+    fig_box.update_layout(
+        title="Box Plot of Gap Percentage by Setup",
+        xaxis_title="Setup Types",
+        yaxis_title="Gap Percentage (%)"
+    )
+    fig_box.show()
+
+
 if __name__ == '__main__':
     cleaned_reversal_df = clean_df(reversal_df, 'reversal')
     # breakout_df = clean_df(momentum_df, 'breakout')
@@ -349,5 +370,6 @@ if __name__ == '__main__':
     duration_analysis(cleaned_reversal_df, 'reversal')
     # duration_analysis(breakout_df, 'breakout')
     time_of_event(cleaned_reversal_df, 'reversal')
+    analyze_gaps(cleaned_reversal_df)
     # time_of_event(breakout_df, 'breakout')
     plot_time_of_high_price_distribution(cleaned_reversal_df)
