@@ -3,6 +3,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import pytz
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 from pytz import timezone
 import logging
 from data_collectors.combined_data_collection import momentum_df
@@ -36,6 +37,17 @@ def clean_df(df, analysis_type):
     time_col = 'time_of_breakout' if analysis_type == 'breakout' else 'time_of_reversal'
     df[time_col] = pd.to_datetime(df[time_col], utc=True).dt.tz_convert('America/New_York')
 
+    if 'time_of_high_price' in df.columns:
+        if pd.api.types.is_integer_dtype(df['time_of_high_price']):
+            df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce',
+                                                      unit='s').dt.tz_localize('UTC').dt.tz_convert('America/New_York')
+        else:
+            df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce',
+                                                      utc=True).dt.tz_convert('America/New_York')
+
+        # Confirm after all conversions
+        print("Data type of 'time_of_high_price' after conversion in clean_df:", df['time_of_high_price'].dtype)
+
     # Convert duration to timedelta
     duration_col = 'breakout_duration' if analysis_type == 'breakout' else 'reversal_duration'
     if duration_col in df.columns:
@@ -54,6 +66,26 @@ def clean_df(df, analysis_type):
 
     return df
 
+
+def plot_time_of_high_price_distribution(df, analysis_type):
+    df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce', utc=True).dt.tz_convert(
+        'America/New_York')
+    print("Data type of 'time_of_high_price' after inline conversion:", df['time_of_high_price'].dtype)
+
+    # Bucket times into 30-minute intervals
+    df['time_of_high_price'] = df['time_of_high_price'].dt.floor('30T')
+
+    # Frequency analysis
+    time_buckets = df['time_of_high_price'].dt.time.value_counts().sort_index()
+
+    # Plot the frequency chart using Plotly
+    fig = px.bar(
+        x=[str(time) for time in time_buckets.index],
+        y=time_buckets.values,
+        labels={'x': 'Time of Day', 'y': 'Frequency'},
+        title="Frequency of High Price Time by 30-Minute Buckets"
+    )
+    fig.show()
 
 def analyze_volume_data_plotly(df):
     # Filter columns that represent percent of ADV
@@ -174,7 +206,7 @@ def time_of_event(df, analysis_type):
     total_events = len(df)
     event_frequency = df[event_time_col].value_counts().sort_index() / total_events * 100
 
-    # Generate and display the bar chart
+    # Generate and display the bar chart using plotly
     fig = px.bar(x=event_frequency.index, y=event_frequency.values,
                  labels={'x': 'Time of Day', 'y': f'Percentage of Total {analysis_type.capitalize()}s (%)'})
     title = f"Distribution of {analysis_type.capitalize()} Times as Percentage of Total (EST)"
@@ -272,13 +304,14 @@ def pct_change_analysis(df, analysis_type):
 
 
 if __name__ == '__main__':
-    reversal_df = clean_df(reversal_df, 'reversal')
-    breakout_df = clean_df(momentum_df, 'breakout')
-    # pct_change_analysis(reversal_df, 'reversal')
+    cleaned_reversal_df = clean_df(reversal_df, 'reversal')
+    # breakout_df = clean_df(momentum_df, 'breakout')
+    # pct_change_analysis(cleaned_reversal_df, 'reversal')
     # pct_change_analysis(breakout_df, 'breakout')
-    boolean(reversal_df)
-    boolean(breakout_df)
-    # duration_analysis(reversal_df, 'reversal')
+    # boolean(reversal_df)
+    # boolean(breakout_df)
+    # duration_analysis(cleaned_reversal_df, 'reversal')
     # duration_analysis(breakout_df, 'breakout')
-    # time_of_event(reversal_df, 'reversal')
+    # time_of_event(cleaned_reversal_df, 'reversal')
     # time_of_event(breakout_df, 'breakout')
+    plot_time_of_high_price_distribution(cleaned_reversal_df, 'reversal')
