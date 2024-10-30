@@ -23,6 +23,15 @@ def find_time_of_high_price(data):
         time_of_high_price = data.index[idx_high_price + 1]
     return time_of_high_price
 
+def fill_function_time_of_high_price(row):
+    ticker = row['ticker']
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running fill_function_time_of_high_price for {ticker} on {date}')
+    data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+    time_of_high_price = find_time_of_high_price(data)
+    row['time_of_high_price'] = time_of_high_price
+    return row
 
 def find_time_of_low_price(data):
     time_of_low_price = data['low'].idxmin()
@@ -362,6 +371,7 @@ fill_functions_reversal = {
 
     'reversal_duration': get_duration,
     'time_of_reversal': get_duration,
+    'time_of_high_price': fill_function_time_of_high_price,
 
     # For conditional data
     'breaks_fifty_two_wk': get_conditionals,
