@@ -29,6 +29,7 @@ def clean_df(df, analysis_type):
     Returns:
     - The cleaned DataFrame.
     """
+    print("Setup column before cleaning:", df['setup'].head(), df['setup'].dtype)
 
     # Convert 'date' column to datetime
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
@@ -59,29 +60,49 @@ def clean_df(df, analysis_type):
         df[col] = df[col].astype('category')
 
     # Convert numeric columns to float, excluding specific non-numeric columns
-    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk']
+    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk','setup','time_of_high_price']
     numeric_cols = [col for col in df.columns if col not in exclude_cols]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
+    print("Setup column after cleaning:", df['setup'].head(), df['setup'].dtype)
 
     return df
 
 
-def plot_time_of_high_price_distribution(df, analysis_type):
+def plot_time_of_high_price_distribution(df, setup_type=None):
+    """
+    Generates a frequency chart showing the distribution of high price times in 30-minute intervals.
+
+    Parameters:
+    - df: DataFrame containing the data.
+    - play_type: A string specifying the type of play (e.g., 'reversal').
+    - setup_type: Optional string to filter the DataFrame by setup type.
+    """
+    # Apply filtering if setup_type is provided
+    print(df['setup'])
+
+    if setup_type:
+        df = df[df['setup'] == setup_type]
+        print(df['setup'])
+        # Convert time_of_high_price to datetime
     df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce', utc=True).dt.tz_convert(
         'America/New_York')
+
+    # Confirm type after conversion
     print("Data type of 'time_of_high_price' after inline conversion:", df['time_of_high_price'].dtype)
 
     # Bucket times into 30-minute intervals
     df['time_of_high_price'] = df['time_of_high_price'].dt.floor('30T')
 
-    # Frequency analysis
-    time_buckets = df['time_of_high_price'].dt.time.value_counts().sort_index()
+    # Frequency analysis: convert to DataFrame for Plotly compatibility
+    time_buckets = df['time_of_high_price'].dt.time.value_counts().sort_index().reset_index()
+    time_buckets.columns = ['Time of Day', 'Frequency']
 
     # Plot the frequency chart using Plotly
     fig = px.bar(
-        x=[str(time) for time in time_buckets.index],
-        y=time_buckets.values,
+        time_buckets,
+        x='Time of Day',
+        y='Frequency',
         labels={'x': 'Time of Day', 'y': 'Frequency'},
         title="Frequency of High Price Time by 30-Minute Buckets"
     )
@@ -306,12 +327,12 @@ def pct_change_analysis(df, analysis_type):
 if __name__ == '__main__':
     cleaned_reversal_df = clean_df(reversal_df, 'reversal')
     # breakout_df = clean_df(momentum_df, 'breakout')
-    # pct_change_analysis(cleaned_reversal_df, 'reversal')
+    pct_change_analysis(cleaned_reversal_df, 'reversal')
     # pct_change_analysis(breakout_df, 'breakout')
     # boolean(reversal_df)
     # boolean(breakout_df)
-    # duration_analysis(cleaned_reversal_df, 'reversal')
+    duration_analysis(cleaned_reversal_df, 'reversal')
     # duration_analysis(breakout_df, 'breakout')
-    # time_of_event(cleaned_reversal_df, 'reversal')
+    time_of_event(cleaned_reversal_df, 'reversal')
     # time_of_event(breakout_df, 'breakout')
-    plot_time_of_high_price_distribution(cleaned_reversal_df, 'reversal')
+    plot_time_of_high_price_distribution(cleaned_reversal_df)
