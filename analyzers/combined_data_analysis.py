@@ -29,8 +29,6 @@ def clean_df(df, analysis_type):
     Returns:
     - The cleaned DataFrame.
     """
-    print("Setup column before cleaning:", df['setup'].head(), df['setup'].dtype)
-
     # Convert 'date' column to datetime
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
 
@@ -47,7 +45,6 @@ def clean_df(df, analysis_type):
                                                       utc=True).dt.tz_convert('America/New_York')
 
         # Confirm after all conversions
-        print("Data type of 'time_of_high_price' after conversion in clean_df:", df['time_of_high_price'].dtype)
 
     # Convert duration to timedelta
     duration_col = 'breakout_duration' if analysis_type == 'breakout' else 'reversal_duration'
@@ -64,7 +61,6 @@ def clean_df(df, analysis_type):
     numeric_cols = [col for col in df.columns if col not in exclude_cols]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
-    print("Setup column after cleaning:", df['setup'].head(), df['setup'].dtype)
 
     return df
 
@@ -79,7 +75,6 @@ def plot_time_of_high_price_distribution(df, setup_type=None):
     - setup_type: Optional string to filter the DataFrame by setup type.
     """
     # Apply filtering if setup_type is provided
-    print(df['setup'])
 
     if setup_type:
         df = df[df['setup'] == setup_type]
@@ -197,10 +192,30 @@ def pct_change_breakout_scatters(df, analysis_type):
 
 def pct_change_box(df):
     fig_box = go.Figure()
+
     for col in pct_change_columns:
-        fig_box.add_trace(go.Box(y=df[col], name=col))
-    fig_box.update_layout(title="Box Plot of Percent Change Data", xaxis_title="Pct Change Types",
-                          yaxis_title="Pct Change")
+        # Create a label for each data point, using ticker and date
+        labels = [
+            f"Ticker: {ticker}<br>Date: {date}<br>Value: {value:.2f}"
+            for ticker, date, value in zip(df['ticker'], df['date'], df[col])
+        ]
+
+        # Add a box plot trace with the custom labels for each data point
+        fig_box.add_trace(
+            go.Box(
+                y=df[col],
+                name=col,
+                text=labels,
+                hovertemplate="%{text}<extra></extra>"  # Ensures only custom text is shown
+            )
+        )
+
+    # Update layout with titles
+    fig_box.update_layout(
+        title="Box Plot of Percent Change Data",
+        xaxis_title="Pct Change Types",
+        yaxis_title="Pct Change"
+    )
     fig_box.show()
 
 
