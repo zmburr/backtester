@@ -352,6 +352,7 @@ fill_functions_reversal = {
     'percent_of_vol_in_first_10_min': get_pct_volume,
     'percent_of_vol_in_first_15_min': get_pct_volume,
     'percent_of_vol_in_first_30_min': get_pct_volume,
+    'percent_of_vol_on_breakout_day': get_pct_volume,
 
 
     'pct_change_120': check_pct_move,
