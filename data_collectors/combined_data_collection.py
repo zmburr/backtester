@@ -50,7 +50,7 @@ def get_current_price(ticker, date):
 
 def get_pct_volume(row):
     volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
-                      'vol_in_first_30_min']
+                      'vol_in_first_30_min','vol_on_breakout_day']
     for col in volume_columns:
         if col in row:
             row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
