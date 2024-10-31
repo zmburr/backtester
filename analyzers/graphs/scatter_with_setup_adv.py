@@ -59,10 +59,10 @@ def create_interactive_scatter_dropdown(data):
         return fig
 
     # Run the Dash app (commented out as it cannot be run in this environment)
-    app.run_server(debug=True)
+    # app.run_server(debug=True)
 
 
 # Call the function to initialize the app (This would be run locally)
-create_interactive_scatter_dropdown(reversal_df)
+# create_interactive_scatter_dropdown(reversal_df)
 
 
