@@ -52,10 +52,10 @@ def range_expansion_watcher(watchlist, date):
             }
             results.append(result)
 
-            # Print the table for each stock (optional)
-            # if result['Percent of ATR'] > 100:
-            #     print(f"\nRange Expansion Data for {ticker}:")
-            #     print(tabulate(df, headers=df.columns, tablefmt='grid'))
+           # Print the table for each stock (optional)
+            if result['Ticker'] == 'DJT':
+                print(f"\nRange Expansion Data for {ticker}:")
+                print(tabulate(df, headers=df.columns, tablefmt='grid'))
 
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
