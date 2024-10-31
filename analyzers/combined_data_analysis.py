@@ -57,7 +57,7 @@ def clean_df(df, analysis_type):
         df[col] = df[col].astype('category')
 
     # Convert numeric columns to float, excluding specific non-numeric columns
-    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk','setup','time_of_high_price']
+    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk','setup','time_of_high_price','intraday_setup']
     numeric_cols = [col for col in df.columns if col not in exclude_cols]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce')
