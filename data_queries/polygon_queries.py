@@ -69,7 +69,9 @@ def _adjust_date(original_date, days_to_subtract):
     nyse = mcal.get_calendar('NYSE')
     new_date = original_date - pd.Timedelta(days=days_to_subtract)
     trading_days = nyse.valid_days(start_date=new_date, end_date=original_date)
-
+    if days_to_subtract == 3:
+        if len(trading_days) < days_to_subtract:
+            return _adjust_date(original_date, days_to_subtract + 1)
     if not trading_days.empty:
         adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
         if adjusted_date == original_date.strftime("%Y-%m-%d"):
@@ -178,17 +180,20 @@ def get_ticker_pct_move(ticker, date, current_price):
     price_90dago = get_price_with_fallback(ticker, date, 90)
     price_30dago = get_price_with_fallback(ticker, date, 30)
     price_15dago = get_price_with_fallback(ticker, date, 15)
+    price_3dago = get_price_with_fallback(ticker, date, 3)
 
     pct_change_120 = (current_price - price_120dago) / price_120dago if price_120dago else None
     pct_change_90 = (current_price - price_90dago) / price_90dago if price_90dago else None
     pct_change_30 = (current_price - price_30dago) / price_30dago if price_30dago else None
     pct_change_15 = (current_price - price_15dago) / price_15dago if price_15dago else None
+    pct_change_3 = (current_price - price_3dago) / price_3dago if price_3dago else None
 
     return {
         "pct_change_120": pct_change_120,
         "pct_change_90": pct_change_90,
         "pct_change_30": pct_change_30,
-        "pct_change_15": pct_change_15
+        "pct_change_15": pct_change_15,
+        "pct_change_3": pct_change_3
     }
 
 
