@@ -28,5 +28,4 @@ for screen in screen_names:
 # Remove any duplicates by converting to a set, then back to a list if necessary
 cleaned_tickers = list(set(cleaned_tickers))
 
-# Display the combined list of unique, cleaned tickers
-print(cleaned_tickers)
+
