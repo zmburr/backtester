@@ -8,9 +8,9 @@ import plotly.graph_objects as go
 
 def filter_data(df, market_cap=None, setup=None):
     filtered_df = df.copy()
-    if market_cap:
+    if market_cap is not None:  # Check if market_cap is provided
         filtered_df = filtered_df[filtered_df['cap'].isin(market_cap)]
-    if setup:
+    if setup is not None:  # Check if setup is provided
         filtered_df = filtered_df[filtered_df['setup'].isin(setup)]
     return filtered_df
 
@@ -19,8 +19,14 @@ def filter_data(df, market_cap=None, setup=None):
 
 if __name__ == '__main__':
     cap = 'Medium'
-    setup = '3DGapFade'
-    filtered_reversal_df = filter_data(reversal_df, market_cap=[cap], setup=[setup])
+    setup = None
+
+    # Adjust filtering input: Pass setup only if it is not None
+    market_cap_filter = [cap] if cap else None
+    setup_filter = [setup] if setup else None
+
+
+    filtered_reversal_df = filter_data(reversal_df, market_cap=market_cap_filter, setup=setup_filter)
     cleaned_reversal_df = clean_df(filtered_reversal_df, 'reversal')
     # Features and target
     model, features = run_predictor_model(cleaned_reversal_df,use_gradient_boosting=True)
