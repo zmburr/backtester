@@ -18,10 +18,12 @@ def run_predictor_model(df, use_gradient_boosting=False):
     - model: Trained regression model.
     - features: List of features used.
     """
-    # Updated features with additional pct_change columns
+    # Updated features with additional pre-reversal and volume metrics
     features = [
-        'pct_from_10mav', 'pct_from_20mav',
-        'gap_pct', 'pct_change_3', 'pct_change_15', 'pct_change_30'
+        'pct_from_10mav', 'pct_from_20mav', 'gap_pct',
+        'pct_change_3', 'pct_change_15', 'pct_change_30',
+        'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
+        'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before'
     ]
     target = 'reversal_open_low_pct'
 
@@ -69,8 +71,10 @@ def tune_random_forest(df):
     - best_model: Best tuned Random Forest model.
     """
     features = [
-        'pct_from_10mav', 'pct_from_20mav',
-        'gap_pct', 'pct_change_3', 'pct_change_15', 'pct_change_30'
+        'pct_from_10mav', 'pct_from_20mav', 'gap_pct',
+        'pct_change_3', 'pct_change_15', 'pct_change_30',
+        'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
+        'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before'
     ]
     target = 'reversal_open_low_pct'
 
