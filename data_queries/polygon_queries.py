@@ -98,7 +98,6 @@ def fetch_and_calculate_volumes(ticker, date):
 
 def get_range_expansion_data(ticker, date):
     logging.info(f'Fetching and calculating range expansion data for {ticker} on {date}')
-    atr = get_atr(ticker, date)
     df = get_levels_data(ticker, date, 30, 1, 'day')
     # Calculate True Range (TR) components
     df['high-low'] = df['high'] - df['low']
@@ -107,20 +106,15 @@ def get_range_expansion_data(ticker, date):
 
     # Calculate the True Range (TR)
     df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
-
+    df['ATR'] = df['TR'].rolling(window=14, min_periods=1).mean()
     # Calculate the percentage of ATR
-    df['PCT_ATR'] = (df['TR'] / atr)
+    df['PCT_ATR'] = (df['TR'] / df['ATR'])
 
     # Get the latest range and percentage of ATR
-    day_of_range = df['TR'].iloc[-1]
-    day_before_range = df['TR'].iloc[-2]
-    two_d_before_range = df['TR'].iloc[-3]
-    three_d_before_range = df['TR'].iloc[-4]
-    pct_of_atr = (day_of_range / atr)
-    day_before_pct_of_atr = (day_before_range / atr)
-    two_d_before_pct_of_atr = (two_d_before_range / atr)
-    three_d_before_pct_of_atr = (three_d_before_range / atr)
-
+    pct_of_atr = df['PCT_ATR'].iloc[-1]
+    day_before_pct_of_atr = df['PCT_ATR'].iloc[-2]
+    two_d_before_pct_of_atr = df['PCT_ATR'].iloc[-3]
+    three_d_before_pct_of_atr = df['PCT_ATR'].iloc[-4]
     metrics = {
         'day_of_range_pct': pct_of_atr,
         'one_day_before_range_pct': day_before_pct_of_atr,
