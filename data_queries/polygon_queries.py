@@ -53,7 +53,7 @@ def get_ticker_mavs_open(ticker, date):
             mav = poly_client.get_sma(
                 ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=window, series_type='close'
             ).values[0].value
-            return (open_price - mav) / mav * 100
+            return (open_price - mav) / mav
         except (AttributeError, IndexError, TypeError) as e:
             print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
             return None
