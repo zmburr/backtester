@@ -7,7 +7,7 @@ today_date = datetime.today().strftime('%Y-%m-%d')
 
 # Define a list of screen names to fetch tickers from
 screen_names = ['Medium Cap Reversal Scanner', 'micro cap offering stocks',
-                'ETF Reversal Screen','large/mega reversal screen']  # Add as many screens as needed
+                'large/mega reversal screen']  # Add as many screens as needed
 
 # Initialize an empty list to store cleaned tickers
 cleaned_tickers = []
