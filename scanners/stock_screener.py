@@ -4,10 +4,16 @@ from tabulate import tabulate
 import pandas as pd
 from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
+from data_queries.bloomberg_screener import cleaned_tickers
 
 columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'pct_change_3','percent_of_premarket_vol']
 # watchlist = ['NVDA','ROOT','AMD','MSTR','SMR','BITO' ,'ANET', 'SYM','SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'COIN','SNOW', 'RXRX', 'DELL']
-watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','DJT','TSLA']
+my_watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','RKLB','TSLA','COIN','LMND','IBIT']
+tickers_to_remove = ['SILJ', 'XMTR', 'SMST','AGFY','MDXG','TEO','DAVE','GBTC','BITI','BITO','CERO','NPWR','MDXG','IBIT','BITO','SILJ','BITU','CTOS','CERO','PLAG','MVST','ATEC']  # Replace with actual tickers
+watchlist = list(set(my_watchlist + cleaned_tickers))
+watchlist = [ticker for ticker in watchlist if ticker not in tickers_to_remove]
+# watchlist = ['MSTR']
+print(watchlist)
 date = datetime.now().strftime('%Y-%m-%d')
 
 
@@ -36,11 +42,15 @@ def range_expansion_watcher(watchlist, date):
             # Calculate the percentage of ATR
             df['PCT_ATR'] = (df['TR'] / atr) * 100
 
+            # Calculate the 30-day average daily volume and current day's volume
+            df['30Day_Avg_Volume'] = df['volume'].rolling(window=30).mean()
+            df['Pct_Volume_30Day_Avg'] = (df['volume'] / df['30Day_Avg_Volume']) * 100
+
             # Get the latest range and percentage of ATR
             latest_range = df['TR'].iloc[-1]
             day_before_range = df['TR'].iloc[-2]
             pct_of_atr = (latest_range / atr) * 100
-            day_before_pct_of_atr = (day_before_range/atr)  * 100
+            day_before_pct_of_atr = (day_before_range / atr) * 100
 
             # Log the range expansion information
             result = {
@@ -48,17 +58,19 @@ def range_expansion_watcher(watchlist, date):
                 'Range': latest_range,
                 'ATR': atr,
                 'Percent of ATR': pct_of_atr,
-                'Day Before % ATR': day_before_pct_of_atr
+                'Day Before % ATR': day_before_pct_of_atr,
+                'Pct Volume 30-Day Avg': df['Pct_Volume_30Day_Avg'].iloc[-1]
             }
             results.append(result)
 
-           # Print the table for each stock (optional)
-            if result['Ticker'] == 'DJT':
+            # Print the table for each stock (optional)
+            if result['Ticker'] == 'MSTR':
                 print(f"\nRange Expansion Data for {ticker}:")
                 print(tabulate(df, headers=df.columns, tablefmt='grid'))
 
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
+
 
     # Convert results to DataFrame for better readability
     results_df = pd.DataFrame(results)
