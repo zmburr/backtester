@@ -165,14 +165,17 @@ def adjust_date_forward(date_string, days_to_add):
 def get_price_with_fallback(ticker, base_date, days_ago):
     while days_ago > 0:
         try:
-            price = get_daily(ticker, adjust_date_to_market(base_date, days_ago)).close
-            if price is not None:
+            # Fetch the adjusted market date and get the daily price
+            adjusted_date = adjust_date_to_market(base_date, days_ago)
+            price = get_daily(ticker, adjusted_date).close
+            if price is not None:  # Check if the price exists
                 return price
         except Exception as e:
-            # Handle specific exceptions if necessary
-            pass
+            # Optional: Log the exception for debugging
+            # print(f"Error fetching price for {ticker} on {adjusted_date}: {e}")
+            pass  # Continue decrementing days if an exception occurs
         days_ago -= 1
-    return None  # or handle this case as needed
+    return 0  # or handle this case as needed
 
 
 def get_ticker_pct_move(ticker, date, current_price):
@@ -209,9 +212,17 @@ def get_current_price(ticker, date):
 
 # TODO - sub in trillium data
 def get_actual_current_price(ticker):
-    data = get_intraday(ticker, datetime.now().strftime('%Y-%m-%d'), 1, 'second')
-    return data.iloc[-1].close
-
+    try:
+        data = get_intraday(ticker, datetime.now().strftime('%Y-%m-%d'), 1, 'second')
+        price = data.iloc[-1].close
+        if price:
+            return price
+        else:
+            data = get_intraday(ticker, datetime.now().strftime('%Y-%m-%d'), 1, 'minute')
+            price = data.iloc[-1].close
+            return price
+    except AttributeError:
+        return None
 
 def check_pct_move(row):
     ticker = row['ticker']
