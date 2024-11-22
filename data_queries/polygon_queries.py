@@ -15,7 +15,7 @@ poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 
 def get_atr(ticker, date):
     # ATR is the greatest of the following: high-low / high - previous close / low - previous close
-    df = get_levels_data(ticker, date, 60, 1, 'day')
+    df = get_levels_data(ticker, date, 30, 1, 'day')
     df['high-low'] = df['high'] - df['low']
     df['high-previous_close'] = abs(df['high'] - df['close'].shift())
     df['low-previous_close'] = abs(df['low'] - df['close'].shift())
@@ -99,7 +99,7 @@ def fetch_and_calculate_volumes(ticker, date):
 def get_range_expansion_data(ticker, date):
     logging.info(f'Fetching and calculating range expansion data for {ticker} on {date}')
     atr = get_atr(ticker, date)
-    df = get_levels_data(ticker, date, 60, 1, 'day')
+    df = get_levels_data(ticker, date, 30, 1, 'day')
     # Calculate True Range (TR) components
     df['high-low'] = df['high'] - df['low']
     df['high-previous_close'] = abs(df['high'] - df['close'].shift())
