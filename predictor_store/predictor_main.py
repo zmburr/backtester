@@ -29,11 +29,11 @@ if __name__ == '__main__':
     filtered_reversal_df = filter_data(reversal_df, market_cap=market_cap_filter, setup=setup_filter)
     cleaned_reversal_df = clean_df(filtered_reversal_df, 'reversal')
     # Features and target
-    model, features = run_predictor_model(cleaned_reversal_df,use_gradient_boosting=True)
+    model, features = run_predictor_model(cleaned_reversal_df)
     # Example projection for a new data point
     new_data = {
-        'pct_from_10mav': [30.16],
-        'pct_from_20mav': [51.66],
+        'pct_from_10mav': [.3016],
+        'pct_from_20mav': [.5166],
         'gap_pct': [0.1],
         'pct_change_3': [.2981],
         'pct_change_15': [.98],
