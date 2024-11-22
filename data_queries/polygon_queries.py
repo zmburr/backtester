@@ -89,13 +89,45 @@ def fetch_and_calculate_volumes(ticker, date):
         'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
         'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum(),
         'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum(),
-        'vol_2D_before': adv.iloc[-3].volume,
-        'vol_1D_before': adv.iloc[-2].volume,
-        'vol_3D_before': adv.iloc[-4].volume
+        'vol_two_day_before': adv.iloc[-3].volume,
+        'vol_one_day_before': adv.iloc[-2].volume,
+        'vol_three_day_before': adv.iloc[-4].volume
     }
 
     return metrics
 
+def get_range_expansion_data(ticker, date):
+    logging.info(f'Fetching and calculating range expansion data for {ticker} on {date}')
+    atr = get_atr(ticker, date)
+    df = get_levels_data(ticker, date, 60, 1, 'day')
+    # Calculate True Range (TR) components
+    df['high-low'] = df['high'] - df['low']
+    df['high-previous_close'] = abs(df['high'] - df['close'].shift())
+    df['low-previous_close'] = abs(df['low'] - df['close'].shift())
+
+    # Calculate the True Range (TR)
+    df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+
+    # Calculate the percentage of ATR
+    df['PCT_ATR'] = (df['TR'] / atr)
+
+    # Get the latest range and percentage of ATR
+    day_of_range = df['TR'].iloc[-1]
+    day_before_range = df['TR'].iloc[-2]
+    two_d_before_range = df['TR'].iloc[-3]
+    three_d_before_range = df['TR'].iloc[-4]
+    pct_of_atr = (day_of_range / atr)
+    day_before_pct_of_atr = (day_before_range / atr)
+    two_d_before_pct_of_atr = (two_d_before_range / atr)
+    three_d_before_pct_of_atr = (three_d_before_range / atr)
+
+    metrics = {
+        'day_of_range_pct': pct_of_atr,
+        'one_day_before_range_pct': day_before_pct_of_atr,
+        'two_day_before_range_pct': two_d_before_pct_of_atr,
+        'three_day_before_range_pct': three_d_before_pct_of_atr
+    }
+    return metrics
 
 def timestamp_to_string(timestamp_obj):
     if isinstance(timestamp_obj, Timestamp):

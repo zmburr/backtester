@@ -1,5 +1,5 @@
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
-    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open
+    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_expansion_data
 import pandas as pd
 import logging
 from tabulate import tabulate
@@ -50,7 +50,7 @@ def get_current_price(ticker, date):
 
 def get_pct_volume(row):
     volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
-                      'vol_in_first_30_min','vol_on_breakout_day','vol_2D_before','vol_1D_before','vol_3D_before']
+                      'vol_in_first_30_min','vol_on_breakout_day','vol_two_day_before','vol_one_day_before','vol_three_day_before']
     for col in volume_columns:
         if col in row:
             row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
@@ -79,6 +79,18 @@ def get_volume(row):
     logging.info(f'Running get_volume for {ticker} on {date}')
 
     metrics = fetch_and_calculate_volumes(ticker, date)
+
+    for key, value in metrics.items():
+        row[key] = value
+    return row
+
+def get_range_expansion(row):
+    ticker = row['ticker']
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running get_range_expansion for {ticker} on {date}')
+
+    metrics = get_range_expansion_data(ticker, date)
 
     for key, value in metrics.items():
         row[key] = value
@@ -362,12 +374,12 @@ fill_functions_reversal = {
     'vol_in_first_5_min': get_volume,
     'vol_in_first_10_min': get_volume,
     'vol_in_first_30_min': get_volume,
-    'vol_2D_before': get_volume,
-    'vol_1D_before': get_volume,
-    'vol_3D_before': get_volume,
-    'percent_of_vol_2D_before': get_pct_volume,
-    'percent_of_vol_1D_before': get_pct_volume,
-    'percent_of_vol_3D_before': get_pct_volume,
+    'vol_two_day_before': get_volume,
+    'vol_one_day_before': get_volume,
+    'vol_three_day_before': get_volume,
+    'percent_of_vol_two_day_before': get_pct_volume,
+    'percent_of_vol_one_day_before': get_pct_volume,
+    'percent_of_vol_three_day_before': get_pct_volume,
     'percent_of_premarket_vol': get_pct_volume,
     'percent_of_vol_in_first_5_min': get_pct_volume,
     'percent_of_vol_in_first_10_min': get_pct_volume,
@@ -381,6 +393,11 @@ fill_functions_reversal = {
     'pct_change_30': check_pct_move,
     'pct_change_15': check_pct_move,
     'pct_change_3': check_pct_move,
+
+    'day_of_range_pct': get_range_expansion,
+    'one_day_before_range_pct': get_range_expansion,
+    'two_day_before_range_pct': get_range_expansion,
+    'three_day_before_range_pct': get_range_expansion,
 
     'pct_from_10mav': get_pct_from_mavs,
     'pct_from_20mav': get_pct_from_mavs,
