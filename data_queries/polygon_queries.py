@@ -38,31 +38,41 @@ def add_two_hours(time_str):
     return new_time_str
 
 def get_ticker_mavs_open(ticker, date):
-    # Get the open price for the given date
-    open_price = poly_client.get_daily_open_close_agg(ticker, date).open
+    results = {}
 
-    # Get moving averages
-    price_10dmav = poly_client.get_sma(ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=10,
-                                       series_type='close').values[0].value
-    price_20dmav = poly_client.get_sma(ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=20,
-                                       series_type='close').values[0].value
-    price_50dmav = poly_client.get_sma(ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=50,
-                                       series_type='close').values[0].value
-    price_200dmav = poly_client.get_sma(ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=200,
-                                        series_type='close').values[0].value
+    try:
+        # Get the open price for the given date
+        open_price = poly_client.get_daily_open_close_agg(ticker, date).open
+    except (AttributeError, IndexError, TypeError) as e:
+        print(f"Open price missing or unavailable for {ticker} on {date}: {e}")
+        return None  # Open price is essential; return None if it's missing.
 
-    # Calculate percentage differences
-    pct_from_10mav = (open_price - price_10dmav) / price_10dmav * 100
-    pct_from_20mav = (open_price - price_20dmav) / price_20dmav * 100
-    pct_from_50mav = (open_price - price_50dmav) / price_50dmav * 100
-    pct_from_200mav = (open_price - price_200dmav) / price_200dmav * 100
+    # Helper function to get moving average and calculate the percentage difference
+    def calculate_pct_mav(window):
+        try:
+            mav = poly_client.get_sma(
+                ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=window, series_type='close'
+            ).values[0].value
+            return (open_price - mav) / mav * 100
+        except (AttributeError, IndexError, TypeError) as e:
+            print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
+            return None
 
-    return {
-        'pct_from_10mav': pct_from_10mav,
-        'pct_from_20mav': pct_from_20mav,
-        'pct_from_50mav': pct_from_50mav,
-        'pct_from_200mav': pct_from_200mav,
-    }
+    # Calculate percentage differences for each moving average
+    results['pct_from_10mav'] = calculate_pct_mav(10)
+    results['pct_from_20mav'] = calculate_pct_mav(20)
+    results['pct_from_50mav'] = calculate_pct_mav(50)
+    results['pct_from_200mav'] = calculate_pct_mav(200)
+
+    # Filter out None values
+    results = {key: value for key, value in results.items() if value is not None}
+
+    if not results:
+        print(f"No data available for any moving averages for {ticker} on {date}.")
+        return None
+
+    return results
+
 
 def fetch_and_calculate_volumes(ticker, date):
     # Assuming get_intraday and get_levels_data are defined elsewhere and fetch data from an API

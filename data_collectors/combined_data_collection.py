@@ -1,5 +1,5 @@
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
-    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes
+    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open
 import pandas as pd
 import logging
 from tabulate import tabulate
@@ -55,6 +55,21 @@ def get_pct_volume(row):
         if col in row:
             row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
     return row
+
+def get_pct_from_mavs(row):
+    ticker = row['ticker']
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running get_pct_from_mavs for {ticker} on {date}')
+    try:
+        metrics = get_ticker_mavs_open(ticker, date)
+
+        for key, value in metrics.items():
+            row[key] = value
+        return row
+    except Exception as e:
+        print(f"Data doesn't exist for {ticker} or an error occurred: {e}")
+        return row
 
 
 def get_volume(row):
@@ -360,6 +375,11 @@ fill_functions_reversal = {
     'pct_change_30': check_pct_move,
     'pct_change_15': check_pct_move,
     'pct_change_3': check_pct_move,
+
+    'pct_from_10mav': get_pct_from_mavs,
+    'pct_from_20mav': get_pct_from_mavs,
+    'pct_from_50mav': get_pct_from_mavs,
+    'pct_from_200mav': get_pct_from_mavs,
 
     'gap_pct':check_breakout_stats,
     'reversal_open_low_pct': check_breakout_stats,
