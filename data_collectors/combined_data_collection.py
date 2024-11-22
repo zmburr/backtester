@@ -4,7 +4,7 @@ import pandas as pd
 import logging
 from tabulate import tabulate
 from datetime import datetime, timedelta
-
+fetch_and_calculate_volumes('AAPL', '2024-11-21')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -50,7 +50,7 @@ def get_current_price(ticker, date):
 
 def get_pct_volume(row):
     volume_columns = ['premarket_vol', 'vol_in_first_5_min', 'vol_in_first_15_min', 'vol_in_first_10_min',
-                      'vol_in_first_30_min','vol_on_breakout_day']
+                      'vol_in_first_30_min','vol_on_breakout_day','vol_2D_before','vol_1D_before','vol_3D_before']
     for col in volume_columns:
         if col in row:
             row[f'percent_of_{col}'] = row[col] / row['avg_daily_vol']
@@ -362,6 +362,12 @@ fill_functions_reversal = {
     'vol_in_first_5_min': get_volume,
     'vol_in_first_10_min': get_volume,
     'vol_in_first_30_min': get_volume,
+    'vol_2D_before': get_volume,
+    'vol_1D_before': get_volume,
+    'vol_3D_before': get_volume,
+    'percent_of_vol_2D_before': get_pct_volume,
+    'percent_of_vol_1D_before': get_pct_volume,
+    'percent_of_vol_3D_before': get_pct_volume,
     'percent_of_premarket_vol': get_pct_volume,
     'percent_of_vol_in_first_5_min': get_pct_volume,
     'percent_of_vol_in_first_10_min': get_pct_volume,

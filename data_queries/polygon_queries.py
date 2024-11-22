@@ -76,9 +76,9 @@ def get_ticker_mavs_open(ticker, date):
 
 def fetch_and_calculate_volumes(ticker, date):
     # Assuming get_intraday and get_levels_data are defined elsewhere and fetch data from an API
+    logging.info(f'Fetching and calculating volumes for {ticker} on {date}')
     data = get_intraday(ticker, date, multiplier=1, timespan='minute')
     adv = get_levels_data(ticker, date, 30, 1, 'day')
-    logging.info(f'Fetching and calculating volumes for {ticker} on {date}')
 
     # Calculate metrics
     metrics = {
@@ -88,7 +88,10 @@ def fetch_and_calculate_volumes(ticker, date):
         'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum(),
         'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
         'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum(),
-        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum()
+        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum(),
+        'vol_2D_before': adv.iloc[-3].volume,
+        'vol_1D_before': adv.iloc[-2].volume,
+        'vol_3D_before': adv.iloc[-4].volume
     }
 
     return metrics
