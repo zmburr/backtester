@@ -1,12 +1,9 @@
 from data_collectors.combined_data_collection import reversal_df
+from predictor_store.predictor_model import run_predictor_model
 from analyzers.combined_data_analysis import clean_df
 import plotly.express as px
 import pandas as pd
 import plotly.graph_objects as go
-import logging
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, r2_score
 
 
 def filter_data(df, market_cap=None, setup=None):
@@ -26,35 +23,11 @@ if __name__ == '__main__':
     filtered_reversal_df = filter_data(reversal_df, market_cap=[cap], setup=[setup])
     cleaned_reversal_df = clean_df(filtered_reversal_df, 'reversal')
     # Features and target
-    # Updated features with additional pct_change columns
-    features = [
-        'pct_from_10mav', 'pct_from_20mav', 'pct_from_50mav', 'pct_from_200mav',
-         'gap_pct', 'pct_change_3', 'pct_change_15', 'pct_change_30'
-    ]
-    target = 'reversal_open_low_pct'
-
-
-    # Drop rows with missing values in the features or target
-    model_df = cleaned_reversal_df.dropna(subset=features + [target])
-
-    # Train-test split
-    X = model_df[features]
-    y = model_df[target]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Train the model
-    model = RandomForestRegressor(random_state=42)
-    model.fit(X_train, y_train)
-
-    # Evaluate the model
-    y_pred = model.predict(X_test)
-    print(f"MAE: {mean_absolute_error(y_test, y_pred):.4f}, R^2: {r2_score(y_test, y_pred):.4f}")
+    model, features = run_predictor_model(cleaned_reversal_df,use_gradient_boosting=True)
     # Example projection for a new data point
     new_data = {
         'pct_from_10mav': [30.16],
         'pct_from_20mav': [51.66],
-        'pct_from_50mav': [99.28],
-        'pct_from_200mav': [171.06],
         'gap_pct': [0.1],
         'pct_change_3': [.2981],
         'pct_change_15': [.98],
@@ -68,10 +41,10 @@ if __name__ == '__main__':
     # Visualize predictions
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=['10-day MAV', '20-day MAV', '50-day MAV', '200-day MAV', '3-day Change', '15-day Change', '30-day Change',
+        x=['10-day MAV', '20-day MAV', '3-day Change', '15-day Change', '30-day Change',
            'Predicted Reversal'],
-        y=[new_data['pct_from_10mav'][0], new_data['pct_from_20mav'][0], new_data['pct_from_50mav'][0],
-           new_data['pct_from_200mav'][0], new_data['pct_change_3'][0], new_data['pct_change_15'][0],
+        y=[new_data['pct_from_10mav'][0], new_data['pct_from_20mav'][0],
+            new_data['pct_change_3'][0], new_data['pct_change_15'][0],
            new_data['pct_change_30'][0], predicted_reversal],
         name='Reversal Analysis',
         marker_color='blue'
