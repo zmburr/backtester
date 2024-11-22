@@ -1,4 +1,5 @@
 from data_collectors.combined_data_collection import reversal_df
+from analyzers.combined_data_analysis import clean_df
 import plotly.express as px
 import pandas as pd
 import plotly.graph_objects as go
@@ -7,60 +8,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
-def clean_df(df, analysis_type):
-    """
-    Cleans the DataFrame by converting columns to their appropriate data types,
-    tailored for either breakout or reversal analysis.
 
-    Parameters:
-    - df: The DataFrame to be cleaned.
-    - analysis_type: A string specifying the type of analysis ('breakout' or 'reversal').
-
-    Returns:
-    - The cleaned DataFrame.
-    """
-    # Convert 'date' column to datetime
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-
-    # Convert time_of_event (either breakout or reversal) to datetime and adjust timezone
-    time_col = 'time_of_breakout' if analysis_type == 'breakout' else 'time_of_reversal'
-    df[time_col] = pd.to_datetime(df[time_col], utc=True).dt.tz_convert('America/New_York')
-
-    if 'time_of_high_price' in df.columns:
-        if pd.api.types.is_integer_dtype(df['time_of_high_price']):
-            df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce',
-                                                      unit='s').dt.tz_localize('UTC').dt.tz_convert('America/New_York')
-        else:
-            df['time_of_high_price'] = pd.to_datetime(df['time_of_high_price'], errors='coerce',
-                                                      utc=True).dt.tz_convert('America/New_York')
-
-        # Confirm after all conversions
-
-    # Convert duration to timedelta
-    duration_col = 'breakout_duration' if analysis_type == 'breakout' else 'reversal_duration'
-    if duration_col in df.columns:
-        df[duration_col] = pd.to_timedelta(df[duration_col])
-
-    # Convert specific columns to 'category' data type
-    categorical_columns = ['ticker', 'trade_grade'] + (['news_type'] if analysis_type == 'breakout' else ['cap'])
-    for col in categorical_columns:
-        df[col] = df[col].astype('category')
-
-    # Convert numeric columns to float, excluding specific non-numeric columns
-    exclude_cols = categorical_columns + ['date', time_col, duration_col, 'breaks_ath', 'breaks_fifty_two_wk','setup','time_of_high_price','intraday_setup']
-    numeric_cols = [col for col in df.columns if col not in exclude_cols]
-    for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    return df
-
-
+def filter_data(df, market_cap=None, setup=None):
+    filtered_df = df.copy()
+    if market_cap:
+        filtered_df = filtered_df[filtered_df['cap'].isin(market_cap)]
+    if setup:
+        filtered_df = filtered_df[filtered_df['setup'].isin(setup)]
+    return filtered_df
 
 
 
 
 if __name__ == '__main__':
-    cleaned_reversal_df = clean_df(reversal_df, 'reversal')
+    cap = 'Medium'
+    setup = '3DGapFade'
+    filtered_reversal_df = filter_data(reversal_df, market_cap=[cap], setup=[setup])
+    cleaned_reversal_df = clean_df(filtered_reversal_df, 'reversal')
     # Features and target
     # Updated features with additional pct_change columns
     features = [
