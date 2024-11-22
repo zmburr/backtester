@@ -4,80 +4,20 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 import pandas as pd
+from predictor_store.predictor_main import FEATURES, TARGET
 
-
-def run_predictor_model(df, use_gradient_boosting=False):
-    """
-    Train and evaluate a regression model on reversal prediction.
-
-    Parameters:
-    - df: DataFrame containing feature and target columns.
-    - use_gradient_boosting: Whether to use Gradient Boosting instead of Random Forest.
-
-    Returns:
-    - model: Trained regression model.
-    - features: List of features used.
-    """
-    # Updated features with additional pre-reversal and volume metrics
-    features = [
-        'pct_from_10mav', 'pct_from_20mav', 'gap_pct',
-        'pct_change_3', 'pct_change_15', 'pct_change_30',
-        'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
-        'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before'
-    ]
-    target = 'reversal_open_low_pct'
-
-    # Drop rows with missing values in the features or target
-    model_df = df.dropna(subset=features + [target])
-
-    # Train-test split
-    X = model_df[features]
-    y = model_df[target]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Select model
-    if use_gradient_boosting:
-        model = GradientBoostingRegressor(random_state=42)
-    else:
-        model = RandomForestRegressor(random_state=42)
-
-    # Train the model
-    model.fit(X_train, y_train)
-
-    # Evaluate the model
-    y_pred = model.predict(X_test)
-    print(f"MAE: {mean_absolute_error(y_test, y_pred):.4f}, R^2: {r2_score(y_test, y_pred):.4f}")
-
-    # Plot predictions vs actuals
-    plt.scatter(y_test, y_pred, alpha=0.5, edgecolors="k")
-    plt.xlabel("Actual Reversal")
-    plt.ylabel("Predicted Reversal")
-    plt.title("Predicted vs Actual Reversals")
-    plt.axline((0, 0), slope=1, color="red", linestyle="--", label="Ideal Fit")
-    plt.legend()
-    plt.show()
-
-    return model, features
-
-
-def tune_random_forest(df):
+def tune_random_forest(df, features=FEATURES, target=TARGET):
     """
     Perform hyperparameter tuning on a Random Forest model.
 
     Parameters:
     - df: DataFrame containing feature and target columns.
+    - features: List of features to use for training the model.
+    - target: Target column for prediction.
 
     Returns:
     - best_model: Best tuned Random Forest model.
     """
-    features = [
-        'pct_from_10mav', 'pct_from_20mav', 'gap_pct',
-        'pct_change_3', 'pct_change_15', 'pct_change_30',
-        'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
-        'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before'
-    ]
-    target = 'reversal_open_low_pct'
-
     # Drop rows with missing values in the features or target
     model_df = df.dropna(subset=features + [target])
 

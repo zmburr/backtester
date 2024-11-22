@@ -1,10 +1,21 @@
 from data_collectors.combined_data_collection import reversal_df
-from predictor_store.predictor_model import run_predictor_model
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 from analyzers.combined_data_analysis import clean_df
 import plotly.express as px
 import pandas as pd
 import plotly.graph_objects as go
 
+# Define a global list of features to make it easy to update them in one place
+FEATURES = [
+    'pct_from_10mav', 'pct_from_20mav', 'gap_pct',
+    'pct_change_3', 'pct_change_15', 'pct_change_30',
+    'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
+    'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before'
+]
+TARGET = 'reversal_open_low_pct'
 
 def filter_data(df, market_cap=None, setup=None):
     filtered_df = df.copy()
@@ -14,7 +25,51 @@ def filter_data(df, market_cap=None, setup=None):
         filtered_df = filtered_df[filtered_df['setup'].isin(setup)]
     return filtered_df
 
+def run_predictor_model(df, use_gradient_boosting=False, features=FEATURES, target=TARGET):
+    """
+    Train and evaluate a regression model on reversal prediction.
 
+    Parameters:
+    - df: DataFrame containing feature and target columns.
+    - use_gradient_boosting: Whether to use Gradient Boosting instead of Random Forest.
+    - features: List of features to use for training the model.
+    - target: Target column for prediction.
+
+    Returns:
+    - model: Trained regression model.
+    - features: List of features used.
+    """
+    # Drop rows with missing values in the features or target
+    model_df = df.dropna(subset=features + [target])
+
+    # Train-test split
+    X = model_df[features]
+    y = model_df[target]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Select model
+    if use_gradient_boosting:
+        model = GradientBoostingRegressor(random_state=42)
+    else:
+        model = RandomForestRegressor(random_state=42)
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    print(f"MAE: {mean_absolute_error(y_test, y_pred):.4f}, R^2: {r2_score(y_test, y_pred):.4f}")
+
+    # Plot predictions vs actuals
+    plt.scatter(y_test, y_pred, alpha=0.5, edgecolors="k")
+    plt.xlabel("Actual Reversal")
+    plt.ylabel("Predicted Reversal")
+    plt.title("Predicted vs Actual Reversals")
+    plt.axline((0, 0), slope=1, color="red", linestyle="--", label="Ideal Fit")
+    plt.legend()
+    plt.show()
+
+    return model, features
 
 
 if __name__ == '__main__':
@@ -25,6 +80,7 @@ if __name__ == '__main__':
     market_cap_filter = [cap] if cap else None
     setup_filter = [setup] if setup else None
 
+    # Filter and clean data
     filtered_reversal_df = filter_data(reversal_df, market_cap=market_cap_filter, setup=setup_filter)
     cleaned_reversal_df = clean_df(filtered_reversal_df, 'reversal')
 
@@ -52,7 +108,6 @@ if __name__ == '__main__':
     predicted_reversal = model.predict(new_data_df)[0]
     print(f"Predicted Reversal: {predicted_reversal:.2f}%")
 
-    # Visualize predictions
     # Visualize predictions
     fig = go.Figure()
     fig.add_trace(go.Bar(
