@@ -118,7 +118,6 @@ def get_range_vol_expansion_data(ticker, date):
     rolling_window = min(len(df)-4, 20)
     df['30Day_Avg_Volume'] = df['volume'].rolling(window=rolling_window).mean()
     df['pct_avg_volume'] = df['volume'] / df['30Day_Avg_Volume']
-    print(df)
     # Ensure there are enough rows to fetch data for the past three days
     if len(df) < 4:
         logging.error(f"Not enough data for {ticker} on {date}.")
