@@ -6,13 +6,17 @@ from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 from data_queries.bloomberg_screener import cleaned_tickers
 
-columns_to_compare = ['pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'pct_change_3','percent_of_premarket_vol']
-# watchlist = ['NVDA','ROOT','AMD','MSTR','SMR','BITO' ,'ANET', 'SYM','SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'COIN','SNOW', 'RXRX', 'DELL']
-my_watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','RKLB','TSLA','COIN','LMND','IBIT']
-tickers_to_remove = ['SILJ', 'XMTR', 'SMST','AGFY','MDXG','TEO','DAVE','GBTC','BITI','BITO','CERO','NPWR','MDXG','IBIT','BITO','SILJ','BITU','CTOS','CERO','PLAG','MVST','ATEC']  # Replace with actual tickers
-watchlist = list(set(my_watchlist + cleaned_tickers))
-watchlist = [ticker for ticker in watchlist if ticker not in tickers_to_remove]
-# watchlist = ['MSTR']
+columns_to_compare = [
+    'pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15',
+    'pct_change_3', 'percent_of_premarket_vol',
+    'percent_of_vol_two_day_before', 'percent_of_vol_one_day_before', 'percent_of_vol_three_day_before',
+    'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
+]# watchlist = ['NVDA','ROOT','AMD','MSTR','SMR','BITO' ,'ANET', 'SYM','SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'COIN','SNOW', 'RXRX', 'DELL']
+# my_watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','RKLB','TSLA','COIN','LMND','IBIT']
+# tickers_to_remove = ['SILJ',"ARIS", 'XMTR', 'SMST','AGFY','MDXG','TEO','DAVE','GBTC','BITI','BITO','CERO','NPWR','MDXG','IBIT','BITO','SILJ','BITU','CTOS','CERO','PLAG','MVST','ATEC']  # Replace with actual tickers
+# watchlist = list(set(my_watchlist + cleaned_tickers))
+# watchlist = [ticker for ticker in watchlist if ticker not in tickers_to_remove]
+watchlist = ['MSTR']
 print(watchlist)
 date = datetime.now().strftime('%Y-%m-%d')
 
@@ -28,7 +32,6 @@ def range_expansion_watcher(watchlist, date):
     for ticker in watchlist:
         try:
             # Get the ATR and levels data for the stock
-            atr = get_atr(ticker, date)
             df = get_levels_data(ticker, date, 60, 1, 'day')
 
             # Calculate True Range (TR) components
@@ -38,35 +41,45 @@ def range_expansion_watcher(watchlist, date):
 
             # Calculate the True Range (TR)
             df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+            df['ATR'] = df['TR'].rolling(window=14).mean()
 
             # Calculate the percentage of ATR
-            df['PCT_ATR'] = (df['TR'] / atr) * 100
+            df['PCT_ATR'] = (df['TR'] / df['ATR'])
 
             # Calculate the 30-day average daily volume and current day's volume
-            df['30Day_Avg_Volume'] = df['volume'].rolling(window=30).mean()
-            df['Pct_Volume_30Day_Avg'] = (df['volume'] / df['30Day_Avg_Volume']) * 100
-
+            df['20Day_Avg_Volume'] = df['volume'].rolling(window=20).mean()
+            df['pct_avg_volume'] = (df['volume'] / df['20Day_Avg_Volume'])
+            print(df)
             # Get the latest range and percentage of ATR
             latest_range = df['TR'].iloc[-1]
+            latest_atr = df['ATR'].iloc[-1]
             day_before_range = df['TR'].iloc[-2]
-            pct_of_atr = (latest_range / atr) * 100
-            day_before_pct_of_atr = (day_before_range / atr) * 100
+            pct_of_atr = df['PCT_ATR'].iloc[-1]
+            day_before_pct_of_atr = df['PCT_ATR'].iloc[-2]
+            two_day_before_pct_of_atr = df['PCT_ATR'].iloc[-3]
+            three_day_before_pct_of_atr = df['PCT_ATR'].iloc[-4]
+            day_before_pct_adv = df['pct_avg_volume'].iloc[-2]
+            two_day_before_pct_adv = df['pct_avg_volume'].iloc[-3]
+            three_day_before_pct_adv = df['pct_avg_volume'].iloc[-4]
 
             # Log the range expansion information
             result = {
                 'Ticker': ticker,
                 'Range': latest_range,
-                'ATR': atr,
+                'ATR': latest_atr,
                 'Percent of ATR': pct_of_atr,
-                'Day Before % ATR': day_before_pct_of_atr,
-                'Pct Volume 30-Day Avg': df['Pct_Volume_30Day_Avg'].iloc[-1]
+                'Day Before % ATR': day_before_pct_of_atr*100,
+                'Pct Volume 20-Day Avg': df['Pct_Volume_20Day_Avg'].iloc[-1],
+            }
+            percentiles_result ={
+                ''
             }
             results.append(result)
 
             # Print the table for each stock (optional)
-            if result['Ticker'] == 'MSTR':
-                print(f"\nRange Expansion Data for {ticker}:")
-                print(tabulate(df, headers=df.columns, tablefmt='grid'))
+            # if result['Ticker'] == 'MSTR':
+            #     print(f"\nRange Expansion Data for {ticker}:")
+            #     print(tabulate(df, headers=df.columns, tablefmt='grid'))
 
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
@@ -104,6 +117,7 @@ def get_stock_data(ticker):
     pct_data = get_ticker_pct_move(ticker, date, current_price)
     volume_data = fetch_and_calculate_volumes(ticker, date)
     volume_data = add_percent_of_adv_columns(volume_data)
+    range_data = ''
     # if ticker =='ROOT':
     #     print(pct_data)
     return {ticker: {'pct_data': pct_data, 'volume_data': volume_data}}
@@ -145,75 +159,6 @@ def calculate_percentiles(df, stock_data, columns):
     return percentiles
 
 
-def does_stock_meet_criteria(data, pct_criteria, volume_criteria):
-    # Check if percentage change data meets the criteria
-    if not meets_criteria(data['pct_data'], pct_criteria):
-        return False
-
-    # Check if volume data meets the criteria
-    for vol_metric, threshold in volume_criteria.items():
-        if vol_metric not in data['volume_data'] or data['volume_data'][vol_metric] < threshold:
-            return False
-
-    return True
-
-
-def meets_criteria(pct_data, criteria):
-    """
-    Check if the percentage change data meets the specified criteria.
-
-    :param pct_data: A dictionary containing percentage change data for different periods.
-    :param criteria: A dictionary containing criteria thresholds for each period.
-    :return: True if all criteria are met, False otherwise.
-    """
-    return all(pct_data[period] > threshold for period, threshold in criteria.items())
-
-
-def filter_stocks(all_stocks_data, stock_type):
-    filtered_stocks = {}
-
-    # Define distinct criteria for momentum and reversal
-    criteria = {
-        'momentum': {
-            'pct_criteria': {
-                'pct_change_30': 0.15,
-                'pct_change_15': 0.05
-
-            },
-            'volume_criteria': {
-                'percent_of_premarket_vol': .01
-            }
-        },
-        'reversal': {
-            'pct_criteria': {
-                'pct_change_120': 0.3,  # Example criteria; adjust as necessary
-                'pct_change_90': 0.25,  # Negative values for reversal
-                'pct_change_30': 0.2,
-                'pct_change_15': 0.14,
-                'pct_change_3': 0.01
-            },
-            'volume_criteria': {
-                'percent_of_premarket_vol': .001  # Example criterion; adjust as necessary
-            }
-        }
-    }
-
-    # Check if the stock type is valid
-    if stock_type in criteria:
-        for ticker, data in all_stocks_data.items():
-            pct_criteria = criteria[stock_type]['pct_criteria']
-            volume_criteria = criteria[stock_type]['volume_criteria']
-
-            if does_stock_meet_criteria(data, pct_criteria, volume_criteria):
-                filtered_stocks[ticker] = data
-                percentiles = calculate_percentiles(reversal_df, data, columns_to_compare)
-                # print(ticker, percentiles)
-    else:
-        print(f"Unknown stock type: {stock_type}")
-
-    return filtered_stocks
-
-
 def convert_dict_to_df(filtered_stocks):
     data_for_df = []
     for ticker, values in filtered_stocks.items():
@@ -235,8 +180,8 @@ def convert_dict_to_df(filtered_stocks):
 
 if __name__ == '__main__':
     all_stock_data = get_all_stocks_data(watchlist)
-    reversal_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'reversal'))
-    momentum_stocks = convert_dict_to_df(filter_stocks(all_stock_data, 'momentum'))
+    reversal_stocks = convert_dict_to_df(all_stock_data)
+    momentum_stocks = convert_dict_to_df(all_stock_data)
     # print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
     # print(tabulate(momentum_stocks, headers=momentum_stocks.columns))
     reversal_results = []
