@@ -96,9 +96,12 @@ def fetch_and_calculate_volumes(ticker, date):
 
     return metrics
 
-def get_range_expansion_data(ticker, date):
+
+def get_range_vol_expansion_data(ticker, date):
+    import logging
     logging.info(f'Fetching and calculating range expansion data for {ticker} on {date}')
-    df = get_levels_data(ticker, date, 30, 1, 'day')
+    df = get_levels_data(ticker, date, 40, 1, 'day')
+
     # Calculate True Range (TR) components
     df['high-low'] = df['high'] - df['low']
     df['high-previous_close'] = abs(df['high'] - df['close'].shift())
@@ -107,21 +110,38 @@ def get_range_expansion_data(ticker, date):
     # Calculate the True Range (TR)
     df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
     df['ATR'] = df['TR'].rolling(window=14, min_periods=1).mean()
+
     # Calculate the percentage of ATR
-    df['PCT_ATR'] = (df['TR'] / df['ATR'])
+    df['PCT_ATR'] = df['TR'] / df['ATR']
+
+    # Adjust the rolling window for volume if there are fewer than 20 rows
+    rolling_window = min(len(df)-4, 20)
+    df['30Day_Avg_Volume'] = df['volume'].rolling(window=rolling_window).mean()
+    df['pct_avg_volume'] = df['volume'] / df['30Day_Avg_Volume']
+    print(df)
+    # Ensure there are enough rows to fetch data for the past three days
+    if len(df) < 4:
+        logging.error(f"Not enough data for {ticker} on {date}.")
+        return None
 
     # Get the latest range and percentage of ATR
     pct_of_atr = df['PCT_ATR'].iloc[-1]
     day_before_pct_of_atr = df['PCT_ATR'].iloc[-2]
     two_d_before_pct_of_atr = df['PCT_ATR'].iloc[-3]
     three_d_before_pct_of_atr = df['PCT_ATR'].iloc[-4]
+
+    # Construct the metrics dictionary
     metrics = {
         'day_of_range_pct': pct_of_atr,
         'one_day_before_range_pct': day_before_pct_of_atr,
         'two_day_before_range_pct': two_d_before_pct_of_atr,
-        'three_day_before_range_pct': three_d_before_pct_of_atr
+        'three_day_before_range_pct': three_d_before_pct_of_atr,
+        'percent_of_vol_one_day_before': df['pct_avg_volume'].iloc[-2],
+        'percent_of_vol_two_day_before': df['pct_avg_volume'].iloc[-3],
+        'percent_of_vol_three_day_before': df['pct_avg_volume'].iloc[-4]
     }
     return metrics
+
 
 def timestamp_to_string(timestamp_obj):
     if isinstance(timestamp_obj, Timestamp):
