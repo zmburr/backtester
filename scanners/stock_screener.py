@@ -5,18 +5,19 @@ import pandas as pd
 from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 from data_queries.bloomberg_screener import cleaned_tickers
+import matplotlib.pyplot as plt
 
 columns_to_compare = [
     'pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15',
-    'pct_change_3', 'percent_of_premarket_vol',
-    'percent_of_vol_two_day_before', 'percent_of_vol_one_day_before', 'percent_of_vol_three_day_before',
+    'pct_change_3', 'percent_of_premarket_vol', 'percent_of_vol_one_day_before',
+    'percent_of_vol_two_day_before',  'percent_of_vol_three_day_before','day_of_range_pct',
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]# watchlist = ['NVDA','ROOT','AMD','MSTR','SMR','BITO' ,'ANET', 'SYM','SMCI', 'GOOG', 'PLTR', 'MSFT', 'META','VRT', 'AVGO', 'ARM', 'COIN','SNOW', 'RXRX', 'DELL']
 # my_watchlist = ['PLTR', 'IONQ','MSTR','APP','OKLO','SMR','RKLB','TSLA','COIN','LMND','IBIT']
 # tickers_to_remove = ['SILJ',"ARIS", 'XMTR', 'SMST','AGFY','MDXG','TEO','DAVE','GBTC','BITI','BITO','CERO','NPWR','MDXG','IBIT','BITO','SILJ','BITU','CTOS','CERO','PLAG','MVST','ATEC']  # Replace with actual tickers
 # watchlist = list(set(my_watchlist + cleaned_tickers))
 # watchlist = [ticker for ticker in watchlist if ticker not in tickers_to_remove]
-watchlist = ['MSTR']
+watchlist = ['ACHR']
 print(watchlist)
 date = datetime.now().strftime('%Y-%m-%d')
 
@@ -60,8 +61,8 @@ def add_range_data(ticker):
 
         # Log the range expansion information
         result = {
-            'percent_of_vol_two_day_before': two_day_before_pct_adv,
             'percent_of_vol_one_day_before': day_before_pct_adv,
+            'percent_of_vol_two_day_before': two_day_before_pct_adv,
             'percent_of_vol_three_day_before': three_day_before_pct_adv,
             'day_of_range_pct': pct_of_atr,
             'one_day_before_range_pct': day_before_pct_of_atr,
@@ -169,6 +170,7 @@ def convert_dict_to_df(filtered_stocks):
     #     df.drop(each, axis=0, inplace=True)
     return df
 
+#TODO - add distance from MAVS
 
 if __name__ == '__main__':
     all_stock_data = get_all_stocks_data(watchlist)
@@ -176,15 +178,41 @@ if __name__ == '__main__':
     # print(tabulate(reversal_stocks, headers=reversal_stocks.columns))
     # print(tabulate(momentum_stocks, headers=momentum_stocks.columns))
     reversal_results = []
+
     for ticker, data in all_stock_data.items():
         reversal_percentiles = calculate_percentiles(reversal_df, data, columns_to_compare)
         reversal_results.append((ticker, reversal_percentiles))
         # print('reversal', ticker, reversal_percentiles)
         # print('momentum', ticker, momentum_percentiles)
+
     reversal_sorted = sorted(reversal_results, key=lambda x: x[1]['pct_change_3'], reverse=True)
     print("Sorted Reversal Stock Percentiles:")
+
     for ticker, percentiles in reversal_sorted:
         # Extract pct_data values for the ticker from all_stock_data
         pct_data = all_stock_data.get(ticker, {}).get('pct_data', {})
-        pct_data_str = ', '.join([f"{k}: {v}" for k, v in pct_data.items()])
-        print(f'reversal {ticker}, percentiles: {percentiles}, Absolute PCT Changes (in hundreds): {pct_data_str}')
+        range_data = all_stock_data.get(ticker, {}).get('range_data', {})
+        # Format percentiles, pct_data, and range_data as multi-line strings
+        percentiles_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in percentiles.items()])
+        pct_data_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in pct_data.items()])
+        range_data_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in range_data.items()])
+
+        # Print formatted output
+        print(f"Reversal: {ticker}")
+        print("  Percentiles:")
+        print(percentiles_str if percentiles else "    None")
+        print("  Absolute PCT Changes (in hundreds):")
+        print(pct_data_str if pct_data else "    None")
+        print("  Range Data:")
+        print(range_data_str if range_data else "    None")
+        print("-" * 50)  # Separator for better readability
+
+        # Bar chart visualization for percentiles
+        plt.figure(figsize=(10, 6))
+        plt.bar(percentiles.keys(), percentiles.values())
+        plt.title(f"Reversal Stock Percentiles for {ticker}")
+        plt.xlabel("Percentile Metrics")
+        plt.ylabel("Percentile Values")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        plt.show()
