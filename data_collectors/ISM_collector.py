@@ -159,23 +159,15 @@ def calculate_potential_size(price, Side):
 
 def calculate_metrics(data, ticker, trade_date):
     """
-    Calculates 2-minute delayed and quick returns using run_exitstrategy.
-
-    1) We fix start time at 10:00:00 on the given trade_date.
-    2) We find the first bar at or after 10:00, determine side:
-         side = +1 if bar's close > bar's open
-                 -1 otherwise
-    3) We run run_exitstrategy(ticker, f"{trade_date} 10:00:00", side).
-    4) We parse the delayed- and quick-exit data from run_exitstrategy,
-       compute returns (in %), and store them as columns in `data`.
+    Calculates 2-minute delayed and quick returns using run_exitstrategy,
+    then returns a *one-row summary DataFrame* with only the key columns,
+    including potential NPL columns.
     """
 
     # If no data, return None
     if data is None or data.empty:
         return None
 
-    # Ensure trade_date is in YYYY-MM-DD if needed
-    # If 'trade_date' is already 'YYYY-MM-DD', skip this step
     date_str = pd.to_datetime(trade_date).strftime("%Y-%m-%d")
     start_str = f"{date_str} 10:00:00"
     start = pd.to_datetime(start_str)
@@ -183,52 +175,65 @@ def calculate_metrics(data, ticker, trade_date):
     # Filter to rows at or after 10:00
     after_10am = data.loc[data.index >= start_str]
     if after_10am.empty:
-        # No bars after 10:00 => no calculations
-        data['2m_delayed_return'] = float('nan')
-        data['2m_quick_return'] = float('nan')
-        return data
+        return None
 
-    # --- 1) Determine side from the first 2-minute bar after 10:00 ---
+    # 1) Determine side
     first_bar_idx = after_10am.index[0]
     first_open = data.loc[first_bar_idx, 'open']
     first_close = data.loc[first_bar_idx, 'close']
     side = 1 if (first_close > first_open) else -1
 
-    reference = GetReferencePrice(ticker, date_str, start, side).get_reference_price()
+    # 2) Reference price dict & entry_price
+    reference_dict = GetReferencePrice(ticker, date_str, start, side).get_reference_price()
+    entry_price = reference_dict['ref_price']
 
-    # --- 2) Run exit strategy to get delayed and quick exits ---
-    # run_exitstrategy returns a list of results (one per interval),
-    # with each element containing a tuple for (delayed_exit) and (quick_exit).
-    # By default, we only have intervals=[2], so there's a single element: results[0]
+    # 3) Run exit strategy
     results = run_exitstrategy(ticker, start_str, side)
     if not results:
-        # In case run_exitstrategy returns an empty list
-        data['2m_delayed_return'] = float('nan')
-        data['2m_quick_return'] = float('nan')
-        return data
+        return None
 
-    # results[0] => ((delay_exit_time, delay_exit_price), (quick_exit_time, quick_exit_price))
     (delay_exit_time, delay_exit_price), (quick_exit_time, quick_exit_price) = results[0]
 
-    # --- 3) Compute returns from the "entry price" to each exit price ---
-    # We define "entry price" as the close of the first bar after 10:00
-    entry_price = reference['ref_price']
-
-    # Delayed exit return: side * (exit_price - entry_price)/entry_price * 100
+    # 4) Compute returns from entry_price → exit_price
     delayed_return_pct = side * (delay_exit_price - entry_price) / entry_price * 100.0
-    # Quick exit return: same logic
-    quick_return_pct = side * (quick_exit_price - entry_price) / entry_price * 100.0
+    quick_return_pct   = side * (quick_exit_price  - entry_price) / entry_price * 100.0
 
-    # --- 4) Store results in columns for the entire DataFrame or just for the post-10:00 portion ---
-    # Often people store these as single values (e.g., repeated across all rows).
-    data['2m_delayed_return'] = delayed_return_pct
-    data['2m_quick_return'] = quick_return_pct
+    # 5) Override returns with -0.1 if "stopped out"
+    if side == 1 and delay_exit_price < entry_price:
+        delayed_return_pct = -0.1
+    if side == -1 and delay_exit_price > entry_price:
+        delayed_return_pct = -0.1
 
-    # Optionally, if you also want exit timestamps:
-    data['2m_delayed_exit_time'] = str(delay_exit_time)
-    data['2m_quick_exit_time'] = str(quick_exit_time)
+    if side == 1 and quick_exit_price < entry_price:
+        quick_return_pct = -0.1
+    if side == -1 and quick_exit_price > entry_price:
+        quick_return_pct = -0.1
 
-    return data
+    # ----------------------------------------------------------------------
+    # 6) Calculate potential NPL based on the *first bar's open* price
+    #    (or you can choose to use entry_price if you prefer).
+    # ----------------------------------------------------------------------
+    potential_size = calculate_potential_size(entry_price, side)  # <--- uses first_open
+    # Convert percent returns (e.g.  -0.1 or +3.5) into decimal (e.g. -0.001, +0.035).
+    # delayed_return_pct / 100 -> decimal
+    delayed_npl = potential_size * (delayed_return_pct / 100.0)
+    quick_npl   = potential_size * (quick_return_pct   / 100.0)
+
+    # 7) Build a *one-row* summary DataFrame
+    summary_df = pd.DataFrame({
+        'date':                       [date_str],
+        'ticker':                     [ticker],
+        'release_type':               [None],  # We fill this in process_tickers(...)
+        '2m_delayed_return':          [delayed_return_pct],
+        '2m_quick_return':            [quick_return_pct],
+        '2m_delayed_exit_time':       [str(delay_exit_time)],
+        '2m_quick_exit_time':         [str(quick_exit_time)],
+        # New columns for potential NPL
+        '2m_delayed_potential_npl':   [delayed_npl],
+        '2m_quick_potential_npl':     [quick_npl],
+    })
+
+    return summary_df
 
 def process_tickers(tickers, release_dates):
     results = []
@@ -245,20 +250,19 @@ def process_tickers(tickers, release_dates):
             if data is None or data.empty:
                 continue
 
-            # 2) Convert to 2-minute aggregates if you want (or just keep 1-min data)
-            # data = convert_1min_intraday(data, 2)
+            # 2) Calculate metrics → one-row summary
+            summary_df = calculate_metrics(data, ticker, date_str)
+            if summary_df is None or summary_df.empty:
+                continue
 
-            # 3) Calculate metrics with run_exitstrategy inside
-            processed_data = calculate_metrics(data, ticker, date_str)
+            # 3) Fill release_type
+            summary_df['release_type'] = release_type
 
-            if processed_data is not None and not processed_data.empty:
-                processed_data['ticker'] = ticker
-                processed_data['date'] = date_str
-                processed_data['release_type'] = release_type
-                results.append(processed_data)
+            # 4) Append
+            results.append(summary_df)
 
     if results:
-        combined_df = pd.concat(results)
+        combined_df = pd.concat(results, ignore_index=True)
         return combined_df
     else:
         return None
