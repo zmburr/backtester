@@ -11,7 +11,7 @@ from typing import List
 from support.llm_client import llm
 from support.config import send_email
 import pandas as pd
-import os
+import base64
 
 from scanners import stock_screener as ss
 from data_collectors.combined_data_collection import reversal_df, momentum_df
@@ -59,13 +59,22 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str) -> str:
         lines.append("Range Data:")
         lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    "))
 
-    # Generate chart
-    chart_path = create_daily_chart(ticker, output_dir=charts_dir)
-    lines.append(f"Chart: {chart_path}")
+    # Generate chart and embed inline
+    chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir))
+    img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
+    lines.append(img_tag)
 
-    return "\n".join(lines)
+    # Return HTML block
+    return "<br>\n".join(lines)
 
 
+def _png_to_data_uri(path: Path) -> str:
+    """Return a data URI string for embedding PNG inline."""
+    encoded = base64.b64encode(path.read_bytes()).decode()
+    return f"data:image/png;base64,{encoded}"
+
+#TODO - add historical context to the report - "largest volume day since xyz" or "highest PCT change since abc"
+#TODO - add news overnight from context and google into llm summary to report.
 def generate_report() -> str:
     """Return a giant string report and create all charts under *charts/*."""
 
@@ -80,27 +89,21 @@ def generate_report() -> str:
         _generate_ticker_section(ticker, all_data[ticker], charts_dir) for ticker in watchlist
     ]
 
-    report = "\n\n".join(sections)
+    html_report = "<br><br>\n".join(sections)
 
-    # Collect chart paths for attachments
-    attachments = list(Path(charts_dir).glob("*.png"))
+    # Send email as HTML
+    send_email(
+        to_email="zburr@trlm.com",
+        subject="Daily Watchlist Report",
+        body=html_report,
+        is_html=True,
+    )
 
-    # Send email (configure recipient & subject as needed)
-    try:
-        send_email(
-            to_email=os.getenv("REPORT_RECIPIENT", "zburr@trlm.com"),
-            subject="Daily Watchlist Report",
-            body=report,
-            attachments=[str(p) for p in attachments],
-        )
-    except Exception as e:
-        print(f"Email send failed: {e}")
-
-    return report
+    return html_report
 
 
 if __name__ == "__main__":
     rep = generate_report()
-    print(rep)
-    # Uncomment this after e-mailing if you want to remove chart files automatically
-    cleanup_charts()
+    # Print plain-text fallback (strip HTML tags) if desired
+    print("Report generated and e-mailed.")
+    cleanup_charts() 
