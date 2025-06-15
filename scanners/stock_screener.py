@@ -24,7 +24,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['CRWV']
+watchlist = ['ORCL','CRWV','AAPL','GOOGL','NVDA','MP','USAR','OKLO','SMR','NBIS','TEM','CEP']
 
 print(watchlist)
 
@@ -60,19 +60,36 @@ def add_range_data(ticker):
         day_before_pct_of_atr = df['PCT_ATR'].iloc[-2]
         two_day_before_pct_of_atr = df['PCT_ATR'].iloc[-3]
         three_day_before_pct_of_atr = df['PCT_ATR'].iloc[-4]
-        day_before_pct_adv = df['pct_avg_volume'].iloc[-2]
-        two_day_before_pct_adv = df['pct_avg_volume'].iloc[-3]
-        three_day_before_pct_adv = df['pct_avg_volume'].iloc[-4]
+
+        day_before_volume = df['volume'].iloc[-2]
+        two_day_before_volume = df['volume'].iloc[-3]
+        three_day_before_volume = df['volume'].iloc[-4]
+
+        day_before_adv = df['20Day_Avg_Volume'].iloc[-2]
+        two_day_before_adv = df['20Day_Avg_Volume'].iloc[-3]
+        three_day_before_adv = df['20Day_Avg_Volume'].iloc[-4]
+
+        def _pct_str(num, den):
+            if den:
+                pct = num / den
+                return f"({num:,} / {den:,}) = {pct:.2f}"
+            return "N/A"
+
+        day_before_pct_adv = _pct_str(day_before_volume, day_before_adv)
+        two_day_before_pct_adv = _pct_str(two_day_before_volume, two_day_before_adv)
+        three_day_before_pct_adv = _pct_str(three_day_before_volume, three_day_before_adv)
 
         # Log the range expansion information
         result = {
+            # Volume % with calculation details in single string
             'percent_of_vol_one_day_before': day_before_pct_adv,
             'percent_of_vol_two_day_before': two_day_before_pct_adv,
             'percent_of_vol_three_day_before': three_day_before_pct_adv,
-            'day_of_range_pct': pct_of_atr,
-            'one_day_before_range_pct': day_before_pct_of_atr,
-            'two_day_before_range_pct': two_day_before_pct_of_atr,
-            'three_day_before_range_pct': three_day_before_pct_of_atr
+            # ATR % strings
+            'day_of_range_pct': f"({df['TR'].iloc[-1]:.2f} / {df['ATR'].iloc[-1]:.2f}) = {pct_of_atr:.2f}",
+            'one_day_before_range_pct': f"({df['TR'].iloc[-2]:.2f} / {df['ATR'].iloc[-2]:.2f}) = {day_before_pct_of_atr:.2f}",
+            'two_day_before_range_pct': f"({df['TR'].iloc[-3]:.2f} / {df['ATR'].iloc[-3]:.2f}) = {two_day_before_pct_of_atr:.2f}",
+            'three_day_before_range_pct': f"({df['TR'].iloc[-4]:.2f} / {df['ATR'].iloc[-4]:.2f}) = {three_day_before_pct_of_atr:.2f}"
         }
         return result
 
@@ -123,7 +140,10 @@ def calculate_percentiles(df, stock_data, columns):
     Calculate the percentile ranks for specified columns in stock_data compared to historical data in df.
     """
     percentiles = {}
-    df = df.dropna(subset=columns)
+    # Only consider columns that actually exist in df
+    available_cols = [c for c in columns if c in df.columns]
+    if available_cols:
+        df = df.dropna(subset=available_cols)
     # Flatten stock_data for easier handling
     if isinstance(stock_data, dict):
         flat_data = {**stock_data, **stock_data['pct_data'], **stock_data['volume_data'], **stock_data['range_data']}
@@ -137,7 +157,12 @@ def calculate_percentiles(df, stock_data, columns):
     for column in columns:
         if column in df.columns and column in stock_data_df.columns:
             value = stock_data_df.iloc[0][column]
-            percentiles[column] = percentileofscore(df[column], value, kind='weak')
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                # Skip strings or non-convertible values
+                continue
+            percentiles[column] = percentileofscore(df[column], numeric_value, kind='weak')
 
     return percentiles
 
@@ -173,7 +198,10 @@ if __name__ == '__main__':
         range_data = all_stock_data.get(ticker, {}).get('range_data', {})
         percentiles_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in percentiles.items()])
         pct_data_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in pct_data.items()])
-        range_data_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in range_data.items()])
+        def _fmt(val):
+            return f"{val:.2f}" if isinstance(val, (int, float)) else str(val)
+
+        range_data_str = '\n'.join([f"    {k}: {_fmt(v)}" for k, v in range_data.items()])
 
         print(f"Reversal: {ticker}")
         print("  Percentiles:")
