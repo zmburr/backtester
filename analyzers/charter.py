@@ -88,6 +88,7 @@ def save_chart(
     dpi: int = 150,
     sma_windows: tuple[int, ...] = (200, 100, 50, 10),
     ema_windows: tuple[int, ...] = (9,),
+    hlines: list[tuple[float, str, str]] | None = None,
 ) -> str:
     """Save a DataFrame *df* as a candlestick PNG using **mplfinance**.
 
@@ -109,6 +110,8 @@ def save_chart(
         Windows for simple moving averages.
     ema_windows : tuple of int, optional
         Windows for exponential moving averages.
+    hlines : list of tuple, optional
+        List of tuples (y, color, label) for horizontal lines.
 
     Returns
     -------
@@ -159,7 +162,31 @@ def save_chart(
     handles = [Line2D([], [], color=sma_colors[i], label=f"SMA{sma_windows[i]}") for i in range(len(sma_windows))]
     handles += [Line2D([], [], color=ema_colors[i], linestyle='dashed', label=f"EMA{ema_windows[i]}") for i in range(len(ema_windows))]
 
+    # Horizontal lines (e.g., 1-year high)
+    if hlines:
+        for y, color, label in hlines:
+            axes[0].axhline(y=y, color=color, linestyle='--', linewidth=1)
+            handles.append(Line2D([], [], color=color, linestyle='--', label=label))
+
     axes[0].legend(handles=handles, loc='upper left')
+
+    # Quick on-screen preview with legend
+    preview_fig, preview_axes = mpf.plot(
+        df,
+        type="candle",
+        style="charles",
+        title=f"{ticker.upper()} – Daily (1Y)",
+        mav=(200, 100, 50, 10),
+        mavcolors=["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"],
+        addplot=[mpf.make_addplot(df['close'].ewm(span=9, adjust=False).mean(), color='orange', width=1, linestyle='dashed')],
+        returnfig=True,
+    )
+
+    # add 1y high line to preview
+    year_high = df['high'].max()
+    preview_axes[0].axhline(y=year_high, color='grey', linestyle='--', linewidth=1)
+    preview_handles = handles + [Line2D([], [], color='grey', linestyle='--', label='1Y High')]
+    preview_axes[0].legend(handles=preview_handles, loc='upper left')
 
     # Save figure
     fig.savefig(png_path, dpi=dpi, bbox_inches='tight')
@@ -254,6 +281,7 @@ def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
         label="1y_daily",
         sma_windows=(200, 100, 50, 10),
         ema_windows=(9,),
+        hlines=[(df['high'].max(), 'grey', '1Y High')],
     )
 
 if __name__ == "__main__":
