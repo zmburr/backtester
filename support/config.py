@@ -18,7 +18,8 @@ CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 GROQ_API_KEY     = os.getenv("GROQ_API_KEY")
 PPLX_API_KEY     = os.getenv("PPLX_API_KEY")
 
-def send_email(to_email, subject, body, attachments=None, from_email='zmburr@gmail.com', password=os.getenv('GMAIL_PASSWORD')):
+def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
+               from_email='zmburr@gmail.com', password=os.getenv('GMAIL_PASSWORD')):
 
     # Email server settings for Gmail
     smtp_server = "smtp.gmail.com"
@@ -31,7 +32,8 @@ def send_email(to_email, subject, body, attachments=None, from_email='zmburr@gma
     msg['Subject'] = subject
 
     # Add body to email
-    msg.attach(MIMEText(body, 'plain'))
+    subtype = 'html' if is_html else 'plain'
+    msg.attach(MIMEText(body, _subtype=subtype))
 
     # Attach any files
     attachments = attachments or []
