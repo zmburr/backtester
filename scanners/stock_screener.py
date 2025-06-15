@@ -24,7 +24,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['AVGO', 'NVDA']
+watchlist = ['CRWV']
 
 print(watchlist)
 
@@ -48,7 +48,9 @@ def add_range_data(ticker):
 
         # Calculate the percentage of ATR
         df['PCT_ATR'] = df['TR'] / df['ATR']
-
+        last_atr = df['ATR'].iloc[-1]
+        last_close = df['close'].iloc[-1]
+        print(f'Ticker: {ticker} ATR: {last_atr} Prev Close: {last_close}')
         # Calculate the 20-day average daily volume and current day's volume
         df['20Day_Avg_Volume'] = df['volume'].rolling(window=20).mean()
         df['pct_avg_volume'] = df['volume'] / df['20Day_Avg_Volume']
