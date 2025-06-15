@@ -6,6 +6,7 @@ from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 from data_queries.bloomberg_screener import cleaned_tickers
 import matplotlib.pyplot as plt
+import os
 
 # Adjust the date to the last market day if today is Saturday or Sunday
 today = datetime.now()
