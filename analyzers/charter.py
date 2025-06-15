@@ -153,6 +153,7 @@ def save_chart(
         mav=sma_windows if sma_windows else None,
         mavcolors=sma_colors,
         addplot=addplots if addplots else None,
+        volume=True,
         returnfig=True,
     )
 
@@ -179,6 +180,7 @@ def save_chart(
         mav=(200, 100, 50, 10),
         mavcolors=["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"],
         addplot=[mpf.make_addplot(df['close'].ewm(span=9, adjust=False).mean(), color='orange', width=1, linestyle='dashed')],
+        volume=True,
         returnfig=True,
     )
 
@@ -262,6 +264,7 @@ def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
         mav=(200, 100, 50, 10),
         mavcolors=["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"],
         addplot=[mpf.make_addplot(df['close'].ewm(span=9, adjust=False).mean(), color='orange', width=1, linestyle='dashed')],
+        volume=True,
         returnfig=True,
     )
     from matplotlib.lines import Line2D
