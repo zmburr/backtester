@@ -4,7 +4,6 @@ from tabulate import tabulate
 import pandas as pd
 from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
-from data_queries.bloomberg_screener import cleaned_tickers
 import matplotlib.pyplot as plt
 import os
 
@@ -25,77 +24,87 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['ORCL','CRWV','AAPL','GOOGL','NVDA','MP','USAR','OKLO','SMR','NBIS','TEM','CEP']
+watchlist = ['CRCL','ORCL','CRWV','AAPL','GOOGL','NVDA','MP','USAR','OKLO','SMR','NBIS','TEM','CEP']
 
 print(watchlist)
 
 def add_range_data(ticker):
     """
     Function to watch for range expansion across a list of stocks.
+    This implementation is IPO-friendly: if there are fewer trading days than the
+    standard rolling windows (ATR 14 or ADV 20) the windows are reduced automatically
+    and look-back calculations gracefully degrade to the data that is actually
+    available.
     :param ticker: Stock ticker to scan for range expansion.
     """
     try:
-        # Get the ATR and levels data for the stock using the provided date
+        # Retrieve historical price/volume data. A large look-back is requested, but
+        # get_levels_data will simply return what exists (e.g. only 10 days for a new IPO).
         df = get_levels_data(ticker, date, 60, 1, 'day')
+        if df is None or df.empty:
+            return {}
 
-        # Calculate True Range (TR) components
+        # -----------------------------
+        # Calculations
+        # -----------------------------
         df['high-low'] = df['high'] - df['low']
         df['high-previous_close'] = abs(df['high'] - df['close'].shift())
         df['low-previous_close'] = abs(df['low'] - df['close'].shift())
 
-        # Calculate the True Range (TR) and ATR
         df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
-        df['ATR'] = df['TR'].rolling(window=14).mean()
 
-        # Calculate the percentage of ATR
+        # Dynamically choose ATR window. 14 for mature stocks, otherwise whatever is available (min 1).
+        atr_window = 14 if len(df) >= 14 else max(1, len(df))
+        df['ATR'] = df['TR'].rolling(window=atr_window, min_periods=1).mean()
+
+        # Percentage of ATR for each day
         df['PCT_ATR'] = df['TR'] / df['ATR']
-        last_atr = df['ATR'].iloc[-1]
-        last_close = df['close'].iloc[-1]
-        print(f'Ticker: {ticker} ATR: {last_atr} Prev Close: {last_close}')
-        # Calculate the 20-day average daily volume and current day's volume
-        df['20Day_Avg_Volume'] = df['volume'].rolling(window=20).mean()
+
+        # Dynamically choose ADV window (20 by default)
+        adv_window = 20 if len(df) >= 20 else max(1, len(df))
+        df['20Day_Avg_Volume'] = df['volume'].rolling(window=adv_window, min_periods=1).mean()
         df['pct_avg_volume'] = df['volume'] / df['20Day_Avg_Volume']
 
-        # Extract relevant values from the dataframe
-        pct_of_atr = df['PCT_ATR'].iloc[-1]
-        day_before_pct_of_atr = df['PCT_ATR'].iloc[-2]
-        two_day_before_pct_of_atr = df['PCT_ATR'].iloc[-3]
-        three_day_before_pct_of_atr = df['PCT_ATR'].iloc[-4]
+        # Helper to fetch a value "n" rows back if it exists, else None
+        def safe_iloc(series, n_back):
+            return series.iloc[-n_back] if len(series) >= n_back else None
 
-        day_before_volume = df['volume'].iloc[-2]
-        two_day_before_volume = df['volume'].iloc[-3]
-        three_day_before_volume = df['volume'].iloc[-4]
+        # Prepare ATR percentages (today and up to three prior days)
+        pct_of_atr = safe_iloc(df['PCT_ATR'], 1)
+        day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 2)
+        two_day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 3)
+        three_day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 4)
 
-        day_before_adv = df['20Day_Avg_Volume'].iloc[-2]
-        two_day_before_adv = df['20Day_Avg_Volume'].iloc[-3]
-        three_day_before_adv = df['20Day_Avg_Volume'].iloc[-4]
+        # Volume comparisons
+        day_before_volume = safe_iloc(df['volume'], 2)
+        two_day_before_volume = safe_iloc(df['volume'], 3)
+        three_day_before_volume = safe_iloc(df['volume'], 4)
+
+        day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 2)
+        two_day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 3)
+        three_day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 4)
 
         def _pct_str(num, den):
-            if den:
-                pct = num / den
-                return f"({num:,} / {den:,}) = {pct:.2f}"
-            return "N/A"
+            if num is None or den in (None, 0):
+                return "N/A"
+            pct = num / den
+            return f"({num:,} / {den:,}) = {pct:.2f}"
 
-        day_before_pct_adv = _pct_str(day_before_volume, day_before_adv)
-        two_day_before_pct_adv = _pct_str(two_day_before_volume, two_day_before_adv)
-        three_day_before_pct_adv = _pct_str(three_day_before_volume, three_day_before_adv)
-
-        # Log the range expansion information
+        # Build result dict with graceful fall-backs
         result = {
-            # Volume % with calculation details in single string
-            'percent_of_vol_one_day_before': day_before_pct_adv,
-            'percent_of_vol_two_day_before': two_day_before_pct_adv,
-            'percent_of_vol_three_day_before': three_day_before_pct_adv,
-            # ATR % strings
-            'day_of_range_pct': f"({df['TR'].iloc[-1]:.2f} / {df['ATR'].iloc[-1]:.2f}) = {pct_of_atr:.2f}",
-            'one_day_before_range_pct': f"({df['TR'].iloc[-2]:.2f} / {df['ATR'].iloc[-2]:.2f}) = {day_before_pct_of_atr:.2f}",
-            'two_day_before_range_pct': f"({df['TR'].iloc[-3]:.2f} / {df['ATR'].iloc[-3]:.2f}) = {two_day_before_pct_of_atr:.2f}",
-            'three_day_before_range_pct': f"({df['TR'].iloc[-4]:.2f} / {df['ATR'].iloc[-4]:.2f}) = {three_day_before_pct_of_atr:.2f}"
+            'percent_of_vol_one_day_before': _pct_str(day_before_volume, day_before_adv),
+            'percent_of_vol_two_day_before': _pct_str(two_day_before_volume, two_day_before_adv),
+            'percent_of_vol_three_day_before': _pct_str(three_day_before_volume, three_day_before_adv),
+            'day_of_range_pct': _pct_str(safe_iloc(df['TR'],1), safe_iloc(df['ATR'],1)),
+            'one_day_before_range_pct': _pct_str(safe_iloc(df['TR'],2), safe_iloc(df['ATR'],2)),
+            'two_day_before_range_pct': _pct_str(safe_iloc(df['TR'],3), safe_iloc(df['ATR'],3)),
+            'three_day_before_range_pct': _pct_str(safe_iloc(df['TR'],4), safe_iloc(df['ATR'],4)),
         }
         return result
 
     except Exception as e:
         print(f"Error processing {ticker}: {e}")
+        return {}
 
 def add_percent_of_adv_columns(volume_data):
     # List of volume columns to compare with avg_daily_vol
