@@ -1,4 +1,11 @@
-from data_queries.polygon_queries import get_actual_current_price, get_levels_data, get_atr, fetch_and_calculate_volumes, get_ticker_pct_move
+from data_queries.polygon_queries import (
+    get_actual_current_price,
+    get_levels_data,
+    get_atr,
+    fetch_and_calculate_volumes,
+    get_ticker_pct_move,
+    get_ticker_mavs_open,
+)
 from datetime import datetime, timedelta
 from tabulate import tabulate
 import pandas as pd
@@ -136,7 +143,18 @@ def get_stock_data(ticker):
     volume_data = fetch_and_calculate_volumes(ticker, date)
     volume_data = add_percent_of_adv_columns(volume_data)
     range_data = add_range_data(ticker)
-    return {ticker: {'pct_data': pct_data, 'volume_data': volume_data, 'range_data': range_data}}
+
+    # New: percentage distance from key moving averages (10/20/50/200-day)
+    mav_data = get_ticker_mavs_open(ticker, date) or {}
+
+    return {
+        ticker: {
+            'pct_data': pct_data,
+            'volume_data': volume_data,
+            'range_data': range_data,
+            'mav_data': mav_data,
+        }
+    }
 
 def get_all_stocks_data(watchlist):
     all_data = {}
@@ -156,10 +174,15 @@ def calculate_percentiles(df, stock_data, columns):
         df = df.dropna(subset=available_cols)
     # Flatten stock_data for easier handling
     if isinstance(stock_data, dict):
-        flat_data = {**stock_data, **stock_data['pct_data'], **stock_data['volume_data'], **stock_data['range_data']}
-        flat_data.pop('pct_data', None)
-        flat_data.pop('volume_data', None)
-        flat_data.pop('range_data', None)
+        flat_data = {
+            **stock_data,
+            **stock_data.get('pct_data', {}),
+            **stock_data.get('volume_data', {}),
+            **stock_data.get('range_data', {}),
+        }
+        # Remove nested dicts so DataFrame contains only scalars
+        for nested_key in ('pct_data', 'volume_data', 'range_data', 'mav_data'):
+            flat_data.pop(nested_key, None)
         stock_data_df = pd.DataFrame([flat_data])
     else:
         stock_data_df = stock_data
@@ -180,7 +203,7 @@ def convert_dict_to_df(filtered_stocks):
     data_for_df = []
     for ticker, values in filtered_stocks.items():
         for key, val in values.items():
-            if key == 'pct_data' or key == 'volume_data':
+            if key in ('pct_data', 'volume_data', 'mav_data'):
                 for metric, metric_val in val.items():
                     data_for_df.append({
                         'Ticker': ticker,
