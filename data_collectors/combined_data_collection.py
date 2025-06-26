@@ -4,7 +4,6 @@ import pandas as pd
 import logging
 from tabulate import tabulate
 from datetime import datetime, timedelta
-fetch_and_calculate_volumes('AAPL', '2024-11-21')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
