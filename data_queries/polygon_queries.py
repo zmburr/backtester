@@ -14,11 +14,15 @@ poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
 def get_atr(ticker, date):
     # ATR is the greatest of the following: high-low / high - previous close / low - previous close
     df = get_levels_data(ticker, date, 30, 1, 'day')
+    if df is None or df.empty:
+        return None
     df['high-low'] = df['high'] - df['low']
     df['high-previous_close'] = abs(df['high'] - df['close'].shift())
     df['low-previous_close'] = abs(df['low'] - df['close'].shift())
     df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
-    df['ATR'] = df['TR'].rolling(window=14).mean()
+    # Dynamically adjust the ATR window for IPOs or stocks with limited history.
+    atr_window = min(14, max(1, len(df)))
+    df['ATR'] = df['TR'].rolling(window=atr_window, min_periods=1).mean()
     atr = df['ATR'].iloc[-1]
     return atr
 
@@ -65,23 +69,24 @@ def get_ticker_mavs_open(ticker, date):
         return None
     return results
 
-
 def fetch_and_calculate_volumes(ticker, date):
     logging.info(f'Fetching and calculating volumes for {ticker} on {date}')
     data = get_intraday(ticker, date, multiplier=1, timespan='minute')
     adv = get_levels_data(ticker, date, 30, 1, 'day')
-    # Calculate metrics
+    if adv is None or adv.empty:
+        return {}
+    # Calculate metrics with safeguards for datasets that are shorter than expected (e.g., recent IPOs)
     metrics = {
         'avg_daily_vol': adv['volume'].sum() / len(adv['volume']) if len(adv['volume']) > 0 else 0,
-        'vol_on_breakout_day': data['volume'].sum(),
-        'premarket_vol': data.between_time('06:00:00', '09:30:00')['volume'].sum(),
-        'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum(),
-        'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum(),
-        'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum(),
-        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum(),
-        'vol_two_day_before': adv.iloc[-3].volume,
-        'vol_one_day_before': adv.iloc[-2].volume,
-        'vol_three_day_before': adv.iloc[-4].volume
+        'vol_on_breakout_day': data['volume'].sum() if data is not None and not data.empty else None,
+        'premarket_vol': data.between_time('06:00:00', '09:30:00')['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum() if data is not None and not data.empty else None,
+        'vol_one_day_before': adv.iloc[-2].volume if len(adv) >= 2 else None,
+        'vol_two_day_before': adv.iloc[-3].volume if len(adv) >= 3 else None,
+        'vol_three_day_before': adv.iloc[-4].volume if len(adv) >= 4 else None
     }
     return metrics
 
@@ -160,7 +165,7 @@ def get_levels_data(ticker, date, window, multiplier, timespan):
                                        from_=adjust_date_to_market(date, window), to=date, limit=50000):
             aggs.append(a)
     except KeyError:
-        print('polygon levels error - data doesn’t exist')
+        print("polygon levels error - data doesn't exist")
         print(f'ticker: {ticker}, date: {date}, window: {window}, multiplier: {multiplier}, timespan: {timespan}')
         return None
     df = pd.DataFrame([vars(a) for a in aggs])
@@ -188,7 +193,7 @@ def get_intraday(ticker, date, multiplier, timespan):
                                        limit=50000):
             aggs.append(a)
     except KeyError:
-        print('poly intraday error - data doesn’t exist')
+        print("poly intraday error - data doesn't exist")
         print(f'ticker: {ticker}, date: {date}, multiplier: {multiplier}, timespan: {timespan}')
         return None
     df = pd.DataFrame([vars(a) for a in aggs])
@@ -228,6 +233,7 @@ def get_price_with_fallback(ticker, base_date, days_ago):
             # Fetch the adjusted market date and get the daily price
             adjusted_date = adjust_date_to_market(base_date, days_ago)
             price = get_daily(ticker, adjusted_date).close
+            print(adjusted_date, price)
             if price is not None:  # Check if the price exists
                 return price
         except Exception as e:
@@ -310,5 +316,5 @@ def check_pct_move(row):
         for key, value in pct_return_dict.items():
             row[key] = value
     except Exception as e:
-        print(f'Data doesn’t exist for {ticker} on {date}: {e}')
+        print(f"Data doesn't exist for {ticker} on {date}: {e}")
     return row
