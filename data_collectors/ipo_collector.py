@@ -34,6 +34,7 @@ IPOS: List[Tuple[str, str, float]] = [
     ("LYFT", "3/29/19", 72),
     ("SPOT", "4/03/18", 132),
     ("UBER", "5/10/19", 45),
+    ("FLY", "8/7/35", 45),
 ]
 
 OUTPUT_PATH = Path(r"C:\Users\zmbur\PycharmProjects\backtester\data\ipo_analysis_results.csv")
