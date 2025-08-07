@@ -97,6 +97,34 @@ def _get_intraday_any(ticker: str, date: str) -> pd.DataFrame:
 
 
 
+def _get_bbg_shares_outstanding(ticker: str) -> float:
+    """Return Bloomberg EQY_SH_OUT for given ticker; NaN on failure.
+
+    Uses xbbg's bdp. Assumes US listing and appends " US Equity".
+    """
+    try:
+        from xbbg import blp  # type: ignore
+
+        bb_ticker = f"{ticker} US Equity"
+        df = blp.bdp(bb_ticker, flds=["EQY_SH_OUT"])  # returns DataFrame
+        if df is None or getattr(df, "empty", True):
+            return float("nan")
+        col = (
+            "EQY_SH_OUT"
+            if "EQY_SH_OUT" in df.columns
+            else ("eqy_sh_out" if "eqy_sh_out" in df.columns else df.columns[0])
+        )
+        value = df.loc[df.index[0], col]
+        print(f"Shares outstanding for {ticker} from Bloomberg: {value}")
+        try:
+            return float(value)
+        except Exception:
+            return float("nan")
+    except Exception:
+        return float("nan")
+
+
+
 def _first_print(df: pd.DataFrame) -> pd.Series:
     return df.iloc[0]
 
@@ -150,6 +178,8 @@ def analyze_single_ipo(ticker: str, date_raw: str, ipo_price: float) -> Dict:
     first_price = _first_print(ipo_df).open if ipo_df is not None else np.nan
     hi_price = ipo_df.high.max() if ipo_df is not None else np.nan
     print(first_price, hi_price)
+    # Bloomberg: shares outstanding for market cap calcs
+    shares_outstanding = _get_bbg_shares_outstanding(ticker)
     # Restrict to regular trading session for close/open calculations
     def _regular_session(df: pd.DataFrame) -> pd.DataFrame:
         try:
@@ -191,11 +221,25 @@ def analyze_single_ipo(ticker: str, date_raw: str, ipo_price: float) -> Dict:
 
     # -------------------------------------------------------------------------
 
+    market_cap_at_ipo_price = (
+        shares_outstanding * ipo_price
+        if not np.isnan(shares_outstanding) and not np.isnan(ipo_price)
+        else np.nan
+    )
+    market_cap_at_open = (
+        shares_outstanding * first_price
+        if not np.isnan(shares_outstanding) and not np.isnan(first_price)
+        else np.nan
+    )
+
     record: Dict = {
         "ticker": ticker,
         "ipo_date": date,
         "ipo_price": ipo_price,
+        "shares_outstanding": shares_outstanding,
+        "market_cap_at_ipo_price": market_cap_at_ipo_price,
         "first_print_price": first_price,
+        "market_cap_at_open": market_cap_at_open,
         "pct_open_vs_ipo": (first_price - ipo_price) / ipo_price,
         "day_high": hi_price,
         "time_to_day_high_min": (
