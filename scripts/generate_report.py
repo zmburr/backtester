@@ -61,20 +61,14 @@ HEADER_HTML = """
 
 <h2>Rules</h2>
 <ol>
-  <li>It's ok to consciously risk 10–20&nbsp;K on bread-and-butter / ETF aggression</li>
-  <li>Let the upside take care of itself</li>
-  <li>Selectivity – trust your instincts – reactive trades always best (don't change tiers)</li>
   <li>Quality in everything – end day with quality &amp; take breaks to maintain quality</li>
-  <li>Use the 2-minute bar for high-volume good news / 1-minute for scalp – after VOLUME</li>
 </ol>
 
 <h2>News Rules / Reminders</h2>
 <ol>
-  <li>Expected value over first prints – push size in your bread-and-butter (think ECO index trades) / POAI arb</li>
-  <li>Every single trade was not within 0.2&nbsp;% of reference after a minute unless it was a dissem issue<br>
-      Single stocks – 50&nbsp;% of them last 21.5&nbsp;minutes – on my biggest trades – 50&nbsp;% = 35&nbsp;mins
-  </li>
-  <li>If it breaks upper or lower-bound trend – hold until it fails trend as it's a positive signal (good RRR to see if it goes para)</li>
+  <li>CP on canada deal with US / CAR on any car tariff changes / STZ+EWW or TNA on Mexico / XLE short / MT LONG / KYIV on Russia Deal</li>
+  <li>Watching TSLA for breakout </li>
+
 </ol>
 
 <h2>Morning Checklist</h2>
@@ -96,6 +90,7 @@ PERCENTILE_ORDER = [
     "pct_change_30",
     "pct_change_15",
     "pct_change_3",
+    "pct_from_10mav", "pct_from_20mav", "pct_from_50mav", "pct_from_200mav",
 ]
 
 def _format_percentile_dict(d: dict) -> str:
@@ -112,6 +107,17 @@ def _format_percentile_dict(d: dict) -> str:
         lines.append(f"    {key}: {d[key]:.1f}")
     return "\n".join(lines)
 
+# +++++ NEW helper ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+def _fmt_pct(val):
+    """
+    Convert a fractional distance-from-MA (e.g. 0.042) to a percentage
+    string like '4.2%'.  Falls back to str(val) if conversion fails.
+    """
+    try:
+        return f"{float(val) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return str(val)
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def _generate_ticker_section(ticker: str, data: dict, charts_dir: str) -> str:
     """Return formatted string section for one ticker and create its chart."""
@@ -146,8 +152,13 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str) -> str:
         lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    "))
 
     if mav_data:
-        lines.append("Pct from Moving Averages:")
-        lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in mav_data.items()]), "    "))
+        lines.append("Distance from Moving Averages:")
+        # prettier labels: “10 MA” instead of “pct_from_10mav”
+        label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
+        lines.append(indent(
+            "\n".join(f"{label(k)}: {_fmt_pct(v)}" for k, v in mav_data.items()),
+            "    "
+        ))
 
     # Generate chart and embed inline
     chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir))
@@ -226,8 +237,22 @@ def generate_report() -> str:
     # Collect new metrics for watchlist tickers
     all_data = ss.get_all_stocks_data(watchlist)
 
+    # ---- NEW: sort by distance from 10-day MA (descending) -----------------
+    def _safe_float(x, default=float('-inf')):
+        try:
+            return float(x)
+        except (TypeError, ValueError):
+            return default
+
+    def _mav10_key(ticker: str) -> float:
+        return _safe_float((all_data.get(ticker, {}).get("mav_data") or {}).get("pct_from_10mav"))
+
+    # If you prefer absolute distance (above or below), use key=lambda t: abs(_mav10_key(t))
+    sorted_watchlist = sorted(watchlist, key=_mav10_key, reverse=True)
+    # -----------------------------------------------------------------------
+
     sections = [
-        _generate_ticker_section(ticker, all_data[ticker], charts_dir) for ticker in watchlist
+        _generate_ticker_section(ticker, all_data[ticker], charts_dir) for ticker in sorted_watchlist
     ]
 
     # Prepend header information
