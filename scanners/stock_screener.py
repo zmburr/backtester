@@ -31,8 +31,9 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['CRCL','ORCL','CRWV','AAPL','GOOGL','NVDA','MP','USAR','OKLO','SMR','NBIS','TEM','CEP']
-
+watchlist = ['SNOW','MDB','BE','GDXJ','CRCL','TSLA','WULF','UNH','CRWV','JOBY','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','METC','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
+# watchlist = ['OPEN']
+#
 print(watchlist)
 
 def add_range_data(ticker):
@@ -174,11 +175,13 @@ def calculate_percentiles(df, stock_data, columns):
         df = df.dropna(subset=available_cols)
     # Flatten stock_data for easier handling
     if isinstance(stock_data, dict):
+        print(stock_data)
         flat_data = {
             **stock_data,
             **stock_data.get('pct_data', {}),
             **stock_data.get('volume_data', {}),
             **stock_data.get('range_data', {}),
+            **stock_data.get('mav_data', {}),
         }
         # Remove nested dicts so DataFrame contains only scalars
         for nested_key in ('pct_data', 'volume_data', 'range_data', 'mav_data'):
@@ -229,12 +232,18 @@ if __name__ == '__main__':
     for ticker, percentiles in reversal_sorted:
         pct_data = all_stock_data.get(ticker, {}).get('pct_data', {})
         range_data = all_stock_data.get(ticker, {}).get('range_data', {})
+        mav_data = all_stock_data.get(ticker, {}).get('mav_data', {})  # <-- add this
+
         percentiles_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in percentiles.items()])
         pct_data_str = '\n'.join([f"    {k}: {v:.2f}" for k, v in pct_data.items()])
+
+
         def _fmt(val):
             return f"{val:.2f}" if isinstance(val, (int, float)) else str(val)
 
+
         range_data_str = '\n'.join([f"    {k}: {_fmt(v)}" for k, v in range_data.items()])
+        mav_data_str = '\n'.join([f"    {k}: {_fmt(v)}" for k, v in mav_data.items()])  # <-- add this
 
         print(f"Reversal: {ticker}")
         print("  Percentiles:")
@@ -243,4 +252,6 @@ if __name__ == '__main__':
         print(pct_data_str if pct_data else "    None")
         print("  Range Data:")
         print(range_data_str if range_data else "    None")
+        print("  Mav Data (pct from MAs):")  # <-- add this
+        print(mav_data_str if mav_data else "    None")  # <-- add this
         print("-" * 50)
