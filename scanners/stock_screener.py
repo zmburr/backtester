@@ -6,6 +6,7 @@ from data_queries.polygon_queries import (
     get_ticker_pct_move,
     get_ticker_mavs_open,
 )
+from data_queries.trillium_queries import get_actual_current_price_trill
 from datetime import datetime, timedelta
 from tabulate import tabulate
 import pandas as pd
@@ -31,8 +32,8 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['SNOW','MDB','BE','GDXJ','CRCL','TSLA','WULF','UNH','CRWV','JOBY','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','METC','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
-# watchlist = ['OPEN']
+watchlist = ['BIDU','BE','GDXJ','CRCL','PGY','HUT','TSLA','IREN','KLAR','FIGR','GEMI','WULF','UNH','CRWV','IONQ','JOBY','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
+# watchlist = ['BITF']
 #
 print(watchlist)
 
@@ -140,6 +141,9 @@ def add_percent_of_adv_columns(volume_data):
 def get_stock_data(ticker):
     # Pass the date argument to all query functions
     current_price = get_actual_current_price(ticker, date)
+    print(f'Current price for {ticker} on {date}: {current_price}')
+    if current_price is None:
+        current_price = get_actual_current_price_trill(ticker)
     pct_data = get_ticker_pct_move(ticker, date, current_price)
     volume_data = fetch_and_calculate_volumes(ticker, date)
     volume_data = add_percent_of_adv_columns(volume_data)
