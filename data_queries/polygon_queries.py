@@ -41,7 +41,7 @@ def get_ticker_mavs_open(ticker, date):
     results = {}
     try:
         # Get the open price for the given date
-        open_price = poly_client.get_daily_open_close_agg(ticker, date).open
+        open_price = get_intraday(ticker, date,1,"minute").iloc[-1].high
     except (AttributeError, IndexError, TypeError) as e:
         print(f"Open price missing or unavailable for {ticker} on {date}: {e}")
         return None  # Open price is essential; return None if it's missing.
@@ -50,14 +50,23 @@ def get_ticker_mavs_open(ticker, date):
     def calculate_pct_mav(window):
         try:
             mav = poly_client.get_sma(
-                ticker=ticker, timestamp=date, timespan='day', adjusted=True, window=window, series_type='close'
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc",limit="10"
             ).values[0].value
             return (open_price - mav) / mav
         except (AttributeError, IndexError, TypeError) as e:
             print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
             return None
-
+    def calculate_pct_mavema(window):
+        try:
+            mav = poly_client.get_ema(
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc",limit="10"
+            ).values[0].value
+            return (open_price - mav) / mav
+        except (AttributeError, IndexError, TypeError) as e:
+            print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
+            return None
     # Calculate percentage differences for each moving average
+    results['pct_from_9ema'] = calculate_pct_mavema(9)
     results['pct_from_10mav'] = calculate_pct_mav(10)
     results['pct_from_20mav'] = calculate_pct_mav(20)
     results['pct_from_50mav'] = calculate_pct_mav(50)
@@ -243,6 +252,17 @@ def get_price_with_fallback(ticker, base_date, days_ago):
 
 
 def get_ticker_pct_move(ticker, date, current_price):
+    # Handle case where current_price is None
+    if current_price is None:
+        print(f"Warning: current_price is None for {ticker} on {date}. Cannot calculate percentage moves.")
+        return {
+            "pct_change_120": None,
+            "pct_change_90": None,
+            "pct_change_30": None,
+            "pct_change_15": None,
+            "pct_change_3": None
+        }
+    
     price_120dago = get_price_with_fallback(ticker, date, 120)
     price_90dago = get_price_with_fallback(ticker, date, 90)
     price_30dago = get_price_with_fallback(ticker, date, 30)
