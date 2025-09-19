@@ -25,6 +25,8 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
 
+    server = None  # Ensure variable is defined for use in finally block
+
     # Create message
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -49,9 +51,17 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
             print(f"Failed to attach {path}: {e}")
 
     try:
-        # Connect to the server
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()  # Enable TLS
+        # First attempt TLS on port 587
+        try:
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        except Exception as tls_exc:
+            print(f"TLS connection failed ({tls_exc}). Trying SSL on port 465...")
+            # Fall back to SSL on port 465
+            server = smtplib.SMTP_SSL(smtp_server, 465, timeout=30)
+            server.ehlo()
 
         # Login to your email account
         server.login(from_email, password)
@@ -65,4 +75,9 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
 
     finally:
         # Close the connection
-        server.quit()
+        if server:
+            try:
+                server.quit()
+            except Exception:
+                pass
+# send_email("zburr@trlm.com", "Test", "This is a test email")
