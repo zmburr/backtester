@@ -32,8 +32,8 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','BE','GDXJ','CRCL','PGY','HUT','TSLA','IREN','KLAR','FIGR','GEMI','WULF','UNH','CRWV','IONQ','JOBY','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
-# watchlist = ['BITF']
+watchlist = ['BIDU','BE','GDXJ','SNDK','CRCL','PGY','HUT','TSLA','IREN','KLAR','FIGR','GEMI','WULF','UNH','CRWV','IONQ','JOBY','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
+# watchlist = ['BE','IONQ','OKLO','SNDK']
 #
 print(watchlist)
 
@@ -74,24 +74,46 @@ def add_range_data(ticker):
         df['20Day_Avg_Volume'] = df['volume'].rolling(window=adv_window, min_periods=1).mean()
         df['pct_avg_volume'] = df['volume'] / df['20Day_Avg_Volume']
 
-        # Helper to fetch a value "n" rows back if it exists, else None
-        def safe_iloc(series, n_back):
-            return series.iloc[-n_back] if len(series) >= n_back else None
+        # Helper to fetch a value by date if it exists, else None
+        def safe_get_by_date(series, target_date):
+            try:
+                return series.loc[target_date] if target_date in series.index else None
+            except (KeyError, TypeError):
+                return None
 
-        # Prepare ATR percentages (today and up to three prior days)
-        pct_of_atr = safe_iloc(df['PCT_ATR'], 1)
-        day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 2)
-        two_day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 3)
-        three_day_before_pct_of_atr = safe_iloc(df['PCT_ATR'], 4)
+        # Get the most recent date (today's data)
+        most_recent_date = df.index[-1] if len(df) > 0 else None
+        
+        # Get available trading dates in descending order
+        available_dates = df.index.sort_values(ascending=False)
+        
+        # Helper to get the nth most recent trading date
+        def get_nth_recent_date(n):
+            return available_dates[n] if len(available_dates) > n else None
+        
+        # Get specific dates for reference
+        today_date = get_nth_recent_date(0)  # Most recent
+        one_day_before_date = get_nth_recent_date(1)  # 1 trading day back
+        two_day_before_date = get_nth_recent_date(2)  # 2 trading days back  
+        three_day_before_date = get_nth_recent_date(3)  # 3 trading days back
+        
+        print(f"Reference dates - Today: {today_date}, 1 day back: {one_day_before_date}, 2 days back: {two_day_before_date}, 3 days back: {three_day_before_date}")
+        print(df.tail(5))
 
-        # Volume comparisons
-        day_before_volume = safe_iloc(df['volume'], 2)
-        two_day_before_volume = safe_iloc(df['volume'], 3)
-        three_day_before_volume = safe_iloc(df['volume'], 4)
+        # Prepare ATR percentages using exact dates
+        pct_of_atr = safe_get_by_date(df['PCT_ATR'], today_date)
+        day_before_pct_of_atr = safe_get_by_date(df['PCT_ATR'], one_day_before_date)
+        two_day_before_pct_of_atr = safe_get_by_date(df['PCT_ATR'], two_day_before_date)
+        three_day_before_pct_of_atr = safe_get_by_date(df['PCT_ATR'], three_day_before_date)
 
-        day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 2)
-        two_day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 3)
-        three_day_before_adv = safe_iloc(df['20Day_Avg_Volume'], 4)
+        # Volume comparisons using exact dates
+        day_before_volume = safe_get_by_date(df['volume'], one_day_before_date)
+        two_day_before_volume = safe_get_by_date(df['volume'], two_day_before_date)
+        three_day_before_volume = safe_get_by_date(df['volume'], three_day_before_date)
+
+        day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], one_day_before_date)
+        two_day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], two_day_before_date)
+        three_day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], three_day_before_date)
 
         def _pct_str(num, den):
             if num is None or den in (None, 0):
@@ -99,15 +121,15 @@ def add_range_data(ticker):
             pct = num / den
             return f"({num:,} / {den:,}) = {pct:.2f}"
 
-        # Build result dict with graceful fall-backs
+        # Build result dict with graceful fall-backs using exact dates
         result = {
             'percent_of_vol_one_day_before': _pct_str(day_before_volume, day_before_adv),
             'percent_of_vol_two_day_before': _pct_str(two_day_before_volume, two_day_before_adv),
             'percent_of_vol_three_day_before': _pct_str(three_day_before_volume, three_day_before_adv),
-            'day_of_range_pct': _pct_str(safe_iloc(df['TR'],1), safe_iloc(df['ATR'],1)),
-            'one_day_before_range_pct': _pct_str(safe_iloc(df['TR'],2), safe_iloc(df['ATR'],2)),
-            'two_day_before_range_pct': _pct_str(safe_iloc(df['TR'],3), safe_iloc(df['ATR'],3)),
-            'three_day_before_range_pct': _pct_str(safe_iloc(df['TR'],4), safe_iloc(df['ATR'],4)),
+            'day_of_range_pct': _pct_str(safe_get_by_date(df['TR'], today_date), safe_get_by_date(df['ATR'], today_date)),
+            'one_day_before_range_pct': _pct_str(safe_get_by_date(df['TR'], one_day_before_date), safe_get_by_date(df['ATR'], one_day_before_date)),
+            'two_day_before_range_pct': _pct_str(safe_get_by_date(df['TR'], two_day_before_date), safe_get_by_date(df['ATR'], two_day_before_date)),
+            'three_day_before_range_pct': _pct_str(safe_get_by_date(df['TR'], three_day_before_date), safe_get_by_date(df['ATR'], three_day_before_date)),
         }
         return result
 
