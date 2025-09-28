@@ -62,6 +62,7 @@ HEADER_HTML = """
 <h2>Rules</h2>
 <ol>
   <li>Quality in everything – end day with quality &amp; take breaks to maintain quality</li>
+  <li>READ CATALYST CAL RULES </li>
 </ol>
 
 <h2>News Rules / Reminders</h2>
@@ -271,9 +272,18 @@ def generate_report() -> str:
 
     return html_report
 
-
+def project_choice():
+    send_email(
+        to_email="zburr@trlm.com",
+        subject="Your One Current Focus Project",
+        body="""The purpose of this is to stay on tast - sub in a new project here if you want to change your focus. 
+        When It comes to potential quality of life improvements I think this would be a good one to focus on.
+        Your one current focus project is: 1. Building out OCR on BLRT to be able to produce more automations on it including freshness checks, reasoning, and iterating on my NLRT's.""",
+        is_html=True,
+    )
 if __name__ == "__main__":
     rep = generate_report()
+    project_choice()
     # Print plain-text fallback (strip HTML tags) if desired
     print("Report generated, saved, and (attempted) e-mailed.")
     cleanup_charts() 
