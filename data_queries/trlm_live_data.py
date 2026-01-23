@@ -39,7 +39,7 @@ class TrlmData:
         self.logger.info(f'live data starting - ticker: {self.ticker}')
 
     def start_data_stream(self):
-        with ctxcapmd.Session('10.195.0.102', 65500, journal.any_decompress) as session:
+        with ctxcapmd.Session('10.10.1.71', 65500, journal.any_decompress) as session:
             def print_object(obj):
                 if obj['type'] == 'bar-5s':
                     # if not obj.get('preview', False):

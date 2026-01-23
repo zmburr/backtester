@@ -216,9 +216,16 @@ def calculate_metrics(data, ticker, trade_date):
     potential_size = calculate_potential_size(entry_price, side)  # <--- uses first_open
     # Convert percent returns (e.g.  -0.1 or +3.5) into decimal (e.g. -0.001, +0.035).
     # delayed_return_pct / 100 -> decimal
-    delayed_npl = potential_size * (delayed_return_pct / 100.0)
-    quick_npl   = potential_size * (quick_return_pct   / 100.0)
+    if side == 1:
+        dpts = (delay_exit_price - entry_price)
+        qpts = (quick_exit_price - entry_price)
 
+    else:
+        dpts = (entry_price- delay_exit_price)
+        qpts = ( entry_price-quick_exit_price)
+
+    delayed_npl = potential_size * (dpts)
+    quick_npl = potential_size * (qpts)
     # 7) Build a *one-row* summary DataFrame
     summary_df = pd.DataFrame({
         'date':                       [date_str],
@@ -311,14 +318,16 @@ if __name__ == "__main__":
         {"type": "Services", "date": "07/03/2024"},
         {"type": "Manufacturing", "date": "08/01/2024"},
         {"type": "Services", "date": "08/05/2024"},
-        {"type": "Manufacturing", "date": "09/03/2024"},
+        {"type": "Manufacturing", "date": "09/04/2024"},
         {"type": "Services", "date": "09/05/2024"},
         {"type": "Manufacturing", "date": "10/01/2024"},
         {"type": "Services", "date": "10/03/2024"},
         {"type": "Manufacturing", "date": "11/01/2024"},
         {"type": "Services", "date": "11/05/2024"},
         {"type": "Manufacturing", "date": "12/02/2024"},
-        {"type": "Services", "date": "12/04/2024"}
+        {"type": "Services", "date": "12/04/2024"},
+        {"type": "Manufacturing", "date": "01/03/2025"},
+        {"type": "Services", "date": "1/07/2025"}
     ]
 
     processed_data = process_tickers(tickers, release_dates)

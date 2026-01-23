@@ -32,9 +32,9 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','BE','GDXJ','SNDK','CRCL','PGY','HUT','TSLA','IREN','KLAR','FIGR','GEMI','WULF','UNH','CRWV','IONQ','JOBY','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','TEM','RBLX','CRDO','RKLB','BKSY','HOOD','QS','OPEN','ORCL','AEVA','OUST']
-# watchlist = ['BE','IONQ','OKLO','SNDK']
-#
+watchlist = ['BIDU','AMD','SLV','GLD','CRML','GWRE','BE','EOSE','BITF','PL','QBTS','SNDK','BETR','WDC','RGTI','HYMC','TSLA','IREN','FIGR','CRWV','IONQ','HL','PAAS','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','CRDO','RKLB','MU','GDXJ','QS','OPEN','ORCL']
+# watchlist = ['SLV']
+
 print(watchlist)
 
 def add_range_data(ticker):

@@ -12,7 +12,7 @@ time = now_time.strftime('%Y-%m-%d %H:%M:%S')
 
 live_test = {
     'headline_time': time,
-    'ticker': 'NVDA',
+    'ticker': 'GME',
     'recommendation': 'SELL',
     'profit_strategy': '5_min_close'
 }

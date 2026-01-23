@@ -71,6 +71,28 @@ def get_ticker_mavs_open(ticker, date):
     results['pct_from_20mav'] = calculate_pct_mav(20)
     results['pct_from_50mav'] = calculate_pct_mav(50)
     results['pct_from_200mav'] = calculate_pct_mav(200)
+    
+    # Calculate ATR distance from 50-day moving average
+    try:
+        # Get the 50-day moving average value
+        mav_50 = poly_client.get_sma(
+            ticker=ticker, timespan='day', adjusted=True, window=50, series_type='close', order="desc", limit="10"
+        ).values[0].value
+        
+        # Get ATR for the ticker
+        atr_value = get_atr(ticker, date)
+        
+        if mav_50 is not None and atr_value is not None and atr_value > 0:
+            # Calculate number of ATRs above/below the 50-day MA
+            atr_distance_from_50mav = (open_price - mav_50) / atr_value
+            results['atr_distance_from_50mav'] = atr_distance_from_50mav
+        else:
+            print(f"Unable to calculate ATR distance for {ticker} on {date}: 50MA={mav_50}, ATR={atr_value}")
+            results['atr_distance_from_50mav'] = None
+    except (AttributeError, IndexError, TypeError) as e:
+        print(f"ATR distance calculation failed for {ticker} on {date}: {e}")
+        results['atr_distance_from_50mav'] = None
+    
     # Filter out None values
     results = {key: value for key, value in results.items() if value is not None}
     if not results:
