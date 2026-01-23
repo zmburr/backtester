@@ -56,36 +56,45 @@ COLUMNS_TO_COMPARE = ss.columns_to_compare
 # Report header (trading rules & daily checklist)
 # ---------------------------------------------
 
-HEADER_HTML = """
-<h1 style=\"text-align:center;\">Daily Trading Rules &amp; Checklist</h1>
+HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist</h1>
 
 <h2>Rules</h2>
 <ol>
-  <li>Quality in everything – end day with quality &amp; take breaks to maintain quality</li>
-  <li>Push size in liquid names </li>
-  <li>Start orderpipe </li>
-  <li>Start cnbc </li>
+  <li>Quality in everything – end day with quality & take breaks to maintain quality</li>
+  <li>Push size in liquid names</li>
+  <li>Start orderpipe</li>
+  <li>Start cnbc</li>
+  <li>It's ok to consciously risk 30-40K on bread and butter / ETF aggression</li>
+  <li>Let the upside take care of itself</li>
+  <li>Selectivity - trust your instincts - reactive trades always best (don't change tiers)</li>
+  <li>Use the 2-minute bar for high volume good news / 1 min for scalp - after VOLUME</li>
+  <li>Liquidity focus</li>
+  <li>Who gets paid? → That's my trade.</li>
+  <li>Avoid Swing trading if mental perception is not performing well at work</li>
+  <li>Expected Value over First Prints - Push size in your bread and butter</li>
+  <li>Every single trade was not within .2% of reference after a minute unless it was a dissem issue</li>
+  <li>Single stocks - 50% of them last 21.5 minutes - On my biggest trades - 50% = 35 mins</li>
+  <li>If it breaks upper or lower bound trend- hold until it fails trend as it's a pos signal (good RRR to see if it goes para)</li>
 </ol>
 
 <h2>News Rules / Reminders</h2>
 <ol>
   <li>CP on canada deal with US / CAR on any car tariff changes / STZ+EWW or TNA on Mexico / XLE short / MT LONG / KYIV on Russia Deal</li>
-  <li>XRT SHW for Trump tariffs </li>
-  <li>IBIT on Rieder / Short market on Warsh  </li>
+  <li>XRT SHW for Trump tariffs</li>
+  <li>IBIT on Rieder / Short market on Warsh</li>
 
 </ol>
 
 <h2>Morning Checklist</h2>
 <ul>
   <li>Read overnight news</li>
-  <li>Look at all stocks gapping up or down 5&nbsp;%+ (Stockfetcher, MAT, NLRTs)</li>
+  <li>Look at all stocks gapping up or down 5 %+ (Stockfetcher, MAT, NLRTs)</li>
   <li>Go through rules and reminders</li>
   <li>Check Trump schedule</li>
   <li>Create one explicit process-oriented goal for the day</li>
   <li>Go through all events / ECO for the day – call out important ones to group</li>
   <li>Write down any tasks you want to accomplish today</li>
-</ul>
-"""
+</ul>"""
 
 # Custom ordering for percentile keys
 PERCENTILE_ORDER = [

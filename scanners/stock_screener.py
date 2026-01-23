@@ -32,7 +32,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','AMD','SLV','GLD','CRML','GWRE','BE','EOSE','BITF','PL','QBTS','SNDK','BETR','WDC','RGTI','HYMC','TSLA','IREN','FIGR','CRWV','IONQ','HL','PAAS','APP','AAPL','GOOGL','NVDA','AVGO','PLTR','MP','USAR','OKLO','SMR','NBIS','CRDO','RKLB','MU','GDXJ','QS','OPEN','ORCL']
+watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONEN','QBTS','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA']
 # watchlist = ['SLV']
 
 print(watchlist)
