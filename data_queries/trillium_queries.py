@@ -280,8 +280,8 @@ def get_mav_data(df: pd.DataFrame) -> Dict[str, float | None]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    sample_ticker = "METC"
-    print(get_actual_current_price(sample_ticker))
+    sample_ticker = "AAPL"
+    print(get_actual_current_price_trill(sample_ticker))
     sample_date   = "2020-05-27"
 
     print("VWAP:", get_vwap(sample_ticker, sample_date))

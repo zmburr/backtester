@@ -40,28 +40,39 @@ def add_two_hours(time_str):
 def get_ticker_mavs_open(ticker, date):
     results = {}
     try:
-        # Get the open price for the given date
-        open_price = get_intraday(ticker, date,1,"minute").iloc[-1].high
+        # Get the high of day for the given date
+        daily_data = get_daily(ticker, date)
+        if daily_data is None:
+            # Premarket or no data - try to get prior day's close as reference
+            prior_date = adjust_date_to_market(date, 1)
+            daily_data = get_daily(ticker, prior_date)
+            if daily_data is None:
+                print(f"No daily data available for {ticker} on {date} or prior day")
+                return None
+            high_of_day = daily_data.close  # Use prior close as reference in premarket
+            print(f"Using prior day ({prior_date}) close as reference for {ticker}: {high_of_day}")
+        else:
+            high_of_day = daily_data.high
     except (AttributeError, IndexError, TypeError) as e:
-        print(f"Open price missing or unavailable for {ticker} on {date}: {e}")
-        return None  # Open price is essential; return None if it's missing.
+        print(f"High of day missing or unavailable for {ticker} on {date}: {e}")
+        return None  # High of day is essential; return None if it's missing.
 
     # Helper function to get moving average and calculate the percentage difference
     def calculate_pct_mav(window):
         try:
             mav = poly_client.get_sma(
-                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc",limit="10"
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=date
             ).values[0].value
-            return (open_price - mav) / mav
+            return (high_of_day - mav) / mav
         except (AttributeError, IndexError, TypeError) as e:
             print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
             return None
     def calculate_pct_mavema(window):
         try:
             mav = poly_client.get_ema(
-                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc",limit="10"
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=date
             ).values[0].value
-            return (open_price - mav) / mav
+            return (high_of_day - mav) / mav
         except (AttributeError, IndexError, TypeError) as e:
             print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
             return None
@@ -74,17 +85,17 @@ def get_ticker_mavs_open(ticker, date):
     
     # Calculate ATR distance from 50-day moving average
     try:
-        # Get the 50-day moving average value
+        # Get the 50-day moving average value for the specific date
         mav_50 = poly_client.get_sma(
-            ticker=ticker, timespan='day', adjusted=True, window=50, series_type='close', order="desc", limit="10"
+            ticker=ticker, timespan='day', adjusted=True, window=50, series_type='close', order="desc", limit=10, timestamp=date
         ).values[0].value
-        
+
         # Get ATR for the ticker
         atr_value = get_atr(ticker, date)
-        
+
         if mav_50 is not None and atr_value is not None and atr_value > 0:
-            # Calculate number of ATRs above/below the 50-day MA
-            atr_distance_from_50mav = (open_price - mav_50) / atr_value
+            # Calculate number of ATRs the high of day is above/below the 50-day MA
+            atr_distance_from_50mav = (high_of_day - mav_50) / atr_value
             results['atr_distance_from_50mav'] = atr_distance_from_50mav
         else:
             print(f"Unable to calculate ATR distance for {ticker} on {date}: 50MA={mav_50}, ATR={atr_value}")
@@ -208,8 +219,13 @@ def get_levels_data(ticker, date, window, multiplier, timespan):
 
 
 def get_daily(ticker, date):
-    request = poly_client.get_daily_open_close_agg(ticker, date)
-    return request
+    """Get daily OHLC data. Returns None if data not found (e.g., premarket)."""
+    try:
+        request = poly_client.get_daily_open_close_agg(ticker, date)
+        return request
+    except Exception as e:
+        print(f"get_daily error for {ticker} on {date}: {e}")
+        return None
 
 
 def get_intraday(ticker, date, multiplier, timespan):
@@ -232,7 +248,6 @@ def get_intraday(ticker, date, multiplier, timespan):
     df['timestamp'] = df['timestamp'].dt.tz_localize('UTC').dt.tz_convert(timezone('US/Eastern'))
     df.set_index('timestamp', inplace=True)
     return df
-
 
 def adjust_date_forward(date_string, days_to_add):
     # Validate and convert input date string to pandas.Timestamp

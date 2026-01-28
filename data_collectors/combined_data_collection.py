@@ -402,6 +402,7 @@ fill_functions_reversal = {
     'pct_from_20mav': get_pct_from_mavs,
     'pct_from_50mav': get_pct_from_mavs,
     'pct_from_200mav': get_pct_from_mavs,
+    'atr_distance_from_50mav': get_pct_from_mavs,
 
     'gap_pct':check_breakout_stats,
     'reversal_open_low_pct': check_breakout_stats,
@@ -454,6 +455,23 @@ def fill_data(df, analysis_type, fill_functions):
     return df
 
 
+REVERSAL_COLUMN_ORDER = [
+    'date', 'ticker', 'trade_grade', 'cap', 'intraday_setup', 'setup', 'atr_pct', 'atr_pct_move',
+    'avg_daily_vol', 'breaks_ath', 'breaks_fifty_two_wk', 'close_at_lows', 'close_green_red',
+    'day_of_range_pct', 'gap_pct', 'hit_green_red', 'hit_prior_day_hilo', 'move_together',
+    'one_day_before_range_pct', 'pct_change_120', 'pct_change_15', 'pct_change_3', 'pct_change_30',
+    'pct_change_90', 'pct_from_10mav', 'pct_from_200mav', 'pct_from_20mav', 'pct_from_50mav', 'atr_distance_from_50mav',
+    'percent_of_premarket_vol', 'percent_of_vol_in_first_10_min', 'percent_of_vol_in_first_15_min',
+    'percent_of_vol_in_first_30_min', 'percent_of_vol_in_first_5_min', 'percent_of_vol_on_breakout_day',
+    'percent_of_vol_one_day_before', 'percent_of_vol_three_day_before', 'percent_of_vol_two_day_before',
+    'premarket_vol', 'reversal_duration', 'reversal_open_close_pct', 'reversal_open_low_pct',
+    'reversal_open_post_low_pct', 'reversal_open_to_day_after_open_pct', 'spy_open_close_pct',
+    'three_day_before_range_pct', 'time_of_high_price', 'time_of_low', 'time_of_reversal',
+    'two_day_before_range_pct', 'vol_in_first_10_min', 'vol_in_first_15_min', 'vol_in_first_30_min',
+    'vol_in_first_5_min', 'vol_on_breakout_day', 'vol_one_day_before', 'vol_three_day_before',
+    'vol_two_day_before', 'bp', 'npl', 'size'
+]
+
 if __name__ == '__main__':
     # Process breakout data
     df_momentum = fill_data(momentum_df, 'momentum', fill_functions_momentum)
@@ -461,4 +479,8 @@ if __name__ == '__main__':
 
     # Process reversal data
     df_reversal = fill_data(reversal_df, 'reversal', fill_functions_reversal)
+    # Reorder columns to match expected format, keeping any extra columns at the end
+    existing_cols = [col for col in REVERSAL_COLUMN_ORDER if col in df_reversal.columns]
+    extra_cols = [col for col in df_reversal.columns if col not in REVERSAL_COLUMN_ORDER]
+    df_reversal = df_reversal[existing_cols + extra_cols]
     df_reversal.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv", index=False)

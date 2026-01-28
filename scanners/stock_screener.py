@@ -5,6 +5,8 @@ from data_queries.polygon_queries import (
     fetch_and_calculate_volumes,
     get_ticker_pct_move,
     get_ticker_mavs_open,
+    get_daily,
+    adjust_date_to_market,
 )
 from data_queries.trillium_queries import get_actual_current_price_trill
 from datetime import datetime, timedelta
@@ -32,7 +34,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONEN','QBTS','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA']
+watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONQ','QBTS','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA']
 # watchlist = ['SLV']
 
 print(watchlist)
@@ -151,7 +153,11 @@ def add_percent_of_adv_columns(volume_data):
         for col in volume_columns:
             if col in volume_data:
                 percent_col_name = f'percent_of_{col}'
-                volume_data[percent_col_name] = volume_data[col] / avg_daily_vol
+                # Check if volume value is not None before dividing
+                if volume_data[col] is not None:
+                    volume_data[percent_col_name] = volume_data[col] / avg_daily_vol
+                else:
+                    volume_data[percent_col_name] = None
     else:
         # Handle case where avg_daily_vol is 0 or not present
         for col in volume_columns:
@@ -165,7 +171,22 @@ def get_stock_data(ticker):
     current_price = get_actual_current_price(ticker, date)
     print(f'Current price for {ticker} on {date}: {current_price}')
     if current_price is None:
-        current_price = get_actual_current_price_trill(ticker)
+        try:
+            current_price = get_actual_current_price_trill(ticker)
+        except Exception as e:
+            print(f"Trillium price fetch failed for {ticker}: {e}")
+            current_price = None
+
+    # Fallback to prior day close if no current price available
+    if current_price is None:
+        try:
+            prior_date = adjust_date_to_market(date, 1)
+            prior_daily = get_daily(ticker, prior_date)
+            current_price = prior_daily.close
+            print(f"Using prior day ({prior_date}) close for {ticker}: {current_price}")
+        except Exception as e:
+            print(f"Failed to get prior day close for {ticker}: {e}")
+
     pct_data = get_ticker_pct_move(ticker, date, current_price)
     volume_data = fetch_and_calculate_volumes(ticker, date)
     volume_data = add_percent_of_adv_columns(volume_data)

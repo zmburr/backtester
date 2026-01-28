@@ -81,6 +81,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <ol>
   <li>CP on canada deal with US / CAR on any car tariff changes / STZ+EWW or TNA on Mexico / XLE short / MT LONG / KYIV on Russia Deal</li>
   <li>XRT SHW for Trump tariffs</li>
+  <li>SILJ PAAS on Silver </li>
   <li>IBIT on Rieder / Short market on Warsh</li>
 
 </ol>
@@ -174,9 +175,13 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str) -> str:
         ))
 
     # Generate chart and embed inline
-    chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir))
-    img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
-    lines.append(img_tag)
+    try:
+        chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir))
+        img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
+        lines.append(img_tag)
+    except Exception as e:
+        print(f"Failed to generate chart for {ticker}: {e}")
+        lines.append(f"<p><em>Chart unavailable for {ticker}</em></p>")
 
     # Return HTML block
     return "<br>\n".join(lines)
