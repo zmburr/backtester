@@ -68,8 +68,6 @@ def _ensure_date_str(d: Union[str, dt_date, datetime]) -> str:
         return d.strftime("%Y-%m-%d")
     return d  # already a str
 
-user = 'zburr'
-pwd = '4C6z9yZ!q'
 def _shel_request(
     ticker: str,
     start_date: str,
@@ -82,7 +80,7 @@ def _shel_request(
     """
     aggs: List[Dict] = []
 
-    with sheldatagateway.Session(environments.env_defs.Prod, user, pwd) as session:
+    with sheldatagateway.Session(environments.env_defs.Prod, USER, PWD) as session:
 
         def append(obj):
             aggs.append(obj)
@@ -280,9 +278,9 @@ def get_mav_data(df: pd.DataFrame) -> Dict[str, float | None]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    sample_ticker = "AAPL"
+    sample_ticker = "GLD"
     print(get_actual_current_price_trill(sample_ticker))
-    sample_date   = "2020-05-27"
+    sample_date   = "2026-01-28"
 
     print("VWAP:", get_vwap(sample_ticker, sample_date))
     daily = get_daily(sample_ticker, sample_date)

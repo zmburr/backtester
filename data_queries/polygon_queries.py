@@ -8,7 +8,7 @@ from pandas import Timestamp
 import logging
 from pytz import timezone
 
-poly_client = RESTClient(api_key="b_s_dRysgNN_kZF_nzxwSLdvClTyopGgxtJSqX")
+poly_client = RESTClient(api_key="pcwUY7TnSF66nYAPIBCApPMyVrXTckJY")
 
 
 def get_atr(ticker, date):

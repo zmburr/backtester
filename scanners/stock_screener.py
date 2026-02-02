@@ -1,14 +1,23 @@
+# Polygon imports (used as fallback)
 from data_queries.polygon_queries import (
-    get_actual_current_price,
-    get_levels_data,
+    get_actual_current_price as get_actual_current_price_polygon,
+    get_levels_data as get_levels_data_polygon,
     get_atr,
-    fetch_and_calculate_volumes,
-    get_ticker_pct_move,
-    get_ticker_mavs_open,
-    get_daily,
-    adjust_date_to_market,
+    fetch_and_calculate_volumes as fetch_and_calculate_volumes_polygon,
+    get_ticker_pct_move as get_ticker_pct_move_polygon,
+    get_ticker_mavs_open,  # No Trillium equivalent - Polygon only
+    get_daily as get_daily_polygon,
+    adjust_date_to_market as adjust_date_to_market_polygon,
 )
-from data_queries.trillium_queries import get_actual_current_price_trill
+# Trillium imports (primary data source)
+from data_queries.trillium_queries import (
+    get_actual_current_price_trill,
+    get_levels_data as get_levels_data_trill,
+    fetch_and_calculate_volumes as fetch_and_calculate_volumes_trill,
+    get_ticker_pct_move as get_ticker_pct_move_trill,
+    get_daily as get_daily_trill,
+    adjust_date_to_market as adjust_date_to_market_trill,
+)
 from datetime import datetime, timedelta
 from tabulate import tabulate
 import pandas as pd
@@ -34,8 +43,8 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONQ','QBTS','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA']
-# watchlist = ['SLV']
+watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONQ','QBTS','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA','HUBS','DOCU','DUOL','FIG','TEAM']
+# watchlist = ['GLD']
 
 print(watchlist)
 
@@ -51,7 +60,14 @@ def add_range_data(ticker):
     try:
         # Retrieve historical price/volume data. A large look-back is requested, but
         # get_levels_data will simply return what exists (e.g. only 10 days for a new IPO).
-        df = get_levels_data(ticker, date, 60, 1, 'day')
+        # Try Trillium first, fall back to Polygon
+        df = None
+        try:
+            df = get_levels_data_trill(ticker, date, 60, 'bar-1day')
+            print(f"[Trillium] get_levels_data succeeded for {ticker}")
+        except Exception as e:
+            print(f"[Trillium] get_levels_data failed for {ticker}: {e}, falling back to Polygon")
+            df = get_levels_data_polygon(ticker, date, 60, 1, 'day')
         if df is None or df.empty:
             return {}
 
@@ -113,6 +129,9 @@ def add_range_data(ticker):
         two_day_before_volume = safe_get_by_date(df['volume'], two_day_before_date)
         three_day_before_volume = safe_get_by_date(df['volume'], three_day_before_date)
 
+        today_volume = safe_get_by_date(df['volume'], today_date)
+        today_adv = safe_get_by_date(df['20Day_Avg_Volume'], today_date)
+
         day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], one_day_before_date)
         two_day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], two_day_before_date)
         three_day_before_adv = safe_get_by_date(df['20Day_Avg_Volume'], three_day_before_date)
@@ -125,6 +144,7 @@ def add_range_data(ticker):
 
         # Build result dict with graceful fall-backs using exact dates
         result = {
+            'day_of_vol_pct': _pct_str(today_volume, today_adv),
             'percent_of_vol_one_day_before': _pct_str(day_before_volume, day_before_adv),
             'percent_of_vol_two_day_before': _pct_str(two_day_before_volume, two_day_before_adv),
             'percent_of_vol_three_day_before': _pct_str(three_day_before_volume, three_day_before_adv),
@@ -168,31 +188,61 @@ def add_percent_of_adv_columns(volume_data):
 
 def get_stock_data(ticker):
     # Pass the date argument to all query functions
-    current_price = get_actual_current_price(ticker, date)
-    print(f'Current price for {ticker} on {date}: {current_price}')
-    if current_price is None:
+    # Try Trillium first for current price
+    current_price = None
+    try:
+        current_price = get_actual_current_price_trill(ticker)
+        print(f'[Trillium] Current price for {ticker} on {date}: {current_price}')
+    except Exception as e:
+        print(f"[Trillium] price fetch failed for {ticker}: {e}, trying Polygon")
         try:
-            current_price = get_actual_current_price_trill(ticker)
-        except Exception as e:
-            print(f"Trillium price fetch failed for {ticker}: {e}")
+            current_price = get_actual_current_price_polygon(ticker, date)
+            print(f'[Polygon] Current price for {ticker} on {date}: {current_price}')
+        except Exception as e2:
+            print(f"[Polygon] price fetch also failed for {ticker}: {e2}")
             current_price = None
 
     # Fallback to prior day close if no current price available
     if current_price is None:
         try:
-            prior_date = adjust_date_to_market(date, 1)
-            prior_daily = get_daily(ticker, prior_date)
-            current_price = prior_daily.close
-            print(f"Using prior day ({prior_date}) close for {ticker}: {current_price}")
+            # Try Trillium for adjust_date_to_market
+            try:
+                prior_date = adjust_date_to_market_trill(date, 1)
+            except Exception:
+                prior_date = adjust_date_to_market_polygon(date, 1)
+
+            # Try Trillium for get_daily, fall back to Polygon
+            try:
+                prior_daily = get_daily_trill(ticker, prior_date)
+                current_price = prior_daily['close']  # Trillium returns dict
+                print(f"[Trillium] Using prior day ({prior_date}) close for {ticker}: {current_price}")
+            except Exception:
+                prior_daily = get_daily_polygon(ticker, prior_date)
+                current_price = prior_daily.close  # Polygon returns object
+                print(f"[Polygon] Using prior day ({prior_date}) close for {ticker}: {current_price}")
         except Exception as e:
             print(f"Failed to get prior day close for {ticker}: {e}")
 
-    pct_data = get_ticker_pct_move(ticker, date, current_price)
-    volume_data = fetch_and_calculate_volumes(ticker, date)
+    # Try Trillium for pct_move, fall back to Polygon
+    try:
+        pct_data = get_ticker_pct_move_trill(ticker, date, current_price)
+        print(f"[Trillium] get_ticker_pct_move succeeded for {ticker}")
+    except Exception as e:
+        print(f"[Trillium] get_ticker_pct_move failed for {ticker}: {e}, falling back to Polygon")
+        pct_data = get_ticker_pct_move_polygon(ticker, date, current_price)
+
+    # Try Trillium for volumes, fall back to Polygon
+    try:
+        volume_data = fetch_and_calculate_volumes_trill(ticker, date)
+        print(f"[Trillium] fetch_and_calculate_volumes succeeded for {ticker}")
+    except Exception as e:
+        print(f"[Trillium] fetch_and_calculate_volumes failed for {ticker}: {e}, falling back to Polygon")
+        volume_data = fetch_and_calculate_volumes_polygon(ticker, date)
+
     volume_data = add_percent_of_adv_columns(volume_data)
     range_data = add_range_data(ticker)
 
-    # New: percentage distance from key moving averages (10/20/50/200-day)
+    # Moving averages - Polygon only (no Trillium equivalent)
     mav_data = get_ticker_mavs_open(ticker, date) or {}
 
     return {
