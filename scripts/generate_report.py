@@ -50,6 +50,7 @@ from scanners import stock_screener as ss
 from data_collectors.combined_data_collection import reversal_df, momentum_df
 from analyzers.charter import create_daily_chart, cleanup_charts
 from data_queries.polygon_queries import get_levels_data, get_daily, get_atr
+from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
 
 # -------------------------------------------------
 # Pre-Trade Reversal Scoring (5 of 6 criteria - excludes reversal_pct since pre-trade)
@@ -265,6 +266,41 @@ SCORE_STATISTICS = {
 }
 
 
+def get_exit_target_data(ticker: str, date: str) -> Dict:
+    """
+    Fetch data needed for exit target calculations.
+    Returns: dict with open_price (reference for targets), atr, prior_close, prior_low, ema_4
+
+    IMPORTANT: Targets are calculated from OPEN price, not entry price.
+    These are fixed PRICE LEVELS the stock historically reaches, regardless of where you enter.
+    """
+    data = {}
+    try:
+        # Get historical data for EMA and prior levels
+        df = get_levels_data(ticker, date, 10, 1, 'day')
+        if df is None or len(df) < 5:
+            return data
+
+        # Calculate 4-day EMA
+        df['ema_4'] = df['close'].ewm(span=4, adjust=False).mean()
+
+        if len(df) >= 2:
+            data['open_price'] = df['open'].iloc[-1]  # Today's open (reference point for targets)
+            data['prior_close'] = df['close'].iloc[-2]
+            data['prior_low'] = df['low'].iloc[-2]
+            data['ema_4'] = df['ema_4'].iloc[-2]  # EMA as of prior day
+
+        # Get ATR
+        atr = get_atr(ticker, date)
+        if atr:
+            data['atr'] = atr
+
+    except Exception as e:
+        logging.warning(f"Error getting exit target data for {ticker}: {e}")
+
+    return data
+
+
 def format_pretrade_score_html(score_result: Dict) -> str:
     """Format pre-trade score as HTML for the report."""
     rec = score_result['recommendation']
@@ -354,6 +390,18 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <p><strong style="color: #28a745;">GO (4-5/5)</strong>: 45 trades, 93% win rate, +14.5% avg |
 <strong style="color: #ffc107;">CAUTION (3/5)</strong>: 6 trades, 83% win, +10.5% avg |
 <strong style="color: #dc3545;">NO-GO (&lt;3)</strong>: Skip</p>
+
+<h3>Target Price LEVELS (52 Grade A Trades - Measured from OPEN)</h3>
+<p><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th></tr>
+<tr><td><strong>Large</strong></td><td>Gap Fill (100%)</td><td>4-Day EMA (71%)</td><td>Prior Day Low (86%)</td></tr>
+<tr><td><strong>ETF</strong></td><td>1.0x ATR (80%)</td><td>Gap Fill (60%)</td><td>1.5x ATR (80%)</td></tr>
+<tr><td><strong>Medium</strong></td><td>Gap Fill (81%)</td><td>1.5x ATR (65%)</td><td>2.0x ATR (45%)</td></tr>
+<tr><td><strong>Small</strong></td><td>1.0x ATR (80%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
+<tr><td><strong>Micro</strong></td><td>1.5x ATR (100%)</td><td>2.0x ATR (100%)</td><td>2.5x ATR (100%)</td></tr>
+</table>
+<p style="font-size: 0.85em; color: #666;"><em>Squeeze Risk: ETF +0.4% | Large +2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
 <hr>
 
 <h2>Rules</h2>
@@ -443,10 +491,29 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     lines: List[str] = [f"<h2>Ticker: {ticker}</h2>"]
 
     # Add pre-trade reversal scoring if metrics available
+    cap = None
     if pretrade_metrics:
         score_result = score_pretrade_setup(ticker, pretrade_metrics)
+        cap = score_result.get('cap')
         lines.append("<strong>Reversal Setup Score:</strong>")
         lines.append(format_pretrade_score_html(score_result))
+
+    # Add data-informed exit target LEVELS (measured from open)
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    exit_data = get_exit_target_data(ticker, today)
+    if exit_data.get('open_price') and exit_data.get('atr'):
+        if cap is None:
+            cap = get_ticker_cap(ticker)
+        targets = calculate_exit_targets(
+            cap=cap,
+            entry_price=exit_data['open_price'],  # Reference point is OPEN
+            atr=exit_data['atr'],
+            prior_close=exit_data.get('prior_close'),
+            prior_low=exit_data.get('prior_low'),
+            ema_4=exit_data.get('ema_4')
+        )
+        lines.append("<strong>Target Price Levels (from Open):</strong>")
+        lines.append(format_exit_targets_html(targets))
 
     lines.append("<strong>Reversal Percentiles:</strong>")
     lines.append(_format_percentile_dict(rev_pcts))
