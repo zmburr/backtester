@@ -47,10 +47,24 @@ if not _WKHTMLTOPDF_PATH:
 # None -> still unresolved
 
 from scanners import stock_screener as ss
-from data_collectors.combined_data_collection import reversal_df, momentum_df
+from data_collectors.combined_data_collection import reversal_df
 from analyzers.charter import create_daily_chart, cleanup_charts
 from data_queries.polygon_queries import get_levels_data, get_daily, get_atr
 from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
+from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, SETUP_PROFILES, classify_from_setup_column
+
+# Load bounce data and split by setup type for percentile comparisons
+_bounce_csv = Path(__file__).resolve().parent.parent / "data" / "bounce_data.csv"
+_bounce_df_all = pd.read_csv(_bounce_csv).dropna(subset=['ticker', 'date'])
+_bounce_df_all['_setup_profile'] = _bounce_df_all['Setup'].apply(classify_from_setup_column)
+BOUNCE_DF_WEAK = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_weakstock'].copy()
+BOUNCE_DF_STRONG = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_strongstock'].copy()
+
+# Columns to compare for bounce percentiles (pct_change + MA distances, not range)
+BOUNCE_COLUMNS_TO_COMPARE = [
+    'pct_change_120', 'pct_change_90', 'pct_change_30', 'pct_change_15', 'pct_change_3',
+    'pct_from_9ema', 'pct_from_10mav', 'pct_from_20mav', 'pct_from_50mav', 'pct_from_200mav',
+]
 
 # -------------------------------------------------
 # Pre-Trade Reversal Scoring (5 of 6 criteria - excludes reversal_pct since pre-trade)
@@ -266,6 +280,14 @@ SCORE_STATISTICS = {
 }
 
 
+# Historical bounce performance statistics by recommendation (from 36 trades, setup-based scoring)
+BOUNCE_SCORE_STATISTICS = {
+    'GO': {'trades': 21, 'win_rate': 95.2, 'avg_pnl': 14.6},
+    'CAUTION': {'trades': 4, 'win_rate': 75.0, 'avg_pnl': 14.0},
+    'NO-GO': {'trades': 11, 'win_rate': 36.4, 'avg_pnl': -4.0},
+}
+
+
 def get_exit_target_data(ticker: str, date: str) -> Dict:
     """
     Fetch data needed for exit target calculations.
@@ -359,6 +381,80 @@ def format_pretrade_score_html(score_result: Dict) -> str:
     lines.append('</table></div>')
     return '\n'.join(lines)
 
+
+def format_bounce_score_html(result) -> str:
+    """Format bounce pre-trade checklist result as HTML for the report."""
+    rec = result.recommendation
+    score = result.score
+    setup_type = result.setup_type
+    profile = SETUP_PROFILES[setup_type]
+
+    # Color coding
+    if rec == 'GO':
+        color = '#28a745'
+    elif rec == 'CAUTION':
+        color = '#ffc107'
+    else:
+        color = '#dc3545'
+
+    stats_text = (f"Profile: {profile.name} | Historical: {profile.historical_win_rate*100:.0f}% WR, "
+                  f"+{profile.historical_avg_pnl:.0f}% avg P&L (n={profile.sample_size} Grade A)")
+
+    lines = [
+        f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px;">',
+        f'<strong style="color: {color}; font-size: 1.2em;">BOUNCE {rec}</strong> ',
+        f'<span>Score: {score}/{result.max_score}</span>',
+        f'<br><span style="font-size: 0.85em; color: #666;">{stats_text}</span>',
+    ]
+
+    # Classification details
+    if result.classification_details.get('signals'):
+        signals_str = ' | '.join(result.classification_details['signals'])
+        lines.append(f'<br><span style="font-size: 0.8em; color: #888;">Classification: {signals_str}</span>')
+
+    # Bounce stats by recommendation
+    bounce_stats = BOUNCE_SCORE_STATISTICS.get(rec, {})
+    if bounce_stats:
+        lines.append(
+            f'<br><span style="font-size: 0.85em; color: #666;">'
+            f'Historical {rec}: {bounce_stats["win_rate"]:.0f}% win rate, '
+            f'{bounce_stats["avg_pnl"]:+.1f}% avg P&L (n={bounce_stats["trades"]})</span>'
+        )
+
+    # Criteria table
+    lines.append('<table style="margin-top: 8px; font-size: 0.9em;">')
+    for item in result.items:
+        status = '✓' if item.passed else '✗'
+        status_color = '#28a745' if item.passed else '#dc3545'
+        ref_str = f' <span style="color: #999;">({item.reference})</span>' if item.reference else ''
+
+        lines.append(
+            f'<tr><td style="color: {status_color}; padding-right: 10px;">{status}</td>'
+            f'<td style="padding-right: 10px;">{item.description}</td>'
+            f'<td style="padding-right: 10px;">{item.actual_display}</td>'
+            f'<td>{ref_str}</td></tr>'
+        )
+
+    lines.append('</table>')
+
+    # Bonuses
+    if result.bonuses:
+        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #28a745;">')
+        for bonus in result.bonuses:
+            lines.append(f'<br>✦ {bonus}')
+        lines.append('</div>')
+
+    # Warnings
+    if result.warnings:
+        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #dc3545;">')
+        for warning in result.warnings:
+            lines.append(f'<br>⚠ {warning}')
+        lines.append('</div>')
+
+    lines.append('</div>')
+    return '\n'.join(lines)
+
+
 # Columns we want to compare (same list used inside stock_screener)
 COLUMNS_TO_COMPARE = ss.columns_to_compare
 
@@ -402,6 +498,34 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <tr><td><strong>Micro</strong></td><td>1.5x ATR (100%)</td><td>2.0x ATR (100%)</td><td>2.5x ATR (100%)</td></tr>
 </table>
 <p style="font-size: 0.85em; color: #666;"><em>Squeeze Risk: ETF +0.4% | Large +2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
+<hr>
+
+<h2>Bounce Setup Scoring Guide</h2>
+<p>Stocks with <strong>negative 3-day return</strong> are evaluated as bounce candidates. Auto-classified into two profiles:</p>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Grade A Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
+<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>10</td><td>80%</td><td>+18.8%</td></tr>
+<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>5</td><td>100%</td><td>+9.6%</td></tr>
+</table>
+
+<h3>5 Pre-Trade Criteria (profile-adjusted thresholds)</h3>
+<ol>
+  <li><strong>Deep Selloff</strong> — Total % decline over consecutive down days</li>
+  <li><strong>Consecutive Down Days</strong> — Multi-day selling pressure</li>
+  <li><strong>Volume Climax</strong> — Breakout day volume vs ADV</li>
+  <li><strong>Discount from 30d High</strong> — How far off recent highs</li>
+  <li><strong>Capitulation Gap Down</strong> — Gap down on bounce day</li>
+</ol>
+
+<h3>Historical Performance by Recommendation (36 Trades)</h3>
+<table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
+<tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
+<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (4-5/5)</strong></td><td>21</td><td>95%</td><td>+14.6%</td></tr>
+<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (3/5)</strong></td><td>4</td><td>75%</td><td>+14.0%</td></tr>
+<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;3)</strong></td><td>11</td><td>36%</td><td>-4.0%</td></tr>
+</table>
+
+<p><strong>Routing Logic:</strong> 3-day return &gt; 0 AND 120-day &ge; 50% &rarr; Reversal | 3-day return &lt; 0 &rarr; Bounce | Otherwise &rarr; Filtered</p>
 <hr>
 
 <h2>Rules</h2>
@@ -477,11 +601,8 @@ def _fmt_pct(val):
         return str(val)
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_metrics: dict = None) -> str:
+def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_metrics: dict = None, bounce_metrics: dict = None) -> str:
     """Return formatted string section for one ticker and create its chart."""
-
-    rev_pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
-    mom_pcts = ss.calculate_percentiles(momentum_df, data, COLUMNS_TO_COMPARE)
 
     pct_data = data.get("pct_data", {})
     range_data = data.get("range_data", {})
@@ -490,21 +611,19 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     # Build section text
     lines: List[str] = [f"<h2>Ticker: {ticker}</h2>"]
 
-    # --- pct_change_120 pre-filter: must be >= 50% to qualify for GO/NOGO ---
+    # --- Routing: pct_change_3 determines reversal vs bounce path ---
+    raw_pct_3 = pct_data.get("pct_change_3")
     raw_pct_120 = pct_data.get("pct_change_120")
-    passes_120_filter = raw_pct_120 is not None and not pd.isna(raw_pct_120) and raw_pct_120 >= 0.50
+
+    has_pct_3 = raw_pct_3 is not None and not pd.isna(raw_pct_3)
+    has_pct_120 = raw_pct_120 is not None and not pd.isna(raw_pct_120)
+
+    is_reversal = has_pct_3 and raw_pct_3 > 0 and has_pct_120 and raw_pct_120 >= 0.50
+    is_bounce = has_pct_3 and raw_pct_3 < 0
 
     cap = None
-    if not passes_120_filter:
-        pct_120_str = f"{raw_pct_120 * 100:.1f}%" if raw_pct_120 is not None and not pd.isna(raw_pct_120) else "N/A"
-        lines.append(
-            '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
-            f'<strong style="color: #6c757d;">FILTERED</strong> '
-            f'<span>120-day move: {pct_120_str} (below 50% threshold)</span>'
-            '</div>'
-        )
-    else:
-        # Add pre-trade reversal scoring if metrics available
+    if is_reversal:
+        # REVERSAL path: 3d positive + 120d >= 50%
         if pretrade_metrics:
             score_result = score_pretrade_setup(ticker, pretrade_metrics)
             cap = score_result.get('cap')
@@ -528,11 +647,36 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             lines.append("<strong>Target Price Levels (from Open):</strong>")
             lines.append(format_exit_targets_html(targets))
 
+    elif is_bounce and bounce_metrics:
+        # BOUNCE path: 3d negative → evaluate bounce setup
+        # Supplement bounce_metrics with screener data (more current than separate fetch)
+        if mav_data.get('pct_from_200mav') is not None:
+            bounce_metrics['pct_from_200mav'] = mav_data['pct_from_200mav']
+        volume_data = data.get("volume_data", {})
+        if volume_data.get('percent_of_vol_on_breakout_day') is not None:
+            bounce_metrics['percent_of_vol_on_breakout_day'] = volume_data['percent_of_vol_on_breakout_day']
+        checker = BouncePretrade()
+        bounce_result = checker.validate(ticker, bounce_metrics)
+        bounce_setup_type = bounce_result.setup_type
+        lines.append("<strong>Bounce Setup Score:</strong>")
+        lines.append(format_bounce_score_html(bounce_result))
+
+    else:
+        # FILTERED: no clear reversal or bounce signal
+        pct_3_str = f"{raw_pct_3 * 100:.1f}%" if has_pct_3 else "N/A"
+        pct_120_str = f"{raw_pct_120 * 100:.1f}%" if has_pct_120 else "N/A"
+        lines.append(
+            '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
+            f'<strong style="color: #6c757d;">FILTERED</strong> '
+            f'<span>3-day: {pct_3_str} | 120-day: {pct_120_str}</span>'
+            '</div>'
+        )
+
     # --- Extension from Moving Averages (always shown) ---
     if mav_data:
         mav_label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
-        lines.append('<h3 style="margin-top: 12px;">Extension from Moving Averages</h3>')
-        lines.append('<table style="font-size: 0.9em;">')
+        lines.append('<h3 style="margin: 4px 0 2px 0;">Extension from Moving Averages</h3>')
+        lines.append('<table style="font-size: 0.9em; margin-top: 0;">')
         for k, v in mav_data.items():
             lines.append(
                 f'<tr><td style="padding-right: 12px;">{mav_label(k)}</td>'
@@ -540,10 +684,20 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             )
         lines.append('</table>')
 
-    lines.append("<strong>Reversal Percentiles:</strong>")
-    lines.append(_format_percentile_dict(rev_pcts))
-    lines.append("<strong>Momentum Percentiles:</strong>")
-    lines.append(_format_percentile_dict(mom_pcts))
+    # --- Percentiles: compare against the right dataset based on path ---
+    if is_bounce and bounce_metrics:
+        bounce_ref_df = BOUNCE_DF_WEAK if bounce_setup_type == 'GapFade_weakstock' else BOUNCE_DF_STRONG
+        pcts = ss.calculate_percentiles(bounce_ref_df, data, BOUNCE_COLUMNS_TO_COMPARE)
+        # Invert percentiles for bounce candidates: more negative = deeper selloff = better setup.
+        # percentileofscore returns % of values <= x, so -13% scores 100% when history is -40%.
+        # Flip so 100% = most extreme (most negative) bounce candidate.
+        pcts = {k: round(100 - v, 1) for k, v in pcts.items()}
+        setup_label = bounce_setup_type.replace('GapFade_', '')
+        lines.append(f"<strong>Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)}):</strong>")
+    else:
+        pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
+        lines.append("<strong>Reversal Percentiles:</strong>")
+    lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{_format_percentile_dict(pcts)}</pre>')
 
     def _fmt(val):
         try:
@@ -552,12 +706,12 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             return str(val)
 
     if pct_data:
-        lines.append("Absolute PCT Changes:")
-        lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in pct_data.items()]), "    "))
+        lines.append("<strong>Absolute PCT Changes:</strong>")
+        lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{indent(chr(10).join([f"{k}: {_fmt(v)}" for k, v in pct_data.items()]), "    ")}</pre>')
 
     if range_data:
-        lines.append("Range Data:")
-        lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    "))
+        lines.append('<br><strong>Range Data:</strong>')
+        lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{indent(chr(10).join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    ")}</pre>')
 
     # Generate chart and embed inline
     try:
@@ -569,7 +723,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
         lines.append(f"<p><em>Chart unavailable for {ticker}</em></p>")
 
     # Return HTML block
-    return "<br>\n".join(lines)
+    return "\n".join(lines)
 
 
 def _png_to_data_uri(path: Path) -> str:
@@ -652,6 +806,19 @@ def generate_report() -> str:
             print(f"  {ticker}: Failed to get pretrade metrics - {e}")
             pretrade_metrics_all[ticker] = {}
 
+    # Collect bounce pre-trade metrics for tickers with negative 3-day return
+    print("Fetching bounce pre-trade metrics...")
+    bounce_metrics_all = {}
+    for ticker in watchlist:
+        try:
+            ticker_data = all_data.get(ticker, {})
+            pct_3 = ticker_data.get('pct_data', {}).get('pct_change_3')
+            if pct_3 is not None and not pd.isna(pct_3) and pct_3 < 0:
+                bounce_metrics_all[ticker] = fetch_bounce_metrics(ticker, today)
+                print(f"  {ticker}: bounce metrics fetched (3d: {pct_3*100:.1f}%)")
+        except Exception as e:
+            print(f"  {ticker}: Failed to get bounce metrics - {e}")
+
     # ---- Sort by pct_change_15 reversal percentile (descending) -------------
     # Pre-compute reversal percentiles per ticker for sorting
     _rev_pcts_cache = {}
@@ -676,7 +843,9 @@ def generate_report() -> str:
     # -----------------------------------------------------------------------
 
     sections = [
-        _generate_ticker_section(ticker, all_data[ticker], charts_dir, pretrade_metrics_all.get(ticker, {}))
+        _generate_ticker_section(ticker, all_data[ticker], charts_dir,
+                                 pretrade_metrics_all.get(ticker, {}),
+                                 bounce_metrics_all.get(ticker))
         for ticker in sorted_watchlist
     ]
 
