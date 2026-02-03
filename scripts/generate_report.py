@@ -51,6 +51,7 @@ from data_collectors.combined_data_collection import reversal_df
 from analyzers.charter import create_daily_chart, cleanup_charts
 from data_queries.polygon_queries import get_levels_data, get_daily, get_atr
 from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
+from analyzers.bounce_exit_targets import calculate_bounce_exit_targets, format_bounce_exit_targets_html
 from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, SETUP_PROFILES, classify_from_setup_column
 
 # Load bounce data and split by setup type for percentile comparisons
@@ -59,6 +60,104 @@ _bounce_df_all = pd.read_csv(_bounce_csv).dropna(subset=['ticker', 'date'])
 _bounce_df_all['_setup_profile'] = _bounce_df_all['Setup'].apply(classify_from_setup_column)
 BOUNCE_DF_WEAK = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_weakstock'].copy()
 BOUNCE_DF_STRONG = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_strongstock'].copy()
+
+# ---------------------------------------------------------------------------
+# Bounce Intensity Score — continuous 0-100 ranking for bounce candidates
+# Uses percentile rank against all 36 historical bounce trades.
+# Higher = more extreme setup = better bounce candidate.
+# ---------------------------------------------------------------------------
+from scipy.stats import percentileofscore as _pctrank
+
+# Metrics, direction (True = higher actual = higher score, False = lower/more-negative = higher score), weight
+_BOUNCE_INTENSITY_SPEC = [
+    ('selloff_total_pct',              False, 0.30),  # deeper selloff = better
+    ('consecutive_down_days',          True,  0.10),  # more days = better
+    ('percent_of_vol_on_breakout_day', True,  0.15),  # higher volume = better
+    ('pct_off_30d_high',               False, 0.20),  # further off high = better
+    ('gap_pct',                        False, 0.25),  # bigger gap down = better
+]
+
+
+def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict:
+    """
+    Compute a weighted composite bounce intensity score (0-100).
+
+    For each metric, percentile rank the candidate against all 36 historical
+    bounce trades.  "More extreme = higher score" so negative-direction metrics
+    are inverted (100 - pctrank).
+
+    Returns dict with per-metric percentiles, weights, and the composite score.
+    """
+    if ref_df is None:
+        ref_df = _bounce_df_all
+
+    details = {}
+    weighted_sum = 0.0
+    total_weight = 0.0
+
+    for col, higher_is_better, weight in _BOUNCE_INTENSITY_SPEC:
+        actual = metrics.get(col)
+        ref_vals = ref_df[col].dropna().values if col in ref_df.columns else []
+
+        if actual is None or pd.isna(actual) or len(ref_vals) == 0:
+            details[col] = {'pctile': None, 'weight': weight, 'actual': actual}
+            continue
+
+        raw_pctile = _pctrank(ref_vals, actual, kind='rank')
+        # Invert for "lower = better" metrics so 100 = most extreme
+        pctile = raw_pctile if higher_is_better else 100.0 - raw_pctile
+
+        details[col] = {'pctile': round(pctile, 1), 'weight': weight, 'actual': actual}
+        weighted_sum += pctile * weight
+        total_weight += weight
+
+    composite = round(weighted_sum / total_weight, 1) if total_weight > 0 else 0.0
+
+    return {'composite': composite, 'details': details}
+
+
+def format_bounce_intensity_html(intensity: Dict) -> str:
+    """Format bounce intensity score as compact HTML."""
+    score = intensity['composite']
+
+    if score >= 70:
+        color = '#28a745'
+    elif score >= 40:
+        color = '#ffc107'
+    else:
+        color = '#dc3545'
+
+    lines = [
+        f'<div style="margin: 6px 0;">',
+        f'<strong>Bounce Intensity: <span style="color: {color}; font-size: 1.1em;">{score:.0f}/100</span></strong>',
+        '<table style="font-size: 0.85em; margin-top: 4px;">',
+        '<tr style="color: #888;"><td style="padding-right: 10px;">Metric</td>'
+        '<td style="padding-right: 10px;">Percentile</td><td>Weight</td></tr>',
+    ]
+
+    labels = {
+        'selloff_total_pct': 'Selloff depth',
+        'consecutive_down_days': 'Down days',
+        'percent_of_vol_on_breakout_day': 'Volume climax',
+        'pct_off_30d_high': '30d high discount',
+        'gap_pct': 'Gap down',
+    }
+
+    for col, _, _ in _BOUNCE_INTENSITY_SPEC:
+        d = intensity['details'].get(col, {})
+        pctile = d.get('pctile')
+        weight = d.get('weight', 0)
+        label = labels.get(col, col)
+        pctile_str = f'{pctile:.0f}' if pctile is not None else 'N/A'
+        lines.append(
+            f'<tr><td style="padding-right: 10px;">{label}</td>'
+            f'<td style="padding-right: 10px;">{pctile_str}</td>'
+            f'<td>{weight*100:.0f}%</td></tr>'
+        )
+
+    lines.append('</table></div>')
+    return '\n'.join(lines)
+
 
 # Columns to compare for bounce percentiles (pct_change + MA distances, not range)
 BOUNCE_COLUMNS_TO_COMPARE = [
@@ -310,6 +409,7 @@ def get_exit_target_data(ticker: str, date: str) -> Dict:
             data['open_price'] = df['open'].iloc[-1]  # Today's open (reference point for targets)
             data['prior_close'] = df['close'].iloc[-2]
             data['prior_low'] = df['low'].iloc[-2]
+            data['prior_high'] = df['high'].iloc[-2]
             data['ema_4'] = df['ema_4'].iloc[-2]  # EMA as of prior day
 
         # Get ATR
@@ -501,6 +601,17 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <hr>
 
 <h2>Bounce Setup Scoring Guide</h2>
+<h3>Bounce Target Price LEVELS (36 Trades - Measured ABOVE Open)</h3>
+<p><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #c8e6c9;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th><th>n</th></tr>
+<tr><td><strong>ETF</strong></td><td>0.5x ATR (71%)</td><td>1.0x ATR (71%)</td><td>Gap Fill (29%)</td><td>7</td></tr>
+<tr><td><strong>Medium</strong></td><td>0.5x ATR (71%)</td><td>Gap Fill (50%)</td><td>1.0x ATR (58%)</td><td>24</td></tr>
+<tr><td><strong>Small</strong></td><td>0.5x ATR (50%)</td><td>1.0x ATR (50%)</td><td>Gap Fill (67%)</td><td>4</td></tr>
+<tr><td><strong>Large</strong></td><td colspan="3"><em>Uses Medium defaults</em></td><td>1</td></tr>
+<tr><td><strong>Micro</strong></td><td colspan="3"><em>Uses Small defaults</em></td><td>0</td></tr>
+</table>
+<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Avg -14% below open before bounce (1.68 ATRs) | Grade A median</em></p>
 <p>Stocks with <strong>negative 3-day return</strong> are evaluated as bounce candidates. Auto-classified into two profiles:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Grade A Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
@@ -661,6 +772,26 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
         lines.append("<strong>Bounce Setup Score:</strong>")
         lines.append(format_bounce_score_html(bounce_result))
 
+        # Bounce intensity ranking score
+        intensity = compute_bounce_intensity(bounce_metrics)
+        lines.append(format_bounce_intensity_html(intensity))
+
+        # Add bounce exit target LEVELS (measured ABOVE open for long trades)
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        exit_data = get_exit_target_data(ticker, today)
+        if exit_data.get('open_price') and exit_data.get('atr'):
+            if cap is None:
+                cap = get_ticker_cap(ticker)
+            bounce_targets = calculate_bounce_exit_targets(
+                cap=cap,
+                entry_price=exit_data['open_price'],
+                atr=exit_data['atr'],
+                prior_close=exit_data.get('prior_close'),
+                prior_high=exit_data.get('prior_high'),
+            )
+            lines.append("<strong>Bounce Target Levels (from Open):</strong>")
+            lines.append(format_bounce_exit_targets_html(bounce_targets))
+
     else:
         # FILTERED: no clear reversal or bounce signal
         pct_3_str = f"{raw_pct_3 * 100:.1f}%" if has_pct_3 else "N/A"
@@ -819,10 +950,31 @@ def generate_report() -> str:
         except Exception as e:
             print(f"  {ticker}: Failed to get bounce metrics - {e}")
 
-    # ---- Sort by pct_change_15 reversal percentile (descending) -------------
-    # Pre-compute reversal percentiles per ticker for sorting
-    _rev_pcts_cache = {}
+    # ---- Split watchlist into bounce vs reversal/other, sort each independently ----
+    def _safe_float(x, default=float('-inf')):
+        try:
+            return float(x)
+        except (TypeError, ValueError):
+            return default
+
+    bounce_tickers = []
+    other_tickers = []
+    _bounce_intensity_cache = {}
+
     for ticker in watchlist:
+        if ticker in bounce_metrics_all:
+            intensity = compute_bounce_intensity(bounce_metrics_all[ticker])
+            _bounce_intensity_cache[ticker] = intensity['composite']
+            bounce_tickers.append(ticker)
+        else:
+            other_tickers.append(ticker)
+
+    # Sort bounce candidates by intensity score (highest first)
+    bounce_tickers.sort(key=lambda t: _bounce_intensity_cache.get(t, 0), reverse=True)
+
+    # Sort reversal/other by pct_change_15 reversal percentile (descending)
+    _rev_pcts_cache = {}
+    for ticker in other_tickers:
         try:
             _rev_pcts_cache[ticker] = ss.calculate_percentiles(
                 reversal_df, all_data.get(ticker, {}), COLUMNS_TO_COMPARE
@@ -830,16 +982,13 @@ def generate_report() -> str:
         except Exception:
             _rev_pcts_cache[ticker] = {}
 
-    def _safe_float(x, default=float('-inf')):
-        try:
-            return float(x)
-        except (TypeError, ValueError):
-            return default
+    other_tickers.sort(
+        key=lambda t: _safe_float(_rev_pcts_cache.get(t, {}).get("pct_change_15")),
+        reverse=True
+    )
 
-    def _pct15_key(ticker: str) -> float:
-        return _safe_float(_rev_pcts_cache.get(ticker, {}).get("pct_change_15"))
-
-    sorted_watchlist = sorted(watchlist, key=_pct15_key, reverse=True)
+    # Bounce candidates first, then reversal/other
+    sorted_watchlist = bounce_tickers + other_tickers
     # -----------------------------------------------------------------------
 
     sections = [

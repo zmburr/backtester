@@ -44,7 +44,7 @@ columns_to_compare = [
 ]
 # Example watchlist
 # watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','MU','IONQ','QBTS','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','EOSE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM']
-watchlist = ['FIG','IBIT','ETHE','TEAM','NOW','GWRE','IOT','DUOL','BRZE','HUBS','INTU','BLND','TTAN','U','INTA']
+watchlist = ['FIG','TEAM','NOW','GWRE','IOT','DUOL','BRZE','HUBS','INTU','BLND','TTAN','U','INTA']
 
 print(watchlist)
 
