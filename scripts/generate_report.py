@@ -490,30 +490,55 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     # Build section text
     lines: List[str] = [f"<h2>Ticker: {ticker}</h2>"]
 
-    # Add pre-trade reversal scoring if metrics available
-    cap = None
-    if pretrade_metrics:
-        score_result = score_pretrade_setup(ticker, pretrade_metrics)
-        cap = score_result.get('cap')
-        lines.append("<strong>Reversal Setup Score:</strong>")
-        lines.append(format_pretrade_score_html(score_result))
+    # --- pct_change_120 pre-filter: must be >= 50% to qualify for GO/NOGO ---
+    raw_pct_120 = pct_data.get("pct_change_120")
+    passes_120_filter = raw_pct_120 is not None and not pd.isna(raw_pct_120) and raw_pct_120 >= 0.50
 
-    # Add data-informed exit target LEVELS (measured from open)
-    today = datetime.datetime.now().strftime('%Y-%m-%d')
-    exit_data = get_exit_target_data(ticker, today)
-    if exit_data.get('open_price') and exit_data.get('atr'):
-        if cap is None:
-            cap = get_ticker_cap(ticker)
-        targets = calculate_exit_targets(
-            cap=cap,
-            entry_price=exit_data['open_price'],  # Reference point is OPEN
-            atr=exit_data['atr'],
-            prior_close=exit_data.get('prior_close'),
-            prior_low=exit_data.get('prior_low'),
-            ema_4=exit_data.get('ema_4')
+    cap = None
+    if not passes_120_filter:
+        pct_120_str = f"{raw_pct_120 * 100:.1f}%" if raw_pct_120 is not None and not pd.isna(raw_pct_120) else "N/A"
+        lines.append(
+            '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
+            f'<strong style="color: #6c757d;">FILTERED</strong> '
+            f'<span>120-day move: {pct_120_str} (below 50% threshold)</span>'
+            '</div>'
         )
-        lines.append("<strong>Target Price Levels (from Open):</strong>")
-        lines.append(format_exit_targets_html(targets))
+    else:
+        # Add pre-trade reversal scoring if metrics available
+        if pretrade_metrics:
+            score_result = score_pretrade_setup(ticker, pretrade_metrics)
+            cap = score_result.get('cap')
+            lines.append("<strong>Reversal Setup Score:</strong>")
+            lines.append(format_pretrade_score_html(score_result))
+
+        # Add data-informed exit target LEVELS (measured from open)
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        exit_data = get_exit_target_data(ticker, today)
+        if exit_data.get('open_price') and exit_data.get('atr'):
+            if cap is None:
+                cap = get_ticker_cap(ticker)
+            targets = calculate_exit_targets(
+                cap=cap,
+                entry_price=exit_data['open_price'],  # Reference point is OPEN
+                atr=exit_data['atr'],
+                prior_close=exit_data.get('prior_close'),
+                prior_low=exit_data.get('prior_low'),
+                ema_4=exit_data.get('ema_4')
+            )
+            lines.append("<strong>Target Price Levels (from Open):</strong>")
+            lines.append(format_exit_targets_html(targets))
+
+    # --- Extension from Moving Averages (always shown) ---
+    if mav_data:
+        mav_label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
+        lines.append('<h3 style="margin-top: 12px;">Extension from Moving Averages</h3>')
+        lines.append('<table style="font-size: 0.9em;">')
+        for k, v in mav_data.items():
+            lines.append(
+                f'<tr><td style="padding-right: 12px;">{mav_label(k)}</td>'
+                f'<td>{_fmt_pct(v)}</td></tr>'
+            )
+        lines.append('</table>')
 
     lines.append("<strong>Reversal Percentiles:</strong>")
     lines.append(_format_percentile_dict(rev_pcts))
@@ -533,15 +558,6 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     if range_data:
         lines.append("Range Data:")
         lines.append(indent("\n".join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    "))
-
-    if mav_data:
-        lines.append("Distance from Moving Averages:")
-        # prettier labels: “10 MA” instead of “pct_from_10mav”
-        label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
-        lines.append(indent(
-            "\n".join(f"{label(k)}: {_fmt_pct(v)}" for k, v in mav_data.items()),
-            "    "
-        ))
 
     # Generate chart and embed inline
     try:
@@ -636,18 +652,27 @@ def generate_report() -> str:
             print(f"  {ticker}: Failed to get pretrade metrics - {e}")
             pretrade_metrics_all[ticker] = {}
 
-    # ---- NEW: sort by distance from 10-day MA (descending) -----------------
+    # ---- Sort by pct_change_15 reversal percentile (descending) -------------
+    # Pre-compute reversal percentiles per ticker for sorting
+    _rev_pcts_cache = {}
+    for ticker in watchlist:
+        try:
+            _rev_pcts_cache[ticker] = ss.calculate_percentiles(
+                reversal_df, all_data.get(ticker, {}), COLUMNS_TO_COMPARE
+            )
+        except Exception:
+            _rev_pcts_cache[ticker] = {}
+
     def _safe_float(x, default=float('-inf')):
         try:
             return float(x)
         except (TypeError, ValueError):
             return default
 
-    def _mav10_key(ticker: str) -> float:
-        return _safe_float((all_data.get(ticker, {}).get("mav_data") or {}).get("pct_from_10mav"))
+    def _pct15_key(ticker: str) -> float:
+        return _safe_float(_rev_pcts_cache.get(ticker, {}).get("pct_change_15"))
 
-    # If you prefer absolute distance (above or below), use key=lambda t: abs(_mav10_key(t))
-    sorted_watchlist = sorted(watchlist, key=_mav10_key, reverse=True)
+    sorted_watchlist = sorted(watchlist, key=_pct15_key, reverse=True)
     # -----------------------------------------------------------------------
 
     sections = [
