@@ -49,7 +49,8 @@ if not _WKHTMLTOPDF_PATH:
 from scanners import stock_screener as ss
 from data_collectors.combined_data_collection import reversal_df
 from analyzers.charter import create_daily_chart, cleanup_charts
-from data_queries.polygon_queries import get_levels_data, get_daily, get_atr
+from data_queries.polygon_queries import get_levels_data, get_daily, get_atr, get_actual_current_price as get_actual_current_price_polygon
+from data_queries.trillium_queries import get_actual_current_price_trill
 from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
 from analyzers.bounce_exit_targets import calculate_bounce_exit_targets, format_bounce_exit_targets_html
 from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, SETUP_PROFILES, classify_from_setup_column
@@ -63,7 +64,7 @@ BOUNCE_DF_STRONG = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_s
 
 # ---------------------------------------------------------------------------
 # Bounce Intensity Score — continuous 0-100 ranking for bounce candidates
-# Uses percentile rank against all 36 historical bounce trades.
+# Uses percentile rank against all 52 historical bounce trades.
 # Higher = more extreme setup = better bounce candidate.
 # ---------------------------------------------------------------------------
 from scipy.stats import percentileofscore as _pctrank
@@ -72,7 +73,7 @@ from scipy.stats import percentileofscore as _pctrank
 _BOUNCE_INTENSITY_SPEC = [
     ('selloff_total_pct',              False, 0.30),  # deeper selloff = better
     ('consecutive_down_days',          True,  0.10),  # more days = better
-    ('percent_of_vol_on_breakout_day', True,  0.15),  # higher volume = better
+    ('prior_day_rvol',                 True,  0.15),  # higher prior day vol = better
     ('pct_off_30d_high',               False, 0.20),  # further off high = better
     ('gap_pct',                        False, 0.25),  # bigger gap down = better
 ]
@@ -82,7 +83,7 @@ def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict
     """
     Compute a weighted composite bounce intensity score (0-100).
 
-    For each metric, percentile rank the candidate against all 36 historical
+    For each metric, percentile rank the candidate against all 52 historical
     bounce trades.  "More extreme = higher score" so negative-direction metrics
     are inverted (100 - pctrank).
 
@@ -138,7 +139,7 @@ def format_bounce_intensity_html(intensity: Dict) -> str:
     labels = {
         'selloff_total_pct': 'Selloff depth',
         'consecutive_down_days': 'Down days',
-        'percent_of_vol_on_breakout_day': 'Volume climax',
+        'prior_day_rvol': 'Prior day RVOL',
         'pct_off_30d_high': '30d high discount',
         'gap_pct': 'Gap down',
     }
@@ -172,11 +173,11 @@ BOUNCE_COLUMNS_TO_COMPARE = [
 # Cap-adjusted thresholds for pre-trade screening
 # Same as reversal_scorer.py but without reversal_pct
 PRETRADE_THRESHOLDS = {
-    'Micro': {'pct_from_9ema': 0.80, 'prior_day_range_atr': 3.0, 'rvol_score': 2.0, 'consecutive_up_days': 3, 'gap_pct': 0.15},
-    'Small': {'pct_from_9ema': 0.40, 'prior_day_range_atr': 2.0, 'rvol_score': 2.0, 'consecutive_up_days': 2, 'gap_pct': 0.10},
-    'Medium': {'pct_from_9ema': 0.15, 'prior_day_range_atr': 1.0, 'rvol_score': 1.5, 'consecutive_up_days': 2, 'gap_pct': 0.05},
-    'Large': {'pct_from_9ema': 0.08, 'prior_day_range_atr': 0.8, 'rvol_score': 1.0, 'consecutive_up_days': 1, 'gap_pct': 0.00},
-    'ETF': {'pct_from_9ema': 0.04, 'prior_day_range_atr': 1.0, 'rvol_score': 1.5, 'consecutive_up_days': 1, 'gap_pct': 0.00},
+    'Micro': {'pct_from_9ema': 0.80, 'prior_day_range_atr': 3.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 3, 'gap_pct': 0.15},
+    'Small': {'pct_from_9ema': 0.40, 'prior_day_range_atr': 2.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 2, 'gap_pct': 0.10},
+    'Medium': {'pct_from_9ema': 0.15, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'consecutive_up_days': 2, 'gap_pct': 0.05},
+    'Large': {'pct_from_9ema': 0.08, 'prior_day_range_atr': 0.8, 'prior_day_rvol': 1.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 1, 'gap_pct': 0.00},
+    'ETF': {'pct_from_9ema': 0.04, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'consecutive_up_days': 1, 'gap_pct': 0.00},
 }
 
 # Known ETFs (type detection from Polygon can be unreliable)
@@ -257,21 +258,41 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
         # Calculate 9-day EMA
         df['ema_9'] = df['close'].ewm(span=9, adjust=False).mean()
 
-        # Get prior day values (second to last row since last row is "today")
-        if len(df) >= 2:
+        # Determine if today's bar is in the data or if we're in premarket
+        today_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        last_bar_date = df.index[-1].date()
+        is_premarket = last_bar_date != today_date
+
+        if is_premarket and len(df) >= 1:
+            # Premarket: last bar is yesterday
+            prior_close = df['close'].iloc[-1]
+            prior_high = df['high'].iloc[-1]
+            prior_low = df['low'].iloc[-1]
+            prior_ema9 = df['ema_9'].iloc[-1]
+        elif len(df) >= 2:
             prior_close = df['close'].iloc[-2]
             prior_high = df['high'].iloc[-2]
             prior_low = df['low'].iloc[-2]
             prior_ema9 = df['ema_9'].iloc[-2]
-            today_open = df['open'].iloc[-1]
+        else:
+            prior_close = prior_high = prior_low = prior_ema9 = None
 
-            # 1. Distance from 9EMA
+        # Fetch live price for current-price calculations
+        live_price = None
+        try:
+            live_price = get_actual_current_price_trill(ticker)
+        except Exception:
+            pass
+        reference_price = live_price if live_price is not None else prior_close
+
+        if prior_close is not None:
+            # 1. Distance from 9EMA (using live price)
             if prior_ema9 and prior_ema9 > 0:
-                metrics['pct_from_9ema'] = (prior_close - prior_ema9) / prior_ema9
+                metrics['pct_from_9ema'] = (reference_price - prior_ema9) / prior_ema9
 
-            # 2. Gap % (today's open vs prior close)
-            if prior_close and prior_close > 0:
-                metrics['gap_pct'] = (today_open - prior_close) / prior_close
+            # 2. Gap % (live price vs prior close)
+            if reference_price and prior_close > 0:
+                metrics['gap_pct'] = (reference_price - prior_close) / prior_close
 
             # 3. Prior day range as multiple of ATR
             prior_range = prior_high - prior_low
@@ -288,12 +309,28 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
                     break
             metrics['consecutive_up_days'] = consecutive_up
 
-            # 5. RVOL (volume vs 20-day average)
+            # 5. Volume signal (prior day RVOL + premarket RVOL)
             if len(df) >= 20:
                 avg_vol = df['volume'].iloc[-21:-1].mean()  # 20 days before today
-                today_vol = df['volume'].iloc[-1]
                 if avg_vol and avg_vol > 0:
-                    metrics['rvol_score'] = today_vol / avg_vol
+                    if is_premarket:
+                        # Premarket: last bar is yesterday
+                        prior_day_vol = df['volume'].iloc[-1]
+                    else:
+                        # Market hours: second-to-last bar is yesterday
+                        prior_day_vol = df['volume'].iloc[-2] if len(df) >= 2 else 0
+                    metrics['prior_day_rvol'] = prior_day_vol / avg_vol if prior_day_vol else 0
+                    # Premarket volume from Polygon intraday
+                    try:
+                        from data_queries.polygon_queries import get_intraday
+                        pm_data = get_intraday(ticker, date, 1, 'minute')
+                        if pm_data is not None and not pm_data.empty:
+                            pm_vol = pm_data.between_time('06:00:00', '09:30:00')['volume'].sum()
+                            metrics['premarket_rvol'] = pm_vol / avg_vol if pm_vol else 0
+                        else:
+                            metrics['premarket_rvol'] = 0
+                    except Exception:
+                        metrics['premarket_rvol'] = 0
 
     except Exception as e:
         logging.warning(f"Error getting pretrade metrics for {ticker}: {e}")
@@ -324,14 +361,13 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
 
     # Check each criterion
     criteria_checks = [
-        ('9EMA Distance', 'pct_from_9ema', thresholds['pct_from_9ema'], False),
-        ('Range (ATR)', 'prior_day_range_atr', thresholds['prior_day_range_atr'], False),
-        ('RVOL', 'rvol_score', thresholds['rvol_score'], False),
-        ('Consec Up Days', 'consecutive_up_days', thresholds['consecutive_up_days'], False),
-        ('Gap Up', 'gap_pct', thresholds['gap_pct'], False),
+        ('9EMA Distance', 'pct_from_9ema', thresholds['pct_from_9ema']),
+        ('Range (ATR)', 'prior_day_range_atr', thresholds['prior_day_range_atr']),
+        ('Consec Up Days', 'consecutive_up_days', thresholds['consecutive_up_days']),
+        ('Gap Up', 'gap_pct', thresholds['gap_pct']),
     ]
 
-    for name, key, threshold, _ in criteria_checks:
+    for name, key, threshold in criteria_checks:
         actual = metrics.get(key)
         if actual is not None and not pd.isna(actual):
             passed = actual >= threshold
@@ -349,6 +385,29 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
             'threshold': threshold,
             'actual': actual,
         })
+
+    # Vol signal: either prior day RVOL or premarket RVOL meets threshold
+    prior_rvol = metrics.get('prior_day_rvol')
+    pm_rvol = metrics.get('premarket_rvol')
+    prior_thresh = thresholds['prior_day_rvol']
+    pm_thresh = thresholds['premarket_rvol']
+    prior_pass = prior_rvol is not None and not pd.isna(prior_rvol) and prior_rvol >= prior_thresh
+    pm_pass = pm_rvol is not None and not pd.isna(pm_rvol) and pm_rvol >= pm_thresh
+    vol_passed = prior_pass or pm_pass
+    if vol_passed:
+        score += 1
+
+    prior_str = f"{prior_rvol:.1f}x" if prior_rvol is not None and not pd.isna(prior_rvol) else "N/A"
+    pm_str = f"{pm_rvol:.2f}x" if pm_rvol is not None and not pd.isna(pm_rvol) else "N/A"
+    criteria.append({
+        'name': 'Vol Signal',
+        'key': 'vol_signal',
+        'passed': vol_passed,
+        'threshold': prior_thresh,
+        'actual': prior_rvol,
+        'display_actual': f"Prior: {prior_str} | PM: {pm_str}",
+        'display_threshold': f"{prior_thresh:.1f}x / {pm_thresh:.2f}x",
+    })
 
     # Determine recommendation (adjusted for 5 criteria)
     if score >= 4:
@@ -379,21 +438,21 @@ SCORE_STATISTICS = {
 }
 
 
-# Historical bounce performance statistics by recommendation (from 36 trades, setup-based scoring)
+# Historical bounce performance statistics by recommendation (from 52 trades, setup-based scoring)
 BOUNCE_SCORE_STATISTICS = {
-    'GO': {'trades': 21, 'win_rate': 95.2, 'avg_pnl': 14.6},
-    'CAUTION': {'trades': 4, 'win_rate': 75.0, 'avg_pnl': 14.0},
-    'NO-GO': {'trades': 11, 'win_rate': 36.4, 'avg_pnl': -4.0},
+    'GO': {'trades': 25, 'win_rate': 96.0, 'avg_pnl': 14.3},
+    'CAUTION': {'trades': 8, 'win_rate': 75.0, 'avg_pnl': 1.4},
+    'NO-GO': {'trades': 19, 'win_rate': 47.4, 'avg_pnl': -1.4},
 }
 
 
 def get_exit_target_data(ticker: str, date: str) -> Dict:
     """
     Fetch data needed for exit target calculations.
-    Returns: dict with open_price (reference for targets), atr, prior_close, prior_low, ema_4
+    Returns: dict with open_price (live Trillium price), atr, prior_close, prior_low, prior_high, ema_4
 
-    IMPORTANT: Targets are calculated from OPEN price, not entry price.
-    These are fixed PRICE LEVELS the stock historically reaches, regardless of where you enter.
+    Uses Trillium live price as reference so targets reflect current price reality.
+    Falls back to Polygon daily close if Trillium unavailable.
     """
     data = {}
     try:
@@ -406,11 +465,21 @@ def get_exit_target_data(ticker: str, date: str) -> Dict:
         df['ema_4'] = df['close'].ewm(span=4, adjust=False).mean()
 
         if len(df) >= 2:
-            data['open_price'] = df['open'].iloc[-1]  # Today's open (reference point for targets)
             data['prior_close'] = df['close'].iloc[-2]
             data['prior_low'] = df['low'].iloc[-2]
             data['prior_high'] = df['high'].iloc[-2]
             data['ema_4'] = df['ema_4'].iloc[-2]  # EMA as of prior day
+
+        # Live price: Trillium first, Polygon daily close fallback
+        try:
+            data['open_price'] = get_actual_current_price_trill(ticker)
+        except Exception:
+            try:
+                data['open_price'] = get_actual_current_price_polygon(ticker, date)
+            except Exception:
+                # Last resort: Polygon daily close
+                if df is not None and len(df) >= 1:
+                    data['open_price'] = df['close'].iloc[-1]
 
         # Get ATR
         atr = get_atr(ticker, date)
@@ -457,7 +526,10 @@ def format_pretrade_score_html(score_result: Dict) -> str:
         status_color = '#28a745' if c['passed'] else '#dc3545'
 
         # Format values
-        if c['actual'] is not None:
+        if c['key'] == 'vol_signal':
+            actual_str = c.get('display_actual', 'N/A')
+            thresh_str = c.get('display_threshold', '')
+        elif c['actual'] is not None:
             if c['key'] in ['pct_from_9ema', 'gap_pct']:
                 actual_str = f"{c['actual']*100:.1f}%"
                 thresh_str = f"{c['threshold']*100:.0f}%"
@@ -497,13 +569,14 @@ def format_bounce_score_html(result) -> str:
     else:
         color = '#dc3545'
 
-    stats_text = (f"Profile: {profile.name} | Historical: {profile.historical_win_rate*100:.0f}% WR, "
+    cap_label = getattr(result, 'cap', '')
+    stats_text = (f"Profile: {profile.name} | {cap_label} Cap | Historical: {profile.historical_win_rate*100:.0f}% WR, "
                   f"+{profile.historical_avg_pnl:.0f}% avg P&L (n={profile.sample_size} Grade A)")
 
     lines = [
         f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px;">',
         f'<strong style="color: {color}; font-size: 1.2em;">BOUNCE {rec}</strong> ',
-        f'<span>Score: {score}/{result.max_score}</span>',
+        f'<span>Score: {score}/{result.max_score} ({cap_label} Cap)</span>',
         f'<br><span style="font-size: 0.85em; color: #666;">{stats_text}</span>',
     ]
 
@@ -601,42 +674,110 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <hr>
 
 <h2>Bounce Setup Scoring Guide</h2>
-<h3>Bounce Target Price LEVELS (36 Trades - Measured ABOVE Open)</h3>
+<h3>Bounce Target Price LEVELS (52 Trades - Measured ABOVE Open)</h3>
 <p><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #c8e6c9;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th><th>n</th></tr>
-<tr><td><strong>ETF</strong></td><td>0.5x ATR (71%)</td><td>1.0x ATR (71%)</td><td>Gap Fill (29%)</td><td>7</td></tr>
-<tr><td><strong>Medium</strong></td><td>0.5x ATR (71%)</td><td>Gap Fill (50%)</td><td>1.0x ATR (58%)</td><td>24</td></tr>
-<tr><td><strong>Small</strong></td><td>0.5x ATR (50%)</td><td>1.0x ATR (50%)</td><td>Gap Fill (67%)</td><td>4</td></tr>
-<tr><td><strong>Large</strong></td><td colspan="3"><em>Uses Medium defaults</em></td><td>1</td></tr>
+<tr><td><strong>ETF</strong></td><td>0.5x ATR (83%)</td><td>1.0x ATR (83%)</td><td>Gap Fill (42%)</td><td>12</td></tr>
+<tr><td><strong>Medium</strong></td><td>0.5x ATR (72%)</td><td>Gap Fill (48%)</td><td>1.0x ATR (60%)</td><td>25</td></tr>
+<tr><td><strong>Small</strong></td><td>0.5x ATR (75%)</td><td>1.0x ATR (75%)</td><td>Gap Fill (86%)</td><td>8</td></tr>
+<tr><td><strong>Large</strong></td><td>0.5x ATR (86%)</td><td>1.0x ATR (86%)</td><td>Gap Fill (29%)</td><td>7</td></tr>
 <tr><td><strong>Micro</strong></td><td colspan="3"><em>Uses Small defaults</em></td><td>0</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Avg -14% below open before bounce (1.68 ATRs) | Grade A median</em></p>
+<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -1.0 ATR drawdown below open before bounce. All trades median high = 1.4 ATR.</em></p>
 <p>Stocks with <strong>negative 3-day return</strong> are evaluated as bounce candidates. Auto-classified into two profiles:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
-<tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Grade A Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>10</td><td>80%</td><td>+18.8%</td></tr>
-<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>5</td><td>100%</td><td>+9.6%</td></tr>
+<tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
+<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>18</td><td>78%</td><td>+13.5%</td></tr>
+<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>34</td><td>74%</td><td>+3.0%</td></tr>
 </table>
+<p style="font-size: 0.85em; color: #dc3545;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. GapFade trades: 88% WR, +10.1% avg.</p>
 
 <h3>5 Pre-Trade Criteria (profile-adjusted thresholds)</h3>
 <ol>
-  <li><strong>Deep Selloff</strong> — Total % decline over consecutive down days</li>
-  <li><strong>Consecutive Down Days</strong> — Multi-day selling pressure</li>
-  <li><strong>Volume Climax</strong> — Breakout day volume vs ADV</li>
-  <li><strong>Discount from 30d High</strong> — How far off recent highs</li>
-  <li><strong>Capitulation Gap Down</strong> — Gap down on bounce day</li>
+  <li><strong>Deep Selloff</strong> &mdash; Total % decline over consecutive down days</li>
+  <li><strong>Consecutive Down Days</strong> &mdash; Multi-day selling pressure</li>
+  <li><strong>Volume Climax</strong> &mdash; Breakout day volume vs ADV</li>
+  <li><strong>Discount from 30d High</strong> &mdash; How far off recent highs</li>
+  <li><strong>Capitulation Gap Down</strong> &mdash; Gap down on bounce day</li>
 </ol>
 
-<h3>Historical Performance by Recommendation (36 Trades)</h3>
+<h3>Historical Performance by Recommendation (52 Trades)</h3>
 <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
 <tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (4-5/5)</strong></td><td>21</td><td>95%</td><td>+14.6%</td></tr>
-<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (3/5)</strong></td><td>4</td><td>75%</td><td>+14.0%</td></tr>
-<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;3)</strong></td><td>11</td><td>36%</td><td>-4.0%</td></tr>
+<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (5-6/6)</strong></td><td>25</td><td>96%</td><td>+14.3%</td></tr>
+<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (4/6)</strong></td><td>8</td><td>75%</td><td>+1.4%</td></tr>
+<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;4)</strong></td><td>19</td><td>47%</td><td>-1.4%</td></tr>
 </table>
 
 <p><strong>Routing Logic:</strong> 3-day return &gt; 0 AND 120-day &ge; 50% &rarr; Reversal | 3-day return &lt; 0 &rarr; Bounce | Otherwise &rarr; Filtered</p>
+
+<h2>Bounce Day Cheat Sheet (n=52, cluster days n=28)</h2>
+<p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
+
+<h3>1. ATR-Based Targets</h3>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #c8e6c9;"><th></th><th>25th pct</th><th>Median</th><th>75th pct</th></tr>
+<tr><td><strong>High (target) — Cluster</strong></td><td>1.3 ATR</td><td>2.4 ATR</td><td>3.5 ATR</td></tr>
+<tr><td><strong>High (target) — All</strong></td><td>0.7 ATR</td><td>1.4 ATR</td><td>3.1 ATR</td></tr>
+<tr><td><strong>Close — Cluster</strong></td><td>0.1 ATR</td><td>1.0 ATR</td><td>2.6 ATR</td></tr>
+<tr><td><strong>Close — All</strong></td><td>0.0 ATR</td><td>0.9 ATR</td><td>1.8 ATR</td></tr>
+<tr><td><strong>Drawdown — All</strong></td><td>-2.0 ATR</td><td>-1.0 ATR</td><td>-0.3 ATR</td></tr>
+</table>
+<p style="font-size: 0.85em;"><strong>Scale out starting at 1 ATR, aggressive target 2-3 ATR. Cluster days run ~70% further than solo trades.</strong></p>
+
+<h3>2. Selloff Retrace Targets</h3>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Selloff Depth</th><th>Bounce High Retraces</th><th>Close Retraces</th></tr>
+<tr><td>5-20%</td><td>60% of selloff</td><td>40%</td></tr>
+<tr><td>20-40%</td><td><strong>68%</strong> of selloff</td><td><strong>51%</strong></td></tr>
+<tr><td>40%+</td><td><strong>64%</strong> of selloff</td><td>45%</td></tr>
+</table>
+<p style="font-size: 0.85em;">Target ~60-68% retrace of prior selloff for the high. Close holds ~40-51%.</p>
+
+<h3>3. Gap Fill</h3>
+<ul style="font-size: 0.9em;">
+<li>78% fill &gt;50% of the gap. 49% fill 100%+.</li>
+<li>Median high fills 95% of gap. Median close fills 64%.</li>
+<li>Only 33% close above full gap fill.</li>
+<li><strong>50% gap fill = bread-and-butter first target. Full gap fill = stretch.</strong></li>
+</ul>
+
+<h3>4. Key Decision Rules</h3>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Rule</th><th>Data</th></tr>
+<tr><td><strong>Take profits on the way up</strong></td><td>Only 49% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
+<tr><td><strong>First 30-min low = CRITICAL</strong></td><td>100% close green when low is in first 30 min (n=31). After 10 AM: 45% WR, -8.4% avg close for after-12 lows.</td></tr>
+<tr><td><strong>Cluster days &gt; solo</strong></td><td>Cluster: 79% WR, +11.1% avg. Solo: 71% WR, +1.4% avg.</td></tr>
+<tr><td><strong>Exhaustion gap = much better</strong></td><td>With exhaustion gap: 82% WR, +15.6% avg close. Without: 0% WR, -10.3% avg.</td></tr>
+<tr><td><strong>5 consec down days = 100% WR</strong></td><td>5 days: 100% WR, +13.3% avg. 4 days: 75% WR, +15.3% avg. 0 days (IntradayCapitch): 0% WR.</td></tr>
+<tr><td><strong>Weak stock setups bounce harder</strong></td><td>Weakstock: med high +14.6%, med close +10.7%. Strongstock: med high +9.9%, med close +4.0%.</td></tr>
+<tr><td><strong>Closed outside lower BB = edge</strong></td><td>Outside BB: 85% WR, +9.7% avg. Inside BB: 65% WR, +3.5% avg.</td></tr>
+<tr><td><strong>Prior day closed near lows = capitulation</strong></td><td>Closed near lows (&le;15%): 86% WR, +8.6% avg. Not near lows: 55% WR, +3.7% avg.</td></tr>
+<tr><td><strong>Near 52-week low = bigger bounce</strong></td><td>Near 52wk low: +10.3% avg. Not near: +4.3% avg.</td></tr>
+<tr><td><strong>ETFs highest WR (92%) but lower upside</strong></td><td>ETF: 92% WR, +6.3% avg. Small: 88% WR, +6.7%. Medium: 68% WR, +7.5%. Large: 57% WR, +3.9%.</td></tr>
+</table>
+
+<h3>5. Overnight Hold (cluster days: 86% gapped up next morning)</h3>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Metric</th><th>Cluster Days</th><th>All Trades</th></tr>
+<tr><td>Overnight positive %</td><td><strong>86%</strong> (24/28)</td><td>75%</td></tr>
+<tr><td>Median overnight</td><td><strong>+11.0%</strong></td><td>+9.2%</td></tr>
+</table>
+<p style="font-size: 0.85em;"><strong>Hold a portion overnight on cluster bounce days.</strong></p>
+
+<h3>6. What Predicts Bigger Bounces (check pre-entry, n=52)</h3>
+<ol style="font-size: 0.9em;">
+<li><strong>High vol trend 3d</strong> (r=+0.62 pnl, r=+0.73 high) &mdash; volume accelerating into bounce day = strongest signal</li>
+<li><strong>Low down-day volume ratio</strong> (r=-0.46 pnl, r=-0.51 high) &mdash; selling exhausted on declining volume</li>
+<li><strong>High prior-day vol expansion</strong> (r=+0.56 pnl, r=+0.63 high) &mdash; prior day volume spike = capitulation</li>
+<li><strong>High premarket vol %</strong> (r=+0.34 pnl, r=+0.40 high) &mdash; early attention/participation</li>
+<li><strong>Deeper selloff</strong> (r=-0.40 pnl) &mdash; &gt;30% selloff: +18.9% avg. 15-30%: +12.0%. &lt;5%: +0.0%</li>
+<li><strong>Further off 52wk high</strong> (r=-0.32 pnl, r=-0.39 high) &mdash; deeper fall = bigger bounce</li>
+<li><strong>Lower BB position</strong> (r=-0.32 pnl) &mdash; lower on Bollinger Band = more oversold</li>
+<li><strong>Higher ATR%</strong> (r=+0.25 pnl) &mdash; more volatile names bounce harder</li>
+<li><strong>Low in first 30 min</strong> (r=-0.42 pnl) &mdash; earlier low = better close. Late low = disaster.</li>
+</ol>
 <hr>
 
 <h2>Rules</h2>
@@ -741,7 +882,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             lines.append("<strong>Reversal Setup Score:</strong>")
             lines.append(format_pretrade_score_html(score_result))
 
-        # Add data-informed exit target LEVELS (measured from open)
+        # Add data-informed exit target LEVELS (measured from last close)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
         exit_data = get_exit_target_data(ticker, today)
         if exit_data.get('open_price') and exit_data.get('atr'):
@@ -749,25 +890,29 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
                 cap = get_ticker_cap(ticker)
             targets = calculate_exit_targets(
                 cap=cap,
-                entry_price=exit_data['open_price'],  # Reference point is OPEN
+                entry_price=exit_data['open_price'],
                 atr=exit_data['atr'],
                 prior_close=exit_data.get('prior_close'),
                 prior_low=exit_data.get('prior_low'),
                 ema_4=exit_data.get('ema_4')
             )
-            lines.append("<strong>Target Price Levels (from Open):</strong>")
+            lines.append("<strong>Target Price Levels (from Live Price):</strong>")
             lines.append(format_exit_targets_html(targets))
 
     elif is_bounce and bounce_metrics:
         # BOUNCE path: 3d negative → evaluate bounce setup
         # Supplement bounce_metrics with screener data (more current than separate fetch)
-        if mav_data.get('pct_from_200mav') is not None:
+        # Only supplement from screener data if bounce_metrics doesn't have values
+        # (bounce_metrics uses live price, which is more current)
+        if bounce_metrics.get('pct_from_200mav') is None and mav_data.get('pct_from_200mav') is not None:
             bounce_metrics['pct_from_200mav'] = mav_data['pct_from_200mav']
         volume_data = data.get("volume_data", {})
-        if volume_data.get('percent_of_vol_on_breakout_day') is not None:
+        if bounce_metrics.get('percent_of_vol_on_breakout_day') is None and volume_data.get('percent_of_vol_on_breakout_day') is not None:
             bounce_metrics['percent_of_vol_on_breakout_day'] = volume_data['percent_of_vol_on_breakout_day']
         checker = BouncePretrade()
-        bounce_result = checker.validate(ticker, bounce_metrics)
+        if cap is None:
+            cap = get_ticker_cap(ticker)
+        bounce_result = checker.validate(ticker, bounce_metrics, cap=cap)
         bounce_setup_type = bounce_result.setup_type
         lines.append("<strong>Bounce Setup Score:</strong>")
         lines.append(format_bounce_score_html(bounce_result))
@@ -789,7 +934,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
                 prior_close=exit_data.get('prior_close'),
                 prior_high=exit_data.get('prior_high'),
             )
-            lines.append("<strong>Bounce Target Levels (from Open):</strong>")
+            lines.append("<strong>Bounce Target Levels (from Live Price):</strong>")
             lines.append(format_bounce_exit_targets_html(bounce_targets))
 
     else:

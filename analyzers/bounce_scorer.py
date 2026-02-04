@@ -2,13 +2,13 @@
 Bounce Setup Scorer + Pre-Trade Checklist (Setup-Based)
 
 Scores capitulation bounce setups based on SETUP TYPE, not market cap.
-Setup profiles are derived from 36 historical bounce trades in bounce_data.csv.
+Setup profiles are derived from 52 historical bounce trades in bounce_data.csv.
 
 Two setup profiles auto-detected from stock positioning:
   - GapFade_weakstock:  Stock already in downtrend, deep multi-day selloff to capitulation
-                        (10 Grade A trades: 80% WR, +18.8% avg P&L)
+                        (16 Grade A trades: 75% WR, +13.3% avg P&L)
   - GapFade_strongstock: Healthy stock hit by sudden selloff, gap down bounce
-                        (5 Grade A trades: 100% WR, +9.6% avg P&L)
+                        (24 Grade A trades: 71% WR, +2.7% avg P&L)
 
 Classification uses pct_from_50mav and pct_change_30 to determine stock type.
 
@@ -45,6 +45,10 @@ class SetupProfile:
     """
     Complete profile for a bounce setup type.
     Thresholds derived from Grade A trade percentiles in bounce_data.csv.
+
+    Core criteria thresholds are Dict[str, float] keyed by market cap
+    (ETF, Large, Medium, Small, Micro) with a _default fallback.
+    vol_premarket and bounce_pct remain scalars (no cap variation).
     """
     name: str
     description: str
@@ -56,19 +60,29 @@ class SetupProfile:
     classify_pct_from_50mav: Tuple[str, float]   # ('<=', -0.15) or ('>', -0.10)
     classify_pct_change_30: Tuple[str, float]     # ('<=', -0.30) or ('>', -0.15)
 
-    # Core criteria thresholds (from Grade A percentiles)
-    selloff_total_pct: float        # <= threshold (more negative = deeper)
-    consecutive_down_days: int      # >= threshold
-    vol_expansion: float            # >= threshold (breakout vol / ADV)
-    pct_off_30d_high: float         # <= threshold (more negative = steeper)
-    gap_pct: float                  # <= threshold (more negative = bigger gap down)
-    bounce_pct: float               # >= threshold (post-trade only)
+    # Core criteria thresholds — cap-keyed dicts
+    selloff_total_pct: Dict[str, float] = field(default_factory=dict)
+    consecutive_down_days: Dict[str, int] = field(default_factory=dict)
+    vol_expansion: Dict[str, float] = field(default_factory=dict)
+    pct_off_30d_high: Dict[str, float] = field(default_factory=dict)
+    gap_pct: Dict[str, float] = field(default_factory=dict)
+
+    # Scalars (no cap variation)
+    vol_premarket: float = 0.05
+    bounce_pct: float = 0.02
 
     # Bonus signals specific to this setup
     bonus_checks: Dict = field(default_factory=dict)
 
     # Reference ranges (median of Grade A trades, for context)
     reference_medians: Dict = field(default_factory=dict)
+
+    def get_threshold(self, criterion: str, cap: str):
+        """Look up cap-specific threshold, falling back to _default then Medium."""
+        d = getattr(self, criterion)
+        if not isinstance(d, dict):
+            return d  # scalar (vol_premarket, bounce_pct)
+        return d.get(cap, d.get('_default', d.get('Medium')))
 
 
 @dataclass
@@ -98,6 +112,7 @@ class ChecklistResult:
     bonuses: List[str]
     warnings: List[str]
     classification_details: Dict = field(default_factory=dict)
+    cap: str = 'Medium'
 
 
 # ---------------------------------------------------------------------------
@@ -110,70 +125,102 @@ SETUP_PROFILES = {
     'GapFade_weakstock': SetupProfile(
         name='GapFade_weakstock',
         description='Weak stock capitulation bounce — stock already in downtrend, extended multi-day selloff',
-        sample_size=10,
-        historical_win_rate=0.80,
-        historical_avg_pnl=18.8,
+        sample_size=16,
+        historical_win_rate=0.75,
+        historical_avg_pnl=13.3,
 
         # Classification: below 50MA, negative 30d momentum
         classify_pct_from_50mav=('<=', -0.15),
         classify_pct_change_30=('<=', -0.25),
 
-        # Core criteria (from 10 Grade A trades)
-        selloff_total_pct=-0.18,       # p75: -0.182 (75% of A trades sold off >= 18%)
-        consecutive_down_days=4,       # p25: 4.0 (75% had >= 4 down days)
-        vol_expansion=2.3,             # ~p25: 3.43, using 2.3 for practical threshold
-        pct_off_30d_high=-0.51,        # p75: -0.513 (75% were >= 51% off 30d high)
-        gap_pct=-0.04,                 # p75: -0.043 (75% gapped down >= 4%)
-        bounce_pct=0.02,              # p25: 0.024 (post-trade only)
+        # Core criteria — cap-keyed thresholds
+        selloff_total_pct={
+            'ETF': -0.05, 'Large': -0.10, 'Medium': -0.17,
+            'Small': -0.30, 'Micro': -0.30, '_default': -0.17,
+        },
+        consecutive_down_days={
+            'ETF': 1, 'Large': 2, 'Medium': 4,
+            'Small': 4, 'Micro': 4, '_default': 4,
+        },
+        vol_expansion={
+            'ETF': 1.85, 'Large': 1.50, 'Medium': 1.90,
+            'Small': 2.70, 'Micro': 2.70, '_default': 1.90,
+        },
+        vol_premarket=0.05,
+        pct_off_30d_high={
+            'ETF': -0.24, 'Large': -0.30, 'Medium': -0.50,
+            'Small': -0.50, 'Micro': -0.50, '_default': -0.50,
+        },
+        gap_pct={
+            'ETF': -0.03, 'Large': -0.03, 'Medium': -0.02,
+            'Small': -0.09, 'Micro': -0.09, '_default': -0.02,
+        },
+        bounce_pct=0.02,
 
         bonus_checks={
-            'closed_outside_lower_band': (True, '==', 'Closed outside lower Bollinger Band (80% of A trades)'),
+            'closed_outside_lower_band': (True, '==', 'Closed outside lower Bollinger Band'),
             'prior_day_close_vs_low_pct': (0.10, '<=', 'Prior day closed near lows — capitulation signal'),
             'pct_off_52wk_high': (-0.75, '<=', 'Deep off 52-week high (extreme distress)'),
         },
 
         reference_medians={
-            'selloff_total_pct': -0.258,
-            'consecutive_down_days': 4.5,
-            'vol_expansion': 4.892,
-            'pct_off_30d_high': -0.673,
-            'gap_pct': -0.097,
-            'bounce_pct': 0.142,
+            'selloff_total_pct': -0.189,
+            'consecutive_down_days': 4.0,
+            'vol_expansion': 2.545,
+            'pct_off_30d_high': -0.515,
+            'gap_pct': -0.112,
+            'bounce_pct': 0.101,
         },
     ),
 
     'GapFade_strongstock': SetupProfile(
         name='GapFade_strongstock',
         description='Strong stock pullback bounce — healthy stock hit by sudden selloff (macro, sector, earnings)',
-        sample_size=5,
-        historical_win_rate=1.00,
-        historical_avg_pnl=9.6,
+        sample_size=24,
+        historical_win_rate=0.71,
+        historical_avg_pnl=2.7,
 
         # Classification: near/above 50MA, flat or positive 30d momentum
         classify_pct_from_50mav=('>', -0.15),
         classify_pct_change_30=('>', -0.25),
 
-        # Core criteria (from 5 Grade A trades — smaller sample, wider thresholds)
-        selloff_total_pct=-0.05,       # p75: -0.122, using -0.05 (even shallow selloffs qualify)
-        consecutive_down_days=2,       # p25: 2.0
-        vol_expansion=1.0,             # p25: 1.153, using 1.0
-        pct_off_30d_high=-0.20,        # p75: -0.198
-        gap_pct=-0.03,                 # p75: -0.044, using -0.03 (less gap required)
-        bounce_pct=0.02,              # p25: 0.024 (post-trade only)
+        # Core criteria — cap-keyed thresholds
+        selloff_total_pct={
+            'ETF': -0.05, 'Large': -0.04, 'Medium': -0.15,
+            'Small': -0.10, 'Micro': -0.10, '_default': -0.15,
+        },
+        consecutive_down_days={
+            'ETF': 1, 'Large': 1, 'Medium': 3,
+            'Small': 1, 'Micro': 1, '_default': 3,
+        },
+        vol_expansion={
+            'ETF': 1.75, 'Large': 1.30, 'Medium': 1.0,
+            'Small': 1.0, 'Micro': 1.0, '_default': 1.0,
+        },
+        vol_premarket=0.05,
+        pct_off_30d_high={
+            'ETF': -0.14, 'Large': -0.14, 'Medium': -0.20,
+            'Small': -0.20, 'Micro': -0.20, '_default': -0.20,
+        },
+        gap_pct={
+            'ETF': -0.02, 'Large': -0.01, 'Medium': -0.03,
+            'Small': -0.10, 'Micro': -0.10, '_default': -0.03,
+        },
+        bounce_pct=0.02,
 
         bonus_checks={
-            'bollinger_width': (0.90, '>=', 'Wide Bollinger Bands — volatility expansion (A median: 0.93)'),
+            'bollinger_width': (0.90, '>=', 'Wide Bollinger Bands — volatility expansion'),
             'prior_day_close_vs_low_pct': (0.15, '<=', 'Prior day closed near lows — capitulation signal'),
             'day_of_range_pct': (1.5, '>=', 'Large range day (>= 1.5x ATR)'),
         },
 
         reference_medians={
-            'selloff_total_pct': -0.156,
-            'consecutive_down_days': 3.0,
-            'vol_expansion': 2.388,
-            'pct_off_30d_high': -0.369,
-            'gap_pct': -0.102,
-            'bounce_pct': 0.059,
+            'selloff_total_pct': -0.111,
+            'consecutive_down_days': 2.0,
+            'vol_expansion': 1.526,
+            'pct_off_30d_high': -0.314,
+            'gap_pct': -0.081,
+            'bounce_pct': 0.056,
         },
     ),
 }
@@ -183,7 +230,7 @@ SETUP_PROFILES = {
 CRITERIA_NAMES = {
     'selloff_total_pct': 'Deep selloff',
     'consecutive_down_days': 'Consecutive down days',
-    'vol_expansion': 'Volume climax (vs ADV)',
+    'vol_expansion': 'Volume signal (prior day OR premarket)',
     'pct_off_30d_high': 'Discount from 30d high',
     'gap_pct': 'Capitulation gap down',
     'bounce_pct': 'Large bounce (open-to-close)',
@@ -274,17 +321,16 @@ class BounceScorer:
             return False
         return value >= threshold
 
-    def _evaluate_criteria(self, metrics: Dict, profile: SetupProfile) -> Tuple[int, List[str], List[str]]:
+    def _evaluate_criteria(self, metrics: Dict, profile: SetupProfile, cap: str = 'Medium') -> Tuple[int, List[str], List[str]]:
         passed = []
         failed = []
 
         checks = [
-            ('selloff_total_pct', metrics.get('selloff_total_pct'), profile.selloff_total_pct, 'lte'),
-            ('consecutive_down_days', metrics.get('consecutive_down_days'), profile.consecutive_down_days, 'gte'),
-            ('vol_expansion', metrics.get('percent_of_vol_on_breakout_day'), profile.vol_expansion, 'gte'),
-            ('pct_off_30d_high', metrics.get('pct_off_30d_high'), profile.pct_off_30d_high, 'lte'),
-            ('gap_pct', metrics.get('gap_pct'), profile.gap_pct, 'lte'),
-            ('bounce_pct', metrics.get('bounce_open_close_pct'), profile.bounce_pct, 'gte'),
+            ('selloff_total_pct', metrics.get('selloff_total_pct'), profile.get_threshold('selloff_total_pct', cap), 'lte'),
+            ('consecutive_down_days', metrics.get('consecutive_down_days'), profile.get_threshold('consecutive_down_days', cap), 'gte'),
+            ('pct_off_30d_high', metrics.get('pct_off_30d_high'), profile.get_threshold('pct_off_30d_high', cap), 'lte'),
+            ('gap_pct', metrics.get('gap_pct'), profile.get_threshold('gap_pct', cap), 'lte'),
+            ('bounce_pct', metrics.get('bounce_open_close_pct'), profile.get_threshold('bounce_pct', cap), 'gte'),
         ]
 
         for name, actual, threshold, direction in checks:
@@ -297,6 +343,18 @@ class BounceScorer:
                 passed.append(name)
             else:
                 failed.append(name)
+
+        # Vol signal: either prior day RVOL or premarket RVOL meets threshold
+        # Handle CSV column name mismatch: check both prior_day_rvol and percent_of_vol_one_day_before
+        prior_rvol = metrics.get('prior_day_rvol')
+        if prior_rvol is None or (isinstance(prior_rvol, float) and pd.isna(prior_rvol)):
+            prior_rvol = metrics.get('percent_of_vol_one_day_before')
+        prior_rvol_pass = self._check_gte(prior_rvol, profile.get_threshold('vol_expansion', cap))
+        pm_rvol_pass = self._check_gte(metrics.get('premarket_rvol'), profile.vol_premarket)
+        if prior_rvol_pass or pm_rvol_pass:
+            passed.append('vol_expansion')
+        else:
+            failed.append('vol_expansion')
 
         return len(passed), passed, failed
 
@@ -320,16 +378,16 @@ class BounceScorer:
         else:
             return 'NO-GO'
 
-    def score_setup(self, ticker: str, date: str, setup_type: str, metrics: Dict) -> Dict:
+    def score_setup(self, ticker: str, date: str, setup_type: str, metrics: Dict, cap: str = 'Medium') -> Dict:
         profile = self._get_profile(setup_type)
-        score, passed, failed = self._evaluate_criteria(metrics, profile)
+        score, passed, failed = self._evaluate_criteria(metrics, profile, cap)
         grade = self._score_to_grade(score)
         recommendation = self._get_recommendation(score)
 
         criterion_to_metric = {
             'selloff_total_pct': 'selloff_total_pct',
             'consecutive_down_days': 'consecutive_down_days',
-            'vol_expansion': 'percent_of_vol_on_breakout_day',
+            'vol_expansion': 'prior_day_rvol',
             'pct_off_30d_high': 'pct_off_30d_high',
             'gap_pct': 'gap_pct',
             'bounce_pct': 'bounce_open_close_pct',
@@ -340,7 +398,7 @@ class BounceScorer:
                           'pct_off_30d_high', 'gap_pct', 'bounce_pct']:
             metric_key = criterion_to_metric[criterion]
             actual = metrics.get(metric_key)
-            threshold = getattr(profile, criterion)
+            threshold = profile.get_threshold(criterion, cap)
             ref_median = profile.reference_medians.get(criterion)
 
             criteria_details[criterion] = {
@@ -364,6 +422,7 @@ class BounceScorer:
             'failed_criteria': failed,
             'criteria_details': criteria_details,
             'is_true_a': score >= 5,
+            'cap': cap,
         }
 
     def score_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -372,12 +431,17 @@ class BounceScorer:
             metrics = row.to_dict()
             # Classify from Setup column
             setup_type = classify_from_setup_column(row.get('Setup', ''))
+            # Get cap from the row's cap column (default Medium)
+            cap = row.get('cap', 'Medium')
+            if cap is None or (isinstance(cap, float) and pd.isna(cap)):
+                cap = 'Medium'
 
             result = self.score_setup(
                 ticker=row.get('ticker', ''),
                 date=row.get('date', ''),
                 setup_type=setup_type,
-                metrics=metrics
+                metrics=metrics,
+                cap=cap,
             )
             results.append({
                 'setup_profile': result['setup_type'],
@@ -385,7 +449,8 @@ class BounceScorer:
                 'criteria_grade': result['grade'],
                 'recommendation': result['recommendation'],
                 'is_true_a': result['is_true_a'],
-                'failed_criteria': ', '.join(result['failed_criteria']) if result['failed_criteria'] else 'PERFECT'
+                'failed_criteria': ', '.join(result['failed_criteria']) if result['failed_criteria'] else 'PERFECT',
+                'cap_used': result['cap'],
             })
 
         score_df = pd.DataFrame(results)
@@ -440,7 +505,7 @@ class BouncePretrade:
         else:
             return f"{threshold}"
 
-    def validate(self, ticker: str, metrics: Dict, force_setup: Optional[str] = None) -> ChecklistResult:
+    def validate(self, ticker: str, metrics: Dict, force_setup: Optional[str] = None, cap: str = 'Medium') -> ChecklistResult:
         """
         Validate a setup: auto-classify the stock, then score against matched profile.
 
@@ -448,6 +513,7 @@ class BouncePretrade:
             ticker: Stock symbol
             metrics: Dictionary of indicator values (from fetch_bounce_metrics or CSV row)
             force_setup: Override auto-classification with specific setup type
+            cap: Market cap category (ETF, Large, Medium, Small, Micro) for threshold lookup
 
         Returns:
             ChecklistResult with score and recommendation
@@ -462,17 +528,21 @@ class BouncePretrade:
         profile = self.profiles[setup_type]
 
         # Step 2: Build pre-trade criteria (5 criteria, no bounce_pct)
+        selloff_thresh = profile.get_threshold('selloff_total_pct', cap)
+        down_days_thresh = profile.get_threshold('consecutive_down_days', cap)
+        off_30d_thresh = profile.get_threshold('pct_off_30d_high', cap)
+        gap_thresh = profile.get_threshold('gap_pct', cap)
+        vol_thresh = profile.get_threshold('vol_expansion', cap)
+
         criteria = [
-            ('selloff_total_pct', 'selloff_total_pct', profile.selloff_total_pct,
-             f'Deep selloff >= {abs(profile.selloff_total_pct)*100:.0f}%', 'lte'),
-            ('consecutive_down_days', 'consecutive_down_days', profile.consecutive_down_days,
-             f'Consecutive down days >= {int(profile.consecutive_down_days)}', 'gte'),
-            ('vol_expansion', 'percent_of_vol_on_breakout_day', profile.vol_expansion,
-             f'Volume climax >= {profile.vol_expansion:.1f}x ADV', 'gte'),
-            ('pct_off_30d_high', 'pct_off_30d_high', profile.pct_off_30d_high,
-             f'Discount from 30d high >= {abs(profile.pct_off_30d_high)*100:.0f}%', 'lte'),
-            ('gap_pct', 'gap_pct', profile.gap_pct,
-             f'Gap down >= {abs(profile.gap_pct)*100:.0f}%', 'lte'),
+            ('selloff_total_pct', 'selloff_total_pct', selloff_thresh,
+             f'Deep selloff >= {abs(selloff_thresh)*100:.0f}%', 'lte'),
+            ('consecutive_down_days', 'consecutive_down_days', down_days_thresh,
+             f'Consecutive down days >= {int(down_days_thresh)}', 'gte'),
+            ('pct_off_30d_high', 'pct_off_30d_high', off_30d_thresh,
+             f'Discount from 30d high >= {abs(off_30d_thresh)*100:.0f}%', 'lte'),
+            ('gap_pct', 'gap_pct', gap_thresh,
+             f'Gap down >= {abs(gap_thresh)*100:.0f}%', 'lte'),
         ]
 
         items = []
@@ -511,6 +581,34 @@ class BouncePretrade:
                 reference=ref_str,
             ))
 
+        # Vol signal: either prior day RVOL or premarket RVOL meets threshold
+        prior_rvol = metrics.get('prior_day_rvol')
+        pm_rvol = metrics.get('premarket_rvol')
+        prior_pass = self._check_condition(prior_rvol, vol_thresh, '>=')
+        pm_pass = self._check_condition(pm_rvol, profile.vol_premarket, '>=')
+        vol_passed = prior_pass or pm_pass
+        if vol_passed:
+            score += 1
+
+        # Display both values
+        prior_str = f"{prior_rvol:.2f}x" if prior_rvol is not None and not pd.isna(prior_rvol) else "N/A"
+        pm_str = f"{pm_rvol:.2f}x" if pm_rvol is not None and not pd.isna(pm_rvol) else "N/A"
+        vol_actual_display = f"Prior: {prior_str} | PM: {pm_str}"
+        vol_thresh_display = f"{vol_thresh:.1f}x / {profile.vol_premarket:.2f}x"
+        ref_median = profile.reference_medians.get('vol_expansion')
+        vol_ref = f"A median: {ref_median:.1f}x prior day" if ref_median else ''
+
+        items.append(ChecklistItem(
+            name='vol_expansion',
+            description=f'Vol signal: prior day >= {vol_thresh:.1f}x OR premarket >= {profile.vol_premarket:.2f}x ADV',
+            threshold=vol_thresh,
+            actual=prior_rvol if prior_rvol else pm_rvol,
+            passed=vol_passed,
+            threshold_display=vol_thresh_display,
+            actual_display=vol_actual_display,
+            reference=vol_ref,
+        ))
+
         # Step 3: Bonus factors (setup-specific)
         bonuses = []
         for indicator, (threshold, operator, description) in profile.bonus_checks.items():
@@ -537,7 +635,7 @@ class BouncePretrade:
         max_score = 5
         if score >= 4:
             recommendation = 'GO'
-            summary = f"PASS: {score}/{max_score} criteria met — matches {profile.name} profile"
+            summary = f"PASS: {score}/{max_score} criteria met — matches {profile.name} profile ({cap} Cap)"
         elif score == 3:
             recommendation = 'CAUTION'
             failed_names = [i.name for i in items if not i.passed]
@@ -559,6 +657,7 @@ class BouncePretrade:
             bonuses=bonuses,
             warnings=warnings,
             classification_details=class_details,
+            cap=cap,
         )
 
     def print_checklist(self, result: ChecklistResult):
@@ -636,6 +735,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         get_daily, get_levels_data, adjust_date_to_market,
         fetch_and_calculate_volumes
     )
+    from data_queries.trillium_queries import get_actual_current_price_trill
 
     metrics = {}
 
@@ -645,7 +745,13 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
     levels = get_levels_data(ticker, date, 310, 1, 'day')
 
     if levels is not None and not levels.empty:
-        current_close = levels.iloc[-1]['close']
+        # Use live price as reference for all current-price calculations
+        live_price = None
+        try:
+            live_price = get_actual_current_price_trill(ticker)
+        except Exception:
+            pass
+        current_close = live_price if live_price is not None else levels.iloc[-1]['close']
 
         # --- Classification metrics ---
 
@@ -667,9 +773,11 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
 
         # --- Scoring metrics ---
 
-        # Consecutive down days
+        # Consecutive down days — exclude today (the bounce day) from the count
+        # Start from yesterday (iloc[-2]) since today's green bar would reset the count
         consecutive_down = 0
-        for i in range(len(levels) - 1, -1, -1):
+        last_idx = len(levels) - 2 if len(levels) >= 2 else len(levels) - 1
+        for i in range(last_idx, -1, -1):
             row = levels.iloc[i]
             if row['close'] < row['open']:
                 consecutive_down += 1
@@ -677,12 +785,12 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
                 break
         metrics['consecutive_down_days'] = consecutive_down
 
-        # Selloff total pct
+        # Selloff total pct — measure from first down day's open to current price
         if consecutive_down > 0:
-            recent = levels.iloc[-consecutive_down:]
-            first_open = recent.iloc[0]['open']
-            last_close = recent.iloc[-1]['close']
-            metrics['selloff_total_pct'] = (last_close - first_open) / first_open if first_open != 0 else 0
+            selloff_start = last_idx - consecutive_down + 1
+            first_open = levels.iloc[selloff_start]['open']
+            # Use live/current price for true current selloff depth
+            metrics['selloff_total_pct'] = (current_close - first_open) / first_open if first_open != 0 else 0
         else:
             metrics['selloff_total_pct'] = 0.0
 
@@ -728,26 +836,45 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
                 today_range = prior_row['high'] - prior_row['low']
                 metrics['day_of_range_pct'] = today_range / atr if atr > 0 else 0
 
-    # Volume metrics
+    # Volume metrics — prior day RVOL + premarket RVOL (either can satisfy criterion)
     vol_data = fetch_and_calculate_volumes(ticker, date)
     if vol_data:
         adv = vol_data.get('avg_daily_vol', 0)
-        breakout_vol = vol_data.get('vol_on_breakout_day', 0)
-        if adv and adv > 0 and breakout_vol:
-            metrics['percent_of_vol_on_breakout_day'] = breakout_vol / adv
+        vol_one_day_before = vol_data.get('vol_one_day_before', 0)
+        premarket_vol = vol_data.get('premarket_vol', 0)
+        if adv and adv > 0:
+            metrics['prior_day_rvol'] = vol_one_day_before / adv if vol_one_day_before else 0
+            metrics['premarket_rvol'] = premarket_vol / adv if premarket_vol else 0
         else:
-            metrics['percent_of_vol_on_breakout_day'] = None
+            metrics['prior_day_rvol'] = None
+            metrics['premarket_rvol'] = None
+    else:
+        metrics['prior_day_rvol'] = None
+        metrics['premarket_rvol'] = None
 
-    # Gap pct
-    today = get_daily(ticker, date)
+    # Gap pct — use today's open; during premarket fall back to Trillium live price
+    today_daily = get_daily(ticker, date)
     prior_daily = get_daily(ticker, prior_date)
-    if today and prior_daily:
-        today_open = today.open if hasattr(today, 'open') else today.get('open')
-        prior_close = prior_daily.close if hasattr(prior_daily, 'close') else prior_daily.get('close')
-        if today_open and prior_close and prior_close != 0:
-            metrics['gap_pct'] = (today_open - prior_close) / prior_close
-        else:
-            metrics['gap_pct'] = None
+
+    today_price = None
+    prior_close = None
+
+    if today_daily:
+        today_price = getattr(today_daily, 'open', None)
+    # Premarket fallback: open is None before market open, fetch live price from Trillium
+    if not today_price:
+        try:
+            today_price = get_actual_current_price_trill(ticker)
+        except Exception:
+            pass
+
+    if prior_daily:
+        prior_close = getattr(prior_daily, 'close', None)
+    elif levels is not None and len(levels) >= 1:
+        prior_close = levels.iloc[-1]['close']
+
+    if today_price and prior_close and prior_close != 0:
+        metrics['gap_pct'] = (today_price - prior_close) / prior_close
     else:
         metrics['gap_pct'] = None
 
@@ -815,11 +942,11 @@ def print_score_report(result: Dict):
             threshold_str = f"{int(threshold)}"
             direction = ">="
             ref_str = f"  (A median: {ref:.0f})" if ref else ""
-        else:  # vol_expansion
+        else:  # vol_expansion (prior day RVOL)
             actual_str = f"{actual:.2f}x" if actual is not None and not pd.isna(actual) else "N/A"
             threshold_str = f"{threshold:.1f}x"
-            direction = ">="
-            ref_str = f"  (A median: {ref:.1f}x)" if ref else ""
+            direction = ">= (either)"
+            ref_str = f"  (A median: {ref:.1f}x prior day)" if ref else ""
 
         print(f"  {status} {details['name']}")
         print(f"         Required: {direction} {threshold_str} | Actual: {actual_str}{ref_str}")
@@ -927,11 +1054,15 @@ if __name__ == '__main__':
         if len(sample) > 0:
             row = sample.iloc[0]
             setup_type = classify_from_setup_column(row.get('Setup', ''))
+            row_cap = row.get('cap', 'Medium')
+            if row_cap is None or (isinstance(row_cap, float) and pd.isna(row_cap)):
+                row_cap = 'Medium'
             result = scorer.score_setup(
                 ticker=row['ticker'],
                 date=row['date'],
                 setup_type=setup_type,
-                metrics=row.to_dict()
+                metrics=row.to_dict(),
+                cap=row_cap,
             )
             print_score_report(result)
 

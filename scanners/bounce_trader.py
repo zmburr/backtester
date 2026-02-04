@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
 import gtts
-from playsound import playsound
+import pygame
 
 import pandas as pd
 
@@ -42,13 +42,38 @@ from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, classi
 # Utilities — inlined from live_watcher.py to avoid transitive import issues
 # ---------------------------------------------------------------------------
 
+import uuid as _uuid
+
+_pygame_initialized = False
+
+def _ensure_pygame():
+    global _pygame_initialized
+    if not _pygame_initialized:
+        pygame.mixer.init()
+        _pygame_initialized = True
+
+def _play_worker(filepath):
+    """Play audio blocking with pygame, then clean up the temp file."""
+    try:
+        _ensure_pygame()
+        pygame.mixer.music.load(filepath)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            pygame.time.wait(100)
+    except Exception:
+        pass
+    try:
+        os.remove(filepath)
+    except OSError:
+        pass
+
 def play_sounds(text):
     try:
         tts = gtts.gTTS(text)
-        tempfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temps_bounce.mp3')
-        tts.save(tempfile)
-        playsound(tempfile, block=False)
-        os.remove(tempfile)
+        unique_name = f'bounce_{_uuid.uuid4().hex[:8]}.mp3'
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), unique_name)
+        tts.save(filepath)
+        threading.Thread(target=_play_worker, args=(filepath,), daemon=True).start()
     except Exception:
         print(f'could not play sound: {text}')
 
@@ -222,21 +247,35 @@ class BounceDataAdapter:
         self.logger.info(f'BounceDataAdapter starting — ticker: {self.ticker}')
 
     def start_data_stream(self):
-        import journal
-        import ctxcapmd
+        import sheldatagateway
+        from sheldatagateway import environments
+        from dotenv import load_dotenv
+        load_dotenv()
 
-        with ctxcapmd.Session('10.10.1.71', 65500, journal.any_decompress) as session:
+        user = 'zburr'
+        pwd = os.getenv('SHEL_API_PWD')
+
+        with sheldatagateway.Session(environments.env_defs.Prod, user, pwd) as session:
             def on_bar(obj):
-                if obj['type'] == 'bar-5s':
+                msg_type = obj.get('type', '')
+                if msg_type == 'bar-5s':
                     self.manager.process_incoming_data(obj)
 
-            self.handle = session.request_stream(on_bar, self.ticker, ['bar-5s'])
+            self.handle = session.request_stream(
+                callback=on_bar,
+                symbol=self.ticker,
+                subscriptions=['bar-5s']
+            )
             self.manager.handle = self.handle
             self.handle.wait()
             try:
                 self.handle.raise_on_error()
-            except Exception:
-                pass
+            except Exception as e:
+                error_msg = str(e)
+                if "CANCELED" not in error_msg and "Request was cancelled" not in error_msg:
+                    self.logger.error(f"Data stream error: {e}", exc_info=True)
+                else:
+                    self.logger.info("Data stream was cancelled (normal cleanup)")
 
 
 # ---------------------------------------------------------------------------
@@ -300,9 +339,9 @@ class BounceTradeManager:
         self.logger.info(f'Setup type: {self.setup_type}')
 
         # ---- 9. Pre-trade score ----
-        pretrade_result = BouncePretrade().validate(ticker, self.metrics)
-        self.bounce_score = pretrade_result.score
-        self.recommendation = pretrade_result.recommendation
+        self.pretrade_result = BouncePretrade().validate(ticker, self.metrics)
+        self.bounce_score = self.pretrade_result.score
+        self.recommendation = self.pretrade_result.recommendation
 
         # ---- 10. Intensity ----
         intensity_result = compute_bounce_intensity(self.metrics)
@@ -443,6 +482,23 @@ class BounceTradeManager:
             print(f'  Selloff High: ${self.selloff_high:.2f} | Down Days: {self.consecutive_down_days}')
         print('=' * 72)
 
+        # Score breakdown
+        print(f'\n  PRETRADE CHECKLIST ({self.bounce_score}/5 — {self.recommendation}):')
+        print(f'  {"Criterion":<30} {"Actual":>10} {"Threshold":>12} {"":>6}')
+        print('  ' + '-' * 60)
+        for item in self.pretrade_result.items:
+            mark = 'PASS' if item.passed else 'FAIL'
+            ref = f'  ({item.reference})' if item.reference else ''
+            print(f'  {item.description:<30} {item.actual_display:>10} {item.threshold_display:>12} {mark:>6}{ref}')
+        if self.pretrade_result.bonuses:
+            print(f'\n  BONUSES:')
+            for b in self.pretrade_result.bonuses:
+                print(f'    + {b}')
+        if self.pretrade_result.warnings:
+            print(f'\n  WARNINGS:')
+            for w in self.pretrade_result.warnings:
+                print(f'    ! {w}')
+
         print('\n  UPSIDE TARGETS:')
         print(f'  {"Level":<22} {"Price":>10} {"vs Open":>10}')
         print('  ' + '-' * 44)
@@ -464,20 +520,27 @@ class BounceTradeManager:
 
     def _fire_setup_alerts(self):
         if 'weakstock' in self.setup_type.lower():
-            self._alert('WEAKSTOCK bounce — median high plus 24 percent, close plus 12', priority=1)
+            self._alert('WEAKSTOCK bounce — median high plus 24 percent, close plus 12', priority=2)
         else:
-            self._alert('STRONGSTOCK bounce — median high plus 7 percent, close plus 2', priority=1)
+            self._alert('STRONGSTOCK bounce — median high plus 7 percent, close plus 2', priority=2)
 
         if self.is_etf:
-            self._alert('ETF — more contained. Plus 7 percent median vs plus 37 for stocks on cluster days', priority=1)
+            self._alert('ETF — more contained. Plus 7 percent median vs plus 37 for stocks on cluster days', priority=2)
 
         if self.has_exhaustion_gap:
-            self._alert('EXHAUSTION GAP — median high plus 22 percent', priority=1)
+            self._alert('EXHAUSTION GAP — median high plus 22 percent', priority=2)
 
         self._alert(f'Bounce intensity: {self.bounce_intensity:.0f} out of 100', priority=2)
 
-        if self.recommendation == 'NO-GO':
-            self._alert(f'Pretrade score {self.bounce_score} out of 5 — NO GO', priority=1)
+        # Announce score with breakdown (TTS)
+        passed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if i.passed]
+        failed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if not i.passed]
+        score_msg = f'Pretrade score {self.bounce_score} out of 5 — {self.recommendation}'
+        if passed_names:
+            score_msg += f'. Passing: {", ".join(passed_names)}'
+        if failed_names:
+            score_msg += f'. Failing: {", ".join(failed_names)}'
+        self._alert(score_msg, priority=1)
 
     # -----------------------------------------------------------------------
     # Main event loop
@@ -515,6 +578,13 @@ class BounceTradeManager:
 
     def process_incoming_data(self, bar_data):
         """Called by BounceDataAdapter with each 5s bar dict."""
+        if not hasattr(self, '_bar_count'):
+            self._bar_count = 0
+        self._bar_count += 1
+        if self._bar_count == 1:
+            self.logger.info(f'First bar received — live data confirmed (close=${bar_data.get("close", "?")})')
+        elif self._bar_count % 60 == 0:
+            self.logger.info(f'Heartbeat — {self._bar_count} bars received (close=${bar_data.get("close", "?")})')
         self.current_bar = bar_data
         self.new_data_event.set()
 
@@ -688,19 +758,28 @@ def _simulate_dry_run(manager: BounceTradeManager):
 # ---------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('Usage: python scanners/bounce_trader.py TICKER [CAP] [--dry-run]')
-        print('  TICKER: required (e.g., NVDA)')
-        print('  CAP:    optional — Large, Medium, Small, Micro, ETF (auto-detect if omitted)')
-        print('  --dry-run: skip live stream, simulate test bars')
-        sys.exit(1)
+    # If CLI args provided, use them (original behavior)
+    if len(sys.argv) >= 2:
+        _ticker = sys.argv[1].upper()
+        _cap = None
+        _dry_run = '--dry-run' in sys.argv
 
-    _ticker = sys.argv[1].upper()
-    _cap = None
-    _dry_run = '--dry-run' in sys.argv
+        if len(sys.argv) >= 3 and not sys.argv[2].startswith('--'):
+            _cap = sys.argv[2]
 
-    # Cap is the second arg if it's not a flag
-    if len(sys.argv) >= 3 and not sys.argv[2].startswith('--'):
-        _cap = sys.argv[2]
+        bounce_main(_ticker, cap=_cap, dry_run=_dry_run)
+    else:
+        # Interactive mode — prompt for inputs (useful for PyCharm Run)
+        print('=== Bounce Trader — Interactive Mode ===')
+        _ticker = input('Ticker: ').strip().upper()
+        if not _ticker:
+            print('Ticker is required.')
+            sys.exit(1)
 
-    bounce_main(_ticker, cap=_cap, dry_run=_dry_run)
+        _cap_input = input('Cap (Large/Medium/Small/Micro/ETF) [auto-detect]: ').strip()
+        _cap = _cap_input if _cap_input else None
+
+        _dry_input = input('Dry run? (y/n) [n]: ').strip().lower()
+        _dry_run = _dry_input in ('y', 'yes')
+
+        bounce_main(_ticker, cap=_cap, dry_run=_dry_run)

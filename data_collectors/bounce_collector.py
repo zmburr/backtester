@@ -2,10 +2,12 @@
 Bounce data collector — fills bounce_data.csv with computed features.
 Follows the same pattern as combined_data_collection.py.
 """
+from types import SimpleNamespace
 from data_queries.polygon_queries import (
     get_daily, adjust_date_forward, get_levels_data,
     adjust_date_to_market, get_intraday, check_pct_move
 )
+import data_queries.trillium_queries as trlm
 from data_collectors.combined_data_collection import (
     get_volume, get_pct_volume, get_pct_from_mavs, get_range_vol_expansion,
     get_spy, get_market_context, get_volume_profile
@@ -33,6 +35,60 @@ def _parse_date(row):
 
 
 # ---------------------------------------------------------------------------
+# Trillium routing for Canadian (.T) tickers
+# ---------------------------------------------------------------------------
+def _is_canadian(ticker):
+    """Check if ticker is a Canadian .T ticker."""
+    return ticker.upper().rstrip().endswith('.T')
+
+
+def _get_daily(ticker, date):
+    """Get daily OHLC, routing to trillium for .T tickers."""
+    if _is_canadian(ticker):
+        try:
+            result = trlm.get_daily(ticker, date)
+            return SimpleNamespace(**result)
+        except Exception as e:
+            logging.error(f"Trillium get_daily error for {ticker} on {date}: {e}")
+            return None
+    else:
+        return get_daily(ticker, date)
+
+
+def _get_intraday_1min(ticker, date):
+    """Get 1-min intraday bars, routing to trillium for .T tickers."""
+    if _is_canadian(ticker):
+        return trlm.get_intraday(ticker, date, 'bar-1min')
+    else:
+        return get_intraday(ticker, date, multiplier=1, timespan='minute')
+
+
+def _get_levels_daily(ticker, date, window):
+    """Get daily historical bars, routing to trillium for .T tickers.
+
+    Note: polygon treats `window` as calendar days, but trillium's
+    get_levels_data treats it as trading days. To keep behaviour consistent
+    we compute the start date with polygon's calendar logic and call
+    trillium's _shel_request directly.
+    """
+    if _is_canadian(ticker):
+        import pytz
+        end_date = date if isinstance(date, str) else date.strftime('%Y-%m-%d')
+        start_date = adjust_date_to_market(end_date, window)
+        df = trlm._shel_request(ticker, start_date, end_date, ['bar-1day'])
+        if "close-time" in df.columns:
+            df["close-time"] = (
+                pd.to_datetime(df["close-time"], unit="ns")
+                  .dt.tz_localize("UTC")
+                  .dt.tz_convert(pytz.timezone("US/Eastern"))
+            )
+            df.set_index("close-time", inplace=True)
+        return df
+    else:
+        return get_levels_data(ticker, date, window, 1, 'day')
+
+
+# ---------------------------------------------------------------------------
 # 1. Bounce day stats
 # ---------------------------------------------------------------------------
 def get_bounce_stats(row, analysis_type):
@@ -41,16 +97,16 @@ def get_bounce_stats(row, analysis_type):
     logging.info(f'Running get_bounce_stats for {ticker} on {date}')
 
     try:
-        daily_data = get_daily(ticker, date)
+        daily_data = _get_daily(ticker, date)
         open_price = daily_data.open
         close_price = daily_data.close
         high_price = daily_data.high
         low_price = daily_data.low
 
-        day_before_data = get_daily(ticker, adjust_date_to_market(date, 1))
+        day_before_data = _get_daily(ticker, adjust_date_to_market(date, 1))
         prev_close = day_before_data.close
 
-        day_after_data = get_daily(ticker, adjust_date_forward(date, 1))
+        day_after_data = _get_daily(ticker, adjust_date_forward(date, 1))
         day_after_open = day_after_data.open
 
         row['gap_pct'] = (open_price - prev_close) / prev_close
@@ -74,18 +130,18 @@ def get_bounce_conditionals(row, analysis_type):
     logging.info(f'Running get_bounce_conditionals for {ticker} on {date}')
 
     try:
-        daily_data = get_daily(ticker, date)
+        daily_data = _get_daily(ticker, date)
         open_price = daily_data.open
         close_price = daily_data.close
         high_price = daily_data.high
         low_price = daily_data.low
 
-        day_before_data = get_daily(ticker, adjust_date_to_market(date, 1))
+        day_before_data = _get_daily(ticker, adjust_date_to_market(date, 1))
         prev_close = day_before_data.close
         prev_low = day_before_data.low
 
         # 52-week low
-        hist = get_levels_data(ticker, adjust_date_to_market(date, 1), 365, 1, 'day')
+        hist = _get_levels_daily(ticker, adjust_date_to_market(date, 1), 365)
         fifty_two_week_low = hist['low'].min() if hist is not None and not hist.empty else None
 
         if fifty_two_week_low is not None:
@@ -112,7 +168,7 @@ def get_bounce_bollinger(row, analysis_type):
     logging.info(f'Running get_bounce_bollinger for {ticker} on {date}')
 
     try:
-        df = get_levels_data(ticker, date, 35, 1, 'day')
+        df = _get_levels_daily(ticker, date, 35)
         if df is None or len(df) < 21:
             logging.warning(f'Insufficient data for Bollinger Bands: {ticker} on {date}')
             return row
@@ -177,10 +233,10 @@ def get_selloff_context(row, analysis_type):
     logging.info(f'Running get_selloff_context for {ticker} on {date}')
 
     try:
-        daily_data = get_daily(ticker, date)
+        daily_data = _get_daily(ticker, date)
         open_price = daily_data.open
 
-        hist = get_levels_data(ticker, adjust_date_to_market(date, 1), 60, 1, 'day')
+        hist = _get_levels_daily(ticker, adjust_date_to_market(date, 1), 60)
         if hist is None or hist.empty:
             return row
 
@@ -199,7 +255,7 @@ def get_selloff_context(row, analysis_type):
         row['pct_off_30d_high'] = (open_price - high_30d) / high_30d
 
         # Pct off 52-week high
-        hist_52wk = get_levels_data(ticker, adjust_date_to_market(date, 1), 365, 1, 'day')
+        hist_52wk = _get_levels_daily(ticker, adjust_date_to_market(date, 1), 365)
         if hist_52wk is not None and not hist_52wk.empty:
             high_52wk = hist_52wk['high'].max()
             row['pct_off_52wk_high'] = (open_price - high_52wk) / high_52wk
@@ -237,7 +293,7 @@ def get_volume_climax(row, analysis_type):
     logging.info(f'Running get_volume_climax for {ticker} on {date}')
 
     try:
-        hist = get_levels_data(ticker, date, 10, 1, 'day')
+        hist = _get_levels_daily(ticker, date, 10)
         if hist is None or len(hist) < 4:
             return row
 
@@ -280,7 +336,7 @@ def get_bounce_intraday_timing(row, analysis_type):
     logging.info(f'Running get_bounce_intraday_timing for {ticker} on {date}')
 
     try:
-        data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+        data = _get_intraday_1min(ticker, date)
         if data is None or data.empty:
             return row
 
@@ -333,7 +389,7 @@ def calculate_bounce_atr(row, analysis_type, period=30):
     logging.info(f'Running calculate_bounce_atr for {ticker} on {date}')
 
     try:
-        stock_data = get_levels_data(ticker, adjust_date_to_market(date, 1), period, 1, 'day')
+        stock_data = _get_levels_daily(ticker, adjust_date_to_market(date, 1), period)
         if stock_data is not None and not stock_data.empty:
             stock_data['tr'] = stock_data[['high', 'low', 'close']].apply(
                 lambda x: max(x['high'] - x['low'], abs(x['high'] - x['close']), abs(x['low'] - x['close'])),
@@ -360,7 +416,7 @@ def get_bounce_duration(row, analysis_type):
     logging.info(f'Running get_bounce_duration for {ticker} on {date}')
 
     try:
-        data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+        data = _get_intraday_1min(ticker, date)
         if data is None or data.empty:
             return row
 
@@ -391,22 +447,142 @@ def get_bounce_duration(row, analysis_type):
 
 
 # ---------------------------------------------------------------------------
+# Trillium-aware replacements for reused combined_data_collection functions
+# ---------------------------------------------------------------------------
+def _get_volume_bounce(row):
+    """Trillium-aware replacement for get_volume."""
+    ticker = row['ticker']
+    if not _is_canadian(ticker):
+        return get_volume(row)
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running _get_volume_bounce (trillium) for {ticker} on {date}')
+    try:
+        metrics = trlm.fetch_and_calculate_volumes(ticker, date)
+        for key, value in metrics.items():
+            row[key] = value
+    except Exception as e:
+        logging.error(f'Error in _get_volume_bounce for {ticker} on {date}: {e}')
+    return row
+
+
+def _get_range_vol_expansion_bounce(row):
+    """Trillium-aware replacement for get_range_vol_expansion."""
+    ticker = row['ticker']
+    if not _is_canadian(ticker):
+        return get_range_vol_expansion(row)
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running _get_range_vol_expansion_bounce (trillium) for {ticker} on {date}')
+    try:
+        df = _get_levels_daily(ticker, date, 40)
+        if df is None or len(df) < 4:
+            return row
+        df['high-low'] = df['high'] - df['low']
+        df['high-previous_close'] = abs(df['high'] - df['close'].shift())
+        df['low-previous_close'] = abs(df['low'] - df['close'].shift())
+        df['TR'] = df[['high-low', 'high-previous_close', 'low-previous_close']].max(axis=1)
+        df['ATR'] = df['TR'].rolling(window=14, min_periods=1).mean()
+        df['PCT_ATR'] = df['TR'] / df['ATR']
+        rolling_window = min(len(df) - 4, 20)
+        df['30Day_Avg_Volume'] = df['volume'].rolling(window=rolling_window).mean()
+        df['pct_avg_volume'] = df['volume'] / df['30Day_Avg_Volume']
+        metrics = {
+            'day_of_range_pct': df['PCT_ATR'].iloc[-1],
+            'one_day_before_range_pct': df['PCT_ATR'].iloc[-2],
+            'two_day_before_range_pct': df['PCT_ATR'].iloc[-3],
+            'three_day_before_range_pct': df['PCT_ATR'].iloc[-4],
+            'percent_of_vol_one_day_before': df['pct_avg_volume'].iloc[-2],
+            'percent_of_vol_two_day_before': df['pct_avg_volume'].iloc[-3],
+            'percent_of_vol_three_day_before': df['pct_avg_volume'].iloc[-4]
+        }
+        for key, value in metrics.items():
+            row[key] = value
+    except Exception as e:
+        logging.error(f'Error in _get_range_vol_expansion_bounce for {ticker} on {date}: {e}')
+    return row
+
+
+def _get_pct_from_mavs_bounce(row):
+    """Trillium-aware replacement for get_pct_from_mavs. Computes MAs from daily bars."""
+    ticker = row['ticker']
+    if not _is_canadian(ticker):
+        return get_pct_from_mavs(row)
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running _get_pct_from_mavs_bounce (trillium) for {ticker} on {date}')
+    try:
+        daily_data = _get_daily(ticker, date)
+        if daily_data is None:
+            return row
+        high_of_day = daily_data.high
+        hist = _get_levels_daily(ticker, adjust_date_to_market(date, 1), 250)
+        if hist is None or hist.empty:
+            return row
+        closes = hist['close']
+        for window, key in [(10, 'pct_from_10mav'), (20, 'pct_from_20mav'),
+                            (50, 'pct_from_50mav'), (200, 'pct_from_200mav')]:
+            if len(closes) >= window:
+                sma = closes.tail(window).mean()
+                row[key] = (high_of_day - sma) / sma
+        if len(closes) >= 9:
+            ema_9 = closes.ewm(span=9, adjust=False).mean().iloc[-1]
+            row['pct_from_9ema'] = (high_of_day - ema_9) / ema_9
+        if len(closes) >= 50:
+            sma_50 = closes.tail(50).mean()
+            highs = hist['high']
+            lows = hist['low']
+            tr = pd.concat([
+                highs - lows,
+                (highs - closes.shift()).abs(),
+                (lows - closes.shift()).abs()
+            ], axis=1).max(axis=1)
+            atr_val = tr.tail(14).mean()
+            if atr_val > 0:
+                row['atr_distance_from_50mav'] = (high_of_day - sma_50) / atr_val
+    except Exception as e:
+        logging.error(f'Error in _get_pct_from_mavs_bounce for {ticker} on {date}: {e}')
+    return row
+
+
+def _check_pct_move_bounce(row):
+    """Trillium-aware replacement for check_pct_move."""
+    ticker = row['ticker']
+    if not _is_canadian(ticker):
+        return check_pct_move(row)
+    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
+    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    logging.info(f'Running _check_pct_move_bounce (trillium) for {ticker} on {date}')
+    try:
+        daily = _get_daily(ticker, date)
+        if daily is None:
+            return row
+        current_price = daily.open
+        pct_return_dict = trlm.get_ticker_pct_move(ticker, date, current_price)
+        for key, value in pct_return_dict.items():
+            row[key] = value
+    except Exception as e:
+        logging.error(f"Error in _check_pct_move_bounce for {ticker} on {date}: {e}")
+    return row
+
+
+# ---------------------------------------------------------------------------
 # fill_functions_bounce
 # ---------------------------------------------------------------------------
 fill_functions_bounce = {
-    # Volume (reuse from combined)
-    'avg_daily_vol': get_volume,
-    'vol_on_breakout_day': get_volume,
-    'premarket_vol': get_volume,
-    'vol_in_first_5_min': get_volume,
-    'vol_in_first_10_min': get_volume,
-    'vol_in_first_15_min': get_volume,
-    'vol_in_first_30_min': get_volume,
-    'vol_one_day_before': get_volume,
-    'vol_two_day_before': get_volume,
-    'vol_three_day_before': get_volume,
+    # Volume (trillium-aware)
+    'avg_daily_vol': _get_volume_bounce,
+    'vol_on_breakout_day': _get_volume_bounce,
+    'premarket_vol': _get_volume_bounce,
+    'vol_in_first_5_min': _get_volume_bounce,
+    'vol_in_first_10_min': _get_volume_bounce,
+    'vol_in_first_15_min': _get_volume_bounce,
+    'vol_in_first_30_min': _get_volume_bounce,
+    'vol_one_day_before': _get_volume_bounce,
+    'vol_two_day_before': _get_volume_bounce,
+    'vol_three_day_before': _get_volume_bounce,
 
-    # Pct volume (reuse)
+    # Pct volume (pure math, no API call)
     'percent_of_premarket_vol': get_pct_volume,
     'percent_of_vol_in_first_5_min': get_pct_volume,
     'percent_of_vol_in_first_10_min': get_pct_volume,
@@ -414,28 +590,28 @@ fill_functions_bounce = {
     'percent_of_vol_in_first_30_min': get_pct_volume,
     'percent_of_vol_on_breakout_day': get_pct_volume,
 
-    # Range/vol expansion (reuse)
-    'percent_of_vol_one_day_before': get_range_vol_expansion,
-    'percent_of_vol_two_day_before': get_range_vol_expansion,
-    'percent_of_vol_three_day_before': get_range_vol_expansion,
-    'day_of_range_pct': get_range_vol_expansion,
-    'one_day_before_range_pct': get_range_vol_expansion,
-    'two_day_before_range_pct': get_range_vol_expansion,
-    'three_day_before_range_pct': get_range_vol_expansion,
+    # Range/vol expansion (trillium-aware)
+    'percent_of_vol_one_day_before': _get_range_vol_expansion_bounce,
+    'percent_of_vol_two_day_before': _get_range_vol_expansion_bounce,
+    'percent_of_vol_three_day_before': _get_range_vol_expansion_bounce,
+    'day_of_range_pct': _get_range_vol_expansion_bounce,
+    'one_day_before_range_pct': _get_range_vol_expansion_bounce,
+    'two_day_before_range_pct': _get_range_vol_expansion_bounce,
+    'three_day_before_range_pct': _get_range_vol_expansion_bounce,
 
-    # Pct changes (reuse from polygon_queries)
-    'pct_change_120': check_pct_move,
-    'pct_change_90': check_pct_move,
-    'pct_change_30': check_pct_move,
-    'pct_change_15': check_pct_move,
-    'pct_change_3': check_pct_move,
+    # Pct changes (trillium-aware)
+    'pct_change_120': _check_pct_move_bounce,
+    'pct_change_90': _check_pct_move_bounce,
+    'pct_change_30': _check_pct_move_bounce,
+    'pct_change_15': _check_pct_move_bounce,
+    'pct_change_3': _check_pct_move_bounce,
 
-    # Moving averages (reuse)
-    'pct_from_10mav': get_pct_from_mavs,
-    'pct_from_20mav': get_pct_from_mavs,
-    'pct_from_50mav': get_pct_from_mavs,
-    'pct_from_200mav': get_pct_from_mavs,
-    'atr_distance_from_50mav': get_pct_from_mavs,
+    # Moving averages (trillium-aware)
+    'pct_from_10mav': _get_pct_from_mavs_bounce,
+    'pct_from_20mav': _get_pct_from_mavs_bounce,
+    'pct_from_50mav': _get_pct_from_mavs_bounce,
+    'pct_from_200mav': _get_pct_from_mavs_bounce,
+    'atr_distance_from_50mav': _get_pct_from_mavs_bounce,
 
     # Bounce day stats (new)
     'gap_pct': get_bounce_stats,
