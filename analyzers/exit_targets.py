@@ -403,8 +403,8 @@ def format_exit_targets_html(targets: Dict) -> str:
     html = f'''
     <div style="border: 2px solid {color}; padding: 12px; margin: 10px 0; border-radius: 8px; background: #f9f9f9;">
         <h4 style="color: {color}; margin: 0 0 10px 0;">TARGET LEVELS - {cap} Cap</h4>
-        <p style="margin: 0 0 8px 0; font-size: 0.85em;">Open: ${open_price:.2f} | ATR: ${atr:.2f}</p>
-        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #666;"><em>Fixed price levels from open - mark these on your chart</em></p>
+        <p style="margin: 0 0 8px 0; font-size: 0.85em;">Ref: ${open_price:.2f} (live) | ATR: ${atr:.2f}</p>
+        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #666;"><em>Price levels from live price - mark these on your chart</em></p>
         <table style="width: 100%; font-size: 0.9em; border-collapse: collapse;">
             <tr style="background: #eee;">
                 <th style="padding: 5px; text-align: left;">Tier</th>
