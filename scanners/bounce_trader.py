@@ -5,25 +5,34 @@ Follows the live_watcher.py architecture (event-driven threading + TTS alerts) b
 for the bounce playbook derived from 36 historical trades.
 
 All levels are objective — anchored to open price, prior close, and selloff high.
-No entry price or personal P&L tracking. Pure market levels.
+Optionally integrates with TRAC position data for position-aware alerts.
 
 Usage:
     python scanners/bounce_trader.py NVDA Medium
     python scanners/bounce_trader.py COIN              # auto-detect cap
     python scanners/bounce_trader.py NVDA Medium --dry-run
+    python scanners/bounce_trader.py NVDA Medium --trac   # enable TRAC position integration
 """
 
 import sys
 import os
 import threading
+import queue
 import logging
 import pytz
 from datetime import datetime, timedelta, time as dt_time
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
-import gtts
-import pygame
+try:
+    import gtts  # type: ignore
+except Exception:  # pragma: no cover
+    gtts = None
+
+try:
+    import pygame  # type: ignore
+except Exception:  # pragma: no cover
+    pygame = None
 
 import pandas as pd
 
@@ -31,11 +40,39 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 from pathlib import Path
-from scipy.stats import percentileofscore as _pctrank
+try:
+    # Optional dependency (large). If absent, we fall back to a small numpy implementation.
+    from scipy.stats import percentileofscore as _pctrank  # type: ignore
+except Exception:  # pragma: no cover
+    def _pctrank(a, score, kind='rank'):
+        """
+        Minimal percentile-of-score implementation.
+
+        We approximate SciPy's percentileofscore(kind='rank') with a stable definition:
+        mean of strict and weak ranks: pct = 100*(count(<) + 0.5*count(==))/n
+        """
+        try:
+            arr = np.asarray(a, dtype=float)
+            if arr.size == 0:
+                return np.nan
+            s = float(score)
+        except Exception:
+            return np.nan
+
+        if kind in ('rank', 'mean'):
+            return 100.0 * (np.sum(arr < s) + 0.5 * np.sum(arr == s)) / arr.size
+        if kind == 'weak':
+            return 100.0 * np.sum(arr <= s) / arr.size
+        if kind == 'strict':
+            return 100.0 * np.sum(arr < s) / arr.size
+        return 100.0 * np.sum(arr <= s) / arr.size
 
 from data_queries.polygon_queries import get_atr, get_levels_data
-from data_queries.trillium_queries import get_actual_current_price_trill
-from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, classify_stock
+try:
+    from data_queries.trillium_queries import get_actual_current_price_trill
+except Exception:  # pragma: no cover
+    get_actual_current_price_trill = None
+from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, classify_stock, SETUP_PROFILES
 
 
 # ---------------------------------------------------------------------------
@@ -45,35 +82,81 @@ from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, classi
 import uuid as _uuid
 
 _pygame_initialized = False
+_audio_queue: "queue.Queue[str]" = queue.Queue()
+_audio_thread: Optional[threading.Thread] = None
+_audio_lock = threading.Lock()
 
 def _ensure_pygame():
     global _pygame_initialized
+    if pygame is None:
+        return False
     if not _pygame_initialized:
         pygame.mixer.init()
         _pygame_initialized = True
+    return True
 
-def _play_worker(filepath):
+def _play_audio_file_blocking(filepath: str):
     """Play audio blocking with pygame, then clean up the temp file."""
     try:
-        _ensure_pygame()
+        if not _ensure_pygame():
+            return
         pygame.mixer.music.load(filepath)
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy():
             pygame.time.wait(100)
     except Exception:
         pass
-    try:
-        os.remove(filepath)
-    except OSError:
-        pass
+    finally:
+        try:
+            os.remove(filepath)
+        except OSError:
+            pass
 
-def play_sounds(text):
+
+def _audio_loop():
+    """Single-threaded audio loop so alerts never overlap."""
+    while True:
+        text = _audio_queue.get()
+        try:
+            if gtts is None or pygame is None:
+                continue
+            if not isinstance(text, str) or not text.strip():
+                continue
+            tts = gtts.gTTS(text)
+            unique_name = f'bounce_{_uuid.uuid4().hex[:8]}.mp3'
+            filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), unique_name)
+            tts.save(filepath)
+            _play_audio_file_blocking(filepath)
+        except Exception:
+            # Keep the loop alive even if TTS/audio fails intermittently.
+            pass
+        finally:
+            _audio_queue.task_done()
+
+
+def _ensure_audio_thread():
+    global _audio_thread
+    if gtts is None or pygame is None:
+        return False
+    with _audio_lock:
+        if _audio_thread and _audio_thread.is_alive():
+            return True
+        _audio_thread = threading.Thread(target=_audio_loop, daemon=True)
+        _audio_thread.start()
+        return True
+
+
+def play_sounds(text: str):
+    """
+    Queue a TTS audio alert.
+
+    We intentionally serialize audio playback (single worker thread) so that
+    multiple alerts fired in the same second never overlap.
+    """
     try:
-        tts = gtts.gTTS(text)
-        unique_name = f'bounce_{_uuid.uuid4().hex[:8]}.mp3'
-        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), unique_name)
-        tts.save(filepath)
-        threading.Thread(target=_play_worker, args=(filepath,), daemon=True).start()
+        if not _ensure_audio_thread():
+            return
+        _audio_queue.put(str(text))
     except Exception:
         print(f'could not play sound: {text}')
 
@@ -192,6 +275,14 @@ logging.basicConfig(
 logger = logging.getLogger('BounceTrader')
 
 EASTERN = pytz.timezone('US/Eastern')
+MARKET_OPEN = dt_time(9, 30)
+MARKET_CLOSE = dt_time(16, 0)
+
+
+def is_market_open() -> bool:
+    """Check if US market is currently open (9:30 AM - 4:00 PM ET)."""
+    now_et = datetime.now(EASTERN).time()
+    return MARKET_OPEN <= now_et < MARKET_CLOSE
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +299,22 @@ class AlertLevel:
     detail: str             # audio message
     fired: bool = False
     priority: int = 1       # 1 = audio, 2 = log-only
+
+
+@dataclass
+class PositionInfo:
+    """Live position data from TRAC."""
+    has_position: bool = False
+    shares: int = 0
+    side: str = ''              # 'long' or 'short'
+    avg_price: Optional[float] = None
+    bp_used: Optional[float] = None
+    pnl_per_share: float = 0.0
+    pnl_total: float = 0.0
+    pnl_atr: float = 0.0        # P&L in ATR units
+    # Stop tracking
+    stop_price: Optional[float] = None  # Low-of-day stop (computed from full intraday tape)
+    stopped_out: bool = False
 
 
 @dataclass
@@ -230,6 +337,8 @@ class BounceContext:
     recommendation: str         # 'GO', 'CAUTION', 'NO-GO'
     consecutive_down_days: int
     metrics: Dict = field(default_factory=dict)
+    open_locked: bool = False   # True once official open price is set
+    position: PositionInfo = field(default_factory=PositionInfo)  # TRAC position data
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +393,7 @@ class BounceDataAdapter:
 
 class BounceTradeManager:
 
-    def __init__(self, ticker: str, cap: str = None, date: str = None):
+    def __init__(self, ticker: str, cap: str = None, date: str = None, trac_scraper=None):
         self.ticker = ticker
         self.date = date or datetime.now(EASTERN).strftime('%Y-%m-%d')
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -294,21 +403,38 @@ class BounceTradeManager:
         self.current_bar = None
         self.current_time = None
 
+        # ---- TRAC position integration ----
+        self.trac_scraper = trac_scraper
+        self.position = PositionInfo()
+        self._position_alerts_fired: Dict[str, bool] = {}
+
         # ---- 1. Determine cap ----
         self.cap = cap or get_ticker_cap(ticker)
         self.logger.info(f'Cap: {self.cap}')
 
-        # ---- 2. Get open price ----
+        # ---- 2. Check if premarket ----
+        self.premarket_mode = not is_market_open()
+        self.open_locked = False
+        self.first_bar_of_session = None  # Will capture first bar at/after 9:30
+
+        # ---- 3. Get initial price (premarket or open) ----
         try:
+            if get_actual_current_price_trill is None:
+                raise RuntimeError('Trillium live-price unavailable (module not installed)')
             self.open_price = get_actual_current_price_trill(ticker)
         except Exception:
             self.logger.warning('Trillium price failed, falling back to Polygon')
             from data_queries.polygon_queries import get_daily
             daily = get_daily(ticker, self.date)
-            self.open_price = daily['open'] if daily else None
+            self.open_price = getattr(daily, 'open', None) if daily else None
         if self.open_price is None:
             raise ValueError(f'Cannot determine open price for {ticker}')
-        self.logger.info(f'Open price: ${self.open_price:.2f}')
+
+        if self.premarket_mode:
+            self.logger.info(f'PREMARKET MODE — current price: ${self.open_price:.2f} (targets will update at 9:30)')
+        else:
+            self.open_locked = True
+            self.logger.info(f'Open price LOCKED: ${self.open_price:.2f}')
 
         # ---- 3. ATR ----
         self.atr = get_atr(ticker, self.date)
@@ -339,7 +465,13 @@ class BounceTradeManager:
         self.logger.info(f'Setup type: {self.setup_type}')
 
         # ---- 9. Pre-trade score ----
-        self.pretrade_result = BouncePretrade().validate(ticker, self.metrics)
+        # Use cap-specific thresholds and lock setup_type for consistency with our classification step.
+        self.pretrade_result = BouncePretrade().validate(
+            ticker,
+            self.metrics,
+            force_setup=self.setup_type,
+            cap=self.cap,
+        )
         self.bounce_score = self.pretrade_result.score
         self.recommendation = self.pretrade_result.recommendation
 
@@ -352,6 +484,11 @@ class BounceTradeManager:
         self.has_exhaustion_gap = (self.gap_pct <= -0.05 and self.consecutive_down_days >= 3)
 
         # ---- 12. Build context ----
+        # ---- 12a. Fetch initial TRAC position ----
+        if self.trac_scraper:
+            self._refresh_position()
+
+        # ---- 12b. Build context ----
         self.ctx = BounceContext(
             ticker=ticker,
             open_price=self.open_price,
@@ -370,12 +507,17 @@ class BounceTradeManager:
             recommendation=self.recommendation,
             consecutive_down_days=self.consecutive_down_days,
             metrics=self.metrics,
+            open_locked=self.open_locked,
+            position=self.position,
         )
 
         # ---- 13. Build alert levels ----
         self.target_alerts: List[AlertLevel] = []
         self.drawdown_alerts: List[AlertLevel] = []
+        self.checklist_price_alerts: List[AlertLevel] = []
+        self.checklist_price_levels: List[Dict] = []
         self._build_alert_levels()
+        self._build_checklist_price_levels()
 
         # ---- 14. Time alerts ----
         self.time_alerts_fired: Dict[str, bool] = {}
@@ -465,6 +607,124 @@ class BounceTradeManager:
                 priority=1,
             ))
 
+    def _build_checklist_price_levels(self):
+        """
+        Build downside price levels for checklist criteria that are directly price-derivable.
+
+        Two level types:
+        - Threshold: the exact price where the checklist item would flip to PASS
+        - A-median: the price where the setup matches the Grade-A median for that metric
+
+        These are independent of the official open price, so they are monitored in premarket too.
+        """
+        self.checklist_price_levels.clear()
+        self.checklist_price_alerts.clear()
+
+        profile = SETUP_PROFILES.get(self.setup_type) or SETUP_PROFILES.get('GapFade_strongstock')
+        if profile is None:
+            return
+
+        # "Current" at startup: prefer live/trillium price baked into metrics, else our initial price.
+        current_price = self.metrics.get('current_price')
+        if current_price is None or (isinstance(current_price, float) and pd.isna(current_price)):
+            current_price = self.open_price
+
+        # Map pretrade PASS/FAIL (already cap-adjusted above)
+        passed_map: Dict[str, bool] = {}
+        try:
+            for item in self.pretrade_result.items:
+                passed_map[item.name] = bool(item.passed)
+        except Exception:
+            passed_map = {}
+
+        def _is_valid_price(x) -> bool:
+            if x is None:
+                return False
+            if isinstance(x, float) and pd.isna(x):
+                return False
+            try:
+                return float(x) > 0
+            except Exception:
+                return False
+
+        def _add_pct_level(criterion_key: str, title: str, reference_price, reference_label: str):
+            if not _is_valid_price(reference_price):
+                return
+
+            threshold_pct = profile.get_threshold(criterion_key, self.cap)
+            median_pct = profile.reference_medians.get(criterion_key)
+
+            ref_px = float(reference_price)
+            threshold_price = ref_px * (1.0 + float(threshold_pct)) if threshold_pct is not None else None
+            median_price = ref_px * (1.0 + float(median_pct)) if median_pct is not None else None
+
+            self.checklist_price_levels.append({
+                'criterion': criterion_key,
+                'title': title,
+                'reference_label': reference_label,
+                'reference_price': ref_px,
+                'threshold_pct': float(threshold_pct) if threshold_pct is not None else None,
+                'threshold_price': float(threshold_price) if threshold_price is not None else None,
+                'median_pct': float(median_pct) if median_pct is not None else None,
+                'median_price': float(median_price) if median_price is not None else None,
+            })
+
+            # Arm audible alerts when levels are BELOW current price (i.e., "downside triggers")
+            if _is_valid_price(current_price):
+                cp = float(current_price)
+
+                # Threshold alert — only if currently FAILING that criterion
+                if threshold_price is not None and passed_map.get(criterion_key) is False and cp > threshold_price:
+                    pct_label = f"{abs(float(threshold_pct)) * 100:.0f}" if threshold_pct is not None else ""
+                    msg = f"{self.ticker}: checklist threshold hit — {title} {pct_label} percent at {threshold_price:.2f}"
+                    self.checklist_price_alerts.append(AlertLevel(
+                        name=f'{criterion_key}_threshold',
+                        price=float(threshold_price),
+                        direction='below',
+                        category='checklist',
+                        detail=msg,
+                        priority=1,
+                    ))
+
+                # A-median alert — if current price is above the median-equivalent level
+                if median_price is not None and cp > median_price:
+                    pct_label = f"{abs(float(median_pct)) * 100:.0f}" if median_pct is not None else ""
+                    msg = f"{self.ticker}: A median level — {title} {pct_label} percent at {median_price:.2f}"
+                    self.checklist_price_alerts.append(AlertLevel(
+                        name=f'{criterion_key}_median',
+                        price=float(median_price),
+                        direction='below',
+                        category='checklist',
+                        detail=msg,
+                        priority=1,
+                    ))
+
+        # Price-derivable checklist criteria
+        _add_pct_level(
+            'pct_off_30d_high',
+            'discount from 30 day high',
+            self.metrics.get('high_30d'),
+            '30d high',
+        )
+        _add_pct_level(
+            'selloff_total_pct',
+            'selloff depth from first down day open',
+            self.metrics.get('selloff_start_open'),
+            'selloff start open',
+        )
+        # NOTE: checklist uses "gap at open", but for live monitoring we treat this as
+        # "down vs prior close" since it remains meaningful throughout the session.
+        _add_pct_level(
+            'gap_pct',
+            'down versus prior close',
+            self.metrics.get('prior_close') or self.prior_close,
+            'prior close',
+        )
+
+        # Keep a consistent, human-friendly display order
+        _order = {'pct_off_30d_high': 1, 'selloff_total_pct': 2, 'gap_pct': 3}
+        self.checklist_price_levels.sort(key=lambda x: _order.get(x.get('criterion'), 999))
+
     def _build_time_alerts(self):
         self.time_alerts_fired = {
             '10:00': False,
@@ -473,13 +733,32 @@ class BounceTradeManager:
             '15:55': False,
         }
 
+    def _check_checklist_price_alerts(self, bar_low: float):
+        for alert in self.checklist_price_alerts:
+            if not alert.fired and bar_low <= alert.price:
+                alert.fired = True
+                self._alert(alert.detail, priority=alert.priority)
+                self.logger.info(f'CHECKLIST LEVEL: {alert.name} @ ${alert.price:.2f}')
+
     def _print_levels(self):
         print('\n' + '=' * 72)
-        print(f'  BOUNCE MONITOR: {self.ticker} | Open: ${self.open_price:.2f} | ATR: ${self.atr:.2f}')
+        price_label = 'Open' if self.open_locked else 'Premarket'
+        lock_status = '' if self.open_locked else ' [PRELIMINARY — will update at 9:30]'
+        print(f'  BOUNCE MONITOR: {self.ticker} | {price_label}: ${self.open_price:.2f} | ATR: ${self.atr:.2f}{lock_status}')
         print(f'  Cap: {self.cap} | Type: {self.setup_type} | Score: {self.bounce_score}/5 ({self.recommendation})')
         print(f'  Intensity: {self.bounce_intensity:.0f}/100 | Gap: {self.gap_pct * 100:+.1f}%')
         if self.selloff_high:
             print(f'  Selloff High: ${self.selloff_high:.2f} | Down Days: {self.consecutive_down_days}')
+
+        # Show TRAC position if available
+        if self.position.has_position:
+            pos_str = f'  TRAC POSITION: {self.position.side.upper()} {self.position.shares} shares'
+            if self.position.avg_price:
+                pos_str += f' @ ${self.position.avg_price:.2f}'
+            if self.position.stop_price:
+                pos_str += f' | STOP: ${self.position.stop_price:.2f}'
+            print(pos_str)
+
         print('=' * 72)
 
         # Score breakdown
@@ -498,6 +777,36 @@ class BounceTradeManager:
             print(f'\n  WARNINGS:')
             for w in self.pretrade_result.warnings:
                 print(f'    ! {w}')
+
+        # Checklist-derived downside "price-to-pass" levels (and Grade-A medians)
+        if self.checklist_price_levels:
+            now_px = self.trade_df.iloc[-1]['close'] if not self.trade_df.empty else self.open_price
+            print(f'\n  CHECKLIST THRESHOLD PRICES (DOWN SIDE):  now=${now_px:.2f}')
+            print(f'  {"Metric":<32} {"Now%":>10} {"Pass@":>18} {"A-med@":>18} {"Ref":>12} {"":>6}')
+            print('  ' + '-' * 96)
+            for lvl in self.checklist_price_levels:
+                ref_px = lvl.get('reference_price')
+                if ref_px and ref_px != 0:
+                    now_pct = (now_px - ref_px) / ref_px
+                    now_pct_str = f'{now_pct * 100:+.1f}%'
+                else:
+                    now_pct_str = 'N/A'
+
+                thr_pct = lvl.get('threshold_pct')
+                thr_px = lvl.get('threshold_price')
+                if thr_pct is not None and thr_px is not None:
+                    pass_str = f'{abs(thr_pct) * 100:.0f}% / ${thr_px:.2f}'
+                    status = 'PASS' if now_px <= thr_px else 'WAIT'
+                else:
+                    pass_str = 'N/A'
+                    status = ''
+
+                med_pct = lvl.get('median_pct')
+                med_px = lvl.get('median_price')
+                med_str = f'{abs(med_pct) * 100:.0f}% / ${med_px:.2f}' if med_pct is not None and med_px is not None else 'N/A'
+
+                ref_str = f'${ref_px:.2f}' if ref_px is not None else 'N/A'
+                print(f'  {lvl.get("title",""):<32} {now_pct_str:>10} {pass_str:>18} {med_str:>18} {ref_str:>12} {status:>6}')
 
         print('\n  UPSIDE TARGETS:')
         print(f'  {"Level":<22} {"Price":>10} {"vs Open":>10}')
@@ -542,6 +851,295 @@ class BounceTradeManager:
             score_msg += f'. Failing: {", ".join(failed_names)}'
         self._alert(score_msg, priority=1)
 
+        # Announce position if we have one
+        if self.position.has_position:
+            pos_msg = f'TRAC position detected: {self.position.side} {self.position.shares} shares'
+            if self.position.avg_price:
+                pos_msg += f' at {self.position.avg_price:.2f}'
+            self._alert(pos_msg, priority=1)
+
+    # -----------------------------------------------------------------------
+    # TRAC Position tracking
+    # -----------------------------------------------------------------------
+
+    def _compute_intraday_lows(self) -> Dict[str, Optional[float]]:
+        """
+        Compute intraday low(s) for `self.date`.
+
+        This is used for TRAC position stop setting. It intentionally does NOT rely on
+        `low_water_mark` because:
+        - `low_water_mark` only updates after open is locked
+        - you might start the monitor after the true low already printed
+
+        Returns:
+            Dict with:
+              - full_day_low: min(low) across all intraday bars available for the date
+              - rth_low: min(low) for 09:30–16:00 ET (if bars available)
+              - bars: number of bars used (if known)
+              - source: 'trillium' | 'polygon' | 'trade_df' | 'fallback'
+        """
+        # Fast path: if we already have a populated trade_df, use it (still may be partial-day).
+        try:
+            if hasattr(self, 'trade_df') and isinstance(self.trade_df, pd.DataFrame) and not self.trade_df.empty:
+                if 'low' in self.trade_df.columns:
+                    full_low = float(pd.to_numeric(self.trade_df['low'], errors='coerce').min())
+                    rth_low = None
+                    try:
+                        rth = self.trade_df.between_time("09:30", "16:00")
+                        if not rth.empty:
+                            rth_low = float(pd.to_numeric(rth['low'], errors='coerce').min())
+                    except Exception:
+                        rth_low = None
+                    if not np.isnan(full_low):
+                        return {
+                            'full_day_low': full_low,
+                            'rth_low': rth_low,
+                            'bars': int(len(self.trade_df)),
+                            'source': 'trade_df',
+                        }
+        except Exception:
+            pass
+
+        df = None
+        source = 'fallback'
+
+        # Prefer Trillium if available (captures pre/post and matches the live stream).
+        try:
+            import data_queries.trillium_queries as trlm
+            df = trlm.get_intraday(self.ticker, self.date, "bar-1min")
+            source = 'trillium'
+        except Exception:
+            df = None
+
+        # Fallback to Polygon intraday minute bars.
+        if df is None or (isinstance(df, pd.DataFrame) and df.empty):
+            try:
+                from data_queries.polygon_queries import get_intraday as _poly_intraday
+                df = _poly_intraday(self.ticker, self.date, multiplier=1, timespan='minute')
+                source = 'polygon'
+            except Exception:
+                df = None
+
+        if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+            # Last-resort fallback: use current tracked low_water_mark if available.
+            lw = getattr(self, 'low_water_mark', None)
+            try:
+                lw = float(lw) if lw is not None else None
+            except Exception:
+                lw = None
+            return {'full_day_low': lw, 'rth_low': lw, 'bars': None, 'source': source}
+
+        # Normalize the low column
+        low_col = None
+        if 'low' in df.columns:
+            low_col = 'low'
+        else:
+            for c in df.columns:
+                if str(c).lower() == 'low':
+                    low_col = c
+                    break
+
+        if low_col is None:
+            return {'full_day_low': None, 'rth_low': None, 'bars': int(len(df)), 'source': source}
+
+        lows = pd.to_numeric(df[low_col], errors='coerce')
+        full_low = float(lows.min()) if not lows.empty else None
+
+        rth_low = None
+        try:
+            if isinstance(df.index, pd.DatetimeIndex):
+                rth = df.between_time("09:30", "16:00")
+                if not rth.empty:
+                    rth_low = float(pd.to_numeric(rth[low_col], errors='coerce').min())
+        except Exception:
+            rth_low = None
+
+        # Clean NaNs
+        if full_low is not None and (isinstance(full_low, float) and np.isnan(full_low)):
+            full_low = None
+        if rth_low is not None and (isinstance(rth_low, float) and np.isnan(rth_low)):
+            rth_low = None
+
+        return {
+            'full_day_low': full_low,
+            'rth_low': rth_low,
+            'bars': int(len(df)),
+            'source': source,
+        }
+
+    def _refresh_position(self, current_price: float = None):
+        """
+        Refresh position data from TRAC scraper.
+        Updates self.position and self.ctx.position with current P&L.
+        """
+        if not self.trac_scraper:
+            return
+
+        try:
+            self.logger.info(f'TRAC: Checking for {self.ticker} position...')
+            pos_data = self.trac_scraper.get_position(self.ticker, refresh=True)
+            if pos_data:
+                was_new_position = not self.position.has_position
+                self.position.has_position = True
+                self.position.shares = pos_data.get('shares', 0)
+                self.position.side = pos_data.get('side', '')
+                self.position.avg_price = pos_data.get('avg_price')
+                self.position.bp_used = pos_data.get('bp_used')
+
+                self.logger.info(f'TRAC: Found position — {self.position.side} {self.position.shares} shares @ ${self.position.avg_price}')
+
+                # Set stop price at true low-of-day when we don't yet have one.
+                # (Do not rely on low_water_mark — it can miss earlier lows.)
+                if self.position.stop_price is None:
+                    lows = self._compute_intraday_lows()
+                    stop = lows.get('full_day_low') or lows.get('rth_low')
+                    if stop is None:
+                        stop = getattr(self, 'low_water_mark', None) or self.open_price
+                    try:
+                        stop = float(stop)
+                    except Exception:
+                        stop = None
+
+                    if stop is not None:
+                        self.position.stop_price = stop
+                        self.position.stopped_out = False
+
+                        rth_low = lows.get('rth_low')
+                        full_low = lows.get('full_day_low')
+                        src = lows.get('source')
+                        bars = lows.get('bars')
+                        detail = f'source={src}'
+                        if bars is not None:
+                            detail += f', bars={bars}'
+                        if full_low is not None and rth_low is not None:
+                            detail += f', full_low={full_low:.2f}, rth_low={rth_low:.2f}'
+                        elif full_low is not None:
+                            detail += f', full_low={full_low:.2f}'
+                        elif rth_low is not None:
+                            detail += f', rth_low={rth_low:.2f}'
+
+                        self.logger.info(f'STOP SET: ${self.position.stop_price:.2f} (true LOD; {detail})')
+                        self._alert(f'Stop set at low of day: {self.position.stop_price:.2f}', priority=1)
+
+                # Calculate P&L if we have avg_price and current_price
+                if self.position.avg_price and current_price:
+                    if self.position.side == 'long':
+                        self.position.pnl_per_share = current_price - self.position.avg_price
+                    else:
+                        self.position.pnl_per_share = self.position.avg_price - current_price
+                    self.position.pnl_total = self.position.pnl_per_share * self.position.shares
+                    self.position.pnl_atr = self.position.pnl_per_share / self.atr if self.atr else 0
+
+            else:
+                self.logger.info(f'TRAC: No {self.ticker} position found')
+                # No position found — may have been closed
+                if self.position.has_position:
+                    self.logger.info(f'Position in {self.ticker} appears to be closed')
+                    self._alert(f'{self.ticker} position closed', priority=1)
+                self.position.has_position = False
+                self.position.shares = 0
+                self.position.stop_price = None
+                self.position.stopped_out = False
+
+            # Sync to context (if ctx exists - may not during init)
+            if hasattr(self, 'ctx'):
+                self.ctx.position = self.position
+
+        except Exception as e:
+            self.logger.warning(f'Failed to refresh position: {e}')
+
+    def _check_position_alerts(self, current_price: float, bar_low: float = None):
+        """
+        Check for position-specific alerts based on P&L thresholds and stop price.
+        Only fires if we have a position in this ticker.
+
+        Args:
+            current_price: Current bar close price
+            bar_low: Current bar low (for stop checking)
+        """
+        if not self.position.has_position or not self.position.avg_price:
+            return
+
+        # Use bar_low for stop check, fall back to current_price
+        check_price = bar_low if bar_low is not None else current_price
+
+        # Check stop-out (LOD stop for long positions)
+        if (self.position.stop_price is not None
+                and not self.position.stopped_out
+                and self.position.side == 'long'
+                and check_price < self.position.stop_price):
+            self.position.stopped_out = True
+            stop_loss = (self.position.stop_price - self.position.avg_price) * self.position.shares
+            self.logger.info(f'STOPPED OUT: Price ${check_price:.2f} broke stop ${self.position.stop_price:.2f}')
+            self._alert(f'STOPPED OUT! Price broke stop at {self.position.stop_price:.2f}. Estimated loss ${stop_loss:,.0f}', priority=1)
+
+        # Update P&L with current price
+        if self.position.side == 'long':
+            pnl_per_share = current_price - self.position.avg_price
+        else:
+            pnl_per_share = self.position.avg_price - current_price
+        pnl_atr = pnl_per_share / self.atr if self.atr else 0
+        pnl_total = pnl_per_share * self.position.shares
+
+        # Store for reference
+        self.position.pnl_per_share = pnl_per_share
+        self.position.pnl_total = pnl_total
+        self.position.pnl_atr = pnl_atr
+
+        # P&L milestone alerts (in ATR units)
+        atr_milestones = [0.5, 1.0, 1.5, 2.0, -0.5, -1.0, -1.5]
+        for milestone in atr_milestones:
+            key = f'pnl_{milestone:.1f}_atr'
+            if key not in self._position_alerts_fired:
+                self._position_alerts_fired[key] = False
+
+            if not self._position_alerts_fired[key]:
+                if milestone > 0 and pnl_atr >= milestone:
+                    self._position_alerts_fired[key] = True
+                    self._alert(f'Position P&L hit plus {milestone:.1f} ATR — total ${pnl_total:+,.0f}', priority=1)
+                elif milestone < 0 and pnl_atr <= milestone:
+                    self._position_alerts_fired[key] = True
+                    self._alert(f'Position P&L hit minus {abs(milestone):.1f} ATR — total ${pnl_total:+,.0f}', priority=1)
+
+    # -----------------------------------------------------------------------
+    # Open price locking — capture official open and rebuild targets
+    # -----------------------------------------------------------------------
+
+    def _lock_open_price(self, official_open: float):
+        """
+        Lock in the official market open price and rebuild all ATR-based targets.
+        Called once when first bar at/after 9:30 AM is received.
+        """
+        old_price = self.open_price
+        self.open_price = official_open
+        self.open_locked = True
+        self.ctx.open_price = official_open
+        self.ctx.open_locked = True
+
+        # Recalculate gap percentage with official open
+        self.gap_pct = (self.open_price - self.prior_close) / self.prior_close if self.prior_close != 0 else 0
+        self.ctx.gap_pct = self.gap_pct
+
+        # Recalculate exhaustion gap flag
+        self.has_exhaustion_gap = (self.gap_pct <= -0.05 and self.consecutive_down_days >= 3)
+        self.ctx.has_exhaustion_gap = self.has_exhaustion_gap
+
+        # Clear and rebuild alert levels
+        self.target_alerts.clear()
+        self.drawdown_alerts.clear()
+        self._build_alert_levels()
+
+        # Reset watermarks to official open
+        self.high_water_mark = self.open_price
+        self.low_water_mark = self.open_price
+
+        # Log and announce
+        self.logger.info(f'OPEN PRICE LOCKED: ${self.open_price:.2f} (was ${old_price:.2f} premarket)')
+        self._alert(f'Market open. Official open price locked at {self.open_price:.2f}. Targets updated.', priority=1)
+
+        # Reprint the updated level table
+        self._print_levels()
+
     # -----------------------------------------------------------------------
     # Main event loop
     # -----------------------------------------------------------------------
@@ -561,18 +1159,40 @@ class BounceTradeManager:
                     high = series['high']
                     low = series['low']
 
-                    # Update watermarks
-                    if high > self.high_water_mark:
-                        self.high_water_mark = high
-                    if low < self.low_water_mark:
-                        self.low_water_mark = low
+                    # Checklist threshold levels can be monitored premarket (independent of official open)
+                    self._check_checklist_price_alerts(low)
 
-                    # Check alerts
-                    self._check_target_alerts(high)
-                    self._check_drawdown_alerts(low)
+                    # Check for open price lock at market open (9:30 AM)
+                    if not self.open_locked and hasattr(series.name, 'time'):
+                        bar_time = series.name.time()
+                        if bar_time >= MARKET_OPEN:
+                            # Use the open of the first bar at/after 9:30 as official open
+                            official_open = series['open']
+                            self._lock_open_price(official_open)
+
+                    # Only track watermarks and check alerts after open is locked
+                    if self.open_locked:
+                        # Update watermarks
+                        if high > self.high_water_mark:
+                            self.high_water_mark = high
+                        if low < self.low_water_mark:
+                            self.low_water_mark = low
+
+                        # Check alerts
+                        self._check_target_alerts(high)
+                        self._check_drawdown_alerts(low)
+
+                        # Check position P&L and stop alerts (if TRAC enabled)
+                        if self.trac_scraper and self.position.has_position:
+                            self._check_position_alerts(price, bar_low=low)
 
             # Time alerts run on every loop regardless of new data
             self._check_time_alerts()
+
+            # Periodically refresh position data (every bar = 5 seconds)
+            if self.trac_scraper:
+                current = self.trade_df.iloc[-1]['close'] if not self.trade_df.empty else self.open_price
+                self._refresh_position(current_price=current)
 
             self.new_data_event.clear()
 
@@ -680,13 +1300,29 @@ class BounceTradeManager:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def bounce_main(ticker: str, cap: str = None, dry_run: bool = False):
+def bounce_main(ticker: str, cap: str = None, dry_run: bool = False, enable_trac: bool = False):
     """Entry point — build manager, optionally attach live stream, and run."""
-    manager = BounceTradeManager(ticker=ticker, cap=cap)
+
+    # Initialize TRAC scraper if requested
+    trac_scraper = None
+    if enable_trac:
+        try:
+            from support.trac_positions import TracPositionScraper
+            logger.info('Initializing TRAC position scraper...')
+            trac_scraper = TracPositionScraper()
+            trac_scraper.login()
+            logger.info('TRAC scraper ready — position tracking enabled')
+        except Exception as e:
+            logger.warning(f'Failed to initialize TRAC scraper: {e}')
+            logger.warning('Continuing without position tracking')
+
+    manager = BounceTradeManager(ticker=ticker, cap=cap, trac_scraper=trac_scraper)
 
     if dry_run:
         logger.info('DRY RUN — simulating a few bars then exiting')
         _simulate_dry_run(manager)
+        if trac_scraper:
+            trac_scraper.close()
         return
 
     # Live stream
@@ -701,6 +1337,9 @@ def bounce_main(ticker: str, cap: str = None, dry_run: bool = False):
         manager.closed = True
         if adapter.handle:
             adapter.handle.cancel()
+    finally:
+        if trac_scraper:
+            trac_scraper.close()
 
 
 def _simulate_dry_run(manager: BounceTradeManager):
@@ -746,6 +1385,7 @@ def _simulate_dry_run(manager: BounceTradeManager):
 
             manager._check_target_alerts(series['high'])
             manager._check_drawdown_alerts(series['low'])
+            manager._check_checklist_price_alerts(series['low'])
 
         manager.new_data_event.clear()
         _time.sleep(0.5)
@@ -763,11 +1403,12 @@ if __name__ == '__main__':
         _ticker = sys.argv[1].upper()
         _cap = None
         _dry_run = '--dry-run' in sys.argv
+        _enable_trac = '--trac' in sys.argv
 
         if len(sys.argv) >= 3 and not sys.argv[2].startswith('--'):
             _cap = sys.argv[2]
 
-        bounce_main(_ticker, cap=_cap, dry_run=_dry_run)
+        bounce_main(_ticker, cap=_cap, dry_run=_dry_run, enable_trac=_enable_trac)
     else:
         # Interactive mode — prompt for inputs (useful for PyCharm Run)
         print('=== Bounce Trader — Interactive Mode ===')
@@ -782,4 +1423,7 @@ if __name__ == '__main__':
         _dry_input = input('Dry run? (y/n) [n]: ').strip().lower()
         _dry_run = _dry_input in ('y', 'yes')
 
-        bounce_main(_ticker, cap=_cap, dry_run=_dry_run)
+        _trac_input = input('Enable TRAC position tracking? (y/n) [n]: ').strip().lower()
+        _enable_trac = _trac_input in ('y', 'yes')
+
+        bounce_main(_ticker, cap=_cap, dry_run=_dry_run, enable_trac=_enable_trac)

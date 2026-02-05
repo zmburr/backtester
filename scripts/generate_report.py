@@ -446,43 +446,106 @@ BOUNCE_SCORE_STATISTICS = {
 }
 
 
-def get_exit_target_data(ticker: str, date: str) -> Dict:
+def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> Dict:
     """
     Fetch data needed for exit target calculations.
-    Returns: dict with open_price (live Trillium price), atr, prior_close, prior_low, prior_high, ema_4
+    Returns: dict with:
+      - open_price: reference price for targets (OPEN if available and prefer_open=True, else live price)
+      - open_price_source: 'open' | 'live' | 'prior_close'
+      - atr: ATR (computed as-of the prior completed daily bar when possible)
+      - prior_close, prior_low, prior_high: prior completed daily bar levels
+      - ema_4: 4-day EMA as-of prior completed daily bar
 
-    Uses Trillium live price as reference so targets reflect current price reality.
-    Falls back to Polygon daily close if Trillium unavailable.
+    Note: For consistency with the historical target framework, targets are measured
+    from a single reference price. When the official OPEN is available, using it
+    makes targets stable and comparable to bounce_data.csv analysis.
     """
     data = {}
     try:
         # Get historical data for EMA and prior levels
         df = get_levels_data(ticker, date, 10, 1, 'day')
-        if df is None or len(df) < 5:
+        if df is None or len(df) < 2:
             return data
 
         # Calculate 4-day EMA
         df['ema_4'] = df['close'].ewm(span=4, adjust=False).mean()
 
-        if len(df) >= 2:
-            data['prior_close'] = df['close'].iloc[-2]
-            data['prior_low'] = df['low'].iloc[-2]
-            data['prior_high'] = df['high'].iloc[-2]
-            data['ema_4'] = df['ema_4'].iloc[-2]  # EMA as of prior day
-
-        # Live price: Trillium first, Polygon daily close fallback
+        # Determine if Polygon included today's (possibly in-progress) daily bar
+        today_date = None
+        has_today_bar = False
         try:
-            data['open_price'] = get_actual_current_price_trill(ticker)
+            today_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+            last_bar_date = df.index[-1].date()
+            has_today_bar = (today_date is not None and last_bar_date == today_date)
         except Exception:
+            has_today_bar = False
+
+        # Prior completed daily bar index:
+        # - If today's bar is present, prior day is -2
+        # - Otherwise (premarket / no today bar), prior day is -1
+        prior_idx = -2 if has_today_bar and len(df) >= 2 else -1
+
+        data['prior_close'] = float(df['close'].iloc[prior_idx])
+        data['prior_low'] = float(df['low'].iloc[prior_idx])
+        data['prior_high'] = float(df['high'].iloc[prior_idx])
+        data['ema_4'] = float(df['ema_4'].iloc[prior_idx])  # EMA as of prior completed day
+        try:
+            data['prior_bar_date'] = df.index[prior_idx].date().strftime('%Y-%m-%d')
+        except Exception:
+            data['prior_bar_date'] = None
+
+        # Reference price selection:
+        # Prefer official OPEN (once available), else fall back to live price.
+        ref_price = None
+        ref_source = None
+
+        if prefer_open:
+            open_candidate = None
+
+            # 1) Polygon daily open/close agg (may be unavailable premarket)
             try:
-                data['open_price'] = get_actual_current_price_polygon(ticker, date)
+                daily = get_daily(ticker, date)
+                open_candidate = getattr(daily, 'open', None) if daily else None
             except Exception:
-                # Last resort: Polygon daily close
-                if df is not None and len(df) >= 1:
-                    data['open_price'] = df['close'].iloc[-1]
+                open_candidate = None
+
+            # 2) If today's daily bar exists in levels data, use its open
+            if (open_candidate is None or (isinstance(open_candidate, float) and pd.isna(open_candidate))) and has_today_bar:
+                try:
+                    open_candidate = df['open'].iloc[-1]
+                except Exception:
+                    open_candidate = None
+
+            try:
+                if open_candidate is not None and not (isinstance(open_candidate, float) and pd.isna(open_candidate)) and float(open_candidate) > 0:
+                    ref_price = float(open_candidate)
+                    ref_source = 'open'
+            except Exception:
+                pass
+
+        if ref_price is None:
+            # Live price: Trillium first, Polygon intraday fallback
+            try:
+                ref_price = get_actual_current_price_trill(ticker)
+                ref_source = 'live'
+            except Exception:
+                try:
+                    ref_price = get_actual_current_price_polygon(ticker, date)
+                    ref_source = 'live'
+                except Exception:
+                    # Last resort: prior close
+                    if data.get('prior_close') is not None:
+                        ref_price = data['prior_close']
+                        ref_source = 'prior_close'
+
+        if ref_price is not None:
+            data['open_price'] = ref_price
+            data['open_price_source'] = ref_source
 
         # Get ATR
-        atr = get_atr(ticker, date)
+        # Use ATR as-of the prior completed daily bar when possible (stable, objective).
+        atr_date = data.get('prior_bar_date') or date
+        atr = get_atr(ticker, atr_date)
         if atr:
             data['atr'] = atr
 
@@ -554,7 +617,7 @@ def format_pretrade_score_html(score_result: Dict) -> str:
     return '\n'.join(lines)
 
 
-def format_bounce_score_html(result) -> str:
+def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> str:
     """Format bounce pre-trade checklist result as HTML for the report."""
     rec = result.recommendation
     score = result.score
@@ -599,7 +662,32 @@ def format_bounce_score_html(result) -> str:
     for item in result.items:
         status = '✓' if item.passed else '✗'
         status_color = '#28a745' if item.passed else '#dc3545'
-        ref_str = f' <span style="color: #999;">({item.reference})</span>' if item.reference else ''
+        ref_base = item.reference or ''
+
+        # Prefer a clean "A median: 52%" display for drawdown-style metrics
+        if item.name in {"selloff_total_pct", "pct_off_30d_high", "gap_pct"}:
+            a_med = profile.reference_medians.get(item.name)
+            if a_med is not None and not pd.isna(a_med):
+                ref_base = f"A median: {abs(float(a_med))*100:.0f}%"
+
+        targets_html = ""
+        if bounce_metrics and item.name in {"selloff_total_pct", "pct_off_30d_high", "gap_pct"}:
+            targets_html = _format_bounce_price_targets_html(
+                item_name=item.name,
+                threshold_frac=item.threshold,
+                a_median_frac=profile.reference_medians.get(item.name),
+                bounce_metrics=bounce_metrics,
+            )
+            # Targets block already includes A-median context; avoid duplicating it in parentheses.
+            if targets_html:
+                ref_base = ""
+
+        ref_parts = []
+        if ref_base:
+            ref_parts.append(f'<span style="color: #999;">({ref_base})</span>')
+        if targets_html:
+            ref_parts.append(targets_html)
+        ref_str = "<br>".join(ref_parts) if ref_parts else ''
 
         lines.append(
             f'<tr><td style="color: {status_color}; padding-right: 10px;">{status}</td>'
@@ -853,6 +941,109 @@ def _fmt_pct(val):
         return str(val)
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+def _fmt_dollars(val) -> str:
+    """Format a number as dollars (e.g. $12.34)."""
+    try:
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return "N/A"
+        return f"${float(val):,.2f}"
+    except Exception:
+        return "N/A"
+
+
+def _calc_price_from_frac(base_price, frac) -> Optional[float]:
+    """
+    Convert a fractional metric into a boundary price.
+
+    Many bounce metrics are defined as: frac = (price - base) / base
+    -> price = base * (1 + frac)
+    """
+    try:
+        if base_price is None or frac is None:
+            return None
+        if (isinstance(base_price, float) and pd.isna(base_price)) or (isinstance(frac, float) and pd.isna(frac)):
+            return None
+        base_f = float(base_price)
+        frac_f = float(frac)
+        if base_f == 0:
+            return None
+        return base_f * (1.0 + frac_f)
+    except Exception:
+        return None
+
+
+def _format_bounce_price_targets_html(
+    item_name: str,
+    threshold_frac: Optional[float],
+    a_median_frac: Optional[float],
+    bounce_metrics: Optional[Dict],
+) -> str:
+    """
+    Return compact HTML for "what price hits threshold/median" for key bounce criteria.
+
+    Only supports:
+      - pct_off_30d_high: base = high_30d
+      - gap_pct: base = prior_close
+      - selloff_total_pct: base = selloff_start_open
+    """
+    if not bounce_metrics:
+        return ""
+
+    if item_name == "pct_off_30d_high":
+        base_label = "30d high"
+        base_price = bounce_metrics.get("high_30d")
+        suffix = "off 30d high"
+    elif item_name == "gap_pct":
+        base_label = "prior close"
+        base_price = bounce_metrics.get("prior_close")
+        suffix = "gap down"
+    elif item_name == "selloff_total_pct":
+        base_label = "selloff start open"
+        base_price = bounce_metrics.get("selloff_start_open")
+        suffix = "selloff"
+    else:
+        return ""
+
+    if base_price is None or (isinstance(base_price, float) and pd.isna(base_price)):
+        return ""
+    try:
+        if float(base_price) == 0:
+            return ""
+    except Exception:
+        return ""
+
+    threshold_price = _calc_price_from_frac(base_price, threshold_frac)
+    median_price = _calc_price_from_frac(base_price, a_median_frac)
+
+    threshold_pct = None
+    if threshold_frac is not None and not pd.isna(threshold_frac):
+        threshold_pct = abs(float(threshold_frac)) * 100
+    median_pct = None
+    if a_median_frac is not None and not pd.isna(a_median_frac):
+        median_pct = abs(float(a_median_frac)) * 100
+    median_pct_str = None
+    if median_pct is not None:
+        median_pct_str = f"{median_pct:.1f}".rstrip("0").rstrip(".")
+
+    lines = [
+        f'<div style="margin-top: 2px; color: #888; font-size: 0.82em; line-height: 1.25em;">'
+        f'<div>{base_label}: <strong>{_fmt_dollars(base_price)}</strong></div>'
+    ]
+
+    if threshold_price is not None and threshold_pct is not None:
+        lines.append(
+            f'<div>price @ {threshold_pct:.0f}% {suffix}: <strong>{_fmt_dollars(threshold_price)}</strong></div>'
+        )
+
+    if median_price is not None and median_pct_str is not None:
+        lines.append(
+            f'<div>A median price @ {median_pct_str}% {suffix}: <strong>{_fmt_dollars(median_price)}</strong></div>'
+        )
+
+    lines.append("</div>")
+    return "\n".join(lines)
+
+
 def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_metrics: dict = None, bounce_metrics: dict = None) -> str:
     """Return formatted string section for one ticker and create its chart."""
 
@@ -915,7 +1106,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
         bounce_result = checker.validate(ticker, bounce_metrics, cap=cap)
         bounce_setup_type = bounce_result.setup_type
         lines.append("<strong>Bounce Setup Score:</strong>")
-        lines.append(format_bounce_score_html(bounce_result))
+        lines.append(format_bounce_score_html(bounce_result, bounce_metrics=bounce_metrics))
 
         # Bounce intensity ranking score
         intensity = compute_bounce_intensity(bounce_metrics)
@@ -923,7 +1114,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
 
         # Add bounce exit target LEVELS (measured ABOVE open for long trades)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
-        exit_data = get_exit_target_data(ticker, today)
+        exit_data = get_exit_target_data(ticker, today, prefer_open=True)
         if exit_data.get('open_price') and exit_data.get('atr'):
             if cap is None:
                 cap = get_ticker_cap(ticker)
@@ -934,7 +1125,16 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
                 prior_close=exit_data.get('prior_close'),
                 prior_high=exit_data.get('prior_high'),
             )
-            lines.append("<strong>Bounce Target Levels (from Live Price):</strong>")
+            # Let the HTML formatter reflect whether we're using OPEN or a live fallback.
+            bounce_targets['entry_price_source'] = exit_data.get('open_price_source')
+            src = (exit_data.get('open_price_source') or '').lower()
+            if src == 'open':
+                label = "from OPEN"
+            elif src == 'live':
+                label = "from LIVE (open not available)"
+            else:
+                label = "from reference price"
+            lines.append(f"<strong>Bounce Target Levels ({label}):</strong>")
             lines.append(format_bounce_exit_targets_html(bounce_targets))
 
     else:
@@ -1143,8 +1343,8 @@ def generate_report() -> str:
         for ticker in sorted_watchlist
     ]
 
-    # Prepend header information
-    html_report = HEADER_HTML + "<hr>" + "<br><br>\n".join(sections)
+    # Put the long scoring guides at the bottom (tickers first).
+    html_report = "<br><br>\n".join(sections) + "<hr>" + HEADER_HTML
 
     # Persist a copy of the report locally before (or even if) e-mailing
     _save_report_pdf(html_report)

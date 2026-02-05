@@ -735,50 +735,73 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         get_daily, get_levels_data, adjust_date_to_market,
         fetch_and_calculate_volumes
     )
-    from data_queries.trillium_queries import get_actual_current_price_trill
+    try:
+        from data_queries.trillium_queries import get_actual_current_price_trill
+    except Exception:  # pragma: no cover
+        get_actual_current_price_trill = None
 
-    metrics = {}
+    metrics: Dict = {}
 
     # Get 310 calendar days (~200+ trading days) for SMA200 classification
-    # Use `date` (today) so today's bar is included in consecutive down days count
+    # Use `date` (today) so we can optionally include today's daily bar if it exists.
+    # IMPORTANT: Many features (consecutive down days, prior-day stats, 30d high) should
+    # be computed off *completed* daily bars, so we detect and exclude today's bar when present.
     prior_date = adjust_date_to_market(date, 1)
     levels = get_levels_data(ticker, date, 310, 1, 'day')
 
     if levels is not None and not levels.empty:
+        # Detect whether Polygon returned a daily bar for `date` (during market hours)
+        # so we can exclude it for "prior-day" / "completed-bar" calculations.
+        has_today_bar = False
+        try:
+            last_bar_date = levels.index[-1].date()
+            has_today_bar = (last_bar_date == pd.to_datetime(date).date())
+        except Exception:
+            has_today_bar = False
+
+        hist_levels = levels.iloc[:-1] if has_today_bar and len(levels) > 1 else levels
+
         # Use live price as reference for all current-price calculations
         live_price = None
-        try:
-            live_price = get_actual_current_price_trill(ticker)
-        except Exception:
-            pass
-        current_close = live_price if live_price is not None else levels.iloc[-1]['close']
+        if get_actual_current_price_trill is not None:
+            try:
+                live_price = get_actual_current_price_trill(ticker)
+            except Exception:
+                pass
+        if live_price is not None:
+            current_close = live_price
+        else:
+            # Fallback to the most recent daily close available (today if present, else prior day)
+            current_close = levels.iloc[-1]['close']
+
+        metrics['current_price'] = current_close
 
         # --- Classification metrics ---
 
         # pct_from_200mav (primary classifier: below = weak, above = strong)
-        if len(levels) >= 200:
-            sma200 = levels['close'].rolling(200).mean().iloc[-1]
+        if len(hist_levels) >= 200:
+            sma200 = hist_levels['close'].rolling(200).mean().iloc[-1]
             if not pd.isna(sma200) and sma200 != 0:
                 metrics['pct_from_200mav'] = (current_close - sma200) / sma200
 
         # pct_change_30 (fallback classifier if 200 MA unavailable)
-        if len(levels) >= 30:
-            close_30ago = levels.iloc[-30]['close']
+        if len(hist_levels) >= 30:
+            close_30ago = hist_levels.iloc[-30]['close']
             if close_30ago != 0:
                 metrics['pct_change_30'] = (current_close - close_30ago) / close_30ago
 
         # pct_off_52wk_high (for context)
-        high_all = levels['high'].max()
+        high_all = hist_levels['high'].max() if hist_levels is not None and not hist_levels.empty else levels['high'].max()
         metrics['pct_off_52wk_high'] = (current_close - high_all) / high_all if high_all != 0 else 0
 
         # --- Scoring metrics ---
 
-        # Consecutive down days — exclude today (the bounce day) from the count
-        # Start from yesterday (iloc[-2]) since today's green bar would reset the count
+        # Consecutive down days — exclude today (the bounce day) from the count.
+        # If today's daily bar exists in Polygon, remove it; otherwise last bar is already "yesterday".
         consecutive_down = 0
-        last_idx = len(levels) - 2 if len(levels) >= 2 else len(levels) - 1
-        for i in range(last_idx, -1, -1):
-            row = levels.iloc[i]
+        start_idx = len(hist_levels) - 1
+        for i in range(start_idx, -1, -1):
+            row = hist_levels.iloc[i]
             if row['close'] < row['open']:
                 consecutive_down += 1
             else:
@@ -787,23 +810,29 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
 
         # Selloff total pct — measure from first down day's open to current price
         if consecutive_down > 0:
-            selloff_start = last_idx - consecutive_down + 1
-            first_open = levels.iloc[selloff_start]['open']
+            selloff_start = start_idx - consecutive_down + 1
+            first_open = hist_levels.iloc[selloff_start]['open']
+            metrics['selloff_start_open'] = first_open
             # Use live/current price for true current selloff depth
             metrics['selloff_total_pct'] = (current_close - first_open) / first_open if first_open != 0 else 0
         else:
+            metrics['selloff_start_open'] = None
             metrics['selloff_total_pct'] = 0.0
 
         # Pct off 30d high
-        if len(levels) >= 30:
-            high_30d = levels.iloc[-30:]['high'].max()
+        high_30d = None
+        if hist_levels is not None and not hist_levels.empty:
+            window_df = hist_levels.iloc[-30:] if len(hist_levels) >= 30 else hist_levels
+            high_30d = window_df['high'].max()
+        metrics['high_30d'] = float(high_30d) if high_30d is not None and not pd.isna(high_30d) else None
+        if high_30d and high_30d != 0:
+            metrics['pct_off_30d_high'] = (current_close - high_30d) / high_30d
         else:
-            high_30d = levels['high'].max()
-        metrics['pct_off_30d_high'] = (current_close - high_30d) / high_30d if high_30d != 0 else 0
+            metrics['pct_off_30d_high'] = None
 
         # Bollinger Bands (20-day SMA +/- 2 sigma)
-        if len(levels) >= 20:
-            closes = levels['close'].values
+        if hist_levels is not None and len(hist_levels) >= 20:
+            closes = hist_levels['close'].values
             sma20 = np.mean(closes[-20:])
             std20 = np.std(closes[-20:])
             upper_band = sma20 + 2 * std20
@@ -816,7 +845,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
             metrics['bollinger_width'] = 0
 
         # Prior day close vs low pct
-        prior_row = levels.iloc[-1]
+        prior_row = hist_levels.iloc[-1] if hist_levels is not None and not hist_levels.empty else levels.iloc[-1]
         prior_range = prior_row['high'] - prior_row['low']
         if prior_range > 0:
             metrics['prior_day_close_vs_low_pct'] = (prior_row['close'] - prior_row['low']) / prior_range
@@ -824,12 +853,12 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
             metrics['prior_day_close_vs_low_pct'] = 0.5
 
         # Day-of range pct (for IntradayCapitch warning)
-        if len(levels) >= 15:
+        if hist_levels is not None and len(hist_levels) >= 15:
             tr_vals = []
-            for i in range(1, len(levels)):
-                hl = levels.iloc[i]['high'] - levels.iloc[i]['low']
-                hpc = abs(levels.iloc[i]['high'] - levels.iloc[i-1]['close'])
-                lpc = abs(levels.iloc[i]['low'] - levels.iloc[i-1]['close'])
+            for i in range(1, len(hist_levels)):
+                hl = hist_levels.iloc[i]['high'] - hist_levels.iloc[i]['low']
+                hpc = abs(hist_levels.iloc[i]['high'] - hist_levels.iloc[i-1]['close'])
+                lpc = abs(hist_levels.iloc[i]['low'] - hist_levels.iloc[i-1]['close'])
                 tr_vals.append(max(hl, hpc, lpc))
             if len(tr_vals) >= 14:
                 atr = np.mean(tr_vals[-14:])
@@ -862,7 +891,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
     if today_daily:
         today_price = getattr(today_daily, 'open', None)
     # Premarket fallback: open is None before market open, fetch live price from Trillium
-    if not today_price:
+    if not today_price and get_actual_current_price_trill is not None:
         try:
             today_price = get_actual_current_price_trill(ticker)
         except Exception:
@@ -871,12 +900,20 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
     if prior_daily:
         prior_close = getattr(prior_daily, 'close', None)
     elif levels is not None and len(levels) >= 1:
-        prior_close = levels.iloc[-1]['close']
+        try:
+            # Use the most recent *completed* daily close as prior_close.
+            last_bar_date = levels.index[-1].date()
+            has_today_bar = (last_bar_date == pd.to_datetime(date).date())
+        except Exception:
+            has_today_bar = False
+        prior_close = levels.iloc[-2]['close'] if has_today_bar and len(levels) >= 2 else levels.iloc[-1]['close']
 
     if today_price and prior_close and prior_close != 0:
         metrics['gap_pct'] = (today_price - prior_close) / prior_close
     else:
         metrics['gap_pct'] = None
+
+    metrics['prior_close'] = prior_close
 
     return metrics
 
