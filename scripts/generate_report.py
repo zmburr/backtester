@@ -7,7 +7,7 @@ saves one PNG chart per ticker in the *charts/* directory.
 
 from pathlib import Path
 from textwrap import indent
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from support.config import send_email
 import pandas as pd
 import base64
@@ -53,7 +53,13 @@ from data_queries.polygon_queries import get_levels_data, get_daily, get_atr, ge
 from data_queries.trillium_queries import get_actual_current_price_trill
 from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
 from analyzers.bounce_exit_targets import calculate_bounce_exit_targets, format_bounce_exit_targets_html
-from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics, SETUP_PROFILES, classify_from_setup_column
+from analyzers.bounce_scorer import (
+    BouncePretrade,
+    fetch_bounce_metrics,
+    SETUP_PROFILES,
+    classify_from_setup_column,
+    classify_stock,
+)
 
 # Load bounce data and split by setup type for percentile comparisons
 _bounce_csv = Path(__file__).resolve().parent.parent / "data" / "bounce_data.csv"
@@ -438,11 +444,11 @@ SCORE_STATISTICS = {
 }
 
 
-# Historical bounce performance statistics by recommendation (from 52 trades, setup-based scoring)
+# Historical bounce performance statistics by recommendation (from 54 trades, setup-based scoring with range expansion)
 BOUNCE_SCORE_STATISTICS = {
-    'GO': {'trades': 25, 'win_rate': 96.0, 'avg_pnl': 14.3},
-    'CAUTION': {'trades': 8, 'win_rate': 75.0, 'avg_pnl': 1.4},
-    'NO-GO': {'trades': 19, 'win_rate': 47.4, 'avg_pnl': -1.4},
+    'GO': {'trades': 33, 'win_rate': 100.0, 'avg_pnl': 14.2},
+    'CAUTION': {'trades': 3, 'win_rate': 66.7, 'avg_pnl': -13.1},
+    'NO-GO': {'trades': 18, 'win_rate': 22.2, 'avg_pnl': -5.4},
 }
 
 
@@ -773,7 +779,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <tr><td><strong>Micro</strong></td><td colspan="3"><em>Uses Small defaults</em></td><td>0</td></tr>
 </table>
 <p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -1.0 ATR drawdown below open before bounce. All trades median high = 1.4 ATR.</em></p>
-<p>Stocks with <strong>negative 3-day return</strong> are evaluated as bounce candidates. Auto-classified into two profiles:</p>
+<p>Stocks <strong>not above all major moving averages</strong> (10/20/50 and 200 if available) are evaluated as bounce candidates. Auto-classified into two profiles:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
 <tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>18</td><td>78%</td><td>+13.5%</td></tr>
@@ -781,24 +787,25 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 <p style="font-size: 0.85em; color: #dc3545;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. GapFade trades: 88% WR, +10.1% avg.</p>
 
-<h3>5 Pre-Trade Criteria (profile-adjusted thresholds)</h3>
+<h3>6 Pre-Trade Criteria (profile-adjusted thresholds)</h3>
 <ol>
   <li><strong>Deep Selloff</strong> &mdash; Total % decline over consecutive down days</li>
   <li><strong>Consecutive Down Days</strong> &mdash; Multi-day selling pressure</li>
-  <li><strong>Volume Climax</strong> &mdash; Breakout day volume vs ADV</li>
   <li><strong>Discount from 30d High</strong> &mdash; How far off recent highs</li>
   <li><strong>Capitulation Gap Down</strong> &mdash; Gap down on bounce day</li>
+  <li><strong>Prior Day Range Expansion</strong> &mdash; Prior day range &ge; 1.0x ATR (75.6% WR vs 55.6%)</li>
+  <li><strong>Volume Climax</strong> &mdash; Prior day or premarket volume vs ADV</li>
 </ol>
 
-<h3>Historical Performance by Recommendation (52 Trades)</h3>
+<h3>Historical Performance by Recommendation (54 Trades)</h3>
 <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
 <tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (5-6/6)</strong></td><td>25</td><td>96%</td><td>+14.3%</td></tr>
-<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (4/6)</strong></td><td>8</td><td>75%</td><td>+1.4%</td></tr>
-<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;4)</strong></td><td>19</td><td>47%</td><td>-1.4%</td></tr>
+<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (5-6/6)</strong></td><td>33</td><td>100%</td><td>+14.2%</td></tr>
+<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (4/6)</strong></td><td>3</td><td>67%</td><td>-13.1%</td></tr>
+<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;4)</strong></td><td>18</td><td>22%</td><td>-5.4%</td></tr>
 </table>
 
-<p><strong>Routing Logic:</strong> 3-day return &gt; 0 AND 120-day &ge; 50% &rarr; Reversal | 3-day return &lt; 0 &rarr; Bounce | Otherwise &rarr; Filtered</p>
+<p><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
 
 <h2>Bounce Day Cheat Sheet (n=52, cluster days n=28)</h2>
 <p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
@@ -1044,6 +1051,60 @@ def _format_bounce_price_targets_html(
     return "\n".join(lines)
 
 
+# -------------------------------------------------
+# Bucket routing: Bounce vs Reversal
+# -------------------------------------------------
+
+ROUTING_MA_KEYS = ("pct_from_10mav", "pct_from_20mav", "pct_from_50mav", "pct_from_200mav")
+
+
+def _safe_num(x) -> Optional[float]:
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if pd.isna(v) else v
+
+
+def route_playbook(pct_data_in: Dict, mav_data_in: Dict) -> Tuple[str, str]:
+    """
+    Return (bucket, reason) where bucket is: 'reversal' | 'bounce'.
+
+    Logic:
+      - If price is above all major moving averages (10/20/50 and 200 if available) -> reversal
+      - Otherwise -> bounce
+
+    Notes:
+      - Requires 10/20/50 MA distances to be present to label a reversal.
+      - If MA data is incomplete (common for new IPOs), defaults to bounce.
+    """
+    pct_data_in = pct_data_in or {}
+    mav_data_in = mav_data_in or {}
+
+    ma_vals: Dict[str, float] = {}
+    for k in ROUTING_MA_KEYS:
+        v = _safe_num(mav_data_in.get(k))
+        if v is not None:
+            ma_vals[k] = v
+
+    required = ("pct_from_10mav", "pct_from_20mav", "pct_from_50mav")
+    if all(k in ma_vals for k in required):
+        keys_to_check = list(required)
+        if "pct_from_200mav" in ma_vals:
+            keys_to_check.append("pct_from_200mav")
+
+        above_all = all(ma_vals[k] > 0 for k in keys_to_check)
+        if above_all:
+            suffix = " (+200MA)" if "pct_from_200mav" in ma_vals else ""
+            return "reversal", f"Above 10/20/50MA{suffix}"
+
+        below = [k for k in keys_to_check if ma_vals.get(k, 0) <= 0]
+        below_lbl = ", ".join([b.replace("pct_from_", "").replace("mav", "MA") for b in below]) or "N/A"
+        return "bounce", f"Not above all MAs (below: {below_lbl})"
+
+    return "bounce", "MA data incomplete (default bounce)"
+
+
 def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_metrics: dict = None, bounce_metrics: dict = None) -> str:
     """Return formatted string section for one ticker and create its chart."""
 
@@ -1054,19 +1115,28 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     # Build section text
     lines: List[str] = [f"<h2>Ticker: {ticker}</h2>"]
 
-    # --- Routing: pct_change_3 determines reversal vs bounce path ---
+    # --- Routing: MA positioning (preferred) with pct-change fallback ---
     raw_pct_3 = pct_data.get("pct_change_3")
     raw_pct_120 = pct_data.get("pct_change_120")
-
     has_pct_3 = raw_pct_3 is not None and not pd.isna(raw_pct_3)
     has_pct_120 = raw_pct_120 is not None and not pd.isna(raw_pct_120)
 
-    is_reversal = has_pct_3 and raw_pct_3 > 0 and has_pct_120 and raw_pct_120 >= 0.50
-    is_bounce = has_pct_3 and raw_pct_3 < 0
+    bucket, bucket_reason = route_playbook(pct_data, mav_data)
+    is_reversal = bucket == "reversal"
+    is_bounce = bucket == "bounce"
+
+    # Show routing decision near the top for quick scanning/debugging
+    bucket_color = {"reversal": "#0d6efd", "bounce": "#198754", "filtered": "#6c757d"}.get(bucket, "#6c757d")
+    lines.append(
+        f'<div style="margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; border: 1px solid {bucket_color};">'
+        f'<strong style="color: {bucket_color};">Bucket:</strong> <strong>{bucket.upper()}</strong>'
+        f'<span style="color:#666;"> — {bucket_reason}</span>'
+        f'</div>'
+    )
 
     cap = None
     if is_reversal:
-        # REVERSAL path: 3d positive + 120d >= 50%
+        # REVERSAL path (by MA routing): show reversal checklist + exit levels
         if pretrade_metrics:
             score_result = score_pretrade_setup(ticker, pretrade_metrics)
             cap = score_result.get('cap')
@@ -1090,34 +1160,51 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             lines.append("<strong>Target Price Levels (from Live Price):</strong>")
             lines.append(format_exit_targets_html(targets))
 
-    elif is_bounce and bounce_metrics:
-        # BOUNCE path: 3d negative → evaluate bounce setup
-        # Supplement bounce_metrics with screener data (more current than separate fetch)
-        # Only supplement from screener data if bounce_metrics doesn't have values
-        # (bounce_metrics uses live price, which is more current)
-        if bounce_metrics.get('pct_from_200mav') is None and mav_data.get('pct_from_200mav') is not None:
-            bounce_metrics['pct_from_200mav'] = mav_data['pct_from_200mav']
-        volume_data = data.get("volume_data", {})
-        if bounce_metrics.get('percent_of_vol_on_breakout_day') is None and volume_data.get('percent_of_vol_on_breakout_day') is not None:
-            bounce_metrics['percent_of_vol_on_breakout_day'] = volume_data['percent_of_vol_on_breakout_day']
-        checker = BouncePretrade()
+    elif is_bounce:
+        # BOUNCE path (by MA routing): show bounce checklist (if available) + exit levels
         if cap is None:
             cap = get_ticker_cap(ticker)
-        bounce_result = checker.validate(ticker, bounce_metrics, cap=cap)
-        bounce_setup_type = bounce_result.setup_type
-        lines.append("<strong>Bounce Setup Score:</strong>")
-        lines.append(format_bounce_score_html(bounce_result, bounce_metrics=bounce_metrics))
 
-        # Bounce intensity ranking score
-        intensity = compute_bounce_intensity(bounce_metrics)
-        lines.append(format_bounce_intensity_html(intensity))
+        # Default bounce profile for percentiles even if bounce_metrics is missing
+        try:
+            bounce_setup_type, _ = classify_stock(
+                {
+                    "pct_from_200mav": mav_data.get("pct_from_200mav"),
+                    "pct_change_30": pct_data.get("pct_change_30"),
+                }
+            )
+        except Exception:
+            bounce_setup_type = "GapFade_strongstock"
+
+        if bounce_metrics:
+            # Supplement bounce_metrics with screener data (only if missing)
+            if bounce_metrics.get('pct_from_200mav') is None and mav_data.get('pct_from_200mav') is not None:
+                bounce_metrics['pct_from_200mav'] = mav_data['pct_from_200mav']
+            volume_data = data.get("volume_data", {})
+            if bounce_metrics.get('percent_of_vol_on_breakout_day') is None and volume_data.get('percent_of_vol_on_breakout_day') is not None:
+                bounce_metrics['percent_of_vol_on_breakout_day'] = volume_data['percent_of_vol_on_breakout_day']
+
+            checker = BouncePretrade()
+            bounce_result = checker.validate(ticker, bounce_metrics, cap=cap)
+            bounce_setup_type = bounce_result.setup_type
+            lines.append("<strong>Bounce Setup Score:</strong>")
+            lines.append(format_bounce_score_html(bounce_result, bounce_metrics=bounce_metrics))
+
+            # Bounce intensity ranking score
+            intensity = compute_bounce_intensity(bounce_metrics)
+            lines.append(format_bounce_intensity_html(intensity))
+        else:
+            lines.append(
+                '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
+                '<strong style="color: #6c757d;">BOUNCE</strong> '
+                '<span>Bounce metrics unavailable; skipping bounce checklist.</span>'
+                '</div>'
+            )
 
         # Add bounce exit target LEVELS (measured ABOVE open for long trades)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
         exit_data = get_exit_target_data(ticker, today, prefer_open=True)
         if exit_data.get('open_price') and exit_data.get('atr'):
-            if cap is None:
-                cap = get_ticker_cap(ticker)
             bounce_targets = calculate_bounce_exit_targets(
                 cap=cap,
                 entry_price=exit_data['open_price'],
@@ -1144,7 +1231,7 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
         lines.append(
             '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
             f'<strong style="color: #6c757d;">FILTERED</strong> '
-            f'<span>3-day: {pct_3_str} | 120-day: {pct_120_str}</span>'
+            f'<span>{bucket_reason} | 3-day: {pct_3_str} | 120-day: {pct_120_str}</span>'
             '</div>'
         )
 
@@ -1160,8 +1247,8 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             )
         lines.append('</table>')
 
-    # --- Percentiles: compare against the right dataset based on path ---
-    if is_bounce and bounce_metrics:
+    # --- Percentiles: compare against the right dataset based on bucket ---
+    if is_bounce:
         bounce_ref_df = BOUNCE_DF_WEAK if bounce_setup_type == 'GapFade_weakstock' else BOUNCE_DF_STRONG
         pcts = ss.calculate_percentiles(bounce_ref_df, data, BOUNCE_COLUMNS_TO_COMPARE)
         # Invert percentiles for bounce candidates: more negative = deeper selloff = better setup.
@@ -1282,16 +1369,29 @@ def generate_report() -> str:
             print(f"  {ticker}: Failed to get pretrade metrics - {e}")
             pretrade_metrics_all[ticker] = {}
 
-    # Collect bounce pre-trade metrics for tickers with negative 3-day return
-    print("Fetching bounce pre-trade metrics...")
+    # Route tickers into bounce vs reversal buckets (MA-based routing)
+    print("Routing tickers into bounce vs reversal buckets...")
+    bucket_map: Dict[str, str] = {}
+    for ticker in watchlist:
+        ticker_data = all_data.get(ticker, {})
+        bucket, _reason = route_playbook(
+            ticker_data.get("pct_data", {}) or {},
+            ticker_data.get("mav_data", {}) or {},
+        )
+        bucket_map[ticker] = bucket
+
+    bounce_ct = sum(1 for b in bucket_map.values() if b == "bounce")
+    rev_ct = sum(1 for b in bucket_map.values() if b == "reversal")
+    print(f"Bucket counts — bounce: {bounce_ct} | reversal: {rev_ct}")
+
+    # Collect bounce pre-trade metrics for tickers in the bounce bucket
+    print("Fetching bounce pre-trade metrics (bounce bucket)...")
     bounce_metrics_all = {}
     for ticker in watchlist:
         try:
-            ticker_data = all_data.get(ticker, {})
-            pct_3 = ticker_data.get('pct_data', {}).get('pct_change_3')
-            if pct_3 is not None and not pd.isna(pct_3) and pct_3 < 0:
+            if bucket_map.get(ticker) == "bounce":
                 bounce_metrics_all[ticker] = fetch_bounce_metrics(ticker, today)
-                print(f"  {ticker}: bounce metrics fetched (3d: {pct_3*100:.1f}%)")
+                print(f"  {ticker}: bounce metrics fetched")
         except Exception as e:
             print(f"  {ticker}: Failed to get bounce metrics - {e}")
 
@@ -1307,9 +1407,12 @@ def generate_report() -> str:
     _bounce_intensity_cache = {}
 
     for ticker in watchlist:
-        if ticker in bounce_metrics_all:
-            intensity = compute_bounce_intensity(bounce_metrics_all[ticker])
-            _bounce_intensity_cache[ticker] = intensity['composite']
+        if bucket_map.get(ticker) == "bounce":
+            if ticker in bounce_metrics_all:
+                intensity = compute_bounce_intensity(bounce_metrics_all[ticker])
+                _bounce_intensity_cache[ticker] = intensity['composite']
+            else:
+                _bounce_intensity_cache[ticker] = 0
             bounce_tickers.append(ticker)
         else:
             other_tickers.append(ticker)

@@ -13,8 +13,8 @@ Two setup profiles auto-detected from stock positioning:
 Classification uses pct_from_50mav and pct_change_30 to determine stock type.
 
 Two modes:
-1. Historical: Score all rows in bounce_data.csv (6/6 criteria) -> validates setups
-2. Live watchlist: Fetch data from Polygon, auto-classify, score 5 pre-trade criteria
+1. Historical: Score all rows in bounce_data.csv (7/7 criteria) -> validates setups
+2. Live watchlist: Fetch data from Polygon, auto-classify, score 6 pre-trade criteria
 
 Usage:
     from analyzers.bounce_scorer import BounceScorer, BouncePretrade, classify_stock
@@ -66,6 +66,7 @@ class SetupProfile:
     vol_expansion: Dict[str, float] = field(default_factory=dict)
     pct_off_30d_high: Dict[str, float] = field(default_factory=dict)
     gap_pct: Dict[str, float] = field(default_factory=dict)
+    prior_day_range_atr: Dict[str, float] = field(default_factory=dict)  # Range expansion
 
     # Scalars (no cap variation)
     vol_premarket: float = 0.05
@@ -155,6 +156,10 @@ SETUP_PROFILES = {
             'ETF': -0.03, 'Large': -0.03, 'Medium': -0.02,
             'Small': -0.09, 'Micro': -0.09, '_default': -0.02,
         },
+        prior_day_range_atr={
+            'ETF': 1.0, 'Large': 1.0, 'Medium': 1.0,
+            'Small': 1.0, 'Micro': 1.0, '_default': 1.0,
+        },
         bounce_pct=0.02,
 
         bonus_checks={
@@ -169,6 +174,7 @@ SETUP_PROFILES = {
             'vol_expansion': 2.545,
             'pct_off_30d_high': -0.515,
             'gap_pct': -0.112,
+            'prior_day_range_atr': 1.41,
             'bounce_pct': 0.101,
         },
     ),
@@ -206,6 +212,10 @@ SETUP_PROFILES = {
             'ETF': -0.02, 'Large': -0.01, 'Medium': -0.03,
             'Small': -0.10, 'Micro': -0.10, '_default': -0.03,
         },
+        prior_day_range_atr={
+            'ETF': 1.0, 'Large': 1.0, 'Medium': 1.0,
+            'Small': 1.0, 'Micro': 1.0, '_default': 1.0,
+        },
         bounce_pct=0.02,
 
         bonus_checks={
@@ -220,6 +230,7 @@ SETUP_PROFILES = {
             'vol_expansion': 1.526,
             'pct_off_30d_high': -0.314,
             'gap_pct': -0.081,
+            'prior_day_range_atr': 1.41,
             'bounce_pct': 0.056,
         },
     ),
@@ -233,6 +244,7 @@ CRITERIA_NAMES = {
     'vol_expansion': 'Volume signal (prior day OR premarket)',
     'pct_off_30d_high': 'Discount from 30d high',
     'gap_pct': 'Capitulation gap down',
+    'prior_day_range_atr': 'Prior day range expansion',
     'bounce_pct': 'Large bounce (open-to-close)',
 }
 
@@ -296,11 +308,11 @@ def classify_from_setup_column(setup_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# BounceScorer — scores historical trades (6/6 criteria)
+# BounceScorer — scores historical trades (7/7 criteria)
 # ---------------------------------------------------------------------------
 
 class BounceScorer:
-    """Scores bounce setups based on 6 setup-specific criteria."""
+    """Scores bounce setups based on 7 setup-specific criteria."""
 
     def __init__(self):
         self.profiles = SETUP_PROFILES
@@ -330,6 +342,7 @@ class BounceScorer:
             ('consecutive_down_days', metrics.get('consecutive_down_days'), profile.get_threshold('consecutive_down_days', cap), 'gte'),
             ('pct_off_30d_high', metrics.get('pct_off_30d_high'), profile.get_threshold('pct_off_30d_high', cap), 'lte'),
             ('gap_pct', metrics.get('gap_pct'), profile.get_threshold('gap_pct', cap), 'lte'),
+            ('prior_day_range_atr', metrics.get('one_day_before_range_pct'), profile.get_threshold('prior_day_range_atr', cap), 'gte'),
             ('bounce_pct', metrics.get('bounce_open_close_pct'), profile.get_threshold('bounce_pct', cap), 'gte'),
         ]
 
@@ -359,21 +372,21 @@ class BounceScorer:
         return len(passed), passed, failed
 
     def _score_to_grade(self, score: int) -> str:
-        if score == 6:
+        if score == 7:
             return 'A+'
-        elif score == 5:
+        elif score == 6:
             return 'A'
-        elif score == 4:
+        elif score == 5:
             return 'B'
-        elif score == 3:
+        elif score == 4:
             return 'C'
         else:
             return 'F'
 
     def _get_recommendation(self, score: int) -> str:
-        if score >= 5:
+        if score >= 6:
             return 'GO'
-        elif score == 4:
+        elif score == 5:
             return 'CAUTION'
         else:
             return 'NO-GO'
@@ -390,12 +403,13 @@ class BounceScorer:
             'vol_expansion': 'prior_day_rvol',
             'pct_off_30d_high': 'pct_off_30d_high',
             'gap_pct': 'gap_pct',
+            'prior_day_range_atr': 'one_day_before_range_pct',
             'bounce_pct': 'bounce_open_close_pct',
         }
 
         criteria_details = {}
         for criterion in ['selloff_total_pct', 'consecutive_down_days', 'vol_expansion',
-                          'pct_off_30d_high', 'gap_pct', 'bounce_pct']:
+                          'pct_off_30d_high', 'gap_pct', 'prior_day_range_atr', 'bounce_pct']:
             metric_key = criterion_to_metric[criterion]
             actual = metrics.get(metric_key)
             threshold = profile.get_threshold(criterion, cap)
@@ -415,13 +429,13 @@ class BounceScorer:
             'setup_type': setup_type,
             'profile_name': profile.name,
             'score': score,
-            'max_score': 6,
+            'max_score': 7,
             'grade': grade,
             'recommendation': recommendation,
             'passed_criteria': passed,
             'failed_criteria': failed,
             'criteria_details': criteria_details,
-            'is_true_a': score >= 5,
+            'is_true_a': score >= 6,
             'cap': cap,
         }
 
@@ -458,12 +472,12 @@ class BounceScorer:
 
 
 # ---------------------------------------------------------------------------
-# BouncePretrade — live pre-trade checklist (5/5 criteria, no bounce_pct)
+# BouncePretrade — live pre-trade checklist (6/6 criteria, no bounce_pct)
 # ---------------------------------------------------------------------------
 
 class BouncePretrade:
     """
-    Validates bounce setups against 5 pre-trade criteria.
+    Validates bounce setups against 6 pre-trade criteria.
     Auto-classifies stock as weakstock/strongstock and applies the matching profile.
     """
 
@@ -488,7 +502,7 @@ class BouncePretrade:
             return f"{value*100:.1f}%"
         elif criterion == 'consecutive_down_days':
             return f"{int(value)}"
-        elif criterion == 'vol_expansion':
+        elif criterion in ['vol_expansion', 'prior_day_range_atr']:
             return f"{value:.2f}x"
         elif isinstance(value, bool):
             return 'Yes' if value else 'No'
@@ -500,7 +514,7 @@ class BouncePretrade:
             return f"{abs(threshold)*100:.0f}%"
         elif criterion == 'consecutive_down_days':
             return f"{int(threshold)}"
-        elif criterion == 'vol_expansion':
+        elif criterion in ['vol_expansion', 'prior_day_range_atr']:
             return f"{threshold:.1f}x"
         else:
             return f"{threshold}"
@@ -527,12 +541,13 @@ class BouncePretrade:
 
         profile = self.profiles[setup_type]
 
-        # Step 2: Build pre-trade criteria (5 criteria, no bounce_pct)
+        # Step 2: Build pre-trade criteria (6 criteria, no bounce_pct)
         selloff_thresh = profile.get_threshold('selloff_total_pct', cap)
         down_days_thresh = profile.get_threshold('consecutive_down_days', cap)
         off_30d_thresh = profile.get_threshold('pct_off_30d_high', cap)
         gap_thresh = profile.get_threshold('gap_pct', cap)
         vol_thresh = profile.get_threshold('vol_expansion', cap)
+        range_thresh = profile.get_threshold('prior_day_range_atr', cap)
 
         criteria = [
             ('selloff_total_pct', 'selloff_total_pct', selloff_thresh,
@@ -543,6 +558,8 @@ class BouncePretrade:
              f'Discount from 30d high >= {abs(off_30d_thresh)*100:.0f}%', 'lte'),
             ('gap_pct', 'gap_pct', gap_thresh,
              f'Gap down >= {abs(gap_thresh)*100:.0f}%', 'lte'),
+            ('prior_day_range_atr', 'prior_day_range_atr', range_thresh,
+             f'Prior day range >= {range_thresh:.1f}x ATR', 'gte'),
         ]
 
         items = []
@@ -632,11 +649,11 @@ class BouncePretrade:
             warnings.append('Looks like IntradayCapitch pattern (17% WR, -13.6% avg) — AVOID')
 
         # Step 5: Recommendation
-        max_score = 5
-        if score >= 4:
+        max_score = 6
+        if score >= 5:
             recommendation = 'GO'
             summary = f"PASS: {score}/{max_score} criteria met — matches {profile.name} profile ({cap} Cap)"
-        elif score == 3:
+        elif score == 4:
             recommendation = 'CAUTION'
             failed_names = [i.name for i in items if not i.passed]
             summary = f"MARGINAL: {score}/{max_score} — Missing: {', '.join(failed_names)}"
@@ -797,12 +814,17 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         # --- Scoring metrics ---
 
         # Consecutive down days — exclude today (the bounce day) from the count.
-        # If today's daily bar exists in Polygon, remove it; otherwise last bar is already "yesterday".
+        # Definition: consecutive *down closes* (close < prior day's close),
+        # not "red candles" (close < open). This better captures multi-day
+        # selloffs where gap-down + green-close days are still down vs prior close.
         consecutive_down = 0
         start_idx = len(hist_levels) - 1
-        for i in range(start_idx, -1, -1):
-            row = hist_levels.iloc[i]
-            if row['close'] < row['open']:
+        for i in range(start_idx, 0, -1):
+            cur_close = hist_levels.iloc[i]['close']
+            prev_close = hist_levels.iloc[i - 1]['close']
+            if pd.isna(cur_close) or pd.isna(prev_close):
+                break
+            if cur_close < prev_close:
                 consecutive_down += 1
             else:
                 break
@@ -852,7 +874,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         else:
             metrics['prior_day_close_vs_low_pct'] = 0.5
 
-        # Day-of range pct (for IntradayCapitch warning)
+        # Day-of range pct (for IntradayCapitch warning) and prior day range expansion
         if hist_levels is not None and len(hist_levels) >= 15:
             tr_vals = []
             for i in range(1, len(hist_levels)):
@@ -864,6 +886,8 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
                 atr = np.mean(tr_vals[-14:])
                 today_range = prior_row['high'] - prior_row['low']
                 metrics['day_of_range_pct'] = today_range / atr if atr > 0 else 0
+                # Prior day range as multiple of ATR (for range expansion criterion)
+                metrics['prior_day_range_atr'] = prior_range / atr if atr > 0 else 0
 
     # Volume metrics — prior day RVOL + premarket RVOL (either can satisfy criterion)
     vol_data = fetch_and_calculate_volumes(ticker, date)

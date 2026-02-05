@@ -844,7 +844,7 @@ class BounceTradeManager:
         # Announce score with breakdown (TTS)
         passed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if i.passed]
         failed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if not i.passed]
-        score_msg = f'Pretrade score {self.bounce_score} out of 5 — {self.recommendation}'
+        score_msg = f'Pretrade score {self.bounce_score} out of 6 — {self.recommendation}'
         if passed_names:
             score_msg += f'. Passing: {", ".join(passed_names)}'
         if failed_names:

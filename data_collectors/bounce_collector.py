@@ -241,9 +241,18 @@ def get_selloff_context(row, analysis_type):
             return row
 
         # Consecutive down days before bounce
+        # Definition: consecutive *down closes* (close < prior day's close),
+        # not "red candles" (close < open). This matches how traders usually
+        # count down days during multi-day selloffs (gap-down + green-close
+        # days can still be down vs prior close).
         consecutive_down = 0
+        hist = hist.sort_index()
         for i in range(len(hist) - 1, 0, -1):
-            if hist['close'].iloc[i] < hist['open'].iloc[i]:
+            cur_close = hist['close'].iloc[i]
+            prev_close = hist['close'].iloc[i - 1]
+            if pd.isna(cur_close) or pd.isna(prev_close):
+                break
+            if cur_close < prev_close:
                 consecutive_down += 1
             else:
                 break
@@ -774,7 +783,85 @@ BOUNCE_COLUMN_ORDER = [
 
 
 if __name__ == '__main__':
-    df_bounce = fill_data(bounce_df, 'bounce', fill_functions_bounce)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Fill bounce_data.csv with computed bounce features.'
+    )
+    parser.add_argument(
+        '--recalc-selloff-context',
+        action='store_true',
+        help='Recalculate selloff-context columns even if already filled.',
+    )
+    parser.add_argument(
+        '--recalc-cols',
+        nargs='*',
+        default=[],
+        help='Specific column names to force recalculation (values will be set to NA before fill).',
+    )
+    parser.add_argument(
+        '--tickers',
+        nargs='*',
+        default=[],
+        help='Optional ticker filter for recalculation (e.g. TSM SOXL ARM).',
+    )
+    parser.add_argument(
+        '--dates',
+        nargs='*',
+        default=[],
+        help='Optional date filter for recalculation (m/d/YYYY or YYYY-MM-DD).',
+    )
+    args = parser.parse_args()
+
+    df_bounce = bounce_df.copy()
+
+    # Force-recalc: set selected cells to NA so fill_data recomputes them.
+    recalc_cols = set(args.recalc_cols or [])
+    if args.recalc_selloff_context:
+        recalc_cols |= {
+            'consecutive_down_days',
+            'pct_off_30d_high',
+            'pct_off_52wk_high',
+            'selloff_total_pct',
+            'prior_day_close_vs_low_pct',
+        }
+
+    if recalc_cols:
+        mask = pd.Series(True, index=df_bounce.index)
+
+        if args.tickers:
+            tickers_norm = {str(t).strip().upper() for t in args.tickers if str(t).strip()}
+            if tickers_norm:
+                mask &= (
+                    df_bounce['ticker']
+                    .astype(str)
+                    .str.strip()
+                    .str.upper()
+                    .isin(tickers_norm)
+                )
+
+        if args.dates:
+            dates_norm = set()
+            for d in args.dates:
+                ds = str(d).strip()
+                if not ds:
+                    continue
+                dates_norm.add(ds)
+                # Also accept YYYY-MM-DD and normalize to m/d/YYYY as stored in bounce_data.csv
+                try:
+                    dt = datetime.strptime(ds, '%Y-%m-%d')
+                    dates_norm.add(f'{dt.month}/{dt.day}/{dt.year}')
+                except Exception:
+                    pass
+            if dates_norm:
+                mask &= df_bounce['date'].astype(str).str.strip().isin(dates_norm)
+
+        for col in recalc_cols:
+            if col not in df_bounce.columns:
+                df_bounce[col] = pd.NA
+            df_bounce.loc[mask, col] = pd.NA
+
+    df_bounce = fill_data(df_bounce, 'bounce', fill_functions_bounce)
 
     # Reorder columns: defined order first, then any extra columns at the end
     existing_cols = [col for col in BOUNCE_COLUMN_ORDER if col in df_bounce.columns]
