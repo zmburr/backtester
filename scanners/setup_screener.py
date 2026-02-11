@@ -5,19 +5,22 @@ Screens a universe of tickers for two setup types:
 1. Parabolic Short - stocks extended to the upside, ripe for reversal
 2. Capitulation Bounce - stocks capitulating after extended selloff, ripe for bounce
 
-Computes all screening metrics from a single batch of daily OHLCV data per ticker
-(one API call), then applies the same cap-adjusted criteria used by ReversalScorer
-and BouncePretrade.
+Designed to handle 1000+ tickers efficiently using a two-phase approach:
+  Phase 1 (quick_scan): Uses Polygon snapshots to get current-day data for ALL
+      tickers in 1 API call. Pre-filters to ~50-100 extreme movers based on
+      today's change %, gap %, and volume expansion.
+  Phase 2 (screen_universe): Fetches full 310-day history ONLY for pre-filtered
+      candidates. Runs concurrently with rate limiting.
 
 Pre-trade screening criteria:
-  Parabolic Short (5 of 6 reversal criteria - excludes reversal_pct which is the trade result):
+  Parabolic Short (5 of 6 reversal criteria - excludes reversal_pct):
     1. % above 9EMA (cap-adjusted)
     2. Prior day range vs ATR (range expansion)
     3. RVOL (volume expansion)
     4. Consecutive up days
     5. Gap up %
 
-  Capitulation Bounce (6 pre-trade criteria - excludes bounce_pct which is the trade result):
+  Capitulation Bounce (6 pre-trade criteria - excludes bounce_pct):
     1. Selloff depth (total % decline)
     2. Consecutive down days
     3. % off 30-day high
@@ -29,66 +32,61 @@ Usage:
     from scanners.setup_screener import SetupScreener
 
     screener = SetupScreener()
-    results = screener.screen_universe(['AAPL', 'TSLA', 'NVDA'], '2025-01-15')
-    screener.print_results(results)
 
-    # Screen with per-ticker market cap overrides
-    caps = {'AAPL': 'Large', 'TSLA': 'Large', 'NVDA': 'Large'}
-    results = screener.screen_universe(['AAPL', 'TSLA', 'NVDA'], '2025-01-15', ticker_caps=caps)
+    # Full pipeline: fetch universe -> quick scan -> full screen
+    results = screener.scan('2025-01-15')
 
-    # Filter to only candidates
-    parabolic = screener.get_candidates(results, setup_type='parabolic')
-    bounces = screener.get_candidates(results, setup_type='bounce')
+    # Or step by step:
+    universe = screener.fetch_universe(min_market_cap=2e9)  # medium + large cap
+    candidates = screener.quick_scan(tickers=list(universe.keys()))
+    results = screener.screen_universe(candidates, '2025-01-15', ticker_caps=universe)
 
-    # Screen with pre-computed metrics (no API calls)
-    metrics = {'pct_from_9ema': 0.45, 'prior_day_range_atr': 2.1, ...}
-    result = screener.screen_ticker_from_metrics('NVDA', metrics, cap='Large')
+    # Or with your own ticker list:
+    my_tickers = ['AAPL', 'TSLA', 'NVDA', ...]  # 1000+ tickers
+    candidates = screener.quick_scan(tickers=my_tickers)
+    results = screener.screen_universe(candidates, '2025-01-15', cap='Large')
+
+    # Or screen with pre-computed metrics (no API calls):
+    result = screener.screen_ticker_from_metrics('NVDA', my_metrics_dict, cap='Large')
 """
 
 import pandas as pd
 import numpy as np
 import logging
+import time
+import concurrent.futures
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from tabulate import tabulate
+from polygon.rest import RESTClient
 
-from data_queries.polygon_queries import (
-    get_levels_data,
-    get_daily,
-    adjust_date_to_market,
-    fetch_and_calculate_volumes,
-)
+from data_queries.polygon_queries import get_levels_data
 from analyzers.reversal_scorer import ReversalScorer, CAP_THRESHOLDS as REVERSAL_THRESHOLDS
-from analyzers.bounce_scorer import (
-    BouncePretrade,
-    classify_stock,
-    SETUP_PROFILES,
-)
+from analyzers.bounce_scorer import BouncePretrade
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Polygon client (reuses same key as polygon_queries.py)
+POLYGON_API_KEY = "pcwUY7TnSF66nYAPIBCApPMyVrXTckJY"
 
-# ---------------------------------------------------------------------------
-# Pre-built ticker universes for convenience
-# ---------------------------------------------------------------------------
+# Market cap classification boundaries
+CAP_BOUNDARIES = [
+    ('Large', 10e9),    # >= $10B
+    ('Medium', 2e9),    # >= $2B
+    ('Small', 250e6),   # >= $250M
+    ('Micro', 0),       # < $250M
+]
 
-MEGA_CAP = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK.B',
-            'AVGO', 'LLY', 'JPM', 'V', 'UNH', 'MA', 'XOM', 'COST', 'HD',
-            'PG', 'JNJ', 'ABBV', 'WMT', 'NFLX', 'CRM', 'BAC', 'ORCL']
 
-MOMENTUM_NAMES = ['NVDA', 'TSLA', 'AVGO', 'PLTR', 'APP', 'CRWD', 'IONQ', 'RGTI',
-                  'RKLB', 'OKLO', 'SMR', 'CRDO', 'NBIS', 'HUBS', 'DUOL', 'MU',
-                  'AMD', 'MSTR', 'COIN', 'HOOD', 'ARM', 'SMCI', 'ANET']
-
-ETFS = ['SPY', 'QQQ', 'IWM', 'DIA', 'ARKK', 'XBI', 'XLF', 'XLE', 'XLK',
-        'GLD', 'SLV', 'GDXJ', 'IBIT', 'ETHE', 'TLT', 'HYG']
-
-MINERS_COMMODITIES = ['GOLD', 'NEM', 'PAAS', 'HL', 'AG', 'SLV', 'GLD', 'GDXJ',
-                      'MP', 'VALE', 'FCX', 'CLF', 'X', 'AA']
-
-SMALL_MICRO = ['HYMC', 'BITF', 'IREN', 'QS', 'BE', 'OPEN', 'CRML', 'BETR',
-               'PL', 'USAR', 'CRWV', 'FIG', 'FIGR']
+def classify_market_cap(market_cap: float) -> str:
+    """Classify a market cap value into a cap category."""
+    if market_cap is None:
+        return 'Medium'  # default
+    for label, boundary in CAP_BOUNDARIES:
+        if market_cap >= boundary:
+            return label
+    return 'Micro'
 
 
 # ---------------------------------------------------------------------------
@@ -132,35 +130,290 @@ class SetupScreener:
     """
     Screens tickers for parabolic short and capitulation bounce setups.
 
-    Fetches daily OHLCV data from Polygon (single API call per ticker),
-    computes all needed metrics locally, then scores against cap-adjusted
-    criteria derived from historical Grade A trades.
+    Handles 1000+ tickers via two-phase approach:
+      1. quick_scan() - snapshot-based pre-filter (1 API call for all tickers)
+      2. screen_universe() - concurrent full screening (1 API call per candidate)
+
+    Args:
+        api_key: Polygon.io API key
+        max_workers: Max concurrent threads for full screening
+        rate_limit: Max Polygon API calls per second
     """
 
-    def __init__(self):
+    def __init__(self, api_key: str = POLYGON_API_KEY,
+                 max_workers: int = 5, rate_limit: float = 5.0):
         self.reversal_scorer = ReversalScorer()
         self.bounce_checker = BouncePretrade()
+        self.poly_client = RESTClient(api_key=api_key)
+        self.max_workers = max_workers
+        self.rate_limit = rate_limit
 
     # ------------------------------------------------------------------
-    # Metric computation
+    # Phase 0: Fetch ticker universe
+    # ------------------------------------------------------------------
+
+    def fetch_universe(self, min_market_cap: float = 2e9,
+                       max_market_cap: float = None,
+                       limit: int = 3000) -> Dict[str, str]:
+        """
+        Fetch active common stock tickers from Polygon, filtered by market cap.
+
+        Uses Polygon's reference/tickers endpoint. If market_cap data is not
+        available (depends on Polygon plan), falls back to returning all
+        active common stocks and classifying them as 'Medium' by default.
+
+        Args:
+            min_market_cap: Minimum market cap in dollars (default $2B = medium+)
+            max_market_cap: Maximum market cap (None = no upper limit)
+            limit: Max tickers to return
+
+        Returns:
+            Dict mapping ticker -> cap category ('Large', 'Medium', 'Small', 'Micro')
+        """
+        universe = {}
+        count = 0
+        has_market_cap_data = False
+
+        print(f"Fetching ticker universe from Polygon (min market cap: ${min_market_cap/1e9:.1f}B)...")
+
+        try:
+            for t in self.poly_client.list_tickers(
+                market='stocks', type='CS', active=True, limit=1000, order='asc'
+            ):
+                mcap = getattr(t, 'market_cap', None)
+
+                if mcap is not None:
+                    has_market_cap_data = True
+                    if min_market_cap and mcap < min_market_cap:
+                        continue
+                    if max_market_cap and mcap > max_market_cap:
+                        continue
+                    universe[t.ticker] = classify_market_cap(mcap)
+                else:
+                    # No market cap data - include all and classify later
+                    universe[t.ticker] = 'Medium'
+
+                count += 1
+                if count >= limit:
+                    break
+
+        except Exception as e:
+            logging.error(f"Error fetching universe from Polygon: {e}")
+
+        if not has_market_cap_data and universe:
+            print(f"  Note: Market cap data not available on your Polygon plan.")
+            print(f"  Returning {len(universe)} tickers classified as 'Medium' by default.")
+            print(f"  Use quick_scan() to further filter by dollar volume.")
+        else:
+            print(f"  Found {len(universe)} tickers matching market cap criteria.")
+
+        return universe
+
+    # ------------------------------------------------------------------
+    # Phase 1: Quick scan (snapshot-based pre-filter)
+    # ------------------------------------------------------------------
+
+    def quick_scan(self, tickers: List[str] = None,
+                   min_up_pct: float = 0.03, min_down_pct: float = -0.03,
+                   min_dollar_vol: float = 5e6,
+                   setup_type: str = 'both') -> List[str]:
+        """
+        Use Polygon snapshots to quickly identify extreme movers from a large
+        ticker universe. Returns only tickers worth full-screening.
+
+        This is the key to handling 1000+ tickers efficiently: 1 API call
+        returns current-day data for ALL tickers. We pre-filter based on
+        today's price action and volume, reducing 1000+ tickers to ~50-100
+        candidates for full historical screening.
+
+        Pre-filter criteria:
+          Parabolic candidates: today's change >= min_up_pct OR gap up >= min_up_pct
+          Bounce candidates: today's change <= min_down_pct OR gap down <= min_down_pct
+          Both: dollar volume >= min_dollar_vol (filters out illiquid names)
+
+        Args:
+            tickers: Restrict to these tickers (None = scan ALL tickers)
+            min_up_pct: Min % move to flag as parabolic candidate (default 3%)
+            min_down_pct: Min % drop to flag as bounce candidate (default -3%)
+            min_dollar_vol: Min daily dollar volume (default $5M)
+            setup_type: 'parabolic', 'bounce', or 'both'
+
+        Returns:
+            List of ticker symbols that passed the pre-filter
+        """
+        ticker_set = set(tickers) if tickers else None
+        candidates = []
+        total_scanned = 0
+        parabolic_count = 0
+        bounce_count = 0
+
+        print(f"\nQuick scanning {'all tickers' if not tickers else f'{len(tickers)} tickers'} "
+              f"via Polygon snapshots...")
+        print(f"  Parabolic filter: change >= {min_up_pct*100:.0f}% or gap >= {min_up_pct*100:.0f}%")
+        print(f"  Bounce filter: change <= {min_down_pct*100:.0f}% or gap <= {min_down_pct*100:.0f}%")
+        print(f"  Min dollar volume: ${min_dollar_vol/1e6:.0f}M")
+
+        try:
+            for snap in self.poly_client.get_snapshot_all("stocks"):
+                ticker = snap.ticker
+
+                # Filter to requested tickers
+                if ticker_set and ticker not in ticker_set:
+                    continue
+
+                total_scanned += 1
+
+                try:
+                    day = snap.day
+                    prev = snap.prevDay
+
+                    if not day or not prev or not prev.c or prev.c <= 0:
+                        continue
+
+                    price = day.c if day.c else day.o
+                    if not price or price <= 0:
+                        continue
+
+                    # Dollar volume filter
+                    dollar_vol = (price * day.v) if day.v else 0
+                    if dollar_vol < min_dollar_vol:
+                        continue
+
+                    # Compute quick metrics
+                    change_pct = (snap.todaysChangePerc / 100
+                                  if snap.todaysChangePerc else 0)
+                    gap_pct = (day.o - prev.c) / prev.c if day.o and prev.c else 0
+
+                    is_parabolic = (change_pct >= min_up_pct or gap_pct >= min_up_pct)
+                    is_bounce = (change_pct <= min_down_pct or gap_pct <= min_down_pct)
+
+                    if setup_type == 'parabolic' and not is_parabolic:
+                        continue
+                    elif setup_type == 'bounce' and not is_bounce:
+                        continue
+                    elif setup_type == 'both' and not (is_parabolic or is_bounce):
+                        continue
+
+                    candidates.append(ticker)
+                    if is_parabolic:
+                        parabolic_count += 1
+                    if is_bounce:
+                        bounce_count += 1
+
+                except (AttributeError, TypeError):
+                    continue
+
+        except Exception as e:
+            logging.error(f"Snapshot API failed: {e}")
+            print(f"\n  Snapshot API not available ({e}).")
+            print(f"  Falling back to grouped daily bars...")
+            return self._quick_scan_fallback(
+                tickers, min_up_pct, min_down_pct, min_dollar_vol, setup_type
+            )
+
+        print(f"  Scanned {total_scanned} tickers -> "
+              f"{len(candidates)} candidates "
+              f"({parabolic_count} parabolic, {bounce_count} bounce)")
+
+        return candidates
+
+    def _quick_scan_fallback(self, tickers, min_up_pct, min_down_pct,
+                             min_dollar_vol, setup_type):
+        """
+        Fallback pre-filter using grouped daily bars when snapshots aren't available.
+
+        Uses 2 API calls (today + yesterday grouped daily) to compute change %
+        and gap % for all tickers.
+        """
+        today = datetime.now()
+        if today.weekday() == 5:
+            today -= timedelta(days=1)
+        elif today.weekday() == 6:
+            today -= timedelta(days=2)
+
+        date_str = today.strftime('%Y-%m-%d')
+        prev_str = (today - timedelta(days=5)).strftime('%Y-%m-%d')
+
+        ticker_set = set(tickers) if tickers else None
+        candidates = []
+
+        try:
+            # Get today's grouped daily (all tickers, 1 API call)
+            today_aggs = {}
+            for agg in self.poly_client.get_grouped_daily_aggs(date_str):
+                if ticker_set and agg.ticker not in ticker_set:
+                    continue
+                today_aggs[agg.ticker] = agg
+
+            # Get previous day's grouped daily (1 API call)
+            prev_aggs = {}
+            for agg in self.poly_client.get_grouped_daily_aggs(
+                (today - timedelta(days=1)).strftime('%Y-%m-%d')
+            ):
+                prev_aggs[agg.ticker] = agg
+
+            for ticker, agg in today_aggs.items():
+                try:
+                    price = agg.close if agg.close else agg.open
+                    if not price or price <= 0:
+                        continue
+
+                    dollar_vol = price * agg.volume if agg.volume else 0
+                    if dollar_vol < min_dollar_vol:
+                        continue
+
+                    prev = prev_aggs.get(ticker)
+                    if not prev or not prev.close or prev.close <= 0:
+                        continue
+
+                    change_pct = (agg.close - prev.close) / prev.close
+                    gap_pct = (agg.open - prev.close) / prev.close
+
+                    is_parabolic = (change_pct >= min_up_pct or gap_pct >= min_up_pct)
+                    is_bounce = (change_pct <= min_down_pct or gap_pct <= min_down_pct)
+
+                    if setup_type == 'parabolic' and not is_parabolic:
+                        continue
+                    elif setup_type == 'bounce' and not is_bounce:
+                        continue
+                    elif setup_type == 'both' and not (is_parabolic or is_bounce):
+                        continue
+
+                    candidates.append(ticker)
+
+                except (AttributeError, TypeError):
+                    continue
+
+            print(f"  Grouped daily fallback: {len(candidates)} candidates from "
+                  f"{len(today_aggs)} tickers")
+
+        except Exception as e:
+            logging.error(f"Grouped daily fallback also failed: {e}")
+            print(f"  Fallback failed: {e}")
+            print(f"  Returning original ticker list for full screening.")
+            return list(tickers) if tickers else []
+
+        return candidates
+
+    # ------------------------------------------------------------------
+    # Phase 2: Full metric computation
     # ------------------------------------------------------------------
 
     def compute_metrics(self, ticker: str, date: str) -> Dict:
         """
         Compute all screening metrics from daily OHLCV data.
 
-        Fetches ~310 calendar days of daily bars in a single API call, then
-        computes locally:
+        Single API call to get_levels_data (310 calendar days), then all
+        metrics are computed locally:
           - 9 EMA, 50/200 SMA and % distance from each
           - 14-day ATR and prior day range as multiple of ATR
-          - Consecutive up days and consecutive down days
-          - RVOL (prior day volume / 20-day avg volume)
+          - Consecutive up/down days
+          - RVOL (prior day volume / 20-day ADV)
           - Gap % (today open vs prior close)
           - % changes over 3/15/30/90/120 day windows
           - % off 30-day high and 52-week high
-          - Selloff depth and start price
+          - Selloff depth
           - Bollinger Band positioning
-          - Prior day close vs high/low %
 
         Args:
             ticker: Stock ticker symbol
@@ -171,7 +424,6 @@ class SetupScreener:
         """
         metrics = {}
 
-        # Single API call: ~310 calendar days -> ~200+ trading days
         levels = get_levels_data(ticker, date, 310, 1, 'day')
         if levels is None or levels.empty:
             return {}
@@ -184,7 +436,7 @@ class SetupScreener:
         except Exception:
             has_today_bar = False
 
-        # hist = completed bars only (exclude today if present)
+        # hist = completed bars only (exclude partial today bar)
         hist = levels.iloc[:-1] if has_today_bar and len(levels) > 1 else levels
 
         if len(hist) < 5:
@@ -224,7 +476,6 @@ class SetupScreener:
             metrics['atr'] = atr
             metrics['atr_pct'] = atr / current_close if current_close > 0 else 0
 
-            # Prior day range as multiple of ATR
             prior_range = hist.iloc[-1]['high'] - hist.iloc[-1]['low']
             metrics['prior_day_range_atr'] = prior_range / atr if atr > 0 else 0
 
@@ -252,9 +503,9 @@ class SetupScreener:
         prior_day_vol = hist.iloc[-1]['volume']
         metrics['avg_daily_vol'] = adv
         metrics['rvol_score'] = prior_day_vol / adv if adv > 0 else 0
-        metrics['prior_day_rvol'] = metrics['rvol_score']  # alias for bounce checker
+        metrics['prior_day_rvol'] = metrics['rvol_score']
 
-        # Premarket RVOL not available from daily bars (requires intraday data)
+        # Premarket RVOL not available from daily bars
         metrics['premarket_rvol'] = None
 
         # --- Gap % ---
@@ -318,18 +569,13 @@ class SetupScreener:
         return metrics
 
     # ------------------------------------------------------------------
-    # Parabolic short scoring (5 pre-trade criteria)
+    # Scoring
     # ------------------------------------------------------------------
 
     def _score_parabolic_short(self, metrics: Dict, cap: str) -> Tuple[int, int, str, str, Dict]:
         """
-        Score pre-trade parabolic short criteria.
-
-        Uses 5 of the 6 ReversalScorer criteria (excludes reversal_pct which
-        is the trade result, not a pre-trade condition).
-
-        Returns:
-            (score, max_score, grade, recommendation, criteria_details)
+        Score pre-trade parabolic short criteria (5 of 6 reversal criteria,
+        excludes reversal_pct which is the trade result).
         """
         thresholds = self.reversal_scorer._get_thresholds(cap)
         passed = []
@@ -383,20 +629,12 @@ class SetupScreener:
 
         return score, max_score, grade, rec, criteria_details
 
-    # ------------------------------------------------------------------
-    # Capitulation bounce scoring (6 pre-trade criteria)
-    # ------------------------------------------------------------------
-
     def _score_capitulation_bounce(self, ticker: str, metrics: Dict,
                                    cap: str) -> Tuple[int, int, str, str, Dict]:
         """
         Score pre-trade capitulation bounce criteria using BouncePretrade.
 
-        Auto-classifies the stock as weakstock/strongstock based on positioning
-        relative to the 200-day MA, then applies the matching profile thresholds.
-
-        Returns:
-            (score, max_score, setup_type, recommendation, criteria_details)
+        Auto-classifies as weakstock/strongstock based on 200-day MA positioning.
         """
         result = self.bounce_checker.validate(ticker, metrics, cap=cap)
 
@@ -421,23 +659,14 @@ class SetupScreener:
         """
         Screen a single ticker for both parabolic short and capitulation bounce.
 
-        Fetches data from Polygon, computes metrics, and scores against both
-        setup types.
-
-        Args:
-            ticker: Stock ticker symbol
-            date: Date string YYYY-MM-DD
-            cap: Market cap category (Micro, Small, Medium, Large, ETF)
-
-        Returns:
-            ScreenResult with scores for both setup types
+        Makes 1 API call (get_levels_data) to fetch 310 days of daily bars,
+        then computes all metrics and scores locally.
         """
         try:
             metrics = self.compute_metrics(ticker, date)
             if not metrics:
                 return self._empty_result(ticker, cap,
                                           error=f'No data available for {ticker}')
-
             return self._score_from_metrics(ticker, metrics, cap)
 
         except Exception as e:
@@ -449,17 +678,7 @@ class SetupScreener:
         """
         Screen a ticker using pre-computed metrics (no API calls).
 
-        Use this when you already have the metrics from your own data source
-        or want to test screening logic without Polygon.
-
-        Args:
-            ticker: Stock ticker symbol
-            metrics: Dictionary of pre-computed metrics (see compute_metrics
-                     for required keys)
-            cap: Market cap category
-
-        Returns:
-            ScreenResult with scores for both setup types
+        Use this when you already have the metrics from your own data source.
         """
         try:
             return self._score_from_metrics(ticker, metrics, cap)
@@ -473,23 +692,17 @@ class SetupScreener:
         p_score, p_max, p_grade, p_rec, p_criteria = (
             self._score_parabolic_short(metrics, cap)
         )
-
         b_score, b_max, b_setup, b_rec, b_criteria = (
             self._score_capitulation_bounce(ticker, metrics, cap)
         )
 
         return ScreenResult(
-            ticker=ticker,
-            cap=cap,
-            parabolic_score=p_score,
-            parabolic_max_score=p_max,
-            parabolic_grade=p_grade,
-            parabolic_recommendation=p_rec,
+            ticker=ticker, cap=cap,
+            parabolic_score=p_score, parabolic_max_score=p_max,
+            parabolic_grade=p_grade, parabolic_recommendation=p_rec,
             parabolic_criteria=p_criteria,
-            bounce_score=b_score,
-            bounce_max_score=b_max,
-            bounce_setup_type=b_setup,
-            bounce_recommendation=b_rec,
+            bounce_score=b_score, bounce_max_score=b_max,
+            bounce_setup_type=b_setup, bounce_recommendation=b_rec,
             bounce_criteria=b_criteria,
             metrics=metrics,
             is_parabolic_candidate=(p_score >= 3),
@@ -513,53 +726,161 @@ class SetupScreener:
         )
 
     # ------------------------------------------------------------------
-    # Universe screening
+    # Universe screening (concurrent with rate limiting)
     # ------------------------------------------------------------------
 
     def screen_universe(self, tickers: List[str], date: str,
                         cap: str = 'Medium',
-                        ticker_caps: Optional[Dict[str, str]] = None) -> List[ScreenResult]:
+                        ticker_caps: Optional[Dict[str, str]] = None,
+                        max_workers: int = None) -> List[ScreenResult]:
         """
-        Screen a list of tickers for both setup types.
+        Screen a list of tickers concurrently with rate limiting.
+
+        Each ticker requires 1 API call (get_levels_data). Concurrent execution
+        with rate limiting keeps throughput high without hitting Polygon limits.
 
         Args:
             tickers: List of ticker symbols to screen
             date: Date to screen (YYYY-MM-DD)
             cap: Default market cap category for all tickers
             ticker_caps: Optional dict mapping ticker -> cap to override default
-                         e.g. {'AAPL': 'Large', 'HYMC': 'Micro', 'SPY': 'ETF'}
+            max_workers: Max concurrent threads (default: self.max_workers)
 
         Returns:
-            List of ScreenResult objects (one per ticker)
+            List of ScreenResult objects
         """
+        workers = max_workers or self.max_workers
         results = []
         total = len(tickers)
+        completed = 0
+        interval = 1.0 / self.rate_limit
 
-        print(f"\nScreening {total} tickers for setups on {date}...")
-        print(f"Default cap: {cap}")
-        if ticker_caps:
-            print(f"Per-ticker cap overrides: {len(ticker_caps)} tickers")
+        print(f"\nFull screening {total} tickers on {date}...")
+        print(f"  Concurrency: {workers} workers, rate limit: {self.rate_limit} req/s")
         print("-" * 60)
 
-        for i, ticker in enumerate(tickers, 1):
+        def _screen_one(ticker):
             ticker_cap = ticker_caps.get(ticker, cap) if ticker_caps else cap
-            logging.info(f"[{i}/{total}] Screening {ticker} ({ticker_cap})...")
+            return self.screen_ticker(ticker, date, ticker_cap)
 
-            result = self.screen_ticker(ticker, date, ticker_cap)
-            results.append(result)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            # Submit all tasks with rate limiting on submission
+            futures = {}
+            for ticker in tickers:
+                future = executor.submit(_screen_one, ticker)
+                futures[future] = ticker
+                time.sleep(interval)
 
-            # Progress indicator
-            if result.error:
-                print(f"  [{i}/{total}] {ticker}: ERROR - {result.error}")
-            elif result.is_parabolic_candidate or result.is_bounce_candidate:
-                flags = []
-                if result.is_parabolic_candidate:
-                    flags.append(f"PARABOLIC {result.parabolic_score}/{result.parabolic_max_score}")
-                if result.is_bounce_candidate:
-                    flags.append(f"BOUNCE {result.bounce_score}/{result.bounce_max_score}")
-                print(f"  [{i}/{total}] {ticker}: ** {' | '.join(flags)} **")
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(futures):
+                ticker = futures[future]
+                completed += 1
+                try:
+                    result = future.result()
+                    results.append(result)
+
+                    if result.error:
+                        print(f"  [{completed}/{total}] {ticker}: ERROR - {result.error}")
+                    elif result.is_parabolic_candidate or result.is_bounce_candidate:
+                        flags = []
+                        if result.is_parabolic_candidate:
+                            flags.append(f"PARABOLIC {result.parabolic_score}/{result.parabolic_max_score}")
+                        if result.is_bounce_candidate:
+                            flags.append(f"BOUNCE {result.bounce_score}/{result.bounce_max_score}")
+                        print(f"  [{completed}/{total}] {ticker}: ** {' | '.join(flags)} **")
+                    else:
+                        print(f"  [{completed}/{total}] {ticker}: no setup")
+                except Exception as e:
+                    results.append(self._empty_result(ticker, cap, error=str(e)))
+                    print(f"  [{completed}/{total}] {ticker}: EXCEPTION - {e}")
+
+        return results
+
+    # ------------------------------------------------------------------
+    # Full pipeline: fetch -> quick scan -> full screen
+    # ------------------------------------------------------------------
+
+    def scan(self, date: str,
+             min_market_cap: float = 2e9, max_market_cap: float = None,
+             tickers: List[str] = None, ticker_caps: Dict[str, str] = None,
+             min_up_pct: float = 0.03, min_down_pct: float = -0.03,
+             min_dollar_vol: float = 5e6,
+             setup_type: str = 'both') -> List[ScreenResult]:
+        """
+        Full screening pipeline: fetch universe -> quick scan -> full screen.
+
+        This is the main entry point for scanning 1000+ tickers.
+
+        Step 1: Build ticker universe
+          - If tickers provided: use those directly
+          - Otherwise: fetch from Polygon filtered by market cap
+
+        Step 2: Quick scan (snapshot pre-filter)
+          - 1 API call for ALL tickers
+          - Filters to extreme movers (big gap/change + sufficient volume)
+
+        Step 3: Full screen candidates
+          - 1 API call per candidate (concurrent with rate limiting)
+          - Computes all metrics from 310-day history
+          - Scores against parabolic short + capitulation bounce criteria
+
+        Args:
+            date: Date to screen (YYYY-MM-DD)
+            min_market_cap: Min market cap for universe fetch (default $2B)
+            max_market_cap: Max market cap (None = no limit)
+            tickers: Use these tickers instead of fetching from Polygon
+            ticker_caps: Dict of ticker -> cap overrides
+            min_up_pct: Quick scan threshold for parabolic (default 3%)
+            min_down_pct: Quick scan threshold for bounce (default -3%)
+            min_dollar_vol: Min dollar volume for quick scan (default $5M)
+            setup_type: 'parabolic', 'bounce', or 'both'
+
+        Returns:
+            List of ScreenResult for candidates that passed the quick scan
+        """
+        print(f"\n{'='*70}")
+        print(f"SETUP SCREENER - {date}")
+        print(f"{'='*70}")
+
+        # Step 1: Build universe
+        if tickers:
+            universe_tickers = tickers
+            print(f"\nStep 1: Using provided ticker list ({len(tickers)} tickers)")
+        else:
+            universe = self.fetch_universe(min_market_cap, max_market_cap)
+            universe_tickers = list(universe.keys())
+            # Merge fetched cap data with any overrides
+            if ticker_caps is None:
+                ticker_caps = universe
             else:
-                print(f"  [{i}/{total}] {ticker}: no setup detected")
+                merged = dict(universe)
+                merged.update(ticker_caps)
+                ticker_caps = merged
+
+        # Step 2: Quick scan
+        print(f"\nStep 2: Quick scan (snapshot pre-filter)...")
+        candidates = self.quick_scan(
+            tickers=universe_tickers,
+            min_up_pct=min_up_pct,
+            min_down_pct=min_down_pct,
+            min_dollar_vol=min_dollar_vol,
+            setup_type=setup_type,
+        )
+
+        if not candidates:
+            print("\n  No candidates found in quick scan. Try lowering thresholds.")
+            return []
+
+        # Step 3: Full screen
+        print(f"\nStep 3: Full screening {len(candidates)} candidates...")
+        results = self.screen_universe(
+            candidates, date,
+            cap='Medium',
+            ticker_caps=ticker_caps,
+        )
+
+        # Print results
+        self.print_results(results)
 
         return results
 
@@ -575,13 +896,10 @@ class SetupScreener:
         Filter results to only setup candidates.
 
         Args:
-            results: List of ScreenResult from screen_universe
+            results: List of ScreenResult
             setup_type: 'parabolic', 'bounce', or 'both'
-            min_parabolic_score: Minimum parabolic short score (default 3/5)
-            min_bounce_score: Minimum bounce score (default 4/6)
-
-        Returns:
-            Filtered list of ScreenResult
+            min_parabolic_score: Min parabolic short score (default 3/5)
+            min_bounce_score: Min bounce score (default 4/6)
         """
         candidates = []
         for r in results:
@@ -600,13 +918,7 @@ class SetupScreener:
     # ------------------------------------------------------------------
 
     def print_results(self, results: List[ScreenResult], show_all: bool = False):
-        """
-        Print screening results as formatted tables.
-
-        Args:
-            results: List of ScreenResult
-            show_all: If True, show all tickers. If False, show only candidates.
-        """
+        """Print screening results as formatted tables."""
         valid = [r for r in results if not r.error]
         errors = [r for r in results if r.error]
 
@@ -679,8 +991,8 @@ class SetupScreener:
         # --- Summary ---
         print("\n" + "-" * 90)
         print(f"SUMMARY: {len(results)} tickers screened | "
-              f"{len([r for r in valid if r.is_parabolic_candidate])} parabolic candidates | "
-              f"{len([r for r in valid if r.is_bounce_candidate])} bounce candidates | "
+              f"{len([r for r in valid if r.is_parabolic_candidate])} parabolic | "
+              f"{len([r for r in valid if r.is_bounce_candidate])} bounce | "
               f"{len(errors)} errors")
         if errors:
             print(f"Errors: {', '.join(r.ticker for r in errors)}")
@@ -698,9 +1010,9 @@ class SetupScreener:
 
         m = result.metrics
 
-        # Key metrics
         print(f"\nKEY METRICS:")
-        print(f"  Price: ${m.get('current_price', 'N/A'):.2f}" if m.get('current_price') else "  Price: N/A")
+        if m.get('current_price'):
+            print(f"  Price: ${m['current_price']:.2f}")
         print(f"  ATR: {_fmt_pct(m.get('atr_pct'))} of price")
         print(f"  9 EMA distance: {_fmt_pct(m.get('pct_from_9ema'))}")
         print(f"  50 SMA distance: {_fmt_pct(m.get('pct_from_50mav'))}")
@@ -774,65 +1086,6 @@ class SetupScreener:
 
 
 # ---------------------------------------------------------------------------
-# Ticker universe helpers
-# ---------------------------------------------------------------------------
-
-def get_polygon_tickers(market: str = 'stocks', ticker_type: str = 'CS',
-                        exchange: str = None, limit: int = 500) -> List[str]:
-    """
-    Fetch active tickers from Polygon.io reference API.
-
-    Args:
-        market: Market type ('stocks', 'otc', 'crypto')
-        ticker_type: Ticker type ('CS' = common stock, 'ETF', 'ADRC', etc.)
-        exchange: Exchange filter (e.g. 'XNAS' for NASDAQ, 'XNYS' for NYSE)
-        limit: Maximum tickers to return
-
-    Returns:
-        List of ticker symbols
-    """
-    from polygon.rest import RESTClient
-    client = RESTClient(api_key="pcwUY7TnSF66nYAPIBCApPMyVrXTckJY")
-
-    tickers = []
-    try:
-        for t in client.list_tickers(market=market, type=ticker_type,
-                                     exchange=exchange, active=True,
-                                     limit=limit, order='asc'):
-            tickers.append(t.ticker)
-            if len(tickers) >= limit:
-                break
-    except Exception as e:
-        logging.error(f"Error fetching tickers from Polygon: {e}")
-
-    return tickers
-
-
-def build_universe(*groups) -> List[str]:
-    """
-    Build a deduplicated ticker list from pre-built groups.
-
-    Args:
-        *groups: Any combination of pre-built lists (MEGA_CAP, MOMENTUM_NAMES,
-                 ETFS, MINERS_COMMODITIES, SMALL_MICRO) or custom lists
-
-    Returns:
-        Deduplicated list of ticker symbols
-
-    Example:
-        universe = build_universe(MEGA_CAP, MOMENTUM_NAMES, ['CUSTOM1', 'CUSTOM2'])
-    """
-    seen = set()
-    result = []
-    for group in groups:
-        for ticker in group:
-            if ticker not in seen:
-                seen.add(ticker)
-                result.append(ticker)
-    return result
-
-
-# ---------------------------------------------------------------------------
 # Formatting helpers
 # ---------------------------------------------------------------------------
 
@@ -863,7 +1116,7 @@ if __name__ == '__main__':
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    # Default to today
+    # Default to today (adjusted for weekends)
     today = datetime.now()
     if today.weekday() == 5:
         adjusted_date = today - timedelta(days=1)
@@ -873,34 +1126,19 @@ if __name__ == '__main__':
         adjusted_date = today
     date = adjusted_date.strftime('%Y-%m-%d')
 
-    # Parse optional CLI args
     if len(sys.argv) > 1:
         date = sys.argv[1]
 
-    # Build universe from pre-built lists
-    universe = build_universe(MOMENTUM_NAMES, MEGA_CAP, ETFS)
-
-    # Optional: per-ticker cap overrides
-    ticker_caps = {}
-    for t in MEGA_CAP:
-        ticker_caps[t] = 'Large'
-    for t in ETFS:
-        ticker_caps[t] = 'ETF'
-    for t in SMALL_MICRO:
-        ticker_caps[t] = 'Small'
-
     print(f"\nSetup Screener - {date}")
-    print(f"Universe: {len(universe)} tickers")
     print(f"Looking for: Parabolic Short + Capitulation Bounce setups\n")
 
-    screener = SetupScreener()
-    results = screener.screen_universe(universe, date, cap='Medium',
-                                       ticker_caps=ticker_caps)
+    screener = SetupScreener(max_workers=5, rate_limit=5)
 
-    # Print summary tables
-    screener.print_results(results)
+    # Full pipeline: fetches medium+large cap universe, quick scans via
+    # snapshots, then full screens only the candidates that show extreme moves.
+    results = screener.scan(date)
 
-    # Print detailed reports for top candidates
+    # Detailed reports for top candidates
     parabolic_candidates = screener.get_candidates(results, setup_type='parabolic')
     bounce_candidates = screener.get_candidates(results, setup_type='bounce')
 
