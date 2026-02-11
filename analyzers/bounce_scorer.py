@@ -300,6 +300,8 @@ def classify_stock(metrics: Dict) -> Tuple[str, Dict]:
 
 def classify_from_setup_column(setup_name: str) -> str:
     """Classify from the Setup column in bounce_data.csv for historical scoring."""
+    if not isinstance(setup_name, str):
+        setup_name = '' if setup_name is None else str(setup_name)
     if 'weakstock' in setup_name:
         return 'GapFade_weakstock'
     else:

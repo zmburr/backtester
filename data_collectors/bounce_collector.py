@@ -16,11 +16,14 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-bounce_df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\bounce_data.csv")
+DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "bounce_data.csv"
+
+bounce_df = pd.read_csv(DATA_PATH)
 bounce_df = bounce_df.dropna(subset=['ticker'])
 bounce_df = bounce_df.dropna(subset=['date'])
 bounce_df['ticker'] = bounce_df['ticker'].str.strip()
@@ -30,8 +33,15 @@ bounce_df['ticker'] = bounce_df['ticker'].str.strip()
 # Helper: parse date from row
 # ---------------------------------------------------------------------------
 def _parse_date(row):
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    return datetime.strftime(wrong_date, '%Y-%m-%d')
+    raw_date = row['date']
+    if isinstance(raw_date, (datetime, pd.Timestamp)):
+        return raw_date.strftime('%Y-%m-%d')
+
+    parsed = pd.to_datetime(raw_date, errors='coerce')
+    if pd.isna(parsed):
+        raise ValueError(f"Unrecognized date format: {raw_date}")
+
+    return parsed.strftime('%Y-%m-%d')
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +384,7 @@ def get_bounce_intraday_timing(row, analysis_type):
         # High to low duration (minutes from HOD to LOD)
         high_time = regular_session['high'].idxmax()
         duration_td = low_time - high_time
-        row['high_to_low_duration_min'] = duration_td.total_seconds() / 60.0
+        row['high_to_low_duration_min'] = abs(duration_td.total_seconds()) / 60.0
 
         # Gap from premarket low
         if not premarket_data.empty:
@@ -404,11 +414,12 @@ def calculate_bounce_atr(row, analysis_type, period=30):
                 lambda x: max(x['high'] - x['low'], abs(x['high'] - x['close']), abs(x['low'] - x['close'])),
                 axis=1
             )
-            atr = stock_data['tr'].mean() / stock_data['close'].mean()
+            close_mean = stock_data['close'].mean()
+            atr = stock_data['tr'].mean() / close_mean if close_mean else None
             row['atr_pct'] = atr
 
             pct_key = 'bounce_open_close_pct'
-            if pct_key in row and row[pct_key] and not pd.isna(row[pct_key]):
+            if atr and pct_key in row and row[pct_key] and not pd.isna(row[pct_key]):
                 row['atr_pct_move'] = float(row[pct_key]) / atr
     except Exception as e:
         logging.error(f'Error in calculate_bounce_atr for {ticker} on {date}: {e}')
@@ -868,5 +879,5 @@ if __name__ == '__main__':
     extra_cols = [col for col in df_bounce.columns if col not in BOUNCE_COLUMN_ORDER]
     df_bounce = df_bounce[existing_cols + extra_cols]
 
-    df_bounce.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\bounce_data.csv", index=False)
+    df_bounce.to_csv(DATA_PATH, index=False)
     logging.info(f'Bounce data saved. {len(df_bounce)} rows, {len(df_bounce.columns)} columns.')
