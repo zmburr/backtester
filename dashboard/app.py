@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from collections.abc import Iterable, Mapping
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -20,7 +21,7 @@ import plotly.express as px
 import streamlit as st
 
 # Must be the first Streamlit command in the script.
-st.set_page_config(page_title="Backtester Dashboard", layout="wide")
+st.set_page_config(page_title="Trade Dashboard", layout="wide")
 
 
 # -----------------------------------------------------------------------------
@@ -199,7 +200,7 @@ def load_bounce_df() -> pd.DataFrame:
 
     df["ticker"] = df["ticker"].astype(str).str.upper().str.strip()
     df["cap"] = df.get("cap", "Medium")
-    df["cap"] = df["cap"].fillna("Medium").astype(str)
+    df["cap"] = df["cap"].fillna("Medium").astype(str).str.strip()
 
     df["date_dt"] = pd.to_datetime(df["date"], format="%m/%d/%Y", errors="coerce")
 
@@ -223,7 +224,7 @@ def load_reversal_df() -> pd.DataFrame:
 
     df["ticker"] = df["ticker"].astype(str).str.upper().str.strip()
     df["cap"] = df.get("cap", "Medium")
-    df["cap"] = df["cap"].fillna("Medium").astype(str)
+    df["cap"] = df["cap"].fillna("Medium").astype(str).str.strip()
 
     df["date_dt"] = pd.to_datetime(df["date"], format="%m/%d/%Y", errors="coerce")
 
@@ -474,95 +475,119 @@ def render_metric_optimizer(
     metric_defaults: List[str],
     default_directions: Optional[Dict[str, str]] = None,
     *,
-    title: str = "Metric optimizer",
     key_prefix: str,
 ) -> None:
     """
     Interactive optimizer for a *single* metric threshold.
 
-    It runs inside the current filtered dataset, so you can stack this with
-    other filters (cap, grade, setup, etc.).
+    Renders directly (no wrapper); caller places it inside a tab or section.
+    Respects the current filtered dataset so it stacks with sidebar filters.
     """
     default_directions = default_directions or {}
 
-    with st.expander(title, expanded=False):
-        if df.empty:
-            st.warning("No rows to optimize (empty filter result).")
-            return
+    if df.empty:
+        st.warning("No rows to optimize (empty filter result).")
+        return
 
-        numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        metric_options = _key_metrics_selector(metric_defaults, df)
-        metric_options = [m for m in metric_options if m in numeric_cols]
-        if not metric_options:
-            st.warning("No numeric metrics available in this dataset.")
-            return
-
-        default_metric = metric_options[0]
-        metric = st.selectbox("Metric", metric_options, index=0, key=f"{key_prefix}_metric")
-
-        default_dir = default_directions.get(metric, ">=")
-        direction = st.radio(
-            "Keep rows where …",
-            [">=", "<="],
-            index=0 if default_dir == ">=" else 1,
-            horizontal=True,
-            key=f"{key_prefix}_dir",
-        )
-
-        # Threshold candidates (quantiles over the observed values)
-        vals = _safe_to_numeric(df[metric]).dropna()
-        if len(vals) == 0:
-            st.warning("Selected metric has no numeric values after filtering.")
-            return
-
-        c1, c2, c3 = st.columns(3)
-        sweep_points = c1.slider("Sweep points", min_value=10, max_value=250, value=60, step=5, key=f"{key_prefix}_points")
-        min_trades = c2.slider(
-            "Min trades (constraint)",
-            min_value=1,
-            max_value=max(1, min(500, len(df))),
-            value=min(20, len(df)),
-            step=1,
-            key=f"{key_prefix}_min_trades",
-        )
-        objective = c3.selectbox(
-            "Objective",
-            ["win_rate", "avg_pnl", "median_pnl", "trades"],
+    # Optional cap filter (optimizer-only)
+    df_opt = df
+    if "cap" in df.columns:
+        caps = sorted([str(c) for c in df["cap"].dropna().unique()])
+        cap_choice = st.selectbox(
+            "Cap (optimizer)",
+            options=["All"] + caps,
             index=0,
-            key=f"{key_prefix}_obj",
+            key=f"{key_prefix}_cap",
+            help="Narrows the sweep to a single cap. The sidebar Cap filter still applies too.",
+        )
+        if cap_choice != "All":
+            df_opt = df[df["cap"].astype(str) == cap_choice]
+            st.caption(f"Optimizer subset: cap={cap_choice} (n={len(df_opt)})")
+
+    if df_opt.empty:
+        st.warning("No rows in the optimizer subset.")
+        return
+
+    numeric_cols = [c for c in df_opt.columns if pd.api.types.is_numeric_dtype(df_opt[c])]
+    metric_options = _key_metrics_selector(metric_defaults, df_opt)
+    metric_options = [m for m in metric_options if m in numeric_cols]
+    if not metric_options:
+        st.warning("No numeric metrics available in this dataset.")
+        return
+
+    c_metric, c_dir = st.columns([3, 1])
+    metric = c_metric.selectbox("Metric", metric_options, index=0, key=f"{key_prefix}_metric")
+    default_dir = default_directions.get(metric, ">=")
+    direction = c_dir.radio(
+        "Keep rows where …",
+        [">=", "<="],
+        index=0 if default_dir == ">=" else 1,
+        horizontal=True,
+        key=f"{key_prefix}_dir",
+    )
+
+    # Threshold candidates (quantiles over the observed values)
+    vals = _safe_to_numeric(df_opt[metric]).dropna()
+    if len(vals) == 0:
+        st.warning("Selected metric has no numeric values after filtering.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    sweep_points = c1.slider("Sweep points", min_value=10, max_value=250, value=60, step=5, key=f"{key_prefix}_points")
+    min_trades = c2.slider(
+        "Min trades",
+        min_value=1,
+        max_value=max(1, min(500, len(df_opt))),
+        value=min(20, len(df_opt)),
+        step=1,
+        key=f"{key_prefix}_min_trades",
+    )
+    objective = c3.selectbox(
+        "Objective",
+        ["win_rate", "avg_pnl", "median_pnl", "trades"],
+        index=0,
+        key=f"{key_prefix}_obj",
+    )
+
+    qs = np.linspace(0.0, 1.0, int(sweep_points))
+    thresholds = np.unique(np.quantile(vals.to_numpy(dtype=float), qs))
+    # If metric looks integer-like, keep integer thresholds (avoids confusing 2.5-day cutoffs).
+    try:
+        is_int_like = bool(np.all(np.isclose(vals.to_numpy(dtype=float), np.round(vals.to_numpy(dtype=float)))))
+    except Exception:
+        is_int_like = False
+    if is_int_like:
+        thresholds = np.unique(np.round(thresholds))
+
+    sweep = _metric_threshold_sweep(df_opt, metric=metric, direction=direction, thresholds=thresholds)
+    if sweep.empty:
+        st.warning("No sweep results.")
+        return
+
+    feasible = sweep[sweep["trades"] >= int(min_trades)].copy()
+    if feasible.empty:
+        st.warning("No thresholds meet the minimum trade constraint.")
+    else:
+        best = feasible.sort_values(objective, ascending=False).iloc[0].to_dict()
+        st.success(
+            f"**Best (by {objective})**: threshold **{best['threshold']:.6g}** "
+            f"→ {int(best['trades'])} trades, "
+            f"win rate {best['win_rate'] if best['win_rate'] is not None else '—'}%, "
+            f"avg P&L {best['avg_pnl'] if best['avg_pnl'] is not None else '—'}%"
         )
 
-        qs = np.linspace(0.0, 1.0, int(sweep_points))
-        thresholds = np.unique(np.quantile(vals.to_numpy(dtype=float), qs))
-
-        sweep = _metric_threshold_sweep(df, metric=metric, direction=direction, thresholds=thresholds)
-        if sweep.empty:
-            st.warning("No sweep results.")
-            return
-
-        feasible = sweep[sweep["trades"] >= int(min_trades)].copy()
-        if feasible.empty:
-            st.warning("No thresholds meet the minimum trade constraint.")
-        else:
-            best = feasible.sort_values(objective, ascending=False).iloc[0].to_dict()
-            st.markdown(
-                f"**Best (by {objective})**: threshold `{best['threshold']:.6g}` "
-                f"→ trades={int(best['trades'])}, win={best['win_rate'] if best['win_rate'] is not None else '—'}%, "
-                f"avg={best['avg_pnl'] if best['avg_pnl'] is not None else '—'}%"
-            )
-
-        # Charts
-        st.plotly_chart(px.line(sweep, x="threshold", y="trades", title="Trades vs threshold"), use_container_width=True)
+    # Charts side-by-side where possible
+    chart_left, chart_right = st.columns(2)
+    with chart_left:
         st.plotly_chart(px.line(sweep, x="threshold", y="win_rate", title="Win rate (%) vs threshold"), use_container_width=True)
+    with chart_right:
         st.plotly_chart(px.line(sweep, x="threshold", y="avg_pnl", title="Avg P&L (%) vs threshold"), use_container_width=True)
+    st.plotly_chart(px.line(sweep, x="threshold", y="trades", title="Trades vs threshold"), use_container_width=True)
 
-        # Table
-        show_top = st.checkbox("Show top thresholds table", value=True, key=f"{key_prefix}_show_table")
-        if show_top:
-            table = feasible.sort_values(objective, ascending=False).head(40) if not feasible.empty else sweep.head(40)
-            st.dataframe(table, use_container_width=True, height=420)
-
-        # Download
+    # Table
+    with st.expander("Threshold details", expanded=False):
+        table = feasible.sort_values(objective, ascending=False).head(40) if not feasible.empty else sweep.head(40)
+        st.dataframe(table, use_container_width=True, height=380)
         st.download_button(
             "Download sweep CSV",
             data=sweep.to_csv(index=False).encode("utf-8"),
@@ -573,62 +598,69 @@ def render_metric_optimizer(
 # Pages
 # -----------------------------------------------------------------------------
 def render_overview(bounce_df: pd.DataFrame, reversal_df: pd.DataFrame) -> None:
-    st.subheader("Overview")
+    st.markdown(
+        "Select **Bounce** or **Reversal** in the sidebar. Each page has three tools: "
+        "**Threshold Optimizer** (sweep a metric to find optimal cutoffs), "
+        "**Metric Explorer** (distributions & P&L scatter), and "
+        "**Checklist Simulator** (test GO/CAUTION/NO-GO scoring on historical trades)."
+    )
+    st.divider()
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("**Bounce dataset (`data/bounce_data.csv`)**")
-        stats = _summary_stats(bounce_df)
-        st.metric("Trades", stats["trades"])
-        st.metric("Win rate (pnl>0)", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%")
-        st.metric("Avg P&L (open→close)", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
+        st.markdown("#### Bounce (Long)")
+        b_stats = _summary_stats(bounce_df)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Trades", b_stats["trades"])
+        m2.metric("Win rate", "—" if b_stats["win_rate"] is None else f"{b_stats['win_rate']:.1f}%")
+        m3.metric("Avg P&L", "—" if b_stats["avg_pnl"] is None else f"{b_stats['avg_pnl']:+.2f}%")
+        m4.metric("Median", "—" if b_stats["median_pnl"] is None else f"{b_stats['median_pnl']:+.2f}%")
         st.dataframe(
-            bounce_df.groupby(["cap", "trade_grade"], dropna=False).size().reset_index(name="trades"),
+            _group_stats(bounce_df, "cap"),
             use_container_width=True,
-            height=220,
+            hide_index=True,
+            height=180,
         )
     with c2:
-        st.markdown("**Reversal dataset (`data/reversal_data.csv`)**")
-        stats = _summary_stats(reversal_df)
-        st.metric("Trades", stats["trades"])
-        st.metric("Win rate (pnl>0)", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%")
-        st.metric("Avg P&L proxy (-(open→close))", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
+        st.markdown("#### Reversal (Short)")
+        r_stats = _summary_stats(reversal_df)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Trades", r_stats["trades"])
+        m2.metric("Win rate", "—" if r_stats["win_rate"] is None else f"{r_stats['win_rate']:.1f}%")
+        m3.metric("Avg P&L", "—" if r_stats["avg_pnl"] is None else f"{r_stats['avg_pnl']:+.2f}%")
+        m4.metric("Median", "—" if r_stats["median_pnl"] is None else f"{r_stats['median_pnl']:+.2f}%")
         st.dataframe(
-            reversal_df.groupby(["cap", "trade_grade"], dropna=False).size().reset_index(name="trades"),
+            _group_stats(reversal_df, "cap"),
             use_container_width=True,
-            height=220,
+            hide_index=True,
+            height=180,
         )
-
-    st.markdown(
-        """
-**Tip:** the Bounce tab uses `analyzers/bounce_scorer.py` profiles (same thresholds as your report).
-The Reversal tab mirrors the `score_pretrade_setup()` logic in `scripts/generate_report.py`.
-"""
-    )
 
 
 def render_bounce(bounce_df: pd.DataFrame) -> None:
-    st.subheader("Bounce dashboard")
+    st.subheader("Bounce (Long)")
 
     # Sidebar filters
     with st.sidebar:
-        st.markdown("### Bounce filters")
+        st.markdown("### Filters")
         grades = sorted([g for g in bounce_df.get("trade_grade", pd.Series(dtype=str)).dropna().unique()])
         caps = sorted([c for c in bounce_df.get("cap", pd.Series(dtype=str)).dropna().unique()])
         profiles = sorted([p for p in bounce_df.get("setup_profile", pd.Series(dtype=str)).dropna().unique()])
 
-        sel_grades = st.multiselect("Trade grade", grades, default=grades)
         sel_caps = st.multiselect("Cap", caps, default=caps)
+        sel_grades = st.multiselect("Grade", grades, default=grades)
         sel_profiles = st.multiselect("Setup profile", profiles, default=profiles)
 
         dmin = bounce_df["date_dt"].min()
         dmax = bounce_df["date_dt"].max()
-        start_end = st.date_input(
-            "Date range",
-            value=(dmin.date() if pd.notna(dmin) else None, dmax.date() if pd.notna(dmax) else None),
-        )
-        start_date = start_end[0] if isinstance(start_end, (list, tuple)) and len(start_end) > 0 else None
-        end_date = start_end[1] if isinstance(start_end, (list, tuple)) and len(start_end) > 1 else None
+        with st.expander("Date range", expanded=False):
+            start_end = st.date_input(
+                "Range",
+                value=(dmin.date() if pd.notna(dmin) else None, dmax.date() if pd.notna(dmax) else None),
+                label_visibility="collapsed",
+            )
+            start_date = start_end[0] if isinstance(start_end, (list, tuple)) and len(start_end) > 0 else None
+            end_date = start_end[1] if isinstance(start_end, (list, tuple)) and len(start_end) > 1 else None
 
     df = bounce_df.copy()
     df = _filter_by_multiselect(df, "trade_grade", sel_grades)
@@ -640,8 +672,7 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
         st.warning("No bounce trades match the current filters.")
         return
 
-    st.caption("P&L = `bounce_open_close_pct * 100` (open→close %). Win rate = % of rows with P&L > 0.")
-
+    # Summary stats
     stats = _summary_stats(df)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Trades", stats["trades"])
@@ -649,7 +680,18 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
     c3.metric("Avg P&L", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
     c4.metric("Median P&L", "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%")
 
-    st.markdown("### Sell-off + capitulation stats")
+    st.caption("P&L = open→close % on bounce day. Win = P&L > 0.")
+
+    # Compact breakdowns
+    with st.expander("Stats by cap / setup profile", expanded=False):
+        bc1, bc2 = st.columns(2)
+        with bc1:
+            st.markdown("**By cap**")
+            st.dataframe(_group_stats(df, "cap"), use_container_width=True, hide_index=True, height=180)
+        with bc2:
+            st.markdown("**By setup profile**")
+            st.dataframe(_group_stats(df, "setup_profile"), use_container_width=True, hide_index=True, height=180)
+
     metric_defaults = [
         "selloff_total_pct",
         "consecutive_down_days",
@@ -660,241 +702,213 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
         "bounce_open_high_pct",
         "bounce_open_close_pct",
     ]
-    metric_options = _key_metrics_selector(metric_defaults, df)
-    metric = st.selectbox("Metric", metric_options, index=0)
 
-    if metric in df.columns:
-        fig = px.histogram(
+    # Tabs for different analysis modes
+    tab_optimizer, tab_explore, tab_checklist = st.tabs(["Threshold Optimizer", "Metric Explorer", "Checklist Simulator"])
+
+    with tab_optimizer:
+        st.markdown("**Find optimal threshold for any metric by cap.** Sweeps values and shows win rate / avg P&L at each cutoff.")
+        render_metric_optimizer(
             df,
-            x=metric,
-            nbins=35,
-            hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "pnl"],
-            title=f"Distribution: {metric}",
+            metric_defaults=metric_defaults,
+            default_directions={
+                "selloff_total_pct": "<=",
+                "pct_off_30d_high": "<=",
+                "gap_pct": "<=",
+                "consecutive_down_days": ">=",
+                "prior_day_rvol": ">=",
+                "premarket_rvol": ">=",
+            },
+            key_prefix="bounce_opt",
         )
-        st.plotly_chart(fig, use_container_width=True)
 
-        if "pnl" in df.columns and pd.api.types.is_numeric_dtype(df["pnl"]):
-            scatter = px.scatter(
-                df,
-                x=metric,
+    with tab_explore:
+        st.markdown("**Explore metric distributions and their relationship to P&L.**")
+        metric_options = _key_metrics_selector(metric_defaults, df)
+        metric = st.selectbox("Metric", metric_options, index=0, key="bounce_explore_metric")
+
+        if metric in df.columns:
+            c1, c2 = st.columns(2)
+            with c1:
+                fig = px.histogram(
+                    df,
+                    x=metric,
+                    nbins=35,
+                    hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "pnl"],
+                    title=f"Distribution: {metric}",
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with c2:
+                if "pnl" in df.columns and pd.api.types.is_numeric_dtype(df["pnl"]):
+                    scatter = px.scatter(
+                        df,
+                        x=metric,
+                        y="pnl",
+                        color="setup_profile" if "setup_profile" in df.columns else None,
+                        hover_data=["ticker", "date", "cap", "trade_grade"],
+                        title=f"{metric} vs P&L",
+                    )
+                    st.plotly_chart(scatter, use_container_width=True)
+
+    with tab_checklist:
+        st.markdown("**Test checklist logic on historical trades.** See how GO/CAUTION/NO-GO performs.")
+        mode = st.radio(
+            "Mode",
+            ["Current thresholds", "Custom thresholds"],
+            horizontal=True,
+            key="bounce_checklist_mode",
+        )
+
+        if mode == "Current thresholds":
+            checker = BouncePretrade()
+            rows: List[Dict[str, Any]] = []
+            for _, r in df.iterrows():
+                cap = str(r.get("cap") or "Medium")
+                setup = str(r.get("setup_profile") or "GapFade_strongstock")
+                res = checker.validate(
+                    ticker=str(r.get("ticker", "")),
+                    metrics=r.to_dict(),
+                    force_setup=setup,
+                    cap=cap,
+                )
+                failed = [i.name for i in res.items if not i.passed]
+                rows.append(
+                    {
+                        "checklist_score": int(res.score),
+                        "checklist_max": int(res.max_score),
+                        "checklist_rec": str(res.recommendation),
+                        "checklist_failed": ", ".join(failed) if failed else "PERFECT",
+                    }
+                )
+            scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
+            
+            st.markdown("**Results by recommendation:**")
+            st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+
+            box = px.box(
+                scored,
+                x="checklist_rec",
                 y="pnl",
-                color="setup_profile" if "setup_profile" in df.columns else None,
-                hover_data=["ticker", "date", "cap", "trade_grade"],
-                title=f"{metric} vs P&L (open→close)",
+                points="all",
+                hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "checklist_score"],
+                title="P&L by recommendation",
             )
-            st.plotly_chart(scatter, use_container_width=True)
+            st.plotly_chart(box, use_container_width=True)
 
-    st.markdown("### Checklist simulator (BouncePretrade)")
-    mode = st.radio(
-        "Scoring mode",
-        ["Current checklist (from analyzers/bounce_scorer.py)", "What-if override (tune thresholds)"],
-        horizontal=True,
-    )
+            with st.expander("All trades", expanded=False):
+                st.dataframe(
+                    scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]),
+                    use_container_width=True,
+                    height=350,
+                )
+                csv_bytes = scored.to_csv(index=False).encode("utf-8")
+                st.download_button("Download CSV", data=csv_bytes, file_name="bounce_scored.csv")
 
-    if mode.startswith("Current"):
-        checker = BouncePretrade()
-        rows: List[Dict[str, Any]] = []
-        for _, r in df.iterrows():
-            cap = str(r.get("cap") or "Medium")
-            setup = str(r.get("setup_profile") or "GapFade_strongstock")
-            res = checker.validate(
-                ticker=str(r.get("ticker", "")),
-                metrics=r.to_dict(),
-                force_setup=setup,
-                cap=cap,
-            )
-            failed = [i.name for i in res.items if not i.passed]
-            rows.append(
-                {
-                    "checklist_score": int(res.score),
-                    "checklist_max": int(res.max_score),
-                    "checklist_rec": str(res.recommendation),
-                    "checklist_failed": ", ".join(failed) if failed else "PERFECT",
-                }
-            )
-        scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
-        st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+        else:
+            c1, c2 = st.columns(2)
+            tune_profile = c1.selectbox("Setup profile", sorted(SETUP_PROFILES.keys()), index=0)
+            tune_cap = c2.selectbox("Cap", sorted(df["cap"].dropna().unique()), index=0)
 
-        box = px.box(
-            scored,
-            x="checklist_rec",
-            y="pnl",
-            points="all",
-            hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "checklist_score"],
-            title="P&L by checklist recommendation",
-        )
-        st.plotly_chart(box, use_container_width=True)
+            profile = SETUP_PROFILES[tune_profile]
+            base = {
+                "selloff_total_pct": float(profile.get_threshold("selloff_total_pct", tune_cap)),
+                "consecutive_down_days": int(profile.get_threshold("consecutive_down_days", tune_cap)),
+                "pct_off_30d_high": float(profile.get_threshold("pct_off_30d_high", tune_cap)),
+                "gap_pct": float(profile.get_threshold("gap_pct", tune_cap)),
+                "prior_day_rvol": float(profile.get_threshold("vol_expansion", tune_cap)),
+                "premarket_rvol": float(profile.vol_premarket),
+            }
 
-        st.dataframe(
-            scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]),
-            use_container_width=True,
-            height=420,
-        )
+            st.markdown("**Adjust thresholds:**")
+            c1, c2, c3 = st.columns(3)
+            required_selloff = c1.slider("Selloff depth (%)", 0, 90, int(round(abs(base["selloff_total_pct"]) * 100)), 1)
+            required_off30 = c2.slider("Off 30d high (%)", 0, 90, int(round(abs(base["pct_off_30d_high"]) * 100)), 1)
+            required_gap = c3.slider("Gap down (%)", 0, 50, int(round(abs(base["gap_pct"]) * 100)), 1)
 
-        csv_bytes = scored.to_csv(index=False).encode("utf-8")
-        st.download_button("Download scored bounce CSV", data=csv_bytes, file_name="bounce_scored_dashboard.csv")
+            c4, c5, c6 = st.columns(3)
+            required_down_days = c4.slider("Down days", 0, 10, int(base["consecutive_down_days"]), 1)
+            required_prior_rvol = c5.slider("Prior RVOL (x)", 0.0, 10.0, float(base["prior_day_rvol"]), 0.1)
+            required_pm_rvol = c6.slider("PM RVOL (x)", 0.0, 0.50, float(base["premarket_rvol"]), 0.01)
 
-    else:
-        # Pick a tuning context (profile + cap) to show baseline thresholds
-        tune_profile = st.selectbox("Tune setup profile", sorted(SETUP_PROFILES.keys()), index=0)
-        tune_cap = st.selectbox("Tune cap", sorted(df["cap"].dropna().unique()), index=0)
+            only_matching = st.checkbox("Only this profile + cap", value=True)
+            to_score = df.copy()
+            if only_matching:
+                to_score = to_score[(to_score["setup_profile"] == tune_profile) & (to_score["cap"] == tune_cap)]
 
-        profile = SETUP_PROFILES[tune_profile]
-        base = {
-            "selloff_total_pct": float(profile.get_threshold("selloff_total_pct", tune_cap)),
-            "consecutive_down_days": int(profile.get_threshold("consecutive_down_days", tune_cap)),
-            "pct_off_30d_high": float(profile.get_threshold("pct_off_30d_high", tune_cap)),
-            "gap_pct": float(profile.get_threshold("gap_pct", tune_cap)),
-            "prior_day_rvol": float(profile.get_threshold("vol_expansion", tune_cap)),
-            "premarket_rvol": float(profile.vol_premarket),
-        }
+            if to_score.empty:
+                st.warning("No trades match.")
+            else:
+                rows: List[Dict[str, Any]] = []
+                for _, r in to_score.iterrows():
+                    s, rec, failed = score_bounce_pretrade_override_row(
+                        r.to_dict(),
+                        required_selloff_pct=required_selloff,
+                        required_down_days=required_down_days,
+                        required_off_30d_high_pct=required_off30,
+                        required_gap_down_pct=required_gap,
+                        required_prior_day_rvol=required_prior_rvol,
+                        required_premarket_rvol=required_pm_rvol,
+                    )
+                    rows.append(
+                        {
+                            "checklist_score": int(s),
+                            "checklist_max": 5,
+                            "checklist_rec": rec,
+                            "checklist_failed": ", ".join(failed) if failed else "PERFECT",
+                        }
+                    )
+                scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
-        with st.expander("Current (baseline) thresholds", expanded=True):
-            st.json({"setup_profile": tune_profile, "cap": tune_cap, **base})
+                st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+                box = px.box(
+                    scored,
+                    x="checklist_rec",
+                    y="pnl",
+                    points="all",
+                    hover_data=["ticker", "date", "trade_grade"],
+                    title="P&L by recommendation",
+                )
+                st.plotly_chart(box, use_container_width=True)
 
-        # Sliders use positive % for drawdown-style thresholds.
-        c1, c2, c3 = st.columns(3)
-        required_selloff = c1.slider(
-            "Required selloff depth (%)",
-            min_value=0,
-            max_value=90,
-            value=int(round(abs(base["selloff_total_pct"]) * 100)),
-            step=1,
-        )
-        required_off30 = c2.slider(
-            "Required discount from 30d high (%)",
-            min_value=0,
-            max_value=90,
-            value=int(round(abs(base["pct_off_30d_high"]) * 100)),
-            step=1,
-        )
-        required_gap = c3.slider(
-            "Required gap down (%)",
-            min_value=0,
-            max_value=50,
-            value=int(round(abs(base["gap_pct"]) * 100)),
-            step=1,
-        )
-
-        c4, c5, c6 = st.columns(3)
-        required_down_days = c4.slider(
-            "Consecutive down days (min)",
-            min_value=0,
-            max_value=10,
-            value=int(base["consecutive_down_days"]),
-            step=1,
-        )
-        required_prior_rvol = c5.slider(
-            "Prior day RVOL (min, x ADV)",
-            min_value=0.0,
-            max_value=10.0,
-            value=float(base["prior_day_rvol"]),
-            step=0.1,
-        )
-        required_pm_rvol = c6.slider(
-            "Premarket RVOL (min, x ADV)",
-            min_value=0.0,
-            max_value=0.50,
-            value=float(base["premarket_rvol"]),
-            step=0.01,
-        )
-
-        only_matching = st.checkbox(
-            "Only score rows matching this profile + cap",
-            value=True,
-            help="Bounce thresholds are profile+cap specific; this keeps the comparison apples-to-apples.",
-        )
-        to_score = df.copy()
-        if only_matching:
-            to_score = to_score[(to_score["setup_profile"] == tune_profile) & (to_score["cap"] == tune_cap)]
-
-        rows: List[Dict[str, Any]] = []
-        for _, r in to_score.iterrows():
-            s, rec, failed = score_bounce_pretrade_override_row(
-                r.to_dict(),
-                required_selloff_pct=required_selloff,
-                required_down_days=required_down_days,
-                required_off_30d_high_pct=required_off30,
-                required_gap_down_pct=required_gap,
-                required_prior_day_rvol=required_prior_rvol,
-                required_premarket_rvol=required_pm_rvol,
-            )
-            rows.append(
-                {
-                    "checklist_score": int(s),
-                    "checklist_max": 5,
-                    "checklist_rec": rec,
-                    "checklist_failed": ", ".join(failed) if failed else "PERFECT",
-                }
-            )
-        scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
-
-        st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
-        box = px.box(
-            scored,
-            x="checklist_rec",
-            y="pnl",
-            points="all",
-            hover_data=["ticker", "date", "trade_grade"],
-            title="P&L by what-if recommendation",
-        )
-        st.plotly_chart(box, use_container_width=True)
-
-        st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), use_container_width=True, height=420)
-
-        with st.expander("Export snippet (paste into your checklist config)", expanded=False):
-            st.code(
-                "\n".join(
-                    [
-                        f"# Bounce override for {tune_profile} / {tune_cap}",
-                        f"# selloff_total_pct <= {-required_selloff/100:.2f}",
-                        f"# consecutive_down_days >= {required_down_days}",
-                        f"# pct_off_30d_high <= {-required_off30/100:.2f}",
-                        f"# gap_pct <= {-required_gap/100:.2f}",
-                        f"# prior_day_rvol >= {required_prior_rvol:.2f}",
-                        f"# premarket_rvol >= {required_pm_rvol:.2f}",
-                    ]
-                ),
-                language="python",
-            )
-
-    render_metric_optimizer(
-        df,
-        metric_defaults=metric_defaults,
-        default_directions={
-            "selloff_total_pct": "<=",
-            "pct_off_30d_high": "<=",
-            "gap_pct": "<=",
-            "consecutive_down_days": ">=",
-            "prior_day_rvol": ">=",
-            "premarket_rvol": ">=",
-        },
-        title="Metric optimizer (single threshold sweep)",
-        key_prefix="bounce_opt",
-    )
+            with st.expander("Export config snippet"):
+                st.code(
+                    f"""# {tune_profile} / {tune_cap}
+selloff_total_pct <= {-required_selloff/100:.2f}
+consecutive_down_days >= {required_down_days}
+pct_off_30d_high <= {-required_off30/100:.2f}
+gap_pct <= {-required_gap/100:.2f}
+prior_day_rvol >= {required_prior_rvol:.2f}
+premarket_rvol >= {required_pm_rvol:.2f}""",
+                    language="python",
+                )
 
 
 def render_reversal(reversal_df: pd.DataFrame) -> None:
-    st.subheader("Reversal dashboard")
+    st.subheader("Reversal (Short)")
 
+    # Sidebar filters
     with st.sidebar:
-        st.markdown("### Reversal filters")
+        st.markdown("### Filters")
         grades = sorted([g for g in reversal_df.get("trade_grade", pd.Series(dtype=str)).dropna().unique()])
         caps = sorted([c for c in reversal_df.get("cap", pd.Series(dtype=str)).dropna().unique()])
         setups = sorted([s for s in reversal_df.get("setup", pd.Series(dtype=str)).dropna().unique()])
 
-        sel_grades = st.multiselect("Trade grade", grades, default=grades)
-        sel_caps = st.multiselect("Cap", caps, default=caps)
-        sel_setups = st.multiselect("Setup", setups, default=setups)
+        sel_caps = st.multiselect("Cap", caps, default=caps, key="rev_cap")
+        sel_grades = st.multiselect("Grade", grades, default=grades, key="rev_grade")
+        sel_setups = st.multiselect("Setup", setups, default=setups, key="rev_setup")
 
         dmin = reversal_df["date_dt"].min()
         dmax = reversal_df["date_dt"].max()
-        start_end = st.date_input(
-            "Date range",
-            value=(dmin.date() if pd.notna(dmin) else None, dmax.date() if pd.notna(dmax) else None),
-        )
-        start_date = start_end[0] if isinstance(start_end, (list, tuple)) and len(start_end) > 0 else None
-        end_date = start_end[1] if isinstance(start_end, (list, tuple)) and len(start_end) > 1 else None
+        with st.expander("Date range", expanded=False):
+            start_end = st.date_input(
+                "Range",
+                value=(dmin.date() if pd.notna(dmin) else None, dmax.date() if pd.notna(dmax) else None),
+                label_visibility="collapsed",
+                key="rev_date",
+            )
+            start_date = start_end[0] if isinstance(start_end, (list, tuple)) and len(start_end) > 0 else None
+            end_date = start_end[1] if isinstance(start_end, (list, tuple)) and len(start_end) > 1 else None
 
     df = reversal_df.copy()
     df = _filter_by_multiselect(df, "trade_grade", sel_grades)
@@ -906,16 +920,26 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
         st.warning("No reversal trades match the current filters.")
         return
 
-    st.caption("P&L proxy = `-reversal_open_close_pct * 100` (short open→close %). Win rate = % of rows with P&L > 0.")
-
+    # Summary stats
     stats = _summary_stats(df)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Trades", stats["trades"])
     c2.metric("Win rate", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%")
-    c3.metric("Avg P&L proxy", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
-    c4.metric("Median P&L proxy", "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%")
+    c3.metric("Avg P&L", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
+    c4.metric("Median P&L", "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%")
 
-    st.markdown("### Run-up / squeeze metrics")
+    st.caption("P&L = -(open→close %) on reversal day (short). Win = P&L > 0.")
+
+    # Compact breakdowns
+    with st.expander("Stats by cap / setup", expanded=False):
+        rc1, rc2 = st.columns(2)
+        with rc1:
+            st.markdown("**By cap**")
+            st.dataframe(_group_stats(df, "cap"), use_container_width=True, hide_index=True, height=180)
+        with rc2:
+            st.markdown("**By setup**")
+            st.dataframe(_group_stats(df, "setup"), use_container_width=True, hide_index=True, height=180)
+
     metric_defaults = [
         "pct_from_9ema",
         "prior_day_range_atr",
@@ -927,220 +951,191 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
         "upper_band_distance",
         "bollinger_width",
     ]
-    metric_options = _key_metrics_selector(metric_defaults, df)
-    metric = st.selectbox("Metric", metric_options, index=0, key="rev_metric")
 
-    if metric in df.columns:
-        fig = px.histogram(
+    # Tabs for different analysis modes
+    tab_optimizer, tab_explore, tab_checklist = st.tabs(["Threshold Optimizer", "Metric Explorer", "Checklist Simulator"])
+
+    with tab_optimizer:
+        st.markdown("**Find optimal threshold for any metric by cap.** Sweeps values and shows win rate / avg P&L at each cutoff.")
+        render_metric_optimizer(
             df,
-            x=metric,
-            nbins=35,
-            hover_data=["ticker", "date", "cap", "setup", "trade_grade", "pnl"],
-            title=f"Distribution: {metric}",
+            metric_defaults=metric_defaults,
+            default_directions={
+                "reversal_open_close_pct": "<=",
+                "prior_day_close_vs_high_pct": "<=",
+            },
+            key_prefix="reversal_opt",
         )
-        st.plotly_chart(fig, use_container_width=True)
 
-        scatter = px.scatter(
-            df,
-            x=metric,
-            y="pnl",
-            color="cap" if "cap" in df.columns else None,
-            hover_data=["ticker", "date", "setup", "trade_grade"],
-            title=f"{metric} vs P&L proxy (-(open→close))",
+    with tab_explore:
+        st.markdown("**Explore metric distributions and their relationship to P&L.**")
+        metric_options = _key_metrics_selector(metric_defaults, df)
+        metric = st.selectbox("Metric", metric_options, index=0, key="rev_explore_metric")
+
+        if metric in df.columns:
+            c1, c2 = st.columns(2)
+            with c1:
+                fig = px.histogram(
+                    df,
+                    x=metric,
+                    nbins=35,
+                    hover_data=["ticker", "date", "cap", "setup", "trade_grade", "pnl"],
+                    title=f"Distribution: {metric}",
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with c2:
+                scatter = px.scatter(
+                    df,
+                    x=metric,
+                    y="pnl",
+                    color="cap" if "cap" in df.columns else None,
+                    hover_data=["ticker", "date", "setup", "trade_grade"],
+                    title=f"{metric} vs P&L",
+                )
+                st.plotly_chart(scatter, use_container_width=True)
+
+    with tab_checklist:
+        st.markdown("**Test checklist logic on historical trades.** See how GO/CAUTION/NO-GO performs.")
+        mode = st.radio(
+            "Mode",
+            ["Current thresholds", "Custom thresholds"],
+            horizontal=True,
+            key="rev_checklist_mode",
         )
-        st.plotly_chart(scatter, use_container_width=True)
 
-    st.markdown("### Checklist simulator (Reversal pre-trade, 5 criteria)")
-    mode = st.radio(
-        "Scoring mode",
-        ["Current checklist (mirrors generate_report.py)", "What-if override (tune thresholds)"],
-        horizontal=True,
-        key="rev_mode",
-    )
+        if mode == "Current thresholds":
+            rows: List[Dict[str, Any]] = []
+            for _, r in df.iterrows():
+                cap = str(r.get("cap") or "Medium")
+                thr = REVERSAL_PRETRADE_THRESHOLDS.get(cap, REVERSAL_PRETRADE_THRESHOLDS["Medium"])
+                s, rec, failed = score_reversal_pretrade_row(r.to_dict(), thr)
+                rows.append(
+                    {
+                        "checklist_score": int(s),
+                        "checklist_max": 5,
+                        "checklist_rec": rec,
+                        "checklist_failed": ", ".join(failed) if failed else "PERFECT",
+                    }
+                )
+            scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
-    if mode.startswith("Current"):
-        rows: List[Dict[str, Any]] = []
-        for _, r in df.iterrows():
-            cap = str(r.get("cap") or "Medium")
-            thr = REVERSAL_PRETRADE_THRESHOLDS.get(cap, REVERSAL_PRETRADE_THRESHOLDS["Medium"])
-            s, rec, failed = score_reversal_pretrade_row(r.to_dict(), thr)
-            rows.append(
-                {
-                    "checklist_score": int(s),
-                    "checklist_max": 5,
-                    "checklist_rec": rec,
-                    "checklist_failed": ", ".join(failed) if failed else "PERFECT",
-                }
+            st.markdown("**Results by recommendation:**")
+            st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+            box = px.box(
+                scored,
+                x="checklist_rec",
+                y="pnl",
+                points="all",
+                hover_data=["ticker", "date", "cap", "setup", "trade_grade", "checklist_score"],
+                title="P&L by recommendation",
             )
-        scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
+            st.plotly_chart(box, use_container_width=True)
 
-        st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
-        box = px.box(
-            scored,
-            x="checklist_rec",
-            y="pnl",
-            points="all",
-            hover_data=["ticker", "date", "cap", "setup", "trade_grade", "checklist_score"],
-            title="P&L proxy by checklist recommendation",
-        )
-        st.plotly_chart(box, use_container_width=True)
-        st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), use_container_width=True, height=420)
+            with st.expander("All trades", expanded=False):
+                st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), use_container_width=True, height=350)
+                csv_bytes = scored.to_csv(index=False).encode("utf-8")
+                st.download_button("Download CSV", data=csv_bytes, file_name="reversal_scored.csv")
 
-        csv_bytes = scored.to_csv(index=False).encode("utf-8")
-        st.download_button("Download scored reversal CSV", data=csv_bytes, file_name="reversal_scored_dashboard.csv")
+        else:
+            tune_cap = st.selectbox("Cap", sorted(df["cap"].dropna().unique()), index=0, key="rev_tune_cap")
+            base = REVERSAL_PRETRADE_THRESHOLDS.get(tune_cap, REVERSAL_PRETRADE_THRESHOLDS["Medium"]).copy()
 
-    else:
-        tune_cap = st.selectbox("Tune cap", sorted(df["cap"].dropna().unique()), index=0, key="rev_tune_cap")
-        base = REVERSAL_PRETRADE_THRESHOLDS.get(tune_cap, REVERSAL_PRETRADE_THRESHOLDS["Medium"]).copy()
+            st.markdown("**Adjust thresholds:**")
+            c1, c2, c3 = st.columns(3)
+            thr_pct9 = c1.slider("Above 9EMA (%)", 0.0, 2.0, float(base["pct_from_9ema"]), 0.01)
+            thr_range = c2.slider("Range (x ATR)", 0.0, 10.0, float(base["prior_day_range_atr"]), 0.1)
+            thr_up = c3.slider("Up days", 0, 10, int(base["consecutive_up_days"]), 1)
 
-        with st.expander("Current (baseline) thresholds", expanded=True):
-            st.json({"cap": tune_cap, **base})
+            c4, c5, c6 = st.columns(3)
+            thr_gap = c4.slider("Gap up (%)", 0.0, 20.0, float(base["gap_pct"]) * 100.0, 0.5)
+            thr_prior_rvol = c5.slider("Prior RVOL (x)", 0.0, 10.0, float(base["prior_day_rvol"]), 0.1)
+            thr_pm_rvol = c6.slider("PM RVOL (x)", 0.0, 0.50, float(base["premarket_rvol"]), 0.01)
 
-        c1, c2, c3 = st.columns(3)
-        thr_pct9 = c1.slider(
-            "% above 9EMA (min)",
-            min_value=0.0,
-            max_value=2.0,
-            value=float(base["pct_from_9ema"]),
-            step=0.01,
-        )
-        thr_range = c2.slider(
-            "Prior day range (min, x ATR)",
-            min_value=0.0,
-            max_value=10.0,
-            value=float(base["prior_day_range_atr"]),
-            step=0.1,
-        )
-        thr_up = c3.slider(
-            "Consecutive up days (min)",
-            min_value=0,
-            max_value=10,
-            value=int(base["consecutive_up_days"]),
-            step=1,
-        )
+            base_override = {
+                "pct_from_9ema": thr_pct9,
+                "prior_day_range_atr": thr_range,
+                "consecutive_up_days": thr_up,
+                "gap_pct": thr_gap / 100.0,
+                "prior_day_rvol": thr_prior_rvol,
+                "premarket_rvol": thr_pm_rvol,
+            }
 
-        c4, c5, c6 = st.columns(3)
-        thr_gap = c4.slider(
-            "Gap up (min, %)",
-            min_value=0.0,
-            max_value=3.0,
-            value=float(base["gap_pct"]) * 100.0,
-            step=0.5,
-        )
-        thr_prior_rvol = c5.slider(
-            "Prior day RVOL (min, x ADV)",
-            min_value=0.0,
-            max_value=10.0,
-            value=float(base["prior_day_rvol"]),
-            step=0.1,
-        )
-        thr_pm_rvol = c6.slider(
-            "Premarket RVOL (min, x ADV)",
-            min_value=0.0,
-            max_value=0.50,
-            value=float(base["premarket_rvol"]),
-            step=0.01,
-        )
+            only_matching = st.checkbox("Only this cap", value=True, key="rev_only_matching")
+            to_score = df.copy()
+            if only_matching:
+                to_score = to_score[to_score["cap"] == tune_cap]
 
-        base_override = {
-            "pct_from_9ema": thr_pct9,
-            "prior_day_range_atr": thr_range,
-            "consecutive_up_days": thr_up,
-            "gap_pct": thr_gap / 100.0,
-            "prior_day_rvol": thr_prior_rvol,
-            "premarket_rvol": thr_pm_rvol,
-        }
+            if to_score.empty:
+                st.warning("No trades match.")
+            else:
+                rows: List[Dict[str, Any]] = []
+                for _, r in to_score.iterrows():
+                    s, rec, failed = score_reversal_pretrade_row(r.to_dict(), base_override)
+                    rows.append(
+                        {
+                            "checklist_score": int(s),
+                            "checklist_max": 5,
+                            "checklist_rec": rec,
+                            "checklist_failed": ", ".join(failed) if failed else "PERFECT",
+                        }
+                    )
+                scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
-        only_matching = st.checkbox("Only score rows matching this cap", value=True, key="rev_only_matching")
-        to_score = df.copy()
-        if only_matching:
-            to_score = to_score[to_score["cap"] == tune_cap]
+                st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+                box = px.box(
+                    scored,
+                    x="checklist_rec",
+                    y="pnl",
+                    points="all",
+                    hover_data=["ticker", "date", "setup", "trade_grade"],
+                    title="P&L by recommendation",
+                )
+                st.plotly_chart(box, use_container_width=True)
 
-        rows: List[Dict[str, Any]] = []
-        for _, r in to_score.iterrows():
-            s, rec, failed = score_reversal_pretrade_row(r.to_dict(), base_override)
-            rows.append(
-                {
-                    "checklist_score": int(s),
-                    "checklist_max": 5,
-                    "checklist_rec": rec,
-                    "checklist_failed": ", ".join(failed) if failed else "PERFECT",
-                }
-            )
-        scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
-
-        st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
-        box = px.box(
-            scored,
-            x="checklist_rec",
-            y="pnl",
-            points="all",
-            hover_data=["ticker", "date", "setup", "trade_grade"],
-            title="P&L proxy by what-if recommendation",
-        )
-        st.plotly_chart(box, use_container_width=True)
-        st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), use_container_width=True, height=420)
-
-        with st.expander("Export snippet (paste into `PRETRADE_THRESHOLDS` in generate_report.py)", expanded=False):
-            st.code(
-                "\n".join(
-                    [
-                        f"PRETRADE_THRESHOLDS['{tune_cap}'] = {{",
-                        f"    'pct_from_9ema': {thr_pct9:.2f},",
-                        f"    'prior_day_range_atr': {thr_range:.1f},",
-                        f"    'prior_day_rvol': {thr_prior_rvol:.1f},",
-                        f"    'premarket_rvol': {thr_pm_rvol:.2f},",
-                        f"    'consecutive_up_days': {thr_up},",
-                        f"    'gap_pct': {thr_gap/100.0:.2f},",
-                        "}",
-                    ]
-                ),
-                language="python",
-            )
-
-    render_metric_optimizer(
-        df,
-        metric_defaults=metric_defaults,
-        default_directions={
-            "reversal_open_close_pct": "<=",
-            "prior_day_close_vs_high_pct": "<=",
-        },
-        title="Metric optimizer (single threshold sweep)",
-        key_prefix="reversal_opt",
-    )
+            with st.expander("Export config snippet"):
+                st.code(
+                    f"""PRETRADE_THRESHOLDS['{tune_cap}'] = {{
+    'pct_from_9ema': {thr_pct9:.2f},
+    'prior_day_range_atr': {thr_range:.1f},
+    'prior_day_rvol': {thr_prior_rvol:.1f},
+    'premarket_rvol': {thr_pm_rvol:.2f},
+    'consecutive_up_days': {thr_up},
+    'gap_pct': {thr_gap/100.0:.2f},
+}}""",
+                    language="python",
+                )
 
 
 # -----------------------------------------------------------------------------
 # App
 # -----------------------------------------------------------------------------
-st.title("Backtester Checklist Dashboard")
 
 with st.sidebar:
-    st.markdown("### Navigation")
-    page = st.radio("Page", ["Overview", "Bounce", "Reversal"], index=0)
+    st.title("Trade Dashboard")
+    page = st.radio("", ["Overview", "Bounce (long)", "Reversal (short)"], index=0, label_visibility="collapsed")
+    st.divider()
 
 bounce_df = load_bounce_df()
 reversal_df = load_reversal_df()
 
-# Optional: add bounce intensity column (based on current bounce dataset)
-with st.sidebar:
-    add_intensity = st.checkbox("Compute Bounce Intensity (slower)", value=False)
-if add_intensity and "bounce_intensity" not in bounce_df.columns:
-    # Default weights match `scripts/generate_report.py`
-    _weights = {
-        "selloff_total_pct": 0.30,
-        "consecutive_down_days": 0.10,
-        "prior_day_rvol": 0.15,
-        "pct_off_30d_high": 0.20,
-        "gap_pct": 0.25,
-    }
-    tmp = bounce_df.copy()
-    tmp["bounce_intensity"] = tmp.apply(lambda r: _compute_bounce_intensity_row(r, tmp, _weights), axis=1)
-    bounce_df = tmp
-
 if page == "Overview":
     render_overview(bounce_df, reversal_df)
-elif page == "Bounce":
+elif page == "Bounce (long)":
+    # Optional: add bounce intensity column (only on bounce page)
+    with st.sidebar:
+        add_intensity = st.checkbox("Compute bounce intensity", value=False, help="Slower; adds intensity percentile score")
+    if add_intensity and "bounce_intensity" not in bounce_df.columns:
+        _weights = {
+            "selloff_total_pct": 0.30,
+            "consecutive_down_days": 0.10,
+            "prior_day_rvol": 0.15,
+            "pct_off_30d_high": 0.20,
+            "gap_pct": 0.25,
+        }
+        tmp = bounce_df.copy()
+        tmp["bounce_intensity"] = tmp.apply(lambda r: _compute_bounce_intensity_row(r, tmp, _weights), axis=1)
+        bounce_df = tmp
     render_bounce(bounce_df)
 else:
     render_reversal(reversal_df)

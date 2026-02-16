@@ -64,9 +64,46 @@ from analyzers.bounce_scorer import (
 # Load bounce data and split by setup type for percentile comparisons
 _bounce_csv = Path(__file__).resolve().parent.parent / "data" / "bounce_data.csv"
 _bounce_df_all = pd.read_csv(_bounce_csv).dropna(subset=['ticker', 'date'])
+
+# ---------------------------------------------------------------------------
+# Column normalization (historical bounce CSV vs live metrics naming)
+# ---------------------------------------------------------------------------
+# Live bounce metrics (from `fetch_bounce_metrics`) expose `prior_day_rvol` (x ADV),
+# but the historical `bounce_data.csv` stores the same concept as
+# `percent_of_vol_one_day_before`. Create/populate prior_day_rvol so the
+# bounce-intensity percentile table doesn't show N/A.
+if 'prior_day_rvol' not in _bounce_df_all.columns:
+    # Primary source: percent_of_vol_one_day_before (already RVOL ratio)
+    if 'percent_of_vol_one_day_before' in _bounce_df_all.columns:
+        _bounce_df_all['prior_day_rvol'] = pd.to_numeric(
+            _bounce_df_all['percent_of_vol_one_day_before'], errors='coerce'
+        )
+    # Fallback: compute from raw volumes
+    elif {'vol_one_day_before', 'avg_daily_vol'}.issubset(_bounce_df_all.columns):
+        _bounce_df_all['prior_day_rvol'] = (
+            pd.to_numeric(_bounce_df_all['vol_one_day_before'], errors='coerce')
+            / pd.to_numeric(_bounce_df_all['avg_daily_vol'], errors='coerce')
+        )
+    else:
+        _bounce_df_all['prior_day_rvol'] = pd.NA
+else:
+    # Column exists but may have gaps — fill from percent_of_vol_one_day_before
+    _bounce_df_all['prior_day_rvol'] = pd.to_numeric(_bounce_df_all['prior_day_rvol'], errors='coerce')
+    if 'percent_of_vol_one_day_before' in _bounce_df_all.columns:
+        _bounce_df_all['prior_day_rvol'] = _bounce_df_all['prior_day_rvol'].fillna(
+            pd.to_numeric(_bounce_df_all['percent_of_vol_one_day_before'], errors='coerce')
+        )
+
 _bounce_df_all['_setup_profile'] = _bounce_df_all['Setup'].apply(classify_from_setup_column)
 BOUNCE_DF_WEAK = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_weakstock'].copy()
 BOUNCE_DF_STRONG = _bounce_df_all[_bounce_df_all['_setup_profile'] == 'GapFade_strongstock'].copy()
+
+# Debug: verify prior_day_rvol was populated from historical data
+_pdr_valid = _bounce_df_all['prior_day_rvol'].notna().sum()
+print(f"[generate_report] Historical bounce data: {len(_bounce_df_all)} rows, "
+      f"prior_day_rvol has {_pdr_valid} non-null values")
+if _pdr_valid == 0:
+    print(f"  WARNING: prior_day_rvol is all NaN! Columns available: {list(_bounce_df_all.columns)[:20]}...")
 
 # ---------------------------------------------------------------------------
 # Bounce Intensity Score — continuous 0-100 ranking for bounce candidates
@@ -1391,7 +1428,9 @@ def generate_report() -> str:
         try:
             if bucket_map.get(ticker) == "bounce":
                 bounce_metrics_all[ticker] = fetch_bounce_metrics(ticker, today)
-                print(f"  {ticker}: bounce metrics fetched")
+                # Debug: show prior_day_rvol value
+                pdr = bounce_metrics_all[ticker].get('prior_day_rvol')
+                print(f"  {ticker}: bounce metrics fetched (prior_day_rvol={pdr})")
         except Exception as e:
             print(f"  {ticker}: Failed to get bounce metrics - {e}")
 

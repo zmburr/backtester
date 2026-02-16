@@ -140,7 +140,7 @@ SETUP_PROFILES = {
             'Small': -0.30, 'Micro': -0.30, '_default': -0.17,
         },
         consecutive_down_days={
-            'ETF': 1, 'Large': 2, 'Medium': 4,
+            'ETF': 2, 'Large': 2, 'Medium': 4,
             'Small': 4, 'Micro': 4, '_default': 4,
         },
         vol_expansion={
@@ -196,8 +196,8 @@ SETUP_PROFILES = {
             'Small': -0.10, 'Micro': -0.10, '_default': -0.15,
         },
         consecutive_down_days={
-            'ETF': 1, 'Large': 1, 'Medium': 3,
-            'Small': 1, 'Micro': 1, '_default': 3,
+            'ETF': 2, 'Large': 2, 'Medium': 3,
+            'Small': 2, 'Micro': 2, '_default': 3,
         },
         vol_expansion={
             'ETF': 1.75, 'Large': 1.30, 'Medium': 1.0,
