@@ -65,6 +65,10 @@ from analyzers.bounce_scorer import (
     classify_stock,
     SETUP_PROFILES,
 )
+from analyzers.reversal_pretrade import (
+    ReversalPretrade,
+    classify_reversal_setup,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -115,12 +119,15 @@ class ScreenResult:
     bounce_recommendation: str
     bounce_criteria: Dict
 
+    # Detected reversal setup type (e.g. '3DGapFade') or None for generic
+    parabolic_setup_type: Optional[str] = None
+
     # Key metrics for display
-    metrics: Dict
+    metrics: Dict = field(default_factory=dict)
 
     # Flags
-    is_parabolic_candidate: bool
-    is_bounce_candidate: bool
+    is_parabolic_candidate: bool = False
+    is_bounce_candidate: bool = False
     error: Optional[str] = None
 
 
@@ -140,6 +147,7 @@ class SetupScreener:
     def __init__(self):
         self.reversal_scorer = ReversalScorer()
         self.bounce_checker = BouncePretrade()
+        self.reversal_pretrade = ReversalPretrade()
 
     # ------------------------------------------------------------------
     # Metric computation
@@ -321,23 +329,55 @@ class SetupScreener:
     # Parabolic short scoring (5 pre-trade criteria)
     # ------------------------------------------------------------------
 
-    def _score_parabolic_short(self, metrics: Dict, cap: str) -> Tuple[int, int, str, str, Dict]:
+    def _score_parabolic_short(self, ticker: str, metrics: Dict,
+                               cap: str) -> Tuple[int, int, str, str, Dict, Optional[str]]:
         """
         Score pre-trade parabolic short criteria.
 
-        Uses 5 of the 6 ReversalScorer criteria (excludes reversal_pct which
-        is the trade result, not a pre-trade condition).
+        First tries to classify into a specific setup type (e.g. 3DGapFade)
+        and uses per-setup per-cap thresholds. If no typed match, falls back
+        to the generic ReversalScorer thresholds with a directional gate
+        (pct_from_9ema > 0).
 
         Returns:
-            (score, max_score, grade, recommendation, criteria_details)
+            (score, max_score, grade, recommendation, criteria_details, setup_type)
         """
+        # --- Try typed classification first ---
+        setup_type = classify_reversal_setup(metrics)
+
+        if setup_type:
+            result = self.reversal_pretrade.validate(
+                ticker=ticker, metrics=metrics,
+                setup_type=setup_type, cap=cap,
+            )
+            criteria_details = {}
+            for item in result.items:
+                criteria_details[item.name] = {
+                    'name': item.description,
+                    'threshold': item.threshold,
+                    'actual': item.actual,
+                    'passed': item.passed,
+                }
+            grade = result.classification_details.get('grade', 'F')
+            return (result.score, result.max_score, grade,
+                    result.recommendation, criteria_details, setup_type)
+
+        # --- Fallback: generic ReversalScorer thresholds ---
         thresholds = self.reversal_scorer._get_thresholds(cap)
         passed = []
         failed = []
         criteria_details = {}
 
+        # Directional gate: must be above 9EMA to be parabolic
+        pct_from_9ema = metrics.get('pct_from_9ema')
+        disqualified = (
+            pct_from_9ema is None
+            or (isinstance(pct_from_9ema, float) and pd.isna(pct_from_9ema))
+            or pct_from_9ema <= 0
+        )
+
         checks = [
-            ('pct_from_9ema', metrics.get('pct_from_9ema'),
+            ('pct_from_9ema', pct_from_9ema,
              thresholds.pct_from_9ema, 'gte', 'Extended above 9EMA'),
             ('prior_day_range_atr', metrics.get('prior_day_range_atr'),
              thresholds.prior_day_range_atr, 'gte', 'Range expansion (ATR)'),
@@ -369,6 +409,10 @@ class SetupScreener:
                 'passed': check_passed,
             }
 
+        if disqualified:
+            # Below 9EMA = not parabolic, override score regardless of other criteria
+            return 0, 5, 'F', 'NO-GO', criteria_details, None
+
         score = len(passed)
         max_score = 5
 
@@ -381,7 +425,7 @@ class SetupScreener:
         else:
             grade, rec = 'F', 'NO-GO'
 
-        return score, max_score, grade, rec, criteria_details
+        return score, max_score, grade, rec, criteria_details, None
 
     # ------------------------------------------------------------------
     # Capitulation bounce scoring (6 pre-trade criteria)
@@ -470,13 +514,16 @@ class SetupScreener:
     def _score_from_metrics(self, ticker: str, metrics: Dict,
                             cap: str) -> ScreenResult:
         """Score a ticker from its metrics dict."""
-        p_score, p_max, p_grade, p_rec, p_criteria = (
-            self._score_parabolic_short(metrics, cap)
+        p_score, p_max, p_grade, p_rec, p_criteria, p_setup_type = (
+            self._score_parabolic_short(ticker, metrics, cap)
         )
 
         b_score, b_max, b_setup, b_rec, b_criteria = (
             self._score_capitulation_bounce(ticker, metrics, cap)
         )
+
+        # Typed setups require score >= 4 (GO), generic keeps >= 3
+        parabolic_threshold = 4 if p_setup_type else 3
 
         return ScreenResult(
             ticker=ticker,
@@ -486,13 +533,14 @@ class SetupScreener:
             parabolic_grade=p_grade,
             parabolic_recommendation=p_rec,
             parabolic_criteria=p_criteria,
+            parabolic_setup_type=p_setup_type,
             bounce_score=b_score,
             bounce_max_score=b_max,
             bounce_setup_type=b_setup,
             bounce_recommendation=b_rec,
             bounce_criteria=b_criteria,
             metrics=metrics,
-            is_parabolic_candidate=(p_score >= 3),
+            is_parabolic_candidate=(p_score >= parabolic_threshold),
             is_bounce_candidate=(b_score >= 4),
         )
 
@@ -504,6 +552,7 @@ class SetupScreener:
             parabolic_score=0, parabolic_max_score=5,
             parabolic_grade='F', parabolic_recommendation='NO-GO',
             parabolic_criteria={},
+            parabolic_setup_type=None,
             bounce_score=0, bounce_max_score=6,
             bounce_setup_type='', bounce_recommendation='NO-GO',
             bounce_criteria={},
@@ -619,8 +668,8 @@ class SetupScreener:
 
         print("\n" + "=" * 90)
         print("PARABOLIC SHORT CANDIDATES")
-        print(f"Pre-trade criteria: 5 of 6 reversal criteria (excludes reversal %)")
-        print(f"Candidates shown: score >= 3/5")
+        print(f"Pre-trade criteria: typed setups use per-setup thresholds; generic uses ReversalScorer")
+        print(f"Candidates shown: typed >= 4/5 (GO), generic >= 3/5")
         print("=" * 90)
 
         if parabolic:
@@ -630,6 +679,7 @@ class SetupScreener:
                 rows.append({
                     'Ticker': r.ticker,
                     'Cap': r.cap,
+                    'Type': r.parabolic_setup_type or 'generic',
                     'Score': f"{r.parabolic_score}/{r.parabolic_max_score}",
                     'Grade': r.parabolic_grade,
                     '9EMA %': _fmt_pct(m.get('pct_from_9ema')),

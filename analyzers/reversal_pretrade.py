@@ -1,0 +1,460 @@
+"""
+Reversal Pre-Trade Checklist (Per-Setup-Type)
+
+Mirrors the BouncePretrade pattern from bounce_scorer.py but for reversal
+(parabolic short) setups. Replaces the generic ReversalScorer thresholds with
+per-setup-type profiles derived from historical Grade A+B trades.
+
+Starting setup type: 3DGapFade
+  - Minimum 2 prior euphoric up days + euphoric gap up on the fade day
+  - "Up day" = close > prior_close (a red candle that closes above prior close counts)
+  - 33 historical trades (23 A, 8 B, 2 C) in reversal_data.csv
+
+Classification rules (all must be true):
+  - consecutive_up_days >= 2
+  - gap_pct > 0 (gaps up on the reversal/fade day)
+  - pct_from_9ema > 0.04 (4%+ above 9EMA)
+
+Usage:
+    from analyzers.reversal_pretrade import ReversalPretrade, classify_reversal_setup
+
+    pretrade = ReversalPretrade()
+    result = pretrade.validate(ticker, metrics, cap='Medium')
+    pretrade.print_checklist(result)
+"""
+
+import pandas as pd
+import numpy as np
+import logging
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional
+from datetime import datetime
+
+try:
+    from analyzers.bounce_scorer import ChecklistItem, ChecklistResult
+except ImportError:
+    from bounce_scorer import ChecklistItem, ChecklistResult
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ReversalSetupProfile:
+    """
+    Per-setup-type profile for reversal (parabolic short) pre-trade scoring.
+    Thresholds are Dict[str, float] keyed by market cap (ETF/Large/Medium/Small/Micro).
+    """
+    name: str
+    description: str
+    sample_size: int
+    historical_win_rate: float
+    historical_avg_pnl: float
+
+    # Per-cap threshold dicts
+    pct_from_9ema: Dict[str, float] = field(default_factory=dict)
+    prior_day_range_atr: Dict[str, float] = field(default_factory=dict)
+    rvol_score: Dict[str, float] = field(default_factory=dict)
+    consecutive_up_days: Dict[str, int] = field(default_factory=dict)
+    gap_pct: Dict[str, float] = field(default_factory=dict)
+
+    def get_threshold(self, criterion: str, cap: str):
+        """Look up cap-specific threshold, falling back to _default then Medium."""
+        d = getattr(self, criterion)
+        if not isinstance(d, dict):
+            return d
+        return d.get(cap, d.get('_default', d.get('Medium')))
+
+
+# ---------------------------------------------------------------------------
+# Setup profiles — derived from Grade A+B trades in reversal_data.csv
+# ---------------------------------------------------------------------------
+
+REVERSAL_SETUP_PROFILES = {
+    '3DGapFade': ReversalSetupProfile(
+        name='3DGapFade',
+        description='2+ euphoric up days + gap up on fade day — classic parabolic exhaustion',
+        sample_size=31,
+        historical_win_rate=0.87,
+        historical_avg_pnl=14.8,
+
+        pct_from_9ema={
+            'ETF': 0.05, 'Large': 0.08, 'Medium': 0.15,
+            'Small': 1.00, 'Micro': 1.20, '_default': 0.15,
+        },
+        prior_day_range_atr={
+            'ETF': 1.40, 'Large': 0.93, 'Medium': 1.00,
+            'Small': 1.95, 'Micro': 3.30, '_default': 1.00,
+        },
+        rvol_score={
+            'ETF': 1.80, 'Large': 1.35, 'Medium': 1.50,
+            'Small': 6.00, 'Micro': 1.60, '_default': 1.50,
+        },
+        consecutive_up_days={
+            'ETF': 2, 'Large': 2, 'Medium': 2,
+            'Small': 3, 'Micro': 2, '_default': 2,
+        },
+        gap_pct={
+            'ETF': 0.00, 'Large': 0.00, 'Medium': 0.00,
+            'Small': 0.50, 'Micro': 0.20, '_default': 0.00,
+        },
+    ),
+}
+
+# Criteria display names
+REVERSAL_CRITERIA_NAMES = {
+    'pct_from_9ema': 'Extended above 9EMA',
+    'prior_day_range_atr': 'Range expansion (ATR)',
+    'rvol_score': 'Volume expansion (RVOL)',
+    'consecutive_up_days': 'Consecutive up days',
+    'gap_pct': 'Euphoric gap up',
+}
+
+
+# ---------------------------------------------------------------------------
+# Classification — auto-detect reversal setup type from metrics
+# ---------------------------------------------------------------------------
+
+def classify_reversal_setup(metrics: Dict) -> Optional[str]:
+    """
+    Auto-detect reversal setup type from computed metrics.
+
+    3DGapFade requires all three:
+      - consecutive_up_days >= 2
+      - gap_pct > 0
+      - pct_from_9ema > 0.04
+
+    Returns:
+        Setup type string (e.g. '3DGapFade') or None if no match.
+    """
+    consecutive_up = metrics.get('consecutive_up_days')
+    gap = metrics.get('gap_pct')
+    pct_9ema = metrics.get('pct_from_9ema')
+
+    # Guard against None/NaN
+    def _valid(val):
+        return val is not None and not (isinstance(val, float) and pd.isna(val))
+
+    if _valid(consecutive_up) and _valid(gap) and _valid(pct_9ema):
+        if consecutive_up >= 2 and gap > 0 and pct_9ema > 0.04:
+            return '3DGapFade'
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# ReversalPretrade — pre-trade checklist for typed reversal setups
+# ---------------------------------------------------------------------------
+
+class ReversalPretrade:
+    """
+    Validates reversal setups against per-setup-type, per-cap thresholds.
+    Returns a ChecklistResult with score and recommendation.
+    """
+
+    def __init__(self):
+        self.profiles = REVERSAL_SETUP_PROFILES
+
+    def _check_gte(self, value, threshold) -> bool:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return False
+        return value >= threshold
+
+    def _format_value(self, value, criterion: str) -> str:
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return 'N/A'
+        if criterion in ('pct_from_9ema', 'gap_pct'):
+            return f"{value * 100:+.1f}%"
+        elif criterion == 'consecutive_up_days':
+            return f"{int(value)}"
+        elif criterion in ('prior_day_range_atr', 'rvol_score'):
+            return f"{value:.2f}x"
+        return f"{value:.2f}"
+
+    def _format_threshold(self, threshold, criterion: str) -> str:
+        if criterion in ('pct_from_9ema', 'gap_pct'):
+            return f"{threshold * 100:.0f}%"
+        elif criterion == 'consecutive_up_days':
+            return f"{int(threshold)}"
+        elif criterion in ('prior_day_range_atr', 'rvol_score'):
+            return f"{threshold:.1f}x"
+        return f"{threshold}"
+
+    def validate(self, ticker: str, metrics: Dict, setup_type: str = '3DGapFade',
+                 cap: str = 'Medium') -> ChecklistResult:
+        """
+        Validate a reversal setup against its per-cap thresholds.
+
+        Args:
+            ticker: Stock symbol
+            metrics: Dictionary of computed metrics
+            setup_type: Reversal setup type (must exist in REVERSAL_SETUP_PROFILES)
+            cap: Market cap category
+
+        Returns:
+            ChecklistResult with score and recommendation
+        """
+        if setup_type not in self.profiles:
+            logging.warning(f"Unknown reversal setup '{setup_type}', defaulting to 3DGapFade")
+            setup_type = '3DGapFade'
+
+        profile = self.profiles[setup_type]
+
+        criteria = [
+            ('pct_from_9ema', 'pct_from_9ema',
+             f'Extended above 9EMA >= {profile.get_threshold("pct_from_9ema", cap) * 100:.0f}%'),
+            ('prior_day_range_atr', 'prior_day_range_atr',
+             f'Range expansion >= {profile.get_threshold("prior_day_range_atr", cap):.1f}x ATR'),
+            ('rvol_score', 'rvol_score',
+             f'Volume expansion >= {profile.get_threshold("rvol_score", cap):.1f}x RVOL'),
+            ('consecutive_up_days', 'consecutive_up_days',
+             f'Consecutive up days >= {int(profile.get_threshold("consecutive_up_days", cap))}'),
+            ('gap_pct', 'gap_pct',
+             f'Euphoric gap up >= {profile.get_threshold("gap_pct", cap) * 100:.0f}%'),
+        ]
+
+        items = []
+        score = 0
+
+        for criterion_key, metric_key, description in criteria:
+            threshold = profile.get_threshold(criterion_key, cap)
+            actual = metrics.get(metric_key)
+            passed = self._check_gte(actual, threshold)
+
+            if passed:
+                score += 1
+
+            items.append(ChecklistItem(
+                name=criterion_key,
+                description=description,
+                threshold=threshold,
+                actual=actual,
+                passed=passed,
+                threshold_display=self._format_threshold(threshold, criterion_key),
+                actual_display=self._format_value(actual, criterion_key),
+            ))
+
+        # Scoring: 5/5=A+ GO, 4/5=A GO, 3/5=B CAUTION, <3=F NO-GO
+        max_score = 5
+        if score >= 4:
+            recommendation = 'GO'
+            grade = 'A+' if score == 5 else 'A'
+            summary = f"PASS: {score}/{max_score} criteria met — {setup_type} ({cap} Cap)"
+        elif score == 3:
+            recommendation = 'CAUTION'
+            grade = 'B'
+            failed_names = [i.name for i in items if not i.passed]
+            summary = f"MARGINAL: {score}/{max_score} — Missing: {', '.join(failed_names)}"
+        else:
+            recommendation = 'NO-GO'
+            grade = 'F'
+            failed_names = [i.name for i in items if not i.passed]
+            summary = f"FAIL: Only {score}/{max_score} — Missing: {', '.join(failed_names)}"
+
+        return ChecklistResult(
+            ticker=ticker,
+            setup_type=setup_type,
+            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            items=items,
+            score=score,
+            max_score=max_score,
+            recommendation=recommendation,
+            summary=summary,
+            bonuses=[],
+            warnings=[],
+            classification_details={'setup_type': setup_type, 'cap': cap, 'grade': grade},
+            cap=cap,
+        )
+
+    def print_checklist(self, result: ChecklistResult):
+        """Print a formatted checklist for a reversal setup."""
+        profile = self.profiles.get(result.setup_type)
+        grade = result.classification_details.get('grade', '?')
+
+        print()
+        print("=" * 70)
+        print(f"REVERSAL PRE-TRADE CHECKLIST: {result.ticker}")
+        print(f"Setup Type: {result.setup_type} ({result.cap} Cap)")
+        if profile:
+            print(f"  {profile.description}")
+            print(f"  Historical: {profile.sample_size} A+B trades, "
+                  f"{profile.historical_win_rate * 100:.0f}% WR, "
+                  f"+{profile.historical_avg_pnl:.0f}% avg P&L")
+        print(f"Generated: {result.timestamp}")
+        print("=" * 70)
+
+        # Recommendation banner
+        if result.recommendation == 'GO':
+            print(f"\n  >>> {grade} {result.recommendation} - TRADE IT <<<")
+        elif result.recommendation == 'CAUTION':
+            print(f"\n  >>> {grade} {result.recommendation} - REDUCED SIZE <<<")
+        else:
+            print(f"\n  >>> {grade} {result.recommendation} - DO NOT TRADE <<<")
+
+        print(f"\nScore: {result.score}/{result.max_score}")
+        print(result.summary)
+
+        print(f"\nCORE CRITERIA ({result.score}/{result.max_score}):")
+        print("-" * 60)
+        for item in result.items:
+            status = "[PASS]" if item.passed else "[FAIL]"
+            print(f"  {status} {item.description}")
+            print(f"         Required: >= {item.threshold_display} | Actual: {item.actual_display}")
+
+        print()
+
+
+# ---------------------------------------------------------------------------
+# __main__ — validate thresholds against reversal_data.csv 3DGapFade trades
+# ---------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+    csv_path = os.path.join(DATA_PATH, 'reversal_data.csv')
+
+    df = pd.read_csv(csv_path)
+    print(f"Loaded {len(df)} trades from reversal_data.csv")
+
+    # Filter to 3DGapFade setup type
+    gf = df[df['setup'] == '3DGapFade'].copy()
+    print(f"3DGapFade trades: {len(gf)}")
+    print(f"Grade distribution: {gf['trade_grade'].value_counts().to_dict()}")
+    print(f"Cap distribution: {gf['cap'].value_counts().to_dict()}")
+
+    # Score each trade
+    pretrade = ReversalPretrade()
+    results = []
+
+    for _, row in gf.iterrows():
+        metrics = row.to_dict()
+        # Map CSV columns to expected metric names
+        if 'one_day_before_range_pct' in metrics and pd.notna(metrics['one_day_before_range_pct']):
+            if 'prior_day_range_atr' not in metrics or pd.isna(metrics.get('prior_day_range_atr')):
+                metrics['prior_day_range_atr'] = metrics['one_day_before_range_pct']
+
+        cap = row.get('cap', 'Medium')
+        if cap is None or (isinstance(cap, float) and pd.isna(cap)):
+            cap = 'Medium'
+
+        result = pretrade.validate(
+            ticker=row['ticker'],
+            metrics=metrics,
+            setup_type='3DGapFade',
+            cap=cap,
+        )
+        pnl = -row.get('reversal_open_close_pct', 0) * 100
+
+        results.append({
+            'date': row['date'],
+            'ticker': row['ticker'],
+            'trade_grade': row['trade_grade'],
+            'cap': cap,
+            'score': result.score,
+            'recommendation': result.recommendation,
+            'grade': result.classification_details.get('grade', '?'),
+            'pnl': pnl,
+            'failed': ', '.join([i.name for i in result.items if not i.passed]) or 'PERFECT',
+        })
+
+    results_df = pd.DataFrame(results)
+
+    # --- Score distribution ---
+    print("\n" + "=" * 70)
+    print("3DGapFade SCORING SUMMARY (Per-Cap Thresholds)")
+    print("=" * 70)
+
+    print("\nSCORE DISTRIBUTION:")
+    print(results_df['score'].value_counts().sort_index(ascending=False))
+
+    print("\nGRADE DISTRIBUTION:")
+    print(results_df['grade'].value_counts())
+
+    print("\nRECOMMENDATION DISTRIBUTION:")
+    print(results_df['recommendation'].value_counts())
+
+    # --- Performance by score ---
+    print("\nPERFORMANCE BY SCORE:")
+    print("-" * 60)
+    for score_val in range(5, -1, -1):
+        subset = results_df[results_df['score'] == score_val]
+        if len(subset) > 0:
+            win_rate = (subset['pnl'] > 0).mean() * 100
+            avg_pnl = subset['pnl'].mean()
+            print(f"Score {score_val}/5: {len(subset):2d} trades | "
+                  f"Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
+
+    # --- GO vs NO-GO ---
+    print("\nGO vs CAUTION vs NO-GO:")
+    print("-" * 60)
+    for rec in ['GO', 'CAUTION', 'NO-GO']:
+        subset = results_df[results_df['recommendation'] == rec]
+        if len(subset) > 0:
+            win_rate = (subset['pnl'] > 0).mean() * 100
+            avg_pnl = subset['pnl'].mean()
+            print(f"{rec:8s}: {len(subset):2d} trades | Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
+
+    # --- By trade grade ---
+    print("\nBY ORIGINAL TRADE GRADE:")
+    print("-" * 60)
+    for grade in ['A', 'B', 'C']:
+        subset = results_df[results_df['trade_grade'] == grade]
+        if len(subset) > 0:
+            avg_score = subset['score'].mean()
+            go_pct = (subset['recommendation'] == 'GO').mean() * 100
+            print(f"Grade {grade}: {len(subset):2d} trades | Avg Score: {avg_score:.1f}/5 | GO rate: {go_pct:.0f}%")
+
+    # --- By cap ---
+    print("\nBY CAP:")
+    print("-" * 60)
+    for cap in ['ETF', 'Large', 'Medium', 'Small', 'Micro']:
+        subset = results_df[results_df['cap'] == cap]
+        if len(subset) > 0:
+            avg_score = subset['score'].mean()
+            print(f"{cap:8s}: {len(subset):2d} trades | Avg Score: {avg_score:.1f}/5")
+
+    # --- Sample reports ---
+    print("\n" + "=" * 70)
+    print("SAMPLE SCORE REPORTS")
+    print("=" * 70)
+
+    for score_val in [5, 4, 3]:
+        sample = results_df[results_df['score'] == score_val]
+        if len(sample) > 0:
+            row_info = sample.iloc[0]
+            row_data = gf[
+                (gf['ticker'] == row_info['ticker']) &
+                (gf['date'] == row_info['date'])
+            ].iloc[0]
+            metrics = row_data.to_dict()
+            if 'one_day_before_range_pct' in metrics and pd.notna(metrics['one_day_before_range_pct']):
+                if 'prior_day_range_atr' not in metrics or pd.isna(metrics.get('prior_day_range_atr')):
+                    metrics['prior_day_range_atr'] = metrics['one_day_before_range_pct']
+            cap = row_data.get('cap', 'Medium')
+            if cap is None or (isinstance(cap, float) and pd.isna(cap)):
+                cap = 'Medium'
+            result = pretrade.validate(
+                ticker=row_data['ticker'],
+                metrics=metrics,
+                setup_type='3DGapFade',
+                cap=cap,
+            )
+            pretrade.print_checklist(result)
+
+    # --- Most common failure modes ---
+    print("\nMOST COMMON FAILURES:")
+    print("-" * 60)
+    all_failures = []
+    for f in results_df['failed']:
+        if f != 'PERFECT':
+            all_failures.extend(f.split(', '))
+    if all_failures:
+        from collections import Counter
+        for criterion, count in Counter(all_failures).most_common():
+            print(f"  {criterion}: {count} trades failed")
