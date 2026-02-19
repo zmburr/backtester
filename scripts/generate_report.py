@@ -111,18 +111,23 @@ if _pdr_valid == 0:
 
 # ---------------------------------------------------------------------------
 # Bounce Intensity Score — continuous 0-100 ranking for bounce candidates
-# Uses percentile rank against all 52 historical bounce trades.
+# V2: Uses percentile rank against all 54 historical bounce trades.
 # Higher = more extreme setup = better bounce candidate.
+# Spearman rho vs outcome: 0.735 (p<0.0001). Score >=50 = 96% WR, +15% avg P&L.
 # ---------------------------------------------------------------------------
 from scipy.stats import percentileofscore as _pctrank
 
 # Metrics, direction (True = higher actual = higher score, False = lower/more-negative = higher score), weight
+# V2: Removed prior_day_rvol (rho=0.04, zero predictive power).
+# Added pct_change_3 (rho=-0.700), pct_off_52wk_high (rho=-0.487), pct_change_15 (rho=-0.570).
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',              False, 0.30),  # deeper selloff = better
-    ('consecutive_down_days',          True,  0.10),  # more days = better
-    ('prior_day_rvol',                 True,  0.15),  # higher prior day vol = better
-    ('pct_off_30d_high',               False, 0.20),  # further off high = better
-    ('gap_pct',                        False, 0.25),  # bigger gap down = better
+    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.712)
+    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.700)
+    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.435)
+    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.568)
+    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.487)
+    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.350)
+    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.570)
 ]
 
 
@@ -130,9 +135,17 @@ def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict
     """
     Compute a weighted composite bounce intensity score (0-100).
 
-    For each metric, percentile rank the candidate against all 52 historical
+    For each metric, percentile rank the candidate against all 54 historical
     bounce trades.  "More extreme = higher score" so negative-direction metrics
     are inverted (100 - pctrank).
+
+    V2 composite (7 metrics, Spearman rho=0.735):
+      selloff_total_pct 25%, pct_change_3 20%, gap_pct 15%, pct_off_30d_high 15%,
+      pct_off_52wk_high 10%, consecutive_down_days 10%, pct_change_15 5%
+
+    Key thresholds from backtesting (n=54):
+      Score >=50: 96% WR, +15.4% avg P&L  |  Score >=65: 100% WR, +23.2% avg
+      Score <50:  54% WR, -1.8% avg P&L   |  Score <30:  21% WR, -5.9% avg
 
     Returns dict with per-metric percentiles, weights, and the composite score.
     """
@@ -165,19 +178,26 @@ def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict
 
 
 def format_bounce_intensity_html(intensity: Dict) -> str:
-    """Format bounce intensity score as compact HTML."""
+    """Format bounce intensity score as compact HTML with V2 threshold context."""
     score = intensity['composite']
 
-    if score >= 70:
-        color = '#28a745'
+    if score >= 65:
+        color = '#28a745'       # green — 100% WR, +23% avg historically
+        context = '100% WR, +23% avg'
+    elif score >= 50:
+        color = '#28a745'       # green — 96% WR, +15% avg
+        context = '96% WR, +15% avg'
     elif score >= 40:
-        color = '#ffc107'
+        color = '#ffc107'       # yellow — transitional zone
+        context = 'transitional zone'
     else:
-        color = '#dc3545'
+        color = '#dc3545'       # red — below 50: 54% WR, -2% avg
+        context = '54% WR, -2% avg'
 
     lines = [
         f'<div style="margin: 6px 0;">',
         f'<strong>Bounce Intensity: <span style="color: {color}; font-size: 1.1em;">{score:.0f}/100</span></strong>',
+        f'<span style="font-size: 0.85em; color: #666;"> ({context})</span>',
         '<table style="font-size: 0.85em; margin-top: 4px;">',
         '<tr style="color: #888;"><td style="padding-right: 10px;">Metric</td>'
         '<td style="padding-right: 10px;">Percentile</td><td>Weight</td></tr>',
@@ -185,10 +205,12 @@ def format_bounce_intensity_html(intensity: Dict) -> str:
 
     labels = {
         'selloff_total_pct': 'Selloff depth',
-        'consecutive_down_days': 'Down days',
-        'prior_day_rvol': 'Prior day RVOL',
-        'pct_off_30d_high': '30d high discount',
+        'pct_change_3': '3-day momentum',
         'gap_pct': 'Gap down',
+        'pct_off_30d_high': '30d high discount',
+        'pct_off_52wk_high': '52wk high discount',
+        'consecutive_down_days': 'Down days',
+        'pct_change_15': '15-day momentum',
     }
 
     for col, _, _ in _BOUNCE_INTENSITY_SPEC:
@@ -857,7 +879,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 
 <p><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
 
-<h2>Bounce Day Cheat Sheet (n=52, cluster days n=28)</h2>
+<h2>Bounce Day Cheat Sheet (n=54, cluster days n=28)</h2>
 <p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
 
 <h3>1. ATR-Based Targets</h3>
@@ -911,18 +933,34 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 <p style="font-size: 0.85em;"><strong>Hold a portion overnight on cluster bounce days.</strong></p>
 
-<h3>6. What Predicts Bigger Bounces (check pre-entry, n=52)</h3>
+<h3>6. What Predicts Bigger Bounces (Spearman rank correlation, n=54)</h3>
+<p style="font-size: 0.85em; color: #666;"><em>Ranked by Spearman rho vs open-to-close P&L. *** = p&lt;0.01, ** = p&lt;0.05. Bounce Intensity V2 composite (rho=0.735) captures the top predictors.</em></p>
 <ol style="font-size: 0.9em;">
-<li><strong>High vol trend 3d</strong> (r=+0.62 pnl, r=+0.73 high) &mdash; volume accelerating into bounce day = strongest signal</li>
-<li><strong>Low down-day volume ratio</strong> (r=-0.46 pnl, r=-0.51 high) &mdash; selling exhausted on declining volume</li>
-<li><strong>High prior-day vol expansion</strong> (r=+0.56 pnl, r=+0.63 high) &mdash; prior day volume spike = capitulation</li>
-<li><strong>High premarket vol %</strong> (r=+0.34 pnl, r=+0.40 high) &mdash; early attention/participation</li>
-<li><strong>Deeper selloff</strong> (r=-0.40 pnl) &mdash; &gt;30% selloff: +18.9% avg. 15-30%: +12.0%. &lt;5%: +0.0%</li>
-<li><strong>Further off 52wk high</strong> (r=-0.32 pnl, r=-0.39 high) &mdash; deeper fall = bigger bounce</li>
-<li><strong>Lower BB position</strong> (r=-0.32 pnl) &mdash; lower on Bollinger Band = more oversold</li>
-<li><strong>Higher ATR%</strong> (r=+0.25 pnl) &mdash; more volatile names bounce harder</li>
-<li><strong>Low in first 30 min</strong> (r=-0.42 pnl) &mdash; earlier low = better close. Late low = disaster.</li>
+<li><strong>Deeper selloff total</strong> (rho=-0.712***) &mdash; #1 predictor. Selloff &gt;20%: 100% WR, +18% avg. &gt;30%: 100% WR, +27% avg.</li>
+<li><strong>More negative 3-day return</strong> (rho=-0.700***) &mdash; Short-term momentum crash. NEW in V2 intensity score (20% weight).</li>
+<li><strong>Low in first 30 min</strong> (rho=-0.675***) &mdash; earlier low = better close. 100% close green when low is in first 30 min. After-12 lows: 45% WR, -8.4% avg.</li>
+<li><strong>More negative 15-day return</strong> (rho=-0.570***) &mdash; Medium-term selling pressure. NEW in V2 intensity score (5% weight).</li>
+<li><strong>Further off 30d high</strong> (rho=-0.568***) &mdash; Off 30%+: 83% WR, +10.5% avg. Off 40%+: 89% WR, +12.9% avg.</li>
+<li><strong>Further off 52wk high</strong> (rho=-0.487***) &mdash; Off 50%+: +14.4% avg. NEW in V2 intensity score (10% weight).</li>
+<li><strong>More negative 30-day return</strong> (rho=-0.440***) &mdash; Longer-term selloff pressure confirms multi-day capitulation.</li>
+<li><strong>Bigger gap down</strong> (rho=-0.435***) &mdash; Gap &gt;10%: 86% WR, +12% avg. Gap &gt;15%: 86% WR, +15% avg.</li>
+<li><strong>Larger bounce-day range</strong> (rho=-0.397***) &mdash; Big range day = volatile capitulation = better outcome.</li>
+<li><strong>More consecutive down days</strong> (rho=+0.350***) &mdash; 5 consec down: 81% WR, +13% avg. 0 days (IntradayCapitch): 0% WR.</li>
+<li><strong>Higher ATR%</strong> (rho=+0.333**) &mdash; More volatile names bounce harder.</li>
+<li><strong>SPY weak on bounce day</strong> (rho=+0.244*) &mdash; Weak market context = bigger bounce (mean reversion).</li>
 </ol>
+<p style="font-size: 0.85em; color: #dc3545;"><strong>NOT predictive:</strong> Bounce-day RVOL (rho=0.04), vol trend direction (rho=0.06), prior-day RVOL (rho=0.05). Volume metrics have zero correlation with bounce magnitude despite intuitive appeal.</p>
+
+<h3>Bounce Intensity Score V2 (composite 0-100)</h3>
+<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<tr style="background-color: #f0f0f0;"><th>Intensity</th><th>N</th><th>Win Rate</th><th>Avg P&L</th><th>Med P&L</th><th>Avg High</th></tr>
+<tr style="background-color: #d4edda;"><td><strong>80+</strong></td><td>6</td><td>100%</td><td>+35.2%</td><td>+19.9%</td><td>+54.4%</td></tr>
+<tr style="background-color: #d4edda;"><td><strong>70-80</strong></td><td>4</td><td>100%</td><td>+13.1%</td><td>+11.8%</td><td>+29.1%</td></tr>
+<tr style="background-color: #d4edda;"><td><strong>60-70</strong></td><td>9</td><td>89%</td><td>+7.8%</td><td>+10.1%</td><td>+18.8%</td></tr>
+<tr style="background-color: #d4edda;"><td><strong>50-60</strong></td><td>7</td><td>100%</td><td>+9.5%</td><td>+7.1%</td><td>+13.8%</td></tr>
+<tr style="background-color: #f8d7da;"><td><strong>&lt;50</strong></td><td>28</td><td>54%</td><td>-1.8%</td><td>+1.7%</td><td>+8.5%</td></tr>
+</table>
+<p style="font-size: 0.85em;"><strong>Key threshold: Intensity &ge;50 = 96% WR, +15% avg P&L. Below 50 = 54% WR, negative avg. Use 50 as minimum filter, 65+ for high-conviction sizing.</strong></p>
 <hr>
 
 <h2>Rules</h2>

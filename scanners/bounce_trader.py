@@ -233,12 +233,16 @@ def get_ticker_cap(ticker: str) -> str:
 
 
 # Bounce intensity spec: (metric, higher_is_better, weight)
+# V2: Replaced volume (rho=0.04, zero predictive power) with momentum metrics.
+# Composite Spearman rho vs outcome: 0.735 (up from 0.678). Score >=50 = 96% WR, +15% avg.
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',              False, 0.30),
-    ('consecutive_down_days',          True,  0.10),
-    ('percent_of_vol_on_breakout_day', True,  0.15),
-    ('pct_off_30d_high',               False, 0.20),
-    ('gap_pct',                        False, 0.25),
+    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.712)
+    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.700)
+    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.435)
+    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.568)
+    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.487)
+    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.350)
+    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.570)
 ]
 
 # Load reference bounce data once
