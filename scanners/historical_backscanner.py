@@ -570,7 +570,7 @@ class HistoricalBackscanner:
             print(f"\nGO candidates ({len(go_results)}):")
             print("-" * 80)
             display_cols = ['date', 'ticker', 'cap', 'score', 'grade',
-                            'pct_from_9ema', 'rvol_score', 'consecutive_up_days',
+                            'pct_from_9ema', 'rvol_score', 'pct_change_3',
                             'gap_pct', 'current_price']
             available_cols = [c for c in display_cols if c in go_results.columns]
             print(go_results[available_cols].to_string(index=False))

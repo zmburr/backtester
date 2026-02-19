@@ -236,17 +236,18 @@ BOUNCE_COLUMNS_TO_COMPARE = [
 ]
 
 # -------------------------------------------------
-# Pre-Trade Reversal Scoring (5 of 6 criteria - excludes reversal_pct since pre-trade)
+# Pre-Trade Reversal Scoring V2 (5 of 6 criteria - excludes reversal_pct since pre-trade)
+# V2: Replaced consecutive_up_days (rho=0.086) with pct_change_3 (rho=+0.546)
 # -------------------------------------------------
 
 # Cap-adjusted thresholds for pre-trade screening
 # Same as reversal_scorer.py but without reversal_pct
 PRETRADE_THRESHOLDS = {
-    'Micro': {'pct_from_9ema': 0.80, 'prior_day_range_atr': 3.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 3, 'gap_pct': 0.15},
-    'Small': {'pct_from_9ema': 0.40, 'prior_day_range_atr': 2.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 2, 'gap_pct': 0.10},
-    'Medium': {'pct_from_9ema': 0.15, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'consecutive_up_days': 2, 'gap_pct': 0.05},
-    'Large': {'pct_from_9ema': 0.08, 'prior_day_range_atr': 0.8, 'prior_day_rvol': 1.0, 'premarket_rvol': 0.05, 'consecutive_up_days': 1, 'gap_pct': 0.00},
-    'ETF': {'pct_from_9ema': 0.04, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'consecutive_up_days': 1, 'gap_pct': 0.00},
+    'Micro': {'pct_from_9ema': 0.80, 'prior_day_range_atr': 3.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.50, 'gap_pct': 0.15},
+    'Small': {'pct_from_9ema': 0.40, 'prior_day_range_atr': 2.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.25, 'gap_pct': 0.10},
+    'Medium': {'pct_from_9ema': 0.15, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'pct_change_3': 0.10, 'gap_pct': 0.05},
+    'Large': {'pct_from_9ema': 0.08, 'prior_day_range_atr': 0.8, 'prior_day_rvol': 1.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.05, 'gap_pct': 0.00},
+    'ETF': {'pct_from_9ema': 0.04, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'pct_change_3': 0.03, 'gap_pct': 0.00},
 }
 
 # Known ETFs (type detection from Polygon can be unreliable)
@@ -315,7 +316,7 @@ def get_ticker_cap(ticker: str) -> str:
 def get_pretrade_metrics(ticker: str, date: str) -> Dict:
     """
     Fetch additional metrics needed for pre-trade scoring that aren't in stock_screener.
-    Returns: dict with pct_from_9ema, consecutive_up_days, gap_pct, prior_day_range_atr, rvol_score
+    Returns: dict with pct_from_9ema, pct_change_3, gap_pct, prior_day_range_atr, rvol_score
     """
     metrics = {}
     try:
@@ -375,14 +376,17 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
             if atr and atr > 0:
                 metrics['prior_day_range_atr'] = prior_range / atr
 
-            # 4. Consecutive up days
-            consecutive_up = 0
-            for i in range(len(df) - 2, -1, -1):  # Start from prior day going back
-                if df['close'].iloc[i] > df['open'].iloc[i]:
-                    consecutive_up += 1
+            # 4. 3-day momentum run-up (V2: replaces consecutive_up_days)
+            if len(df) >= 4:
+                # Use completed bars only (exclude today if present)
+                if is_premarket:
+                    close_now = df['close'].iloc[-1]
+                    close_3ago = df['close'].iloc[-4] if len(df) >= 4 else df['close'].iloc[0]
                 else:
-                    break
-            metrics['consecutive_up_days'] = consecutive_up
+                    close_now = df['close'].iloc[-2] if len(df) >= 2 else df['close'].iloc[-1]
+                    close_3ago = df['close'].iloc[-5] if len(df) >= 5 else df['close'].iloc[0]
+                if close_3ago and close_3ago > 0:
+                    metrics['pct_change_3'] = (close_now - close_3ago) / close_3ago
 
             # 5. Volume signal (prior day RVOL + premarket RVOL)
             if len(df) >= 20:
@@ -438,7 +442,7 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     criteria_checks = [
         ('9EMA Distance', 'pct_from_9ema', thresholds['pct_from_9ema']),
         ('Range (ATR)', 'prior_day_range_atr', thresholds['prior_day_range_atr']),
-        ('Consec Up Days', 'consecutive_up_days', thresholds['consecutive_up_days']),
+        ('3-Day Run-Up', 'pct_change_3', thresholds['pct_change_3']),
         ('Gap Up', 'gap_pct', thresholds['gap_pct']),
     ]
 
@@ -671,12 +675,9 @@ def format_pretrade_score_html(score_result: Dict) -> str:
             actual_str = c.get('display_actual', 'N/A')
             thresh_str = c.get('display_threshold', '')
         elif c['actual'] is not None:
-            if c['key'] in ['pct_from_9ema', 'gap_pct']:
+            if c['key'] in ['pct_from_9ema', 'gap_pct', 'pct_change_3']:
                 actual_str = f"{c['actual']*100:.1f}%"
                 thresh_str = f"{c['threshold']*100:.0f}%"
-            elif c['key'] == 'consecutive_up_days':
-                actual_str = f"{int(c['actual'])}"
-                thresh_str = f"{int(c['threshold'])}"
             else:
                 actual_str = f"{c['actual']:.1f}x"
                 thresh_str = f"{c['threshold']:.1f}x"

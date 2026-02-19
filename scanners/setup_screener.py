@@ -384,8 +384,8 @@ class SetupScreener:
              thresholds.prior_day_range_atr, 'gte', 'Range expansion (ATR)'),
             ('rvol_score', metrics.get('rvol_score'),
              thresholds.rvol_score, 'gte', 'Volume expansion (RVOL)'),
-            ('consecutive_up_days', metrics.get('consecutive_up_days'),
-             thresholds.consecutive_up_days, 'gte', 'Consecutive up days'),
+            ('pct_change_3', metrics.get('pct_change_3'),
+             thresholds.pct_change_3, 'gte', '3-day momentum run-up'),
             ('gap_pct', metrics.get('gap_pct'),
              thresholds.gap_pct, 'gte', 'Euphoric gap up'),
         ]
@@ -686,7 +686,7 @@ class SetupScreener:
                     '9EMA %': _fmt_pct(m.get('pct_from_9ema')),
                     'Range/ATR': _fmt_x(m.get('prior_day_range_atr')),
                     'RVOL': _fmt_x(m.get('rvol_score')),
-                    'Up Days': _fmt_int(m.get('consecutive_up_days')),
+                    '3D Run': _fmt_pct(m.get('pct_change_3')),
                     'Gap %': _fmt_pct(m.get('gap_pct')),
                     'Rec': r.parabolic_recommendation,
                 })
@@ -768,12 +768,9 @@ class SetupScreener:
             actual = detail['actual']
             threshold = detail['threshold']
 
-            if name in ('pct_from_9ema', 'gap_pct'):
+            if name in ('pct_from_9ema', 'gap_pct', 'pct_change_3'):
                 actual_s = f"{actual * 100:+.1f}%" if actual is not None else "N/A"
                 thresh_s = f"{threshold * 100:.1f}%"
-            elif name == 'consecutive_up_days':
-                actual_s = str(int(actual)) if actual is not None else "N/A"
-                thresh_s = str(int(threshold))
             else:
                 actual_s = f"{actual:.2f}x" if actual is not None else "N/A"
                 thresh_s = f"{threshold:.1f}x"

@@ -1,5 +1,5 @@
 """
-Reversal Setup Scorer
+Reversal Setup Scorer (V2)
 
 Scores parabolic short reversal setups based on 6 cap-adjusted criteria.
 Returns a score (0-6), grade (A+, A, B, C, F), and GO/NO-GO recommendation.
@@ -8,9 +8,15 @@ The 6 criteria for a TRUE parabolic reversal:
 1. Extended above 9EMA - Price significantly elevated from 9-day EMA
 2. Range expansion - Prior day range >= threshold x ATR
 3. Volume expansion - RVOL >= threshold
-4. Consecutive up days - Sustained momentum into the top
+4. 3-day momentum run-up - Short-term price acceleration (rho=+0.546)
 5. Euphoric gap up - Gap up on reversal day
 6. Large reversal - Actual reversal size on the day
+
+V2 update (Feb 2026):
+  Replaced consecutive_up_days (rho=+0.086, not significant p=0.35) with
+  pct_change_3 (rho=+0.546, p<0.0001). The old criterion had zero predictive
+  power for reversal magnitude. V2 pre-trade score correlates with P&L at
+  rho=+0.211 (p=0.02) vs original rho=+0.049 (p=0.59).
 
 Usage:
     from analyzers.reversal_scorer import ReversalScorer
@@ -35,19 +41,19 @@ class CriteriaThresholds:
     pct_from_9ema: float      # Minimum % above 9EMA
     prior_day_range_atr: float  # Minimum range as multiple of ATR
     rvol_score: float          # Minimum relative volume
-    consecutive_up_days: int   # Minimum consecutive up days
+    pct_change_3: float        # Minimum 3-day price change (V2: rho=+0.546)
     gap_pct: float             # Minimum gap % (can be 0 for large/ETF)
     reversal_pct: float        # Minimum reversal % (negative value)
 
 
-# Cap-specific thresholds - validated against 61 Grade A trades
+# Cap-specific thresholds - validated against 120 trades (V2)
 # TRUE A requires 5/6 or 6/6 criteria passed
 CAP_THRESHOLDS = {
     'Micro': CriteriaThresholds(
         pct_from_9ema=0.80,       # >= 80% above 9EMA
         prior_day_range_atr=3.0,  # >= 3x ATR
         rvol_score=2.0,           # >= 2x RVOL
-        consecutive_up_days=3,    # >= 3 days
+        pct_change_3=0.50,        # >= 50% 3-day run (V2: rho=+0.546)
         gap_pct=0.15,             # >= 15% gap
         reversal_pct=-0.20,       # >= 20% reversal (stored as negative)
     ),
@@ -55,7 +61,7 @@ CAP_THRESHOLDS = {
         pct_from_9ema=0.40,       # >= 40% above 9EMA
         prior_day_range_atr=2.0,  # >= 2x ATR
         rvol_score=2.0,           # >= 2x RVOL
-        consecutive_up_days=2,    # >= 2 days
+        pct_change_3=0.25,        # >= 25% 3-day run
         gap_pct=0.10,             # >= 10% gap
         reversal_pct=-0.10,       # >= 10% reversal
     ),
@@ -63,7 +69,7 @@ CAP_THRESHOLDS = {
         pct_from_9ema=0.15,       # >= 15% above 9EMA
         prior_day_range_atr=1.0,  # >= 1x ATR
         rvol_score=1.5,           # >= 1.5x RVOL
-        consecutive_up_days=2,    # >= 2 days
+        pct_change_3=0.10,        # >= 10% 3-day run
         gap_pct=0.05,             # >= 5% gap
         reversal_pct=-0.05,       # >= 5% reversal
     ),
@@ -71,7 +77,7 @@ CAP_THRESHOLDS = {
         pct_from_9ema=0.08,       # >= 8% above 9EMA
         prior_day_range_atr=0.8,  # >= 0.8x ATR
         rvol_score=1.0,           # >= 1x RVOL
-        consecutive_up_days=1,    # >= 1 day
+        pct_change_3=0.05,        # >= 5% 3-day run
         gap_pct=0.00,             # any gap OK
         reversal_pct=-0.03,       # >= 3% reversal
     ),
@@ -79,7 +85,7 @@ CAP_THRESHOLDS = {
         pct_from_9ema=0.04,       # >= 4% above 9EMA
         prior_day_range_atr=1.0,  # >= 1x ATR
         rvol_score=1.5,           # >= 1.5x RVOL
-        consecutive_up_days=1,    # >= 1 day
+        pct_change_3=0.03,        # >= 3% 3-day run
         gap_pct=0.00,             # any gap OK
         reversal_pct=-0.015,      # >= 1.5% reversal
     ),
@@ -90,7 +96,7 @@ CRITERIA_NAMES = {
     'pct_from_9ema': 'Extended above 9EMA',
     'prior_day_range_atr': 'Range expansion (ATR)',
     'rvol_score': 'Volume expansion (RVOL)',
-    'consecutive_up_days': 'Consecutive up days',
+    'pct_change_3': '3-day momentum run-up',
     'gap_pct': 'Euphoric gap up',
     'reversal_pct': 'Large reversal',
 }
@@ -148,11 +154,11 @@ class ReversalScorer:
         else:
             failed.append('rvol_score')
 
-        # 4. Consecutive up days
-        if self._check_criterion(metrics.get('consecutive_up_days'), thresholds.consecutive_up_days):
-            passed.append('consecutive_up_days')
+        # 4. 3-day momentum run-up (V2: replaces consecutive_up_days)
+        if self._check_criterion(metrics.get('pct_change_3'), thresholds.pct_change_3):
+            passed.append('pct_change_3')
         else:
-            failed.append('consecutive_up_days')
+            failed.append('pct_change_3')
 
         # 5. Gap up
         if self._check_criterion(metrics.get('gap_pct'), thresholds.gap_pct):
@@ -211,7 +217,7 @@ class ReversalScorer:
         # Build detailed breakdown
         criteria_details = {}
         for criterion in ['pct_from_9ema', 'prior_day_range_atr', 'rvol_score',
-                          'consecutive_up_days', 'gap_pct', 'reversal_pct']:
+                          'pct_change_3', 'gap_pct', 'reversal_pct']:
             if criterion == 'reversal_pct':
                 actual = metrics.get('reversal_open_close_pct')
                 threshold = getattr(thresholds, criterion)
@@ -292,12 +298,9 @@ def print_score_report(result: Dict):
         threshold = details['threshold']
 
         # Format values for display
-        if criterion in ['pct_from_9ema', 'gap_pct', 'reversal_pct']:
+        if criterion in ['pct_from_9ema', 'gap_pct', 'reversal_pct', 'pct_change_3']:
             actual_str = f"{actual*100:.1f}%" if actual is not None else "N/A"
             threshold_str = f"{threshold*100:.1f}%"
-        elif criterion == 'consecutive_up_days':
-            actual_str = f"{int(actual)}" if actual is not None else "N/A"
-            threshold_str = f"{int(threshold)}"
         else:
             actual_str = f"{actual:.1f}x" if actual is not None else "N/A"
             threshold_str = f"{threshold:.1f}x"

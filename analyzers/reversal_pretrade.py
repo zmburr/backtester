@@ -69,7 +69,7 @@ class ReversalSetupProfile:
     pct_from_9ema: Dict[str, float] = field(default_factory=dict)
     prior_day_range_atr: Dict[str, float] = field(default_factory=dict)
     rvol_score: Dict[str, float] = field(default_factory=dict)
-    consecutive_up_days: Dict[str, int] = field(default_factory=dict)
+    pct_change_3: Dict[str, float] = field(default_factory=dict)   # V2: 3-day momentum (rho=+0.546)
     gap_pct: Dict[str, float] = field(default_factory=dict)
 
     def get_threshold(self, criterion: str, cap: str):
@@ -104,9 +104,10 @@ REVERSAL_SETUP_PROFILES = {
             'ETF': 1.80, 'Large': 1.35, 'Medium': 1.50,
             'Small': 6.00, 'Micro': 1.60, '_default': 1.50,
         },
-        consecutive_up_days={
-            'ETF': 2, 'Large': 2, 'Medium': 2,
-            'Small': 3, 'Micro': 2, '_default': 2,
+        # V2: 3-day momentum run-up (rho=+0.546, replaces consecutive_up_days rho=0.086)
+        pct_change_3={
+            'ETF': 0.03, 'Large': 0.05, 'Medium': 0.10,
+            'Small': 0.25, 'Micro': 0.50, '_default': 0.10,
         },
         gap_pct={
             'ETF': 0.00, 'Large': 0.00, 'Medium': 0.00,
@@ -120,7 +121,7 @@ REVERSAL_CRITERIA_NAMES = {
     'pct_from_9ema': 'Extended above 9EMA',
     'prior_day_range_atr': 'Range expansion (ATR)',
     'rvol_score': 'Volume expansion (RVOL)',
-    'consecutive_up_days': 'Consecutive up days',
+    'pct_change_3': '3-day momentum run-up',
     'gap_pct': 'Euphoric gap up',
 }
 
@@ -198,19 +199,15 @@ class ReversalPretrade:
     def _format_value(self, value, criterion: str) -> str:
         if value is None or (isinstance(value, float) and pd.isna(value)):
             return 'N/A'
-        if criterion in ('pct_from_9ema', 'gap_pct'):
+        if criterion in ('pct_from_9ema', 'gap_pct', 'pct_change_3'):
             return f"{value * 100:+.1f}%"
-        elif criterion == 'consecutive_up_days':
-            return f"{int(value)}"
         elif criterion in ('prior_day_range_atr', 'rvol_score'):
             return f"{value:.2f}x"
         return f"{value:.2f}"
 
     def _format_threshold(self, threshold, criterion: str) -> str:
-        if criterion in ('pct_from_9ema', 'gap_pct'):
+        if criterion in ('pct_from_9ema', 'gap_pct', 'pct_change_3'):
             return f"{threshold * 100:.0f}%"
-        elif criterion == 'consecutive_up_days':
-            return f"{int(threshold)}"
         elif criterion in ('prior_day_range_atr', 'rvol_score'):
             return f"{threshold:.1f}x"
         return f"{threshold}"
@@ -242,8 +239,8 @@ class ReversalPretrade:
              f'Range expansion >= {profile.get_threshold("prior_day_range_atr", cap):.1f}x ATR'),
             ('rvol_score', 'rvol_score',
              f'Volume expansion >= {profile.get_threshold("rvol_score", cap):.1f}x RVOL'),
-            ('consecutive_up_days', 'consecutive_up_days',
-             f'Consecutive up days >= {int(profile.get_threshold("consecutive_up_days", cap))}'),
+            ('pct_change_3', 'pct_change_3',
+             f'3-day momentum run-up >= {profile.get_threshold("pct_change_3", cap) * 100:.0f}%'),
             ('gap_pct', 'gap_pct',
              f'Euphoric gap up >= {profile.get_threshold("gap_pct", cap) * 100:.0f}%'),
         ]
