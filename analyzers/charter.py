@@ -227,7 +227,7 @@ def cleanup_charts(output_dir: str = "charts") -> None:
 create_chart = create_trade_chart  # noqa: E305
 
 
-def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
+def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: list = None) -> str:
     """Create a 1-year daily candlestick chart for *ticker* and save it.
 
     Parameters
@@ -236,6 +236,9 @@ def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
         Stock symbol.
     output_dir : str, optional
         Where the PNG is written.
+    extra_hlines : list of tuple, optional
+        Additional (y, color, label) horizontal lines to draw on the chart
+        (e.g., ATR target levels for reversal setups).
 
     Returns
     -------
@@ -277,6 +280,10 @@ def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
     plt.close(preview_fig)
 
     # Save PNG and return path using mplfinance backend with MAs
+    hlines = [(df['high'].max(), 'grey', '1Y High')]
+    if extra_hlines:
+        hlines.extend(extra_hlines)
+
     return save_chart(
         df,
         ticker=ticker,
@@ -284,7 +291,7 @@ def create_daily_chart(ticker: str, output_dir: str = "charts") -> str:
         label="1y_daily",
         sma_windows=(200, 100, 50, 10),
         ema_windows=(9,),
-        hlines=[(df['high'].max(), 'grey', '1Y High')],
+        hlines=hlines,
     )
 
 if __name__ == "__main__":

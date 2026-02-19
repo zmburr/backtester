@@ -1227,6 +1227,8 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
     )
 
     cap = None
+    score_result = None
+    exit_data = {}
     if is_reversal:
         # REVERSAL path (by MA routing): show reversal checklist + exit levels
         if pretrade_metrics:
@@ -1368,9 +1370,25 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
         lines.append('<br><strong>Range Data:</strong>')
         lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{indent(chr(10).join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    ")}</pre>')
 
+    # Build ATR overlay lines for GO reversal charts
+    chart_hlines = []
+    if is_reversal and score_result and score_result.get('recommendation') == 'GO':
+        if exit_data.get('open_price') and exit_data.get('atr'):
+            op = exit_data['open_price']
+            a = exit_data['atr']
+            chart_hlines = [
+                (op,            'blue',    f'Open ${op:.2f}'),
+                (op - 1.0 * a, 'orange',  f'-1 ATR ${op - 1.0*a:.2f}'),
+                (op - 2.0 * a, 'red',     f'-2 ATR ${op - 2.0*a:.2f}'),
+                (op - 3.0 * a, 'darkred', f'-3 ATR ${op - 3.0*a:.2f}'),
+            ]
+            pc = exit_data.get('prior_close')
+            if pc and pc < op:
+                chart_hlines.append((pc, 'green', f'Prior Close ${pc:.2f}'))
+
     # Generate chart and embed inline
     try:
-        chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir))
+        chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
         img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
         lines.append(img_tag)
     except Exception as e:
