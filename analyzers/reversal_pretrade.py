@@ -10,10 +10,21 @@ Starting setup type: 3DGapFade
   - "Up day" = close > prior_close (a red candle that closes above prior close counts)
   - 33 historical trades (23 A, 8 B, 2 C) in reversal_data.csv
 
-Classification rules (all must be true):
+Classification gate (all must be true):
   - consecutive_up_days >= 2
-  - gap_pct > 0 (gaps up on the reversal/fade day)
-  - pct_from_9ema > 0.04 (4%+ above 9EMA)
+  - gap_pct >= 0.04 (4%+ gap up on fade day)
+  - pct_from_9ema >= 0.30 (30%+ above 9EMA — truly parabolic)
+  - pct_from_50mav >= 0.4 (40%+ above 50SMA — not just grinding at ATH)
+  - atr_pct between 0.04 and 0.20 (sufficient volatility, not penny-stock noise)
+  - Reversal confirmation: NOT (closed 2%+ green AND top 25% of range)
+    Rejects continuations where the gap-up just kept running
+
+Thresholds derived from 2021 backscanner labeling (32 Y vs 129 N):
+  - pct_from_9ema >= 0.30: keeps 88% Y, removes 50% N
+  - gap_pct >= 0.04: keeps 91% Y, removes 40% N
+  - pct_from_50mav >= 0.4: keeps 100% Y, removes 29% N
+  - atr_pct bounds: keeps 100% Y, removes ~8% N
+  - Combined: keeps ~81% Y, removes ~66% N (precision 20% -> 37%)
 
 Usage:
     from analyzers.reversal_pretrade import ReversalPretrade, classify_reversal_setup
@@ -122,10 +133,16 @@ def classify_reversal_setup(metrics: Dict) -> Optional[str]:
     """
     Auto-detect reversal setup type from computed metrics.
 
-    3DGapFade requires all three:
+    3DGapFade classification gate (all required):
       - consecutive_up_days >= 2
-      - gap_pct > 0
-      - pct_from_9ema > 0.04
+      - gap_pct >= 0.04 (4%+ gap up on fade day)
+      - pct_from_9ema >= 0.30 (30%+ above 9EMA)
+
+    Supplementary filters (applied if data available):
+      - pct_from_50mav >= 0.4 (must be extended above trend, not grinding ATH)
+      - atr_pct between 0.04 and 0.20 (no ultra-low-vol or penny-stock noise)
+      - Reversal confirmation: reject if closed 2%+ green AND in top 25% of range
+        (stock just kept running — continuation, not a reversal)
 
     Returns:
         Setup type string (e.g. '3DGapFade') or None if no match.
@@ -133,13 +150,28 @@ def classify_reversal_setup(metrics: Dict) -> Optional[str]:
     consecutive_up = metrics.get('consecutive_up_days')
     gap = metrics.get('gap_pct')
     pct_9ema = metrics.get('pct_from_9ema')
+    pct_50ma = metrics.get('pct_from_50mav')
+    atr_pct = metrics.get('atr_pct')
+    fade_return = metrics.get('fade_day_return')
+    close_pos = metrics.get('fade_day_close_position')
 
     # Guard against None/NaN
     def _valid(val):
         return val is not None and not (isinstance(val, float) and pd.isna(val))
 
+    # Core gate: all three required
     if _valid(consecutive_up) and _valid(gap) and _valid(pct_9ema):
-        if consecutive_up >= 2 and gap > 0 and pct_9ema > 0.04:
+        if consecutive_up >= 2 and gap >= 0.04 and pct_9ema >= 0.30:
+            # Supplementary: must be extended above 50MA (not grinding at ATH)
+            if _valid(pct_50ma) and pct_50ma < 0.4:
+                return None
+            # Supplementary: ATR volatility bounds
+            if _valid(atr_pct) and (atr_pct < 0.04 or atr_pct > 0.20):
+                return None
+            # Reversal confirmation: reject if closed green at highs (continuation)
+            if _valid(fade_return) and _valid(close_pos):
+                if fade_return > 0.02 and close_pos > 0.75:
+                    return None
             return '3DGapFade'
 
     return None
