@@ -50,7 +50,11 @@ from scanners import stock_screener as ss
 from data_collectors.combined_data_collection import reversal_df
 from analyzers.charter import create_daily_chart, cleanup_charts
 from data_queries.polygon_queries import get_levels_data, get_daily, get_atr, get_actual_current_price as get_actual_current_price_polygon
-from data_queries.trillium_queries import get_actual_current_price_trill
+
+try:
+    from data_queries.trillium_queries import get_actual_current_price_trill
+except ImportError:
+    get_actual_current_price_trill = None  # type: ignore[assignment]
 from analyzers.exit_targets import get_exit_framework, calculate_exit_targets, format_exit_targets_html
 from analyzers.bounce_exit_targets import calculate_bounce_exit_targets, format_bounce_exit_targets_html
 from analyzers.bounce_scorer import (
@@ -254,7 +258,7 @@ def get_ticker_cap(ticker: str) -> str:
 
     try:
         from polygon.rest import RESTClient
-        client = RESTClient('pcwUY7TnSF66nYAPIBCApPMyVrXTckJY')
+        client = RESTClient(api_key=os.getenv("POLYGON_API_KEY"))
 
         details = client.get_ticker_details(ticker)
 
@@ -322,10 +326,16 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
 
         # Fetch live price for current-price calculations
         live_price = None
-        try:
-            live_price = get_actual_current_price_trill(ticker)
-        except Exception:
-            pass
+        if get_actual_current_price_trill is not None:
+            try:
+                live_price = get_actual_current_price_trill(ticker)
+            except Exception:
+                pass
+        if live_price is None:
+            try:
+                live_price = get_actual_current_price_polygon(ticker, date)
+            except Exception:
+                pass
         reference_price = live_price if live_price is not None else prior_close
 
         if prior_close is not None:
@@ -568,10 +578,13 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
 
         if ref_price is None:
             # Live price: Trillium first, Polygon intraday fallback
-            try:
-                ref_price = get_actual_current_price_trill(ticker)
-                ref_source = 'live'
-            except Exception:
+            if get_actual_current_price_trill is not None:
+                try:
+                    ref_price = get_actual_current_price_trill(ticker)
+                    ref_source = 'live'
+                except Exception:
+                    pass
+            if ref_price is None:
                 try:
                     ref_price = get_actual_current_price_polygon(ticker, date)
                     ref_source = 'live'

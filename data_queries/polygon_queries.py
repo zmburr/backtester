@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import requests.exceptions
 from polygon.rest import RESTClient
@@ -7,8 +8,11 @@ from datetime import datetime, timedelta
 from pandas import Timestamp
 import logging
 from pytz import timezone
+from dotenv import load_dotenv
 
-poly_client = RESTClient(api_key="pcwUY7TnSF66nYAPIBCApPMyVrXTckJY")
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+
+poly_client = RESTClient(api_key=os.getenv("POLYGON_API_KEY"))
 
 
 def get_atr(ticker, date):

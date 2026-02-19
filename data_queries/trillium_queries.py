@@ -21,19 +21,29 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import pytz
 from pytz import timezone
-import sheldatagateway
-from sheldatagateway import environments
+HAS_SHEL = False
+try:
+    import sheldatagateway
+    from sheldatagateway import environments
+    HAS_SHEL = True
+except ImportError:
+    sheldatagateway = None  # type: ignore[assignment]
+    environments = None      # type: ignore[assignment]
+
+from dotenv import load_dotenv
 
 # -------------------------------------------------------------------------- #
 #  Configuration                                                             #
 # -------------------------------------------------------------------------- #
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 
 logger = logging.getLogger(__name__)
 
 # Credentials – *strongly* recommend exporting these as env vars instead of
 # hard‑coding (shown here for parity with your previous examples).
 USER = os.getenv("SHEL_USER", "zburr")
-PWD  = os.getenv("SHEL_PWD",  "4C6z9yZ!Q")          # <-- set in your shell
+PWD  = os.getenv("SHEL_API_PWD")
 
 EASTERN = pytz.timezone("US/Eastern")
 
@@ -78,6 +88,12 @@ def _shel_request(
     Generic one‑shot request to SHEL DataGateway; blocks until all data arrive.
     Returns a DataFrame of the raw message objects.
     """
+    if not HAS_SHEL:
+        raise ImportError(
+            "sheldatagateway is not installed. "
+            "Install it or use polygon_queries as an alternative."
+        )
+
     aggs: List[Dict] = []
 
     with sheldatagateway.Session(environments.env_defs.Prod, USER, PWD) as session:

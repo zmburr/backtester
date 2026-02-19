@@ -45,6 +45,7 @@ Usage:
     result = screener.screen_ticker_from_metrics('NVDA', metrics, cap='Large')
 """
 
+import os
 import pandas as pd
 import numpy as np
 import logging
@@ -842,7 +843,7 @@ def get_polygon_tickers(market: str = 'stocks', ticker_type: str = 'CS',
         List of ticker symbols
     """
     from polygon.rest import RESTClient
-    client = RESTClient(api_key="pcwUY7TnSF66nYAPIBCApPMyVrXTckJY")
+    client = RESTClient(api_key=os.getenv("POLYGON_API_KEY"))
 
     tickers = []
     try:

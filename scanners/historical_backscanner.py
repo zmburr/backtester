@@ -33,6 +33,7 @@ import pandas as pd
 import numpy as np
 import pandas_market_calendars as mcal
 from polygon.rest import RESTClient
+from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -42,10 +43,12 @@ from analyzers.reversal_pretrade import (
     REVERSAL_SETUP_PROFILES,
 )
 
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-POLYGON_API_KEY = "pcwUY7TnSF66nYAPIBCApPMyVrXTckJY"
+POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
 
 # Minimum filters to reduce ticker universe
 MIN_PRICE = 5.0
@@ -60,8 +63,10 @@ class HistoricalBackscanner:
     then computes all metrics locally.
     """
 
-    def __init__(self, setup_type: str = '3DGapFade', cache_dir: str = None):
+    def __init__(self, setup_type: str = '3DGapFade', cache_dir: str = None,
+                 cap_filter: Optional[List[str]] = None):
         self.setup_type = setup_type
+        self.cap_filter = cap_filter
         self.pretrade = ReversalPretrade()
         self.client = RESTClient(api_key=POLYGON_API_KEY)
         self.nyse = mcal.get_calendar('NYSE')
@@ -331,6 +336,19 @@ class HistoricalBackscanner:
                 if old_close > 0:
                     metrics[key] = (current_close - old_close) / old_close
 
+        # --- Fade day reversal metrics (trade day OHLC) ---
+        if today_row is not None:
+            day_open = today_row['open']
+            day_high = today_row['high']
+            day_low = today_row['low']
+            day_close = today_row['close']
+
+            # Open-to-close return (negative = red candle = gap faded)
+            metrics['fade_day_return'] = (day_close - day_open) / day_open if day_open > 0 else 0
+            # Where in the range did it close? 0=lows, 1=highs
+            day_range = day_high - day_low
+            metrics['fade_day_close_position'] = (day_close - day_low) / day_range if day_range > 0 else 0.5
+
         return metrics
 
     # ------------------------------------------------------------------
@@ -409,8 +427,8 @@ class HistoricalBackscanner:
             if avg_vol < MIN_AVG_VOLUME:
                 continue
 
-            # Quick 3DGapFade pre-filter: check consecutive up days and gap
-            # before computing full metrics (saves ~80% of compute time)
+            # Quick 3DGapFade pre-filter: check consecutive up days, gap,
+            # and 9EMA extension before computing full metrics
             if self.setup_type == '3DGapFade':
                 # Check consecutive up closes at end of hist_only
                 up_count = 0
@@ -422,11 +440,18 @@ class HistoricalBackscanner:
                 if up_count < 2:
                     continue
 
-                # Check gap up on trade day
+                # Check 4%+ gap up on trade day (tightened from any gap)
                 if history.index[-1] == date:
                     today_open = history.iloc[-1]['open']
                     prior_close = hist_only.iloc[-1]['close']
-                    if prior_close > 0 and today_open <= prior_close:
+                    if prior_close > 0 and today_open < prior_close * 1.04:
+                        continue
+
+                # Quick 9EMA extension check (>= 25% as pre-filter margin)
+                if len(hist_only) >= 9:
+                    ema_9 = hist_only['close'].ewm(span=9, adjust=False).mean().iloc[-1]
+                    last_close = hist_only.iloc[-1]['close']
+                    if ema_9 > 0 and (last_close - ema_9) / ema_9 < 0.25:
                         continue
 
             # Full metric computation
@@ -446,6 +471,10 @@ class HistoricalBackscanner:
                 metrics.get('current_price', 0),
                 metrics.get('avg_daily_vol', 0),
             )
+
+            # Cap filter
+            if self.cap_filter and cap not in self.cap_filter:
+                continue
 
             # Score
             result = self.pretrade.validate(
@@ -474,6 +503,8 @@ class HistoricalBackscanner:
                 'pct_from_50mav': metrics.get('pct_from_50mav'),
                 'current_price': metrics.get('current_price'),
                 'atr_pct': metrics.get('atr_pct'),
+                'fade_day_return': metrics.get('fade_day_return'),
+                'fade_day_close_position': metrics.get('fade_day_close_position'),
             })
 
         return matches
@@ -564,6 +595,8 @@ def main():
                         help='Output CSV path (default: data/backscanner_results_{setup}_{start}_{end}.csv)')
     parser.add_argument('--lookback', type=int, default=310,
                         help='Calendar days of lookback for data fetch (default: 310)')
+    parser.add_argument('--cap', default=None,
+                        help='Filter to specific cap(s), comma-separated (e.g. "Medium,Large")')
 
     args = parser.parse_args()
 
@@ -581,7 +614,8 @@ def main():
             f"backscanner_results_{args.setup}_{args.start}_{args.end}.csv"
         )
 
-    scanner = HistoricalBackscanner(setup_type=args.setup)
+    cap_filter = [c.strip() for c in args.cap.split(',')] if args.cap else None
+    scanner = HistoricalBackscanner(setup_type=args.setup, cap_filter=cap_filter)
 
     # Phase 1: Fetch all market data
     print(f"\n{'=' * 80}")
@@ -589,6 +623,8 @@ def main():
     print(f"  Fetch range: {fetch_start} to {args.end}")
     print(f"  Scan range:  {args.start} to {args.end}")
     print(f"  Setup type:  {args.setup}")
+    if cap_filter:
+        print(f"  Cap filter:  {', '.join(cap_filter)}")
     print(f"{'=' * 80}\n")
 
     t0 = time.time()

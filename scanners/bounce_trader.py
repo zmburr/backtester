@@ -23,6 +23,9 @@ import pytz
 from datetime import datetime, timedelta, time as dt_time
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 
 try:
     import gtts  # type: ignore
@@ -206,7 +209,7 @@ def get_ticker_cap(ticker: str) -> str:
         return 'ETF'
     try:
         from polygon.rest import RESTClient
-        client = RESTClient('pcwUY7TnSF66nYAPIBCApPMyVrXTckJY')
+        client = RESTClient(api_key=os.getenv("POLYGON_API_KEY"))
         details = client.get_ticker_details(ticker)
         if hasattr(details, 'type') and details.type in ('ETF', 'ETN'):
             _market_cap_cache[ticker] = 'ETF'
