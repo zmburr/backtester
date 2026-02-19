@@ -859,22 +859,25 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 <p style="font-size: 0.85em; color: #dc3545;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. GapFade trades: 88% WR, +10.1% avg.</p>
 
-<h3>6 Pre-Trade Criteria (profile-adjusted thresholds)</h3>
+<h3>7 Pre-Trade Criteria V2 (profile-adjusted thresholds)</h3>
+<p style="font-size: 0.85em; color: #666;"><em>V2 update: Removed volume signal (rho=0.04, zero predictive power). Added 3-day momentum crash (rho=-0.700) and 52wk high discount (rho=-0.487).</em></p>
 <ol>
   <li><strong>Deep Selloff</strong> &mdash; Total % decline over consecutive down days</li>
   <li><strong>Consecutive Down Days</strong> &mdash; Multi-day selling pressure</li>
   <li><strong>Discount from 30d High</strong> &mdash; How far off recent highs</li>
   <li><strong>Capitulation Gap Down</strong> &mdash; Gap down on bounce day</li>
-  <li><strong>Prior Day Range Expansion</strong> &mdash; Prior day range &ge; 1.0x ATR (75.6% WR vs 55.6%)</li>
-  <li><strong>Volume Climax</strong> &mdash; Prior day or premarket volume vs ADV</li>
+  <li><strong>Prior Day Range Expansion</strong> &mdash; Prior day range &ge; 1.0x ATR</li>
+  <li><strong>3-Day Momentum Crash</strong> &mdash; Short-term price collapse (rho=-0.700, #2 predictor)</li>
+  <li><strong>Discount from 52wk High</strong> &mdash; Distance from yearly peak (rho=-0.487)</li>
 </ol>
 
-<h3>Historical Performance by Recommendation (54 Trades)</h3>
+<h3>Historical Performance by Recommendation (54 Trades, V2 Scoring)</h3>
+<p style="font-size: 0.85em; color: #666;"><em>Pre-trade uses 7 criteria; historical adds bounce_pct for 8 total. Run bounce_scorer.py for latest numbers.</em></p>
 <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
-<tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO (5-6/6)</strong></td><td>33</td><td>100%</td><td>+14.2%</td></tr>
-<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION (4/6)</strong></td><td>3</td><td>67%</td><td>-13.1%</td></tr>
-<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO (&lt;4)</strong></td><td>18</td><td>22%</td><td>-5.4%</td></tr>
+<tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Criteria</th><th>Description</th></tr>
+<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO</strong></td><td>6-7 / 7</td><td>High-conviction setup, full size</td></tr>
+<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION</strong></td><td>5 / 7</td><td>Marginal, reduced size</td></tr>
+<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO</strong></td><td>&lt;5 / 7</td><td>Do not trade</td></tr>
 </table>
 
 <p><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
