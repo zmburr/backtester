@@ -5,6 +5,7 @@ This script tests various threshold combinations on technical indicators
 to find filters that improve signal quality and P&L for reversal setups.
 """
 
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from itertools import product
@@ -13,9 +14,12 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
-def load_reversal_data(filepath='C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv'):
+
+def load_reversal_data(filepath=None):
     """Load and prepare reversal data."""
+    filepath = filepath or str(_DATA_DIR / 'reversal_data.csv')
     df = pd.read_csv(filepath)
     df = df.dropna(subset=['ticker', 'date'])
     return df
@@ -397,7 +401,7 @@ if __name__ == '__main__':
 
     # Save results to CSV
     pd.DataFrame(results['single_filters']).to_csv(
-        'C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\filter_optimization_results.csv',
+        _DATA_DIR / 'filter_optimization_results.csv',
         index=False
     )
     print("\nResults saved to data/filter_optimization_results.csv")

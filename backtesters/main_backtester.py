@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 from datetime import datetime, timedelta
 import pandas_market_calendars as mcal
@@ -10,6 +11,8 @@ import logging
 from data_collectors.combined_data_collection import momentum_df
 from data_collectors.combined_data_collection import reversal_df
 from tabulate import tabulate
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 
 logging.basicConfig(level=logging.INFO,
@@ -44,4 +47,4 @@ if __name__ == '__main__':
     trades_df.drop('recommendation', axis=1, inplace=True)
     trades_df.drop('side', axis=1, inplace=True)
     print(tabulate(trades_df, headers=trades_df.columns))
-    trades_df.to_csv(f'C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\{trade_type}_backtest_results.csv')
+    trades_df.to_csv(_DATA_DIR / f'{trade_type}_backtest_results.csv')

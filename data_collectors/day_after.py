@@ -1,3 +1,4 @@
+from pathlib import Path
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
     adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes
 import pandas as pd
@@ -5,7 +6,9 @@ import logging
 from tabulate import tabulate
 from datetime import datetime, timedelta
 
-momentum_df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+
+momentum_df = pd.read_csv(_DATA_DIR / 'breakout_data.csv')
 momentum_df = momentum_df.dropna(subset=['ticker'])
 momentum_df = momentum_df.dropna(subset=['date'])
 

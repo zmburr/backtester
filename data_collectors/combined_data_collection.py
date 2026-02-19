@@ -1,3 +1,4 @@
+from pathlib import Path
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
     adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data
 import pandas as pd
@@ -7,10 +8,13 @@ from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-momentum_df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv")
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_DATA_DIR = _REPO_ROOT / 'data'
+
+momentum_df = pd.read_csv(_DATA_DIR / 'breakout_data.csv')
 momentum_df = momentum_df.dropna(subset=['ticker'])
 momentum_df = momentum_df.dropna(subset=['date'])
-reversal_df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv")
+reversal_df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
 reversal_df = reversal_df.dropna(subset=['ticker'])
 reversal_df = reversal_df.dropna(subset=['date'])
 
@@ -733,7 +737,7 @@ if __name__ == '__main__':
     existing_cols = [col for col in BREAKOUT_COLUMN_ORDER if col in df_momentum.columns]
     extra_cols = [col for col in df_momentum.columns if col not in BREAKOUT_COLUMN_ORDER]
     df_momentum = df_momentum[existing_cols + extra_cols]
-    df_momentum.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\breakout_data.csv", index=False)
+    df_momentum.to_csv(_DATA_DIR / 'breakout_data.csv', index=False)
 
     # Process reversal data
     df_reversal = fill_data(reversal_df, 'reversal', fill_functions_reversal)
@@ -741,4 +745,4 @@ if __name__ == '__main__':
     existing_cols = [col for col in REVERSAL_COLUMN_ORDER if col in df_reversal.columns]
     extra_cols = [col for col in df_reversal.columns if col not in REVERSAL_COLUMN_ORDER]
     df_reversal = df_reversal[existing_cols + extra_cols]
-    df_reversal.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv", index=False)
+    df_reversal.to_csv(_DATA_DIR / 'reversal_data.csv', index=False)

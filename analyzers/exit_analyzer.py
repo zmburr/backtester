@@ -15,6 +15,7 @@ Usage:
     analyzer.save_results()
 """
 
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -23,10 +24,14 @@ from dataclasses import dataclass, asdict
 import logging
 import json
 import os
-
-# Import data queries
 import sys
-sys.path.insert(0, 'C:/Users/zmbur/PycharmProjects/backtester')
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_DATA_DIR = _REPO_ROOT / 'data'
+
+# Ensure project root is on sys.path for imports
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 from data_queries.polygon_queries import get_levels_data, get_atr, get_daily
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -111,7 +116,7 @@ class ExitAnalyzer:
     """Analyzes historical trades to optimize exit strategies."""
 
     def __init__(self, data_path: str = None):
-        self.data_path = data_path or 'C:/Users/zmbur/PycharmProjects/backtester/data/reversal_data.csv'
+        self.data_path = data_path or str(_DATA_DIR / 'reversal_data.csv')
         self.results: List[ExitMetrics] = []
         self.df = None
 
@@ -445,7 +450,7 @@ class ExitAnalyzer:
             logging.warning("No results to save")
             return
 
-        output_path = output_path or 'C:/Users/zmbur/PycharmProjects/backtester/data/exit_analysis_results.csv'
+        output_path = output_path or str(_DATA_DIR / 'exit_analysis_results.csv')
 
         # Convert to DataFrame
         results_df = pd.DataFrame([asdict(r) for r in self.results])

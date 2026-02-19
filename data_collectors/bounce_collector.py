@@ -2,6 +2,7 @@
 Bounce data collector — fills bounce_data.csv with computed features.
 Follows the same pattern as combined_data_collection.py.
 """
+from pathlib import Path
 from types import SimpleNamespace
 from data_queries.polygon_queries import (
     get_daily, adjust_date_forward, get_levels_data,
@@ -20,7 +21,9 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-bounce_df = pd.read_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\bounce_data.csv")
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+
+bounce_df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
 bounce_df = bounce_df.dropna(subset=['ticker'])
 bounce_df = bounce_df.dropna(subset=['date'])
 bounce_df['ticker'] = bounce_df['ticker'].str.strip()
@@ -868,5 +871,5 @@ if __name__ == '__main__':
     extra_cols = [col for col in df_bounce.columns if col not in BOUNCE_COLUMN_ORDER]
     df_bounce = df_bounce[existing_cols + extra_cols]
 
-    df_bounce.to_csv("C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\bounce_data.csv", index=False)
+    df_bounce.to_csv(_DATA_DIR / 'bounce_data.csv', index=False)
     logging.info(f'Bounce data saved. {len(df_bounce)} rows, {len(df_bounce.columns)} columns.')

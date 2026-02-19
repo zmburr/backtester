@@ -1,3 +1,4 @@
+from pathlib import Path
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
     adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data
 import pandas as pd
@@ -333,7 +334,7 @@ if __name__ == "__main__":
     processed_data = process_tickers(tickers, release_dates)
 
     if processed_data is not None:
-        output_file = "C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\ism_data.csv"
+        output_file = str(Path(__file__).resolve().parent.parent / 'data' / 'ism_data.csv')
         processed_data.to_csv(output_file, index=False)
         print(f"Data saved to {output_file}")
     else:

@@ -18,10 +18,13 @@ Usage:
     result = scorer.score_setup(ticker, date, cap, metrics)
 """
 
+from pathlib import Path
 import pandas as pd
 import logging
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -306,7 +309,7 @@ def print_score_report(result: Dict):
 
 # Example usage and testing
 if __name__ == '__main__':
-    df = pd.read_csv('C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv')
+    df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
     grade_a = df[df['trade_grade'] == 'A'].copy()
 
     scorer = ReversalScorer()
@@ -373,5 +376,5 @@ if __name__ == '__main__':
             print_score_report(result)
 
     # Save scored data
-    scored_df.to_csv('C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_scored.csv', index=False)
+    scored_df.to_csv(_DATA_DIR / 'reversal_scored.csv', index=False)
     print("\nScored data saved to data/reversal_scored.csv")

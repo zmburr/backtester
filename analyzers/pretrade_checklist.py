@@ -20,11 +20,14 @@ Usage:
     checker.print_checklist(result)
 """
 
+from pathlib import Path
 import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 import logging
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -319,7 +322,7 @@ class PreTradeChecklist:
 
 def run_checklist_demo():
     """Run checklist on sample data."""
-    df = pd.read_csv('C:\\Users\\zmbur\\PycharmProjects\\backtester\\data\\reversal_data.csv')
+    df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
     grade_a = df[df['trade_grade'] == 'A'].copy()
     grade_a['pnl'] = -grade_a['reversal_open_close_pct'] * 100
 

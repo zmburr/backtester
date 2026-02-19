@@ -9,12 +9,15 @@ Usage:
     python scripts/mean_reversion_eval.py NVDA 2026-01-15 --verbose
 """
 
+from pathlib import Path
 import sys
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List
 
-sys.path.insert(0, r'C:\Users\zmbur\PycharmProjects\backtester')
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from data_queries.polygon_queries import (
     get_levels_data,

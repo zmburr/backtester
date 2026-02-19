@@ -14,6 +14,7 @@ Usage:
     optimizer.run_full_analysis()
 """
 
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
@@ -21,12 +22,14 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+_DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+
 
 class ExitOptimizer:
     """Optimizes exit strategies based on Phase 1 exit analysis data."""
 
     def __init__(self, results_path: str = None):
-        self.results_path = results_path or 'C:/Users/zmbur/PycharmProjects/backtester/data/exit_analysis_results.csv'
+        self.results_path = results_path or str(_DATA_DIR / 'exit_analysis_results.csv')
         self.df = None
 
     def load_results(self) -> pd.DataFrame:

@@ -37,7 +37,7 @@ IPOS: List[Tuple[str, str, float]] = [
     ("FLY", "8/7/35", 45),
 ]
 
-OUTPUT_PATH = Path(r"C:\Users\zmbur\PycharmProjects\backtester\data\ipo_analysis_results.csv")
+OUTPUT_PATH = Path(__file__).resolve().parent.parent / 'data' / 'ipo_analysis_results.csv'
 SPY = "SPY"
 EARLY_WINDOWS_MIN = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 30]
 CORR_WINDOW_MIN = 30

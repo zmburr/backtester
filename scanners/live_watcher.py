@@ -1,3 +1,4 @@
+from pathlib import Path
 import threading
 from datetime import datetime, timedelta
 import warnings
@@ -21,7 +22,7 @@ from data_queries.polygon_queries import get_daily
 def play_sounds(text):
     try:
         tts = gtts.gTTS(text)
-        tempfile = "C:\\Users\\zmbur\\PycharmProjects\\backtester\\scanners\\temps.mp3"
+        tempfile = str(Path(__file__).resolve().parent / 'temps.mp3')
         tts.save(tempfile)
         playsound(tempfile, block=False)
         os.remove(tempfile)
