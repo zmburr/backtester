@@ -1,7 +1,7 @@
 """
 Data-Informed Exit Target Framework for Bounce Trades (Long)
 
-Based on analysis of 36 bounce trades:
+Based on analysis of 123 bounce trades:
 - ATR-based hit rates (targets ABOVE open)
 - Gap fill (red-to-green) hit rates
 - Prior day hi/lo hit rates
@@ -32,7 +32,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.71,
+            hit_rate=0.81,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -40,7 +40,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.71,
+            hit_rate=0.81,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -48,12 +48,12 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='Gap Fill (Red-to-Green)',
             target_type='level',
             value=0,  # Prior close level
-            hit_rate=0.29,
+            hit_rate=0.50,
             avg_time_mins=None,
             position_pct=0.34
         ),
         time_stop='Exit remaining by 2:00 PM if targets not hit',
-        notes='n=7. ETFs have smaller moves. ATR targets more reliable than gap fill.'
+        notes='n=16. ETFs have smaller moves. ATR targets more reliable than gap fill.'
     ),
 
     'Medium': ExitFramework(
@@ -62,28 +62,28 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.71,
+            hit_rate=0.80,
             avg_time_mins=None,
             position_pct=0.33
         ),
         tier2=ExitTarget(
-            name='Gap Fill (Red-to-Green)',
-            target_type='level',
-            value=0,
-            hit_rate=0.50,
+            name='1.0x ATR',
+            target_type='atr',
+            value=1.0,
+            hit_rate=0.64,
             avg_time_mins=None,
             position_pct=0.33
         ),
         tier3=ExitTarget(
-            name='1.0x ATR',
-            target_type='atr',
-            value=1.0,
-            hit_rate=0.58,
+            name='Gap Fill (Red-to-Green)',
+            target_type='level',
+            value=0,
+            hit_rate=0.67,
             avg_time_mins=None,
             position_pct=0.34
         ),
         time_stop='Can hold into afternoon - bounces can develop slowly',
-        notes='n=24. Largest sample. Gap fill works well as middle target.'
+        notes='n=75. Largest sample. Gap fill works well as middle target.'
     ),
 
     'Small': ExitFramework(
@@ -92,7 +92,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.50,
+            hit_rate=0.75,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -100,7 +100,37 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.50,
+            hit_rate=0.75,
+            avg_time_mins=None,
+            position_pct=0.33
+        ),
+        tier3=ExitTarget(
+            name='Gap Fill (Red-to-Green)',
+            target_type='level',
+            value=0,
+            hit_rate=0.75,
+            avg_time_mins=None,
+            position_pct=0.34
+        ),
+        time_stop='Can hold into afternoon',
+        notes='n=8. Small sample — use with caution. Gap fill strongest target.'
+    ),
+
+    'Large': ExitFramework(
+        cap='Large',
+        tier1=ExitTarget(
+            name='0.5x ATR',
+            target_type='atr',
+            value=0.5,
+            hit_rate=0.96,
+            avg_time_mins=None,
+            position_pct=0.33
+        ),
+        tier2=ExitTarget(
+            name='1.0x ATR',
+            target_type='atr',
+            value=1.0,
+            hit_rate=0.83,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -113,38 +143,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             position_pct=0.34
         ),
         time_stop='Can hold into afternoon',
-        notes='n=4. Small sample — use with caution. Gap fill strongest target.'
-    ),
-
-    # Large: use Medium defaults (n=1 in dataset)
-    'Large': ExitFramework(
-        cap='Large',
-        tier1=ExitTarget(
-            name='0.5x ATR',
-            target_type='atr',
-            value=0.5,
-            hit_rate=0.71,
-            avg_time_mins=None,
-            position_pct=0.33
-        ),
-        tier2=ExitTarget(
-            name='Gap Fill (Red-to-Green)',
-            target_type='level',
-            value=0,
-            hit_rate=0.50,
-            avg_time_mins=None,
-            position_pct=0.33
-        ),
-        tier3=ExitTarget(
-            name='1.0x ATR',
-            target_type='atr',
-            value=1.0,
-            hit_rate=0.58,
-            avg_time_mins=None,
-            position_pct=0.34
-        ),
-        time_stop='Can hold into afternoon',
-        notes='n=1. Using Medium cap defaults — insufficient Large cap bounce data.'
+        notes='n=24. Large caps have highest 0.5x ATR hit rate (96%).'
     ),
 
     # Micro: use Small defaults (n=0 in dataset)
@@ -154,7 +153,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.50,
+            hit_rate=0.75,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -162,7 +161,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.50,
+            hit_rate=0.75,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -170,7 +169,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='Gap Fill (Red-to-Green)',
             target_type='level',
             value=0,
-            hit_rate=0.67,
+            hit_rate=0.75,
             avg_time_mins=None,
             position_pct=0.34
         ),
@@ -181,70 +180,70 @@ BOUNCE_EXIT_FRAMEWORKS = {
 
 
 # =============================================================================
-# SUMMARY STATISTICS FROM BOUNCE ANALYSIS (36 trades)
+# SUMMARY STATISTICS FROM BOUNCE ANALYSIS (123 trades)
 # =============================================================================
 
 BOUNCE_CAP_STATISTICS = {
     'ETF': {
-        'n': 7,
-        'hit_0_5x_atr': 71,
-        'hit_1_0x_atr': 71,
-        'hit_1_5x_atr': 50,
-        'hit_2_0x_atr': 38,
-        'hit_gap_fill': 29,
+        'n': 16,
+        'hit_0_5x_atr': 81,
+        'hit_1_0x_atr': 81,
+        'hit_1_5x_atr': 69,
+        'hit_2_0x_atr': 69,
+        'hit_gap_fill': 50,
         'hit_prior_day_hilo': 97,
         # Dip risk: how much stock drops BELOW open before bouncing
-        'avg_dip_pct': 14.0,
-        'avg_dip_atrs': 1.68,
-        'max_dip_pct': 25.0,
+        'avg_dip_pct': 2.5,
+        'avg_dip_atrs': 0.71,
+        'max_dip_pct': 7.7,
     },
     'Medium': {
-        'n': 24,
-        'hit_0_5x_atr': 71,
-        'hit_1_0x_atr': 58,
-        'hit_1_5x_atr': 50,
-        'hit_2_0x_atr': 38,
-        'hit_gap_fill': 50,
-        'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 14.0,
-        'avg_dip_atrs': 1.68,
-        'max_dip_pct': 30.0,
-    },
-    'Small': {
-        'n': 4,
-        'hit_0_5x_atr': 50,
-        'hit_1_0x_atr': 50,
-        'hit_1_5x_atr': 50,
-        'hit_2_0x_atr': 38,
+        'n': 75,
+        'hit_0_5x_atr': 80,
+        'hit_1_0x_atr': 64,
+        'hit_1_5x_atr': 43,
+        'hit_2_0x_atr': 31,
         'hit_gap_fill': 67,
         'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 14.0,
-        'avg_dip_atrs': 1.68,
-        'max_dip_pct': 25.0,
+        'avg_dip_pct': 9.7,
+        'avg_dip_atrs': 1.81,
+        'max_dip_pct': 60.4,
+    },
+    'Small': {
+        'n': 8,
+        'hit_0_5x_atr': 75,
+        'hit_1_0x_atr': 75,
+        'hit_1_5x_atr': 50,
+        'hit_2_0x_atr': 25,
+        'hit_gap_fill': 75,
+        'hit_prior_day_hilo': 97,
+        'avg_dip_pct': 18.1,
+        'avg_dip_atrs': 1.59,
+        'max_dip_pct': 53.6,
     },
     'Large': {
-        'n': 1,
-        'hit_0_5x_atr': 71,
-        'hit_1_0x_atr': 58,
-        'hit_1_5x_atr': 50,
-        'hit_2_0x_atr': 38,
-        'hit_gap_fill': 50,
+        'n': 24,
+        'hit_0_5x_atr': 96,
+        'hit_1_0x_atr': 83,
+        'hit_1_5x_atr': 54,
+        'hit_2_0x_atr': 42,
+        'hit_gap_fill': 67,
         'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 14.0,
-        'avg_dip_atrs': 1.68,
-        'max_dip_pct': 30.0,
+        'avg_dip_pct': 2.5,
+        'avg_dip_atrs': 0.86,
+        'max_dip_pct': 10.6,
     },
     'Micro': {
         'n': 0,
-        'hit_0_5x_atr': 50,
-        'hit_1_0x_atr': 50,
+        'hit_0_5x_atr': 75,
+        'hit_1_0x_atr': 75,
         'hit_1_5x_atr': 50,
-        'hit_2_0x_atr': 38,
-        'hit_gap_fill': 67,
+        'hit_2_0x_atr': 25,
+        'hit_gap_fill': 75,
         'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 14.0,
-        'avg_dip_atrs': 1.68,
-        'max_dip_pct': 25.0,
+        'avg_dip_pct': 18.1,
+        'avg_dip_atrs': 1.59,
+        'max_dip_pct': 53.6,
     },
 }
 

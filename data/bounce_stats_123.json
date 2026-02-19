@@ -1,0 +1,199 @@
+{
+  "total_trades": 123,
+  "weakstock": {
+    "n": 28,
+    "wr": 85.7,
+    "avg_pnl": 9.1,
+    "med_oc": 9.0,
+    "med_oh": 16.2,
+    "med_ol": -2.3,
+    "avg_dip": -4.0,
+    "med_high_atrs": 2.41,
+    "p75_high_atrs": 3.28,
+    "med_dip_atrs": -0.3,
+    "p75_dip_atrs": -0.65,
+    "a_medians": {
+      "selloff_total_pct": -0.334,
+      "consecutive_down_days": 5.0,
+      "pct_off_30d_high": -0.571,
+      "gap_pct": -0.057,
+      "one_day_before_range_pct": 1.458,
+      "pct_change_3": -0.122,
+      "pct_off_52wk_high": -0.76,
+      "bounce_open_close_pct": 0.09
+    },
+    "a_count": 28
+  },
+  "strongstock": {
+    "n": 41,
+    "wr": 82.9,
+    "avg_pnl": 7.4,
+    "med_oc": 5.6,
+    "med_oh": 8.9,
+    "med_ol": -2.1,
+    "avg_dip": -4.3,
+    "med_high_atrs": 1.3,
+    "p75_high_atrs": 1.89,
+    "med_dip_atrs": -0.28,
+    "p75_dip_atrs": -0.54,
+    "a_medians": {
+      "selloff_total_pct": -0.183,
+      "consecutive_down_days": 3.0,
+      "pct_off_30d_high": -0.325,
+      "gap_pct": -0.061,
+      "one_day_before_range_pct": 1.203,
+      "pct_change_3": -0.09,
+      "pct_off_52wk_high": -0.416,
+      "bounce_open_close_pct": 0.057
+    },
+    "a_count": 40
+  },
+  "cap_Large": {
+    "n": 24,
+    "wr": 83.3,
+    "avg_pnl": 10.1,
+    "hit_0_5x": 96.0,
+    "hit_1_0x": 83.0,
+    "hit_1_5x": 54.0,
+    "hit_2_0x": 42.0,
+    "hit_gap_fill": 67.0,
+    "avg_dip_pct": -2.5,
+    "med_dip_pct": -1.7,
+    "avg_dip_atrs": -0.86,
+    "med_dip_atrs": -0.22,
+    "max_dip_pct": -10.6,
+    "p75_dip_atrs": -0.32
+  },
+  "cap_Medium": {
+    "n": 75,
+    "wr": 76.0,
+    "avg_pnl": 6.9,
+    "hit_0_5x": 80.0,
+    "hit_1_0x": 64.0,
+    "hit_1_5x": 43.0,
+    "hit_2_0x": 31.0,
+    "hit_gap_fill": 67.0,
+    "avg_dip_pct": -9.7,
+    "med_dip_pct": -4.1,
+    "avg_dip_atrs": -1.81,
+    "med_dip_atrs": -0.47,
+    "max_dip_pct": -60.4,
+    "p75_dip_atrs": -1.1
+  },
+  "cap_ETF": {
+    "n": 16,
+    "wr": 87.5,
+    "avg_pnl": 6.0,
+    "hit_0_5x": 81.0,
+    "hit_1_0x": 81.0,
+    "hit_1_5x": 69.0,
+    "hit_2_0x": 69.0,
+    "hit_gap_fill": 50.0,
+    "avg_dip_pct": -2.5,
+    "med_dip_pct": -1.9,
+    "avg_dip_atrs": -0.71,
+    "med_dip_atrs": -0.56,
+    "max_dip_pct": -7.7,
+    "p75_dip_atrs": -1.1
+  },
+  "cap_Small": {
+    "n": 8,
+    "wr": 87.5,
+    "avg_pnl": 6.7,
+    "hit_0_5x": 75.0,
+    "hit_1_0x": 75.0,
+    "hit_1_5x": 50.0,
+    "hit_2_0x": 25.0,
+    "hit_gap_fill": 75.0,
+    "avg_dip_pct": -18.1,
+    "med_dip_pct": -12.8,
+    "avg_dip_atrs": -1.59,
+    "med_dip_atrs": -1.08,
+    "max_dip_pct": -53.6,
+    "p75_dip_atrs": -1.23
+  },
+  "overall": {
+    "n": 123,
+    "high_med_atrs": 1.45,
+    "high_p25_atrs": 0.81,
+    "high_p75_atrs": 2.8,
+    "high_p90_atrs": 3.57,
+    "close_med_atrs": 0.96,
+    "close_p25_atrs": 0.2,
+    "close_p75_atrs": 1.64,
+    "dip_med_atrs": -0.41,
+    "dip_p25_atrs": -1.1,
+    "dip_p75_atrs": -0.19,
+    "gap_fill_pct": 65.0,
+    "half_gap_fill_pct": 86.0,
+    "close_above_gap_pct": 47.0,
+    "open_to_high_retained": 55.0
+  },
+  "correlations": {
+    "selloff_total_pct": -0.337,
+    "pct_change_3": -0.319,
+    "gap_pct": -0.234,
+    "pct_off_30d_high": -0.25,
+    "pct_off_52wk_high": -0.278,
+    "consecutive_down_days": 0.138,
+    "pct_change_15": -0.253
+  },
+  "time_of_low": {
+    "early_30min": 88,
+    "early_30min_pct": 72.0,
+    "total_with_data": 122,
+    "early_wr": 99.0
+  },
+  "spy": {
+    "avg_spy": 1.12,
+    "corr": 0.141,
+    "strong_n": 31,
+    "strong_avg": 8.2,
+    "weak_n": 24,
+    "weak_avg": 2.3
+  },
+  "bollinger": {
+    "outside_n": 66,
+    "outside_wr": 82.0,
+    "outside_avg": 8.2,
+    "inside_n": 57,
+    "inside_wr": 77.0,
+    "inside_avg": 6.5
+  },
+  "near_lows": {
+    "near_n": 51,
+    "near_wr": 76.0,
+    "near_avg": 5.4,
+    "not_n": 72,
+    "not_wr": 82.0,
+    "not_avg": 8.8
+  },
+  "exhaustion_gap": {
+    "yes_n": 79,
+    "yes_wr": 78.0,
+    "yes_avg": 7.9,
+    "no_n": 44,
+    "no_wr": 82.0,
+    "no_avg": 6.5
+  },
+  "down_days_gte_2": {
+    "n": 109,
+    "wr": 85.0,
+    "avg": 8.8
+  },
+  "down_days_gte_3": {
+    "n": 71,
+    "wr": 86.0,
+    "avg": 9.2
+  },
+  "down_days_gte_4": {
+    "n": 52,
+    "wr": 87.0,
+    "avg": 9.8
+  },
+  "down_days_gte_5": {
+    "n": 39,
+    "wr": 87.0,
+    "avg": 10.7
+  }
+}

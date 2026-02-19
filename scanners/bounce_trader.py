@@ -234,15 +234,15 @@ def get_ticker_cap(ticker: str) -> str:
 
 # Bounce intensity spec: (metric, higher_is_better, weight)
 # V2: Replaced volume (rho=0.04, zero predictive power) with momentum metrics.
-# Composite Spearman rho vs outcome: 0.735 (up from 0.678). Score >=50 = 96% WR, +15% avg.
+# V3: Correlations updated for 123-trade dataset.
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.712)
-    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.700)
-    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.435)
-    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.568)
-    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.487)
-    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.350)
-    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.570)
+    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.337)
+    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.319)
+    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.234)
+    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.250)
+    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.278)
+    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.138)
+    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.253)
 ]
 
 # Load reference bounce data once
@@ -564,8 +564,8 @@ class BounceTradeManager:
         # Gap fill levels — only if stock gapped down (prior_close > open)
         if pc > op:
             half_gap = op + 0.5 * (pc - op)
-            raw_targets.append(('50% Gap Fill', half_gap, '50 percent gap fill — 70 percent of trades reach this'))
-            raw_targets.append(('100% Gap Fill', pc, 'Full gap fill — only 48 percent reach this'))
+            raw_targets.append(('50% Gap Fill', half_gap, '50 percent gap fill — 86 percent of trades reach this'))
+            raw_targets.append(('100% Gap Fill', pc, 'Full gap fill — 65 percent reach this'))
 
         # Selloff retrace — only if selloff_high known
         if sh is not None and sh > op:
@@ -600,8 +600,8 @@ class BounceTradeManager:
         # --- Downside drawdown alerts ---
         dd_levels = [
             ('-0.5 ATR', op - 0.5 * atr, 'Half ATR below open — within normal range'),
-            ('-1.3 ATR', op - 1.3 * atr, 'Median drawdown before bounce — minus 1.3 ATR from open'),
-            ('-2.8 ATR', op - 2.8 * atr, '75th percentile worst drawdown — ASSESS'),
+            ('-0.4 ATR', op - 0.4 * atr, 'Median drawdown before bounce — minus 0.4 ATR from open'),
+            ('-1.1 ATR', op - 1.1 * atr, '75th percentile worst drawdown — ASSESS'),
         ]
 
         for name, price, detail in dd_levels:
@@ -836,9 +836,9 @@ class BounceTradeManager:
 
     def _fire_setup_alerts(self):
         if 'weakstock' in self.setup_type.lower():
-            self._alert('WEAKSTOCK bounce — median high plus 24 percent, close plus 12', priority=2)
+            self._alert('WEAKSTOCK bounce — median high plus 16 percent, close plus 9', priority=2)
         else:
-            self._alert('STRONGSTOCK bounce — median high plus 7 percent, close plus 2', priority=2)
+            self._alert('STRONGSTOCK bounce — median high plus 9 percent, close plus 6', priority=2)
 
         if self.is_etf:
             self._alert('ETF — more contained. Plus 7 percent median vs plus 37 for stocks on cluster days', priority=2)
@@ -1253,13 +1253,13 @@ class BounceTradeManager:
             if self.low_water_mark < self.open_price:
                 self._alert('LOW NOT IN FIRST 30 MIN — quality degrades to 45 percent close green', priority=1)
             else:
-                self._alert('EARLY LOW CONFIRMED — 100 percent close green historically', priority=1)
+                self._alert('EARLY LOW CONFIRMED — 99 percent close green historically', priority=1)
 
         # 2:30 PM — scale reminder
         if not self.time_alerts_fired['14:30'] and t >= dt_time(14, 30):
             self.time_alerts_fired['14:30'] = True
             current = self.trade_df.iloc[-1]['close'] if not self.trade_df.empty else self.open_price
-            msg = (f'SCALE REMINDER — only 51 percent of open-to-high retained at close. '
+            msg = (f'SCALE REMINDER — only 55 percent of open-to-high retained at close. '
                    f'Session high was {self.high_water_mark:.2f}, current is {current:.2f}.')
             self._alert(msg, priority=1)
 

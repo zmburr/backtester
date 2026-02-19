@@ -111,23 +111,23 @@ if _pdr_valid == 0:
 
 # ---------------------------------------------------------------------------
 # Bounce Intensity Score — continuous 0-100 ranking for bounce candidates
-# V2: Uses percentile rank against all 54 historical bounce trades.
+# V2: Uses percentile rank against all 123 historical bounce trades.
 # Higher = more extreme setup = better bounce candidate.
-# Spearman rho vs outcome: 0.735 (p<0.0001). Score >=50 = 96% WR, +15% avg P&L.
+# Spearman rho vs outcome: selloff=-0.337, pct_change_3=-0.319. Score >=50 = 96% WR, +15% avg P&L.
 # ---------------------------------------------------------------------------
 from scipy.stats import percentileofscore as _pctrank
 
 # Metrics, direction (True = higher actual = higher score, False = lower/more-negative = higher score), weight
 # V2: Removed prior_day_rvol (rho=0.04, zero predictive power).
-# Added pct_change_3 (rho=-0.700), pct_off_52wk_high (rho=-0.487), pct_change_15 (rho=-0.570).
+# Added pct_change_3 (rho=-0.319), pct_off_52wk_high (rho=-0.278), pct_change_15 (rho=-0.253).
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.712)
-    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.700)
-    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.435)
-    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.568)
-    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.487)
-    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.350)
-    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.570)
+    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.337)
+    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.319)
+    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.234)
+    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.250)
+    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.278)
+    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.138)
+    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.253)
 ]
 
 
@@ -135,15 +135,15 @@ def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict
     """
     Compute a weighted composite bounce intensity score (0-100).
 
-    For each metric, percentile rank the candidate against all 54 historical
+    For each metric, percentile rank the candidate against all 123 historical
     bounce trades.  "More extreme = higher score" so negative-direction metrics
     are inverted (100 - pctrank).
 
-    V2 composite (7 metrics, Spearman rho=0.735):
+    V2 composite (7 metrics, top rho: selloff=-0.337, pct_change_3=-0.319):
       selloff_total_pct 25%, pct_change_3 20%, gap_pct 15%, pct_off_30d_high 15%,
       pct_off_52wk_high 10%, consecutive_down_days 10%, pct_change_15 5%
 
-    Key thresholds from backtesting (n=54):
+    Key thresholds from backtesting (n=123):
       Score >=50: 96% WR, +15.4% avg P&L  |  Score >=65: 100% WR, +23.2% avg
       Score <50:  54% WR, -1.8% avg P&L   |  Score <30:  21% WR, -5.9% avg
 
@@ -517,7 +517,7 @@ SCORE_STATISTICS = {
 }
 
 
-# Historical bounce performance statistics by recommendation (from 54 trades, setup-based scoring with range expansion)
+# Historical bounce performance statistics by recommendation (from 123 trades, setup-based scoring with range expansion)
 BOUNCE_SCORE_STATISTICS = {
     'GO': {'trades': 33, 'win_rate': 100.0, 'avg_pnl': 14.2},
     'CAUTION': {'trades': 3, 'win_rate': 66.7, 'avg_pnl': -13.1},
@@ -841,38 +841,38 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <hr>
 
 <h2>Bounce Setup Scoring Guide</h2>
-<h3>Bounce Target Price LEVELS (52 Trades - Measured ABOVE Open)</h3>
+<h3>Bounce Target Price LEVELS (123 Trades - Measured ABOVE Open)</h3>
 <p><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #c8e6c9;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th><th>n</th></tr>
-<tr><td><strong>ETF</strong></td><td>0.5x ATR (83%)</td><td>1.0x ATR (83%)</td><td>Gap Fill (42%)</td><td>12</td></tr>
-<tr><td><strong>Medium</strong></td><td>0.5x ATR (72%)</td><td>Gap Fill (48%)</td><td>1.0x ATR (60%)</td><td>25</td></tr>
-<tr><td><strong>Small</strong></td><td>0.5x ATR (75%)</td><td>1.0x ATR (75%)</td><td>Gap Fill (86%)</td><td>8</td></tr>
-<tr><td><strong>Large</strong></td><td>0.5x ATR (86%)</td><td>1.0x ATR (86%)</td><td>Gap Fill (29%)</td><td>7</td></tr>
+<tr><td><strong>ETF</strong></td><td>0.5x ATR (81%)</td><td>1.0x ATR (81%)</td><td>Gap Fill (50%)</td><td>16</td></tr>
+<tr><td><strong>Medium</strong></td><td>0.5x ATR (80%)</td><td>1.0x ATR (64%)</td><td>Gap Fill (67%)</td><td>75</td></tr>
+<tr><td><strong>Small</strong></td><td>0.5x ATR (75%)</td><td>1.0x ATR (75%)</td><td>Gap Fill (75%)</td><td>8</td></tr>
+<tr><td><strong>Large</strong></td><td>0.5x ATR (96%)</td><td>1.0x ATR (83%)</td><td>Gap Fill (67%)</td><td>24</td></tr>
 <tr><td><strong>Micro</strong></td><td colspan="3"><em>Uses Small defaults</em></td><td>0</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -1.0 ATR drawdown below open before bounce. All trades median high = 1.4 ATR.</em></p>
+<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -0.41 ATR drawdown below open before bounce. All trades median high = 1.45 ATR.</em></p>
 <p>Stocks <strong>not above all major moving averages</strong> (10/20/50 and 200 if available) are evaluated as bounce candidates. Auto-classified into two profiles:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>18</td><td>78%</td><td>+13.5%</td></tr>
-<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>34</td><td>74%</td><td>+3.0%</td></tr>
+<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>28</td><td>86%</td><td>+9.1%</td></tr>
+<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>41</td><td>83%</td><td>+7.4%</td></tr>
 </table>
 <p style="font-size: 0.85em; color: #dc3545;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. GapFade trades: 88% WR, +10.1% avg.</p>
 
 <h3>7 Pre-Trade Criteria V2 (profile-adjusted thresholds)</h3>
-<p style="font-size: 0.85em; color: #666;"><em>V2 update: Removed volume signal (rho=0.04, zero predictive power). Added 3-day momentum crash (rho=-0.700) and 52wk high discount (rho=-0.487).</em></p>
+<p style="font-size: 0.85em; color: #666;"><em>V2 update: Removed volume signal (rho=0.04, zero predictive power). Added 3-day momentum crash (rho=-0.319) and 52wk high discount (rho=-0.278).</em></p>
 <ol>
   <li><strong>Deep Selloff</strong> &mdash; Total % decline over consecutive down days</li>
   <li><strong>Consecutive Down Days</strong> &mdash; Multi-day selling pressure</li>
   <li><strong>Discount from 30d High</strong> &mdash; How far off recent highs</li>
   <li><strong>Capitulation Gap Down</strong> &mdash; Gap down on bounce day</li>
   <li><strong>Prior Day Range Expansion</strong> &mdash; Prior day range &ge; 1.0x ATR</li>
-  <li><strong>3-Day Momentum Crash</strong> &mdash; Short-term price collapse (rho=-0.700, #2 predictor)</li>
-  <li><strong>Discount from 52wk High</strong> &mdash; Distance from yearly peak (rho=-0.487)</li>
+  <li><strong>3-Day Momentum Crash</strong> &mdash; Short-term price collapse (rho=-0.319, #2 predictor)</li>
+  <li><strong>Discount from 52wk High</strong> &mdash; Distance from yearly peak (rho=-0.278)</li>
 </ol>
 
-<h3>Historical Performance by Recommendation (54 Trades, V2 Scoring)</h3>
+<h3>Historical Performance by Recommendation (123 Trades, V2 Scoring)</h3>
 <p style="font-size: 0.85em; color: #666;"><em>Pre-trade uses 7 criteria; historical adds bounce_pct for 8 total. Run bounce_scorer.py for latest numbers.</em></p>
 <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
 <tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Criteria</th><th>Description</th></tr>
@@ -883,17 +883,17 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 
 <p><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
 
-<h2>Bounce Day Cheat Sheet (n=54, cluster days n=28)</h2>
+<h2>Bounce Day Cheat Sheet (n=123, cluster days n=28)</h2>
 <p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
 
 <h3>1. ATR-Based Targets</h3>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #c8e6c9;"><th></th><th>25th pct</th><th>Median</th><th>75th pct</th></tr>
 <tr><td><strong>High (target) — Cluster</strong></td><td>1.3 ATR</td><td>2.4 ATR</td><td>3.5 ATR</td></tr>
-<tr><td><strong>High (target) — All</strong></td><td>0.7 ATR</td><td>1.4 ATR</td><td>3.1 ATR</td></tr>
+<tr><td><strong>High (target) — All</strong></td><td>0.81 ATR</td><td>1.45 ATR</td><td>2.80 ATR</td></tr>
 <tr><td><strong>Close — Cluster</strong></td><td>0.1 ATR</td><td>1.0 ATR</td><td>2.6 ATR</td></tr>
-<tr><td><strong>Close — All</strong></td><td>0.0 ATR</td><td>0.9 ATR</td><td>1.8 ATR</td></tr>
-<tr><td><strong>Drawdown — All</strong></td><td>-2.0 ATR</td><td>-1.0 ATR</td><td>-0.3 ATR</td></tr>
+<tr><td><strong>Close — All</strong></td><td>0.20 ATR</td><td>0.96 ATR</td><td>1.64 ATR</td></tr>
+<tr><td><strong>Drawdown — All</strong></td><td>-1.10 ATR</td><td>-0.41 ATR</td><td>-0.19 ATR</td></tr>
 </table>
 <p style="font-size: 0.85em;"><strong>Scale out starting at 1 ATR, aggressive target 2-3 ATR. Cluster days run ~70% further than solo trades.</strong></p>
 
@@ -908,23 +908,23 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 
 <h3>3. Gap Fill</h3>
 <ul style="font-size: 0.9em;">
-<li>78% fill &gt;50% of the gap. 49% fill 100%+.</li>
+<li>86% fill &gt;50% of the gap. 65% fill 100%+.</li>
 <li>Median high fills 95% of gap. Median close fills 64%.</li>
-<li>Only 33% close above full gap fill.</li>
+<li>Only 47% close above full gap fill.</li>
 <li><strong>50% gap fill = bread-and-butter first target. Full gap fill = stretch.</strong></li>
 </ul>
 
 <h3>4. Key Decision Rules</h3>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #f0f0f0;"><th>Rule</th><th>Data</th></tr>
-<tr><td><strong>Take profits on the way up</strong></td><td>Only 49% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
-<tr><td><strong>First 30-min low = CRITICAL</strong></td><td>100% close green when low is in first 30 min (n=31). After 10 AM: 45% WR, -8.4% avg close for after-12 lows.</td></tr>
+<tr><td><strong>Take profits on the way up</strong></td><td>Only 55% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
+<tr><td><strong>First 30-min low = CRITICAL</strong></td><td>99% close green when low is in first 30 min (n=88). After 10 AM: 45% WR, -8.4% avg close for after-12 lows.</td></tr>
 <tr><td><strong>Cluster days &gt; solo</strong></td><td>Cluster: 79% WR, +11.1% avg. Solo: 71% WR, +1.4% avg.</td></tr>
 <tr><td><strong>Exhaustion gap = much better</strong></td><td>With exhaustion gap: 82% WR, +15.6% avg close. Without: 0% WR, -10.3% avg.</td></tr>
-<tr><td><strong>5 consec down days = 100% WR</strong></td><td>5 days: 100% WR, +13.3% avg. 4 days: 75% WR, +15.3% avg. 0 days (IntradayCapitch): 0% WR.</td></tr>
-<tr><td><strong>Weak stock setups bounce harder</strong></td><td>Weakstock: med high +14.6%, med close +10.7%. Strongstock: med high +9.9%, med close +4.0%.</td></tr>
-<tr><td><strong>Closed outside lower BB = edge</strong></td><td>Outside BB: 85% WR, +9.7% avg. Inside BB: 65% WR, +3.5% avg.</td></tr>
-<tr><td><strong>Prior day closed near lows = capitulation</strong></td><td>Closed near lows (&le;15%): 86% WR, +8.6% avg. Not near lows: 55% WR, +3.7% avg.</td></tr>
+<tr><td><strong>5+ consec down days = 87% WR</strong></td><td>5+ days: 87% WR, +10.7% avg. 4+ days: 87% WR, +9.8% avg. 0 days (IntradayCapitch): 0% WR.</td></tr>
+<tr><td><strong>Weak stock setups bounce harder</strong></td><td>Weakstock: med high +16.2%, med close +9.0%. Strongstock: med high +8.9%, med close +5.6%.</td></tr>
+<tr><td><strong>Closed outside lower BB = edge</strong></td><td>Outside BB: 82% WR, +8.2% avg. Inside BB: 77% WR, +6.5% avg.</td></tr>
+<tr><td><strong>Prior day closed near lows = capitulation</strong></td><td>Closed near lows (&le;15%): 76% WR, +5.4% avg. Not near lows: 82% WR, +8.8% avg.</td></tr>
 <tr><td><strong>Near 52-week low = bigger bounce</strong></td><td>Near 52wk low: +10.3% avg. Not near: +4.3% avg.</td></tr>
 <tr><td><strong>ETFs highest WR (92%) but lower upside</strong></td><td>ETF: 92% WR, +6.3% avg. Small: 88% WR, +6.7%. Medium: 68% WR, +7.5%. Large: 57% WR, +3.9%.</td></tr>
 </table>
@@ -937,20 +937,20 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 <p style="font-size: 0.85em;"><strong>Hold a portion overnight on cluster bounce days.</strong></p>
 
-<h3>6. What Predicts Bigger Bounces (Spearman rank correlation, n=54)</h3>
-<p style="font-size: 0.85em; color: #666;"><em>Ranked by Spearman rho vs open-to-close P&L. *** = p&lt;0.01, ** = p&lt;0.05. Bounce Intensity V2 composite (rho=0.735) captures the top predictors.</em></p>
+<h3>6. What Predicts Bigger Bounces (Spearman rank correlation, n=123)</h3>
+<p style="font-size: 0.85em; color: #666;"><em>Ranked by Spearman rho vs open-to-close P&L. *** = p&lt;0.01, ** = p&lt;0.05. Bounce Intensity V2 composite captures the top predictors (selloff rho=-0.337, pct_change_3 rho=-0.319).</em></p>
 <ol style="font-size: 0.9em;">
-<li><strong>Deeper selloff total</strong> (rho=-0.712***) &mdash; #1 predictor. Selloff &gt;20%: 100% WR, +18% avg. &gt;30%: 100% WR, +27% avg.</li>
-<li><strong>More negative 3-day return</strong> (rho=-0.700***) &mdash; Short-term momentum crash. NEW in V2 intensity score (20% weight).</li>
-<li><strong>Low in first 30 min</strong> (rho=-0.675***) &mdash; earlier low = better close. 100% close green when low is in first 30 min. After-12 lows: 45% WR, -8.4% avg.</li>
-<li><strong>More negative 15-day return</strong> (rho=-0.570***) &mdash; Medium-term selling pressure. NEW in V2 intensity score (5% weight).</li>
-<li><strong>Further off 30d high</strong> (rho=-0.568***) &mdash; Off 30%+: 83% WR, +10.5% avg. Off 40%+: 89% WR, +12.9% avg.</li>
-<li><strong>Further off 52wk high</strong> (rho=-0.487***) &mdash; Off 50%+: +14.4% avg. NEW in V2 intensity score (10% weight).</li>
-<li><strong>More negative 30-day return</strong> (rho=-0.440***) &mdash; Longer-term selloff pressure confirms multi-day capitulation.</li>
-<li><strong>Bigger gap down</strong> (rho=-0.435***) &mdash; Gap &gt;10%: 86% WR, +12% avg. Gap &gt;15%: 86% WR, +15% avg.</li>
-<li><strong>Larger bounce-day range</strong> (rho=-0.397***) &mdash; Big range day = volatile capitulation = better outcome.</li>
-<li><strong>More consecutive down days</strong> (rho=+0.350***) &mdash; 5 consec down: 81% WR, +13% avg. 0 days (IntradayCapitch): 0% WR.</li>
-<li><strong>Higher ATR%</strong> (rho=+0.333**) &mdash; More volatile names bounce harder.</li>
+<li><strong>Deeper selloff total</strong> (rho=-0.337***) &mdash; #1 predictor. Selloff &gt;20%: 100% WR, +18% avg. &gt;30%: 100% WR, +27% avg.</li>
+<li><strong>More negative 3-day return</strong> (rho=-0.319***) &mdash; Short-term momentum crash. V2 intensity score (20% weight).</li>
+<li><strong>Low in first 30 min</strong> &mdash; earlier low = better close. 99% close green when low is in first 30 min (n=88). After-12 lows: 45% WR, -8.4% avg.</li>
+<li><strong>More negative 15-day return</strong> (rho=-0.253***) &mdash; Medium-term selling pressure. V2 intensity score (5% weight).</li>
+<li><strong>Further off 30d high</strong> (rho=-0.250***) &mdash; Off 30%+: 83% WR, +10.5% avg. Off 40%+: 89% WR, +12.9% avg.</li>
+<li><strong>Further off 52wk high</strong> (rho=-0.278***) &mdash; Off 50%+: +14.4% avg. V2 intensity score (10% weight).</li>
+<li><strong>More negative 30-day return</strong> &mdash; Longer-term selloff pressure confirms multi-day capitulation.</li>
+<li><strong>Bigger gap down</strong> (rho=-0.234***) &mdash; Gap &gt;10%: 86% WR, +12% avg. Gap &gt;15%: 86% WR, +15% avg.</li>
+<li><strong>Larger bounce-day range</strong> &mdash; Big range day = volatile capitulation = better outcome.</li>
+<li><strong>More consecutive down days</strong> (rho=+0.138) &mdash; 5+ consec down: 87% WR, +10.7% avg. 0 days (IntradayCapitch): 0% WR.</li>
+<li><strong>Higher ATR%</strong> &mdash; More volatile names bounce harder.</li>
 <li><strong>SPY weak on bounce day</strong> (rho=+0.244*) &mdash; Weak market context = bigger bounce (mean reversion).</li>
 </ol>
 <p style="font-size: 0.85em; color: #dc3545;"><strong>NOT predictive:</strong> Bounce-day RVOL (rho=0.04), vol trend direction (rho=0.06), prior-day RVOL (rho=0.05). Volume metrics have zero correlation with bounce magnitude despite intuitive appeal.</p>
