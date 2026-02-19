@@ -1,8 +1,13 @@
 """
-Reversal Setup Scorer (V2)
+Reversal Setup Scorer (V3)
 
 Scores parabolic short reversal setups based on 6 cap-adjusted criteria.
 Returns a score (0-6), grade (A+, A, B, C, F), and GO/NO-GO recommendation.
+
+V3 adds:
+  - Pre-trade score (criteria 1-5 only, no outcome leakage from criterion 6)
+  - Continuous ATR-adjusted intensity score (0-100) for magnitude prediction
+    within GO trades. Binary score -> GO/NO-GO gate; intensity -> sizing signal.
 
 The 6 criteria for a TRUE parabolic reversal:
 1. Extended above 9EMA - Price significantly elevated from 9-day EMA
@@ -10,7 +15,7 @@ The 6 criteria for a TRUE parabolic reversal:
 3. Volume expansion - RVOL >= threshold
 4. 3-day momentum run-up - Short-term price acceleration (rho=+0.546)
 5. Euphoric gap up - Gap up on reversal day
-6. Large reversal - Actual reversal size on the day
+6. Large reversal - Actual reversal size on the day (outcome — NOT pre-trade)
 
 V2 update (Feb 2026):
   Replaced consecutive_up_days (rho=+0.086, not significant p=0.35) with
@@ -19,20 +24,148 @@ V2 update (Feb 2026):
   rho=+0.211 (p=0.02) vs original rho=+0.049 (p=0.59).
 
 Usage:
-    from analyzers.reversal_scorer import ReversalScorer
+    from analyzers.reversal_scorer import ReversalScorer, compute_reversal_intensity
     scorer = ReversalScorer()
     result = scorer.score_setup(ticker, date, cap, metrics)
 """
 
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+# ---------------------------------------------------------------------------
+# Percentile ranking helper (mirrors bounce_trader.py)
+# ---------------------------------------------------------------------------
+try:
+    from scipy.stats import percentileofscore as _pctrank
+except Exception:
+    def _pctrank(a, score, kind='rank'):
+        """Minimal percentile-of-score: mean of strict and weak ranks."""
+        try:
+            arr = np.asarray(a, dtype=float)
+            if arr.size == 0:
+                return np.nan
+            s = float(score)
+        except Exception:
+            return np.nan
+        if kind in ('rank', 'mean'):
+            return 100.0 * (np.sum(arr < s) + 0.5 * np.sum(arr == s)) / arr.size
+        if kind == 'weak':
+            return 100.0 * np.sum(arr <= s) / arr.size
+        if kind == 'strict':
+            return 100.0 * np.sum(arr < s) / arr.size
+        return 100.0 * np.sum(arr <= s) / arr.size
+
+
+# ---------------------------------------------------------------------------
+# Reversal intensity spec: (metric, higher_is_better, weight)
+# Cap-stratified percentile ranking for cross-cap comparability.
+# Composite Spearman rho vs P&L: +0.444 (cap-stratified), clean Q1→Q4 monotonic.
+# ---------------------------------------------------------------------------
+_REVERSAL_INTENSITY_SPEC = [
+    ('ema9_atr',            True, 0.20),  # ATR-adj 9EMA distance
+    ('mom3_atr',            True, 0.20),  # ATR-adj 3-day momentum
+    ('pct_from_50mav',      True, 0.15),  # raw % above 50MA (longer-term extension)
+    ('prior_day_range_atr', True, 0.15),  # range/ATR, already adjusted
+    ('gap_atr',             True, 0.15),  # ATR-adj gap
+    ('rvol_score',          True, 0.15),  # relative volume
+]
+
+# Cap groups for stratified percentile ranking.
+# Micro/Small have similar ATR profiles; Medium/Large/ETF are another group.
+_CAP_GROUPS = {
+    'Micro': 'small', 'Small': 'small',
+    'Medium': 'large', 'Large': 'large', 'ETF': 'large',
+}
+
+# ---------------------------------------------------------------------------
+# Load Grade-A reference data for intensity percentile ranking
+# ---------------------------------------------------------------------------
+_reversal_csv = _DATA_DIR / 'reversal_data.csv'
+try:
+    _reversal_df_all = pd.read_csv(_reversal_csv).dropna(subset=['ticker', 'date'])
+    _reversal_ref = _reversal_df_all[_reversal_df_all['trade_grade'] == 'A'].copy()
+    # Precompute ATR-adjusted columns for the reference set
+    _ref_atr = _reversal_ref['atr_pct'].replace(0, np.nan)  # Series.replace
+    _reversal_ref['ema9_atr'] = _reversal_ref['pct_from_9ema'] / _ref_atr
+    _reversal_ref['mom3_atr'] = _reversal_ref['pct_change_3'] / _ref_atr
+    _reversal_ref['gap_atr'] = _reversal_ref['gap_pct'] / _ref_atr
+    _reversal_ref['cap_group'] = _reversal_ref['cap'].map(_CAP_GROUPS).fillna('large')
+    # Pre-split by cap group for fast lookup
+    _ref_by_cap_group = {g: sub for g, sub in _reversal_ref.groupby('cap_group')}
+except Exception:
+    _reversal_df_all = pd.DataFrame()
+    _reversal_ref = pd.DataFrame()
+    _ref_by_cap_group = {}
+
+
+# ---------------------------------------------------------------------------
+# Continuous intensity scoring (cap-stratified)
+# ---------------------------------------------------------------------------
+
+def compute_reversal_intensity(metrics: Dict, cap: str = None,
+                               ref_df: pd.DataFrame = None) -> Dict:
+    """
+    Compute ATR-adjusted intensity score (0-100) for a reversal setup.
+
+    Percentile-ranks each metric against the Grade-A reference distribution
+    for the same cap group (Micro/Small or Medium/Large/ETF).
+
+    Args:
+        metrics: dict with pct_from_9ema, pct_change_3, gap_pct, atr_pct,
+                 prior_day_range_atr, rvol_score, pct_from_50mav
+        cap: market cap category (used for cap-stratified ranking)
+        ref_df: override reference DataFrame (skips cap stratification)
+
+    Returns:
+        {'composite': 0-100, 'details': {col: {pctile, weight, actual}}}
+    """
+    # Select reference set: cap-stratified by default
+    if ref_df is None:
+        cap_group = _CAP_GROUPS.get(cap, 'large') if cap else 'large'
+        ref_df = _ref_by_cap_group.get(cap_group, _reversal_ref)
+
+    atr_pct = metrics.get('atr_pct')
+    if atr_pct is None or pd.isna(atr_pct) or atr_pct == 0:
+        return {'composite': None, 'details': {}}
+
+    # Compute ATR-adjusted values for this setup
+    derived = {
+        'ema9_atr': metrics.get('pct_from_9ema', 0) / atr_pct,
+        'mom3_atr': metrics.get('pct_change_3', 0) / atr_pct,
+        'gap_atr': metrics.get('gap_pct', 0) / atr_pct,
+        'prior_day_range_atr': metrics.get('prior_day_range_atr'),
+        'rvol_score': metrics.get('rvol_score'),
+        'pct_from_50mav': metrics.get('pct_from_50mav'),
+    }
+
+    details = {}
+    weighted_sum = 0.0
+    total_weight = 0.0
+
+    for col, higher_is_better, weight in _REVERSAL_INTENSITY_SPEC:
+        actual = derived.get(col)
+        ref_vals = ref_df[col].dropna().values if col in ref_df.columns else []
+        if actual is None or pd.isna(actual) or len(ref_vals) == 0:
+            details[col] = {'pctile': None, 'weight': weight, 'actual': actual}
+            continue
+        raw_pctile = _pctrank(ref_vals, actual, kind='rank')
+        pctile = raw_pctile if higher_is_better else 100.0 - raw_pctile
+        details[col] = {'pctile': round(pctile, 1), 'weight': weight,
+                        'actual': round(actual, 3) if isinstance(actual, float) else actual}
+        weighted_sum += pctile * weight
+        total_weight += weight
+
+    composite = round(weighted_sum / total_weight, 1) if total_weight > 0 else None
+    return {'composite': composite, 'details': details}
 
 
 @dataclass
@@ -187,6 +320,30 @@ class ReversalScorer:
         else:
             return 'F'
 
+    @staticmethod
+    def _pretrade_grade(score: int) -> str:
+        """Convert pre-trade score (0-5, criteria 1-5 only) to letter grade."""
+        if score == 5:
+            return 'A+'
+        elif score == 4:
+            return 'A'
+        elif score == 3:
+            return 'B'
+        elif score == 2:
+            return 'C'
+        else:
+            return 'F'
+
+    @staticmethod
+    def _pretrade_recommendation(score: int) -> str:
+        """Get GO/NO-GO recommendation from pre-trade score (0-5)."""
+        if score >= 4:
+            return 'GO'
+        elif score == 3:
+            return 'CAUTION'
+        else:
+            return 'NO-GO'
+
     def _get_recommendation(self, score: int) -> str:
         """Get GO/NO-GO recommendation based on score."""
         if score >= 5:
@@ -200,19 +357,21 @@ class ReversalScorer:
         """
         Score a reversal setup against 6 cap-adjusted criteria.
 
-        Args:
-            ticker: Stock ticker symbol
-            date: Trade date
-            cap: Market cap category (Micro, Small, Medium, Large, ETF)
-            metrics: Dictionary of indicator values
-
-        Returns:
-            Dictionary with score, grade, recommendation, and detailed breakdown
+        Returns dict with:
+          - Full 6-criterion score/grade/recommendation (includes outcome)
+          - Pre-trade score (criteria 1-5 only, no outcome leakage)
+          - Intensity (0-100 continuous ATR-adjusted score) when pretrade is GO
         """
         thresholds = self._get_thresholds(cap)
         score, passed, failed = self._evaluate_criteria(metrics, thresholds)
         grade = self._score_to_grade(score)
         recommendation = self._get_recommendation(score)
+
+        # Pre-trade score: criteria 1-5 only (exclude reversal_pct / criterion 6)
+        pretrade_passed = [c for c in passed if c != 'reversal_pct']
+        pretrade_score = len(pretrade_passed)
+        pretrade_grade = self._pretrade_grade(pretrade_score)
+        pretrade_rec = self._pretrade_recommendation(pretrade_score)
 
         # Build detailed breakdown
         criteria_details = {}
@@ -232,6 +391,12 @@ class ReversalScorer:
                 'passed': criterion in passed,
             }
 
+        # Intensity: only compute when pretrade is GO and atr_pct is available
+        intensity = None
+        if pretrade_rec == 'GO' and metrics.get('atr_pct'):
+            intensity_result = compute_reversal_intensity(metrics, cap=cap)
+            intensity = intensity_result.get('composite')
+
         return {
             'ticker': ticker,
             'date': date,
@@ -244,6 +409,13 @@ class ReversalScorer:
             'failed_criteria': failed,
             'criteria_details': criteria_details,
             'is_true_a': score >= 5,
+            # V3: pre-trade score (no outcome leakage)
+            'pretrade_score': pretrade_score,
+            'pretrade_max': 5,
+            'pretrade_grade': pretrade_grade,
+            'pretrade_recommendation': pretrade_rec,
+            # V3: continuous intensity (None if not GO or no atr_pct)
+            'intensity': intensity,
         }
 
     def score_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -271,7 +443,11 @@ class ReversalScorer:
                 'criteria_grade': result['grade'],
                 'recommendation': result['recommendation'],
                 'is_true_a': result['is_true_a'],
-                'failed_criteria': ', '.join(result['failed_criteria']) if result['failed_criteria'] else 'PERFECT'
+                'failed_criteria': ', '.join(result['failed_criteria']) if result['failed_criteria'] else 'PERFECT',
+                'pretrade_score': result['pretrade_score'],
+                'pretrade_grade': result['pretrade_grade'],
+                'pretrade_recommendation': result['pretrade_recommendation'],
+                'intensity': result['intensity'],
             })
 
         score_df = pd.DataFrame(results)
@@ -284,20 +460,21 @@ def print_score_report(result: Dict):
     print(f"REVERSAL SETUP SCORE: {result['ticker']} ({result['date']})")
     print(f"{'='*70}")
     print(f"Market Cap: {result['cap']}")
-    print(f"Score: {result['score']}/{result['max_score']}")
-    print(f"Grade: {result['grade']}")
-    print(f"Recommendation: {result['recommendation']}")
-    print(f"True Grade A: {'YES' if result['is_true_a'] else 'NO'}")
+    print(f"Full Score: {result['score']}/{result['max_score']} ({result['grade']}) — {result['recommendation']}")
+    print(f"Pre-Trade:  {result['pretrade_score']}/{result['pretrade_max']} ({result['pretrade_grade']}) — {result['pretrade_recommendation']}")
+    intensity = result.get('intensity')
+    print(f"Intensity:  {intensity:.0f}/100" if intensity is not None else "Intensity:  N/A")
     print()
 
     print("CRITERIA BREAKDOWN:")
     print("-" * 60)
     for criterion, details in result['criteria_details'].items():
+        is_pretrade = criterion != 'reversal_pct'
+        tag = "PRE" if is_pretrade else "OUT"
         status = "[PASS]" if details['passed'] else "[FAIL]"
         actual = details['actual']
         threshold = details['threshold']
 
-        # Format values for display
         if criterion in ['pct_from_9ema', 'gap_pct', 'reversal_pct', 'pct_change_3']:
             actual_str = f"{actual*100:.1f}%" if actual is not None else "N/A"
             threshold_str = f"{threshold*100:.1f}%"
@@ -305,38 +482,35 @@ def print_score_report(result: Dict):
             actual_str = f"{actual:.1f}x" if actual is not None else "N/A"
             threshold_str = f"{threshold:.1f}x"
 
-        print(f"  {status} {details['name']}")
-        print(f"         Required: >= {threshold_str} | Actual: {actual_str}")
+        print(f"  {status} [{tag}] {details['name']}")
+        print(f"              Required: >= {threshold_str} | Actual: {actual_str}")
     print()
 
 
 # Example usage and testing
 if __name__ == '__main__':
+    from scipy.stats import spearmanr
+
     df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
     grade_a = df[df['trade_grade'] == 'A'].copy()
 
     scorer = ReversalScorer()
     scored_df = scorer.score_dataframe(grade_a)
 
-    # Calculate P&L
+    # Calculate P&L (short trade: negate the reversal pct)
     scored_df['pnl'] = -scored_df['reversal_open_close_pct'] * 100
 
+    # =================================================================
+    # FULL 6-CRITERION SCORE (existing)
+    # =================================================================
     print("\n" + "="*70)
     print("REVERSAL SETUP SCORING SUMMARY - Grade A Trades")
     print("="*70)
 
-    # Score distribution
-    print("\nSCORE DISTRIBUTION:")
+    print("\nFULL SCORE DISTRIBUTION (6 criteria):")
     print(scored_df['criteria_score'].value_counts().sort_index(ascending=False))
 
-    print("\nGRADE DISTRIBUTION:")
-    print(scored_df['criteria_grade'].value_counts())
-
-    print("\nRECOMMENDATION DISTRIBUTION:")
-    print(scored_df['recommendation'].value_counts())
-
-    # Performance by score
-    print("\nPERFORMANCE BY SCORE:")
+    print("\nPERFORMANCE BY FULL SCORE:")
     print("-" * 50)
     for score in [6, 5, 4, 3, 2, 1, 0]:
         subset = scored_df[scored_df['criteria_score'] == score]
@@ -345,27 +519,85 @@ if __name__ == '__main__':
             avg_pnl = subset['pnl'].mean()
             print(f"Score {score}/6: {len(subset):2d} trades | Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
 
-    # True A vs Not True A
-    true_a = scored_df[scored_df['is_true_a'] == True]
-    not_true_a = scored_df[scored_df['is_true_a'] == False]
-
+    # =================================================================
+    # PRE-TRADE SCORE (criteria 1-5 only, no outcome leakage)
+    # =================================================================
     print("\n" + "="*70)
-    print("TRUE A vs NOT TRUE A COMPARISON")
+    print("PRE-TRADE SCORE (criteria 1-5, no outcome leakage)")
     print("="*70)
-    print(f"\nTRUE A (score >= 5): {len(true_a)} trades")
-    print(f"  Win Rate: {(true_a['pnl'] > 0).mean()*100:.1f}%")
-    print(f"  Avg P&L: {true_a['pnl'].mean():+.1f}%")
 
-    print(f"\nNOT TRUE A (score < 5): {len(not_true_a)} trades")
-    print(f"  Win Rate: {(not_true_a['pnl'] > 0).mean()*100:.1f}%")
-    print(f"  Avg P&L: {not_true_a['pnl'].mean():+.1f}%")
+    print("\nPRE-TRADE SCORE DISTRIBUTION:")
+    print(scored_df['pretrade_score'].value_counts().sort_index(ascending=False))
 
-    # Show sample reports
+    print("\nPRE-TRADE GRADE DISTRIBUTION:")
+    print(scored_df['pretrade_grade'].value_counts())
+
+    print("\nPRE-TRADE RECOMMENDATION DISTRIBUTION:")
+    print(scored_df['pretrade_recommendation'].value_counts())
+
+    print("\nPERFORMANCE BY PRE-TRADE SCORE:")
+    print("-" * 50)
+    for score in [5, 4, 3, 2, 1, 0]:
+        subset = scored_df[scored_df['pretrade_score'] == score]
+        if len(subset) > 0:
+            win_rate = (subset['pnl'] > 0).mean() * 100
+            avg_pnl = subset['pnl'].mean()
+            print(f"Score {score}/5: {len(subset):2d} trades | Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
+
+    # Pre-trade GO vs NO-GO
+    go = scored_df[scored_df['pretrade_recommendation'] == 'GO']
+    no_go = scored_df[scored_df['pretrade_recommendation'] != 'GO']
+    print(f"\nPre-Trade GO ({len(go)}): Win {(go['pnl'] > 0).mean()*100:.1f}% | Avg P&L {go['pnl'].mean():+.1f}%")
+    if len(no_go) > 0:
+        print(f"Pre-Trade !GO ({len(no_go)}): Win {(no_go['pnl'] > 0).mean()*100:.1f}% | Avg P&L {no_go['pnl'].mean():+.1f}%")
+
+    # =================================================================
+    # INTENSITY SCORE (continuous, ATR-adjusted)
+    # =================================================================
+    print("\n" + "="*70)
+    print("INTENSITY SCORE (ATR-adjusted, 0-100)")
+    print("="*70)
+
+    has_intensity = scored_df['intensity'].notna()
+    intensity_df = scored_df[has_intensity].copy()
+    print(f"\nTrades with intensity: {len(intensity_df)} / {len(scored_df)}")
+
+    if len(intensity_df) > 0:
+        print(f"Intensity range: {intensity_df['intensity'].min():.0f} — {intensity_df['intensity'].max():.0f}")
+        print(f"Mean: {intensity_df['intensity'].mean():.1f} | Median: {intensity_df['intensity'].median():.1f}")
+
+        # Intensity quartiles
+        print("\nPERFORMANCE BY INTENSITY QUARTILE (GO trades only):")
+        print("-" * 60)
+        quartile_labels = ['Q1 (low)', 'Q2', 'Q3', 'Q4 (high)']
+        try:
+            intensity_df['iq'] = pd.qcut(intensity_df['intensity'], 4, labels=False)
+            for q in range(4):
+                subset = intensity_df[intensity_df['iq'] == q]
+                if len(subset) > 0:
+                    lo = subset['intensity'].min()
+                    hi = subset['intensity'].max()
+                    wr = (subset['pnl'] > 0).mean() * 100
+                    avg = subset['pnl'].mean()
+                    print(f"  {quartile_labels[q]:12s} ({lo:4.0f}-{hi:4.0f}): {len(subset):2d} trades | Win: {wr:5.1f}% | Avg P&L: {avg:+6.1f}%")
+        except ValueError:
+            print("  (not enough trades for quartile analysis)")
+
+        # Correlation: intensity vs P&L
+        rho, p = spearmanr(intensity_df['intensity'], intensity_df['pnl'])
+        print(f"\nSpearman rho (intensity vs P&L): {rho:+.3f} (p={p:.4f})")
+
+    # Correlation: pretrade_score vs P&L
+    rho_pt, p_pt = spearmanr(scored_df['pretrade_score'], scored_df['pnl'])
+    print(f"Spearman rho (pretrade_score vs P&L): {rho_pt:+.3f} (p={p_pt:.4f})")
+
+    # =================================================================
+    # SAMPLE REPORTS
+    # =================================================================
     print("\n" + "="*70)
     print("SAMPLE SCORE REPORTS")
     print("="*70)
 
-    # Show one 6/6, one 5/6, one 4/6
     for score_val in [6, 5, 4]:
         sample = scored_df[scored_df['criteria_score'] == score_val]
         if len(sample) > 0:

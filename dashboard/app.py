@@ -18,10 +18,188 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 # Must be the first Streamlit command in the script.
 st.set_page_config(page_title="Trade Dashboard", layout="wide")
+
+# ---------------------------------------------------------------------------
+# Custom CSS — financial terminal aesthetic
+# ---------------------------------------------------------------------------
+st.markdown(
+    """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── Global typography ─────────────────────────────────────────────────── */
+html, body, .stApp, .stApp *, [data-testid="stAppViewContainer"] {
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #080c12 0%, #0a0e14 40%, #0d1117 100%) !important;
+    border-right: 1px solid #1c2333 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1 {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    background: linear-gradient(135deg, #4fc3f7 0%, #81d4fa 50%, #b3e5fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.4rem !important;
+}
+
+/* ── Metric cards ──────────────────────────────────────────────────────── */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, #111827 0%, #0d1117 100%);
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: border-color 0.2s ease;
+}
+[data-testid="stMetric"]:hover {
+    border-color: #4fc3f7;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 600 !important;
+    font-size: 1.6rem !important;
+}
+[data-testid="stMetricLabel"] {
+    font-family: 'Outfit', sans-serif !important;
+    text-transform: uppercase !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.1em !important;
+    opacity: 0.55;
+}
+[data-testid="stMetricDelta"] {
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0px;
+    border-bottom: 2px solid #1e293b;
+}
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    padding: 10px 24px;
+}
+.stTabs [aria-selected="true"] {
+    border-bottom-color: #4fc3f7 !important;
+}
+
+/* ── Headers ───────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+}
+h2, .stSubheader {
+    letter-spacing: -0.01em;
+}
+
+/* ── DataFrames ────────────────────────────────────────────────────────── */
+[data-testid="stDataFrame"], [data-testid="stTable"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.82rem !important;
+}
+
+/* ── Recommendation badges (injected via HTML) ─────────────────────────── */
+.rec-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+.rec-go       { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
+.rec-caution  { background: #78350f; color: #fcd34d; border: 1px solid #f59e0b; }
+.rec-nogo     { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+
+/* ── Sidebar divider ───────────────────────────────────────────────────── */
+hr {
+    border-color: #1e293b !important;
+}
+
+/* ── Expander ──────────────────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    border-color: #1e293b !important;
+    border-radius: 8px;
+}
+
+/* ── Page top spacer ───────────────────────────────────────────────────── */
+.block-container {
+    padding-top: 2rem !important;
+}
+
+/* ── Plotly charts transparent bg ──────────────────────────────────────── */
+.js-plotly-plot .plotly .main-svg {
+    background: transparent !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+
+# ---------------------------------------------------------------------------
+# Plotly template — matches the dark terminal theme
+# ---------------------------------------------------------------------------
+_CHART_COLORS = [
+    "#4fc3f7",  # electric blue
+    "#6ee7b7",  # mint green
+    "#fbbf24",  # amber
+    "#f87171",  # coral red
+    "#c084fc",  # lavender
+    "#fb923c",  # tangerine
+    "#67e8f9",  # cyan
+    "#a78bfa",  # violet
+]
+
+_TRADING_TEMPLATE = go.layout.Template(
+    layout=go.Layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="JetBrains Mono, Outfit, monospace", color="#c0c8d8", size=12),
+        title=dict(font=dict(family="Outfit, sans-serif", size=16, color="#e0e0e8")),
+        xaxis=dict(
+            gridcolor="#1e293b",
+            zerolinecolor="#1e293b",
+            linecolor="#1e293b",
+            tickfont=dict(size=10),
+        ),
+        yaxis=dict(
+            gridcolor="#1e293b",
+            zerolinecolor="#1e293b",
+            linecolor="#1e293b",
+            tickfont=dict(size=10),
+        ),
+        colorway=_CHART_COLORS,
+        hoverlabel=dict(
+            bgcolor="#1e293b",
+            bordercolor="#4fc3f7",
+            font=dict(family="JetBrains Mono, monospace", size=12, color="#e0e0e8"),
+        ),
+        legend=dict(
+            bgcolor="rgba(0,0,0,0)",
+            bordercolor="#1e293b",
+            font=dict(size=11),
+        ),
+        margin=dict(l=40, r=20, t=50, b=40),
+    )
+)
+pio.templates["trading_dark"] = _TRADING_TEMPLATE
+pio.templates.default = "trading_dark"
 
 
 # -----------------------------------------------------------------------------
@@ -421,6 +599,97 @@ def _key_metrics_selector(defaults: List[str], df: pd.DataFrame) -> List[str]:
     return options
 
 
+def _rec_badge_html(rec: str) -> str:
+    """Return a styled HTML badge for GO / CAUTION / NO-GO."""
+    cls = {"GO": "rec-go", "CAUTION": "rec-caution", "NO-GO": "rec-nogo"}.get(
+        str(rec).upper(), "rec-nogo"
+    )
+    return f'<span class="rec-badge {cls}">{rec}</span>'
+
+
+def _render_rec_summary(scored_df: pd.DataFrame) -> None:
+    """Render GO / CAUTION / NO-GO badges with trade counts and P&L."""
+    if "checklist_rec" not in scored_df.columns:
+        return
+    for rec in ["GO", "CAUTION", "NO-GO"]:
+        sub = scored_df[scored_df["checklist_rec"] == rec]
+        if sub.empty:
+            continue
+        pnl = _safe_to_numeric(sub["pnl"]).dropna()
+        wr = f"{(pnl > 0).mean() * 100:.0f}%" if len(pnl) > 0 else "—"
+        avg = f"{pnl.mean():+.1f}%" if len(pnl) > 0 else "—"
+        badge = _rec_badge_html(rec)
+        st.markdown(
+            f"{badge} &nbsp; **{len(sub)}** trades &nbsp;·&nbsp; WR {wr} &nbsp;·&nbsp; Avg {avg}",
+            unsafe_allow_html=True,
+        )
+
+
+def _cumulative_pnl_chart(
+    df: pd.DataFrame,
+    date_col: str = "date_dt",
+    pnl_col: str = "pnl",
+    title: str = "Equity Curve (cumulative P&L %)",
+    color_col: Optional[str] = None,
+) -> Optional[go.Figure]:
+    """Cumulative P&L line chart ordered by trade date."""
+    tmp = df.dropna(subset=[date_col, pnl_col]).sort_values(date_col).copy()
+    if tmp.empty:
+        return None
+    tmp["_cum_pnl"] = _safe_to_numeric(tmp[pnl_col]).cumsum()
+    tmp["_trade_num"] = range(1, len(tmp) + 1)
+
+    hover = ["ticker", "date", "cap"] if "cap" in tmp.columns else ["ticker", "date"]
+    hover = [h for h in hover if h in tmp.columns]
+
+    fig = px.area(
+        tmp,
+        x="_trade_num",
+        y="_cum_pnl",
+        color=color_col if color_col and color_col in tmp.columns else None,
+        title=title,
+        hover_data=hover + [pnl_col],
+        labels={"_trade_num": "Trade #", "_cum_pnl": "Cumulative P&L %"},
+    )
+    fig.update_traces(line=dict(width=2))
+    # Shade positive green, negative red
+    if color_col is None:
+        fig.update_traces(
+            fillcolor="rgba(79,195,247,0.08)",
+            line_color="#4fc3f7",
+        )
+    fig.update_layout(showlegend=bool(color_col))
+    return fig
+
+
+def _rolling_winrate_chart(
+    df: pd.DataFrame,
+    date_col: str = "date_dt",
+    pnl_col: str = "pnl",
+    window: int = 20,
+    title: str = "Rolling Win Rate",
+) -> Optional[go.Figure]:
+    """Rolling win-rate line chart (trades ordered by date)."""
+    tmp = df.dropna(subset=[date_col, pnl_col]).sort_values(date_col).copy()
+    if len(tmp) < 5:
+        return None
+    tmp["_win"] = (_safe_to_numeric(tmp[pnl_col]) > 0).astype(float)
+    tmp["_rolling_wr"] = tmp["_win"].rolling(window=window, min_periods=5).mean() * 100
+    tmp["_trade_num"] = range(1, len(tmp) + 1)
+
+    fig = px.line(
+        tmp,
+        x="_trade_num",
+        y="_rolling_wr",
+        title=f"{title} ({window}-trade window)",
+        hover_data=[c for c in ["ticker", "date", "cap"] if c in tmp.columns],
+        labels={"_trade_num": "Trade #", "_rolling_wr": "Win Rate %"},
+    )
+    fig.update_traces(line=dict(width=2, color="#6ee7b7"))
+    fig.add_hline(y=50, line_dash="dot", line_color="#4b5563", annotation_text="50%")
+    return fig
+
+
 def _metric_threshold_sweep(
     df: pd.DataFrame,
     metric: str,
@@ -579,15 +848,15 @@ def render_metric_optimizer(
     # Charts side-by-side where possible
     chart_left, chart_right = st.columns(2)
     with chart_left:
-        st.plotly_chart(px.line(sweep, x="threshold", y="win_rate", title="Win rate (%) vs threshold"), use_container_width=True)
+        st.plotly_chart(px.line(sweep, x="threshold", y="win_rate", title="Win rate (%) vs threshold"), width="stretch")
     with chart_right:
-        st.plotly_chart(px.line(sweep, x="threshold", y="avg_pnl", title="Avg P&L (%) vs threshold"), use_container_width=True)
-    st.plotly_chart(px.line(sweep, x="threshold", y="trades", title="Trades vs threshold"), use_container_width=True)
+        st.plotly_chart(px.line(sweep, x="threshold", y="avg_pnl", title="Avg P&L (%) vs threshold"), width="stretch")
+    st.plotly_chart(px.line(sweep, x="threshold", y="trades", title="Trades vs threshold"), width="stretch")
 
     # Table
     with st.expander("Threshold details", expanded=False):
         table = feasible.sort_values(objective, ascending=False).head(40) if not feasible.empty else sweep.head(40)
-        st.dataframe(table, use_container_width=True, height=380)
+        st.dataframe(table, width="stretch", height=380)
         st.download_button(
             "Download sweep CSV",
             data=sweep.to_csv(index=False).encode("utf-8"),
@@ -597,44 +866,117 @@ def render_metric_optimizer(
 # -----------------------------------------------------------------------------
 # Pages
 # -----------------------------------------------------------------------------
+def _compute_delta(df: pd.DataFrame, pnl_col: str = "pnl", recent_n: int = 20) -> Optional[str]:
+    """Compare last N trades' win rate to overall win rate; return delta string."""
+    pnl = _safe_to_numeric(df.get(pnl_col)).dropna()
+    if len(pnl) < recent_n + 5:
+        return None
+    recent = pnl.tail(recent_n)
+    overall_wr = (pnl > 0).mean() * 100
+    recent_wr = (recent > 0).mean() * 100
+    diff = recent_wr - overall_wr
+    return f"{diff:+.0f}pp (last {recent_n})"
+
+
 def render_overview(bounce_df: pd.DataFrame, reversal_df: pd.DataFrame) -> None:
     st.markdown(
-        "Select **Bounce** or **Reversal** in the sidebar. Each page has three tools: "
-        "**Threshold Optimizer** (sweep a metric to find optimal cutoffs), "
-        "**Metric Explorer** (distributions & P&L scatter), and "
-        "**Checklist Simulator** (test GO/CAUTION/NO-GO scoring on historical trades)."
+        '<span style="color:#64748b;font-size:0.9rem">Select a strategy in the sidebar. '
+        "Each page has **Threshold Optimizer**, **Metric Explorer**, and **Checklist Simulator**.</span>",
+        unsafe_allow_html=True,
     )
+
+    # ── Strategy summary cards ────────────────────────────────────────────
+    c1, c2 = st.columns(2)
+
+    for col, label, sdf in [
+        (c1, "Bounce (Long)", bounce_df),
+        (c2, "Reversal (Short)", reversal_df),
+    ]:
+        with col:
+            st.markdown(f"#### {label}")
+            stats = _summary_stats(sdf)
+            delta_str = _compute_delta(sdf)
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Trades", stats["trades"])
+            m2.metric(
+                "Win Rate",
+                "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%",
+                delta=delta_str,
+            )
+            m3.metric(
+                "Avg P&L",
+                "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%",
+            )
+            m4.metric(
+                "Median",
+                "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%",
+            )
+            st.dataframe(
+                _group_stats(sdf, "cap"),
+                width="stretch",
+                hide_index=True,
+                height=200,
+            )
+
     st.divider()
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("#### Bounce (Long)")
-        b_stats = _summary_stats(bounce_df)
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Trades", b_stats["trades"])
-        m2.metric("Win rate", "—" if b_stats["win_rate"] is None else f"{b_stats['win_rate']:.1f}%")
-        m3.metric("Avg P&L", "—" if b_stats["avg_pnl"] is None else f"{b_stats['avg_pnl']:+.2f}%")
-        m4.metric("Median", "—" if b_stats["median_pnl"] is None else f"{b_stats['median_pnl']:+.2f}%")
-        st.dataframe(
-            _group_stats(bounce_df, "cap"),
-            use_container_width=True,
-            hide_index=True,
-            height=180,
+    # ── Equity curves ─────────────────────────────────────────────────────
+    st.markdown("#### Equity Curves")
+    ec1, ec2 = st.columns(2)
+    with ec1:
+        fig = _cumulative_pnl_chart(bounce_df, title="Bounce — Cumulative P&L %")
+        if fig:
+            fig.update_traces(fillcolor="rgba(110,231,183,0.08)", line_color="#6ee7b7")
+            st.plotly_chart(fig, width="stretch")
+    with ec2:
+        fig = _cumulative_pnl_chart(reversal_df, title="Reversal — Cumulative P&L %")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+
+    # ── Rolling win-rate ──────────────────────────────────────────────────
+    wr1, wr2 = st.columns(2)
+    with wr1:
+        fig = _rolling_winrate_chart(bounce_df, title="Bounce Win Rate")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+    with wr2:
+        fig = _rolling_winrate_chart(reversal_df, title="Reversal Win Rate")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+
+    st.divider()
+
+    # ── Recent trades ─────────────────────────────────────────────────────
+    st.markdown("#### Recent Trades")
+    rt1, rt2 = st.columns(2)
+    with rt1:
+        st.caption("Bounce (last 10)")
+        _show_recent(bounce_df, extra_cols=["setup_profile"])
+    with rt2:
+        st.caption("Reversal (last 10)")
+        _show_recent(reversal_df, extra_cols=["setup"])
+
+
+def _show_recent(df: pd.DataFrame, n: int = 10, extra_cols: Optional[List[str]] = None) -> None:
+    """Display a compact recent-trades table with colored P&L."""
+    base_cols = ["date", "ticker", "cap"]
+    if extra_cols:
+        base_cols += [c for c in extra_cols if c in df.columns]
+    base_cols.append("pnl")
+    avail = [c for c in base_cols if c in df.columns]
+
+    recent = df.dropna(subset=["date_dt"]).sort_values("date_dt", ascending=False).head(n)
+    if recent.empty:
+        st.info("No trades.")
+        return
+
+    display = recent[avail].copy()
+    if "pnl" in display.columns:
+        display["pnl"] = display["pnl"].apply(
+            lambda v: f"{v:+.1f}%" if pd.notna(v) else "—"
         )
-    with c2:
-        st.markdown("#### Reversal (Short)")
-        r_stats = _summary_stats(reversal_df)
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Trades", r_stats["trades"])
-        m2.metric("Win rate", "—" if r_stats["win_rate"] is None else f"{r_stats['win_rate']:.1f}%")
-        m3.metric("Avg P&L", "—" if r_stats["avg_pnl"] is None else f"{r_stats['avg_pnl']:+.2f}%")
-        m4.metric("Median", "—" if r_stats["median_pnl"] is None else f"{r_stats['median_pnl']:+.2f}%")
-        st.dataframe(
-            _group_stats(reversal_df, "cap"),
-            use_container_width=True,
-            hide_index=True,
-            height=180,
-        )
+    st.dataframe(display, width="stretch", hide_index=True, height=360)
 
 
 def render_bounce(bounce_df: pd.DataFrame) -> None:
@@ -674,23 +1016,36 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
 
     # Summary stats
     stats = _summary_stats(df)
+    delta_str = _compute_delta(df)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Trades", stats["trades"])
-    c2.metric("Win rate", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%")
+    c2.metric("Win Rate", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%", delta=delta_str)
     c3.metric("Avg P&L", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
     c4.metric("Median P&L", "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%")
 
     st.caption("P&L = open→close % on bounce day. Win = P&L > 0.")
 
-    # Compact breakdowns
-    with st.expander("Stats by cap / setup profile", expanded=False):
+    # ── Equity curve + rolling WR ─────────────────────────────────────────
+    ch1, ch2 = st.columns(2)
+    with ch1:
+        fig = _cumulative_pnl_chart(df, title="Bounce Equity Curve")
+        if fig:
+            fig.update_traces(fillcolor="rgba(110,231,183,0.08)", line_color="#6ee7b7")
+            st.plotly_chart(fig, width="stretch")
+    with ch2:
+        fig = _rolling_winrate_chart(df, title="Bounce Win Rate")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+
+    # Breakdowns (expanded by default — this is core data)
+    with st.expander("Stats by cap / setup profile", expanded=True):
         bc1, bc2 = st.columns(2)
         with bc1:
             st.markdown("**By cap**")
-            st.dataframe(_group_stats(df, "cap"), use_container_width=True, hide_index=True, height=180)
+            st.dataframe(_group_stats(df, "cap"), width="stretch", hide_index=True, height=200)
         with bc2:
             st.markdown("**By setup profile**")
-            st.dataframe(_group_stats(df, "setup_profile"), use_container_width=True, hide_index=True, height=180)
+            st.dataframe(_group_stats(df, "setup_profile"), width="stretch", hide_index=True, height=200)
 
     metric_defaults = [
         "selloff_total_pct",
@@ -737,7 +1092,7 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                     hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "pnl"],
                     title=f"Distribution: {metric}",
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
             with c2:
                 if "pnl" in df.columns and pd.api.types.is_numeric_dtype(df["pnl"]):
@@ -749,7 +1104,7 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                         hover_data=["ticker", "date", "cap", "trade_grade"],
                         title=f"{metric} vs P&L",
                     )
-                    st.plotly_chart(scatter, use_container_width=True)
+                    st.plotly_chart(scatter, width="stretch")
 
     with tab_checklist:
         st.markdown("**Test checklist logic on historical trades.** See how GO/CAUTION/NO-GO performs.")
@@ -782,9 +1137,10 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                     }
                 )
             scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
-            
+
             st.markdown("**Results by recommendation:**")
-            st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+            _render_rec_summary(scored)
+            st.dataframe(_group_stats(scored, "checklist_rec"), width="stretch")
 
             box = px.box(
                 scored,
@@ -793,13 +1149,16 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                 points="all",
                 hover_data=["ticker", "date", "cap", "setup_profile", "trade_grade", "checklist_score"],
                 title="P&L by recommendation",
+                color="checklist_rec",
+                color_discrete_map={"GO": "#6ee7b7", "CAUTION": "#fbbf24", "NO-GO": "#f87171"},
             )
-            st.plotly_chart(box, use_container_width=True)
+            box.update_layout(showlegend=False)
+            st.plotly_chart(box, width="stretch")
 
             with st.expander("All trades", expanded=False):
                 st.dataframe(
                     scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]),
-                    use_container_width=True,
+                    width="stretch",
                     height=350,
                 )
                 csv_bytes = scored.to_csv(index=False).encode("utf-8")
@@ -860,7 +1219,7 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                     )
                 scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
-                st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+                st.dataframe(_group_stats(scored, "checklist_rec"), width="stretch")
                 box = px.box(
                     scored,
                     x="checklist_rec",
@@ -869,7 +1228,7 @@ def render_bounce(bounce_df: pd.DataFrame) -> None:
                     hover_data=["ticker", "date", "trade_grade"],
                     title="P&L by recommendation",
                 )
-                st.plotly_chart(box, use_container_width=True)
+                st.plotly_chart(box, width="stretch")
 
             with st.expander("Export config snippet"):
                 st.code(
@@ -923,22 +1282,34 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
     # Summary stats
     stats = _summary_stats(df)
     c1, c2, c3, c4 = st.columns(4)
+    delta_str = _compute_delta(df)
     c1.metric("Trades", stats["trades"])
-    c2.metric("Win rate", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%")
+    c2.metric("Win Rate", "—" if stats["win_rate"] is None else f"{stats['win_rate']:.1f}%", delta=delta_str)
     c3.metric("Avg P&L", "—" if stats["avg_pnl"] is None else f"{stats['avg_pnl']:+.2f}%")
     c4.metric("Median P&L", "—" if stats["median_pnl"] is None else f"{stats['median_pnl']:+.2f}%")
 
     st.caption("P&L = -(open→close %) on reversal day (short). Win = P&L > 0.")
 
-    # Compact breakdowns
-    with st.expander("Stats by cap / setup", expanded=False):
+    # ── Equity curve + rolling WR ─────────────────────────────────────────
+    ch1, ch2 = st.columns(2)
+    with ch1:
+        fig = _cumulative_pnl_chart(df, title="Reversal Equity Curve")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+    with ch2:
+        fig = _rolling_winrate_chart(df, title="Reversal Win Rate")
+        if fig:
+            st.plotly_chart(fig, width="stretch")
+
+    # Breakdowns (expanded by default)
+    with st.expander("Stats by cap / setup", expanded=True):
         rc1, rc2 = st.columns(2)
         with rc1:
             st.markdown("**By cap**")
-            st.dataframe(_group_stats(df, "cap"), use_container_width=True, hide_index=True, height=180)
+            st.dataframe(_group_stats(df, "cap"), width="stretch", hide_index=True, height=200)
         with rc2:
             st.markdown("**By setup**")
-            st.dataframe(_group_stats(df, "setup"), use_container_width=True, hide_index=True, height=180)
+            st.dataframe(_group_stats(df, "setup"), width="stretch", hide_index=True, height=200)
 
     metric_defaults = [
         "pct_from_9ema",
@@ -982,7 +1353,7 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
                     hover_data=["ticker", "date", "cap", "setup", "trade_grade", "pnl"],
                     title=f"Distribution: {metric}",
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
             with c2:
                 scatter = px.scatter(
@@ -993,7 +1364,7 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
                     hover_data=["ticker", "date", "setup", "trade_grade"],
                     title=f"{metric} vs P&L",
                 )
-                st.plotly_chart(scatter, use_container_width=True)
+                st.plotly_chart(scatter, width="stretch")
 
     with tab_checklist:
         st.markdown("**Test checklist logic on historical trades.** See how GO/CAUTION/NO-GO performs.")
@@ -1021,7 +1392,8 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
             scored = pd.concat([df.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
             st.markdown("**Results by recommendation:**")
-            st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+            _render_rec_summary(scored)
+            st.dataframe(_group_stats(scored, "checklist_rec"), width="stretch")
             box = px.box(
                 scored,
                 x="checklist_rec",
@@ -1029,11 +1401,14 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
                 points="all",
                 hover_data=["ticker", "date", "cap", "setup", "trade_grade", "checklist_score"],
                 title="P&L by recommendation",
+                color="checklist_rec",
+                color_discrete_map={"GO": "#6ee7b7", "CAUTION": "#fbbf24", "NO-GO": "#f87171"},
             )
-            st.plotly_chart(box, use_container_width=True)
+            box.update_layout(showlegend=False)
+            st.plotly_chart(box, width="stretch")
 
             with st.expander("All trades", expanded=False):
-                st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), use_container_width=True, height=350)
+                st.dataframe(scored.sort_values(["checklist_rec", "pnl"], ascending=[True, False]), width="stretch", height=350)
                 csv_bytes = scored.to_csv(index=False).encode("utf-8")
                 st.download_button("Download CSV", data=csv_bytes, file_name="reversal_scored.csv")
 
@@ -1082,7 +1457,7 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
                     )
                 scored = pd.concat([to_score.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
-                st.dataframe(_group_stats(scored, "checklist_rec"), use_container_width=True)
+                st.dataframe(_group_stats(scored, "checklist_rec"), width="stretch")
                 box = px.box(
                     scored,
                     x="checklist_rec",
@@ -1091,7 +1466,7 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
                     hover_data=["ticker", "date", "setup", "trade_grade"],
                     title="P&L by recommendation",
                 )
-                st.plotly_chart(box, use_container_width=True)
+                st.plotly_chart(box, width="stretch")
 
             with st.expander("Export config snippet"):
                 st.code(
@@ -1113,29 +1488,34 @@ def render_reversal(reversal_df: pd.DataFrame) -> None:
 
 with st.sidebar:
     st.title("Trade Dashboard")
-    page = st.radio("", ["Overview", "Bounce (long)", "Reversal (short)"], index=0, label_visibility="collapsed")
+    st.caption("Strategy analysis & threshold tuning")
+    page = st.radio(
+        "Page",
+        ["Overview", "Bounce (long)", "Reversal (short)"],
+        index=0,
+        label_visibility="collapsed",
+    )
     st.divider()
 
 bounce_df = load_bounce_df()
 reversal_df = load_reversal_df()
 
+# Pre-compute bounce intensity (always — removes opt-in friction)
+if "bounce_intensity" not in bounce_df.columns:
+    _weights = {
+        "selloff_total_pct": 0.30,
+        "consecutive_down_days": 0.10,
+        "prior_day_rvol": 0.15,
+        "pct_off_30d_high": 0.20,
+        "gap_pct": 0.25,
+    }
+    bounce_df["bounce_intensity"] = bounce_df.apply(
+        lambda r: _compute_bounce_intensity_row(r, bounce_df, _weights), axis=1
+    )
+
 if page == "Overview":
     render_overview(bounce_df, reversal_df)
 elif page == "Bounce (long)":
-    # Optional: add bounce intensity column (only on bounce page)
-    with st.sidebar:
-        add_intensity = st.checkbox("Compute bounce intensity", value=False, help="Slower; adds intensity percentile score")
-    if add_intensity and "bounce_intensity" not in bounce_df.columns:
-        _weights = {
-            "selloff_total_pct": 0.30,
-            "consecutive_down_days": 0.10,
-            "prior_day_rvol": 0.15,
-            "pct_off_30d_high": 0.20,
-            "gap_pct": 0.25,
-        }
-        tmp = bounce_df.copy()
-        tmp["bounce_intensity"] = tmp.apply(lambda r: _compute_bounce_intensity_row(r, tmp, _weights), axis=1)
-        bounce_df = tmp
     render_bounce(bounce_df)
 else:
     render_reversal(reversal_df)
