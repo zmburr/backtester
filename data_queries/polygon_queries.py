@@ -182,8 +182,8 @@ def timestamp_to_string(timestamp_obj):
         raise TypeError("The provided object is not a Timestamp.")
 
 
-def _adjust_date(original_date, days_to_subtract, max_depth=30):
-    if days_to_subtract > max_depth:
+def _adjust_date(original_date, days_to_subtract, _depth=0):
+    if _depth > 30:
         return None
     nyse = mcal.get_calendar('NYSE')
     new_date = original_date - pd.Timedelta(days=days_to_subtract)
@@ -191,7 +191,7 @@ def _adjust_date(original_date, days_to_subtract, max_depth=30):
     if not trading_days.empty:
         adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
         if adjusted_date == original_date.strftime("%Y-%m-%d"):
-            return _adjust_date(original_date, days_to_subtract + 1, max_depth)
+            return _adjust_date(original_date, days_to_subtract + 1, _depth + 1)
         else:
             return adjusted_date
     else:
