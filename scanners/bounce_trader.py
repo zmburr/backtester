@@ -2,7 +2,7 @@
 Bounce Trade Alert Monitor — Live price-level and time-based alerts for bounce (long) trades.
 
 Follows the live_watcher.py architecture (event-driven threading + TTS alerts) but purpose-built
-for the bounce playbook derived from 93 historical trades.
+for the bounce playbook derived from 83 historical GapFade trades (IntradayCapitch excluded).
 
 All levels are objective — anchored to open price, prior close, and selloff high.
 Optionally integrates with TRAC position data for position-aware alerts.
@@ -233,24 +233,30 @@ def get_ticker_cap(ticker: str) -> str:
 
 
 # Bounce intensity spec: (metric, higher_is_better, weight)
-# V2: Replaced volume (rho=0.04, zero predictive power) with momentum metrics.
-# V4: Correlations updated for 93-trade dataset.
+# V5: Weights re-derived from within-setup correlations on 83 GapFade trades.
+# Dropped consecutive_down_days (not significant within-setup).
+# pct_change_3 promoted to 30% (#1 both setups), pct_change_15 to 20% (#1 weakstock).
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.451)
-    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.366)
-    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.253)
-    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.291)
-    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.328)
-    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.163)
-    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.273)
+    ('pct_change_3',         False, 0.30),   # #1 predictor both setups (weak=-0.584, strong=-0.505)
+    ('pct_change_15',        False, 0.20),   # #1 for weakstock (rho=-0.694), medium-term pressure
+    ('selloff_total_pct',    False, 0.15),   # total selloff depth (weak=-0.547, strong=-0.249)
+    ('gap_pct',              False, 0.15),   # gap down size (weak=-0.248, strong=-0.508)
+    ('pct_off_30d_high',     False, 0.15),   # discount from 30d high (weak=-0.639, strong=-0.351)
+    ('pct_off_52wk_high',    False, 0.05),   # 52wk high discount — reduced (rho=0.885 with 30d)
 ]
 
-# Load reference bounce data once
+# Load reference bounce data once — exclude IntradayCapitch (different setup, 11% WR)
+# Split by setup type for setup-specific intensity comparisons
 _bounce_csv = Path(__file__).resolve().parent.parent / 'data' / 'bounce_data.csv'
 try:
     _bounce_df_all = pd.read_csv(_bounce_csv).dropna(subset=['ticker', 'date'])
+    _bounce_df_all = _bounce_df_all[~_bounce_df_all['Setup'].str.contains('IntradayCapitch', case=False, na=False)].copy()
+    _bounce_df_weak = _bounce_df_all[_bounce_df_all['Setup'].str.contains('weakstock', case=False, na=False)].copy()
+    _bounce_df_strong = _bounce_df_all[~_bounce_df_all['Setup'].str.contains('weakstock', case=False, na=False)].copy()
 except Exception:
     _bounce_df_all = pd.DataFrame()
+    _bounce_df_weak = pd.DataFrame()
+    _bounce_df_strong = pd.DataFrame()
 
 
 def compute_bounce_intensity(metrics: Dict, ref_df: pd.DataFrame = None) -> Dict:
@@ -482,8 +488,9 @@ class BounceTradeManager:
         self.bounce_score = self.pretrade_result.score
         self.recommendation = self.pretrade_result.recommendation
 
-        # ---- 10. Intensity ----
-        intensity_result = compute_bounce_intensity(self.metrics)
+        # ---- 10. Intensity — compare against setup-specific ref data ----
+        _ref = _bounce_df_weak if 'weakstock' in self.setup_type.lower() else _bounce_df_strong
+        intensity_result = compute_bounce_intensity(self.metrics, ref_df=_ref)
         self.bounce_intensity = intensity_result['composite']
 
         # ---- 11. Exhaustion gap ----
@@ -836,15 +843,15 @@ class BounceTradeManager:
 
     def _fire_setup_alerts(self):
         if 'weakstock' in self.setup_type.lower():
-            self._alert('WEAKSTOCK bounce — median high plus 18 percent, close plus 10', priority=2)
+            self._alert('WEAKSTOCK bounce — median high plus 21 percent, close plus 11', priority=2)
         else:
-            self._alert('STRONGSTOCK bounce — median high plus 11 percent, close plus 6', priority=2)
+            self._alert('STRONGSTOCK bounce — median high plus 12 percent, close plus 8', priority=2)
 
         if self.is_etf:
-            self._alert('ETF — more contained. Plus 7 percent median vs plus 37 for stocks on cluster days', priority=2)
+            self._alert('ETF — 93 percent win rate but lower upside. Plus 6 percent avg', priority=2)
 
         if self.has_exhaustion_gap:
-            self._alert('EXHAUSTION GAP — median high plus 22 percent', priority=2)
+            self._alert('EXHAUSTION GAP — 93 percent win rate, plus 12 percent avg', priority=2)
 
         self._alert(f'Bounce intensity: {self.bounce_intensity:.0f} out of 100', priority=2)
 
@@ -1251,7 +1258,7 @@ class BounceTradeManager:
         if not self.time_alerts_fired['10:00'] and t >= dt_time(10, 0):
             self.time_alerts_fired['10:00'] = True
             if self.low_water_mark < self.open_price:
-                self._alert('LOW NOT IN FIRST 30 MIN — quality degrades to 32 percent close green', priority=1)
+                self._alert('LOW NOT IN FIRST 30 MIN — late lows: 50 percent win rate', priority=1)
             else:
                 self._alert('EARLY LOW CONFIRMED — 99 percent close green historically', priority=1)
 
@@ -1267,8 +1274,8 @@ class BounceTradeManager:
         if not self.time_alerts_fired['15:30'] and t >= dt_time(15, 30):
             self.time_alerts_fired['15:30'] = True
             self._alert(
-                'OVERNIGHT REMINDER — 100 percent of cluster days gapped up. '
-                'Median plus 10.6 percent. Hold a portion.',
+                'OVERNIGHT REMINDER — 98 percent of cluster days gapped up. '
+                'Median plus 14.2 percent. Hold a portion.',
                 priority=1,
             )
 

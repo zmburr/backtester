@@ -1,4 +1,4 @@
-"""Compute comprehensive stats for the 93-trade bounce dataset."""
+"""Compute comprehensive stats for the bounce dataset (GapFade only, excluding IntradayCapitch)."""
 import pandas as pd
 import numpy as np
 import sys, os
@@ -7,8 +7,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from analyzers.bounce_scorer import BounceScorer, BouncePretrade, classify_from_setup_column
 from scanners.bounce_trader import compute_bounce_intensity
 
-df = pd.read_csv('data/bounce_data.csv')
-print(f'Total trades: {len(df)}')
+df_all = pd.read_csv('data/bounce_data.csv')
+print(f'Total trades (all): {len(df_all)}')
+ic = df_all[df_all['Setup'].str.contains('IntradayCapitch', case=False, na=False)]
+print(f'IntradayCapitch: {len(ic)} trades (excluded from stats)')
+df = df_all[~df_all['Setup'].str.contains('IntradayCapitch', case=False, na=False)].copy()
+print(f'GapFade trades (used for stats): {len(df)}')
 
 scorer = BounceScorer()
 scored = scorer.score_dataframe(df)

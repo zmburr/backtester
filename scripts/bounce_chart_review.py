@@ -237,7 +237,8 @@ def go_next(max_idx: int):
 
 
 def on_select():
-    st.session_state.trade_idx = int(st.session_state.trade_select)
+    val = st.session_state.trade_select
+    st.session_state.trade_idx = val if isinstance(val, int) else 0
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +257,14 @@ def main():
         value=True,
         help=f"Filter to rows {ORIGINAL_ROW_COUNT}+ (added in the recent expansion)",
     )
+
+    # Reset index when filter changes to avoid stale state
+    prev_filter = st.session_state.get("_prev_filter", True)
+    if show_new_only != prev_filter:
+        st.session_state.trade_idx = 0
+        # Clear the selectbox key so it doesn't hold a stale string
+        st.session_state.pop("trade_select", None)
+    st.session_state._prev_filter = show_new_only
 
     if show_new_only:
         view_df = df[df["_row_idx"] >= ORIGINAL_ROW_COUNT].reset_index(drop=True)

@@ -2,11 +2,12 @@
 Bounce Setup Scorer + Pre-Trade Checklist (Setup-Based)
 
 Scores capitulation bounce setups based on SETUP TYPE, not market cap.
-Setup profiles are derived from 93 historical bounce trades in bounce_data.csv.
+Setup profiles are derived from 83 historical GapFade bounce trades in bounce_data.csv
+(IntradayCapitch trades excluded — different setup with 11% WR).
 
 Two setup profiles auto-detected from stock positioning:
   - GapFade_weakstock:  Stock already in downtrend, deep multi-day selloff to capitulation
-                        (21 Grade A trades: 95% WR, +11.2% avg P&L)
+                        (36 Grade A trades: 92% WR, +12.9% avg P&L)
   - GapFade_strongstock: Healthy stock hit by sudden selloff, gap down bounce
                         (15 Grade A trades: 94% WR, +12.0% avg P&L)
 
@@ -127,9 +128,9 @@ SETUP_PROFILES = {
     'GapFade_weakstock': SetupProfile(
         name='GapFade_weakstock',
         description='Weak stock capitulation bounce — stock already in downtrend, extended multi-day selloff',
-        sample_size=21,
-        historical_win_rate=0.95,
-        historical_avg_pnl=11.2,
+        sample_size=36,
+        historical_win_rate=0.92,
+        historical_avg_pnl=12.9,
 
         # Core criteria — cap-keyed thresholds
         # Thresholds set at p75 of winning trades (lenient: ~75% of winners pass)
@@ -187,9 +188,9 @@ SETUP_PROFILES = {
     'GapFade_strongstock': SetupProfile(
         name='GapFade_strongstock',
         description='Strong stock pullback bounce — healthy stock hit by sudden selloff (macro, sector, earnings)',
-        sample_size=15,
-        historical_win_rate=0.94,
-        historical_avg_pnl=12.0,
+        sample_size=31,
+        historical_win_rate=0.97,
+        historical_avg_pnl=10.9,
 
         # Core criteria — cap-keyed thresholds
         selloff_total_pct={
@@ -310,11 +311,11 @@ def classify_stock(metrics: Dict) -> Tuple[str, Dict]:
 
 def classify_from_setup_column(setup_name: str) -> str:
     """Classify from the Setup column in bounce_data.csv for historical scoring."""
+    if 'IntradayCapitch' in setup_name:
+        return 'IntradayCapitch'
     if 'weakstock' in setup_name:
         return 'GapFade_weakstock'
-    else:
-        # strongstock, IntradayCapitch, plain GapFade -> all use strongstock profile
-        return 'GapFade_strongstock'
+    return 'GapFade_strongstock'
 
 
 # ---------------------------------------------------------------------------
