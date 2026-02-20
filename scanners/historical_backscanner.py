@@ -544,6 +544,16 @@ class HistoricalBackscanner:
 
         results_df = pd.DataFrame(all_matches)
 
+        # Dedupe on ticker+date (keep highest-scored occurrence)
+        if not results_df.empty:
+            before = len(results_df)
+            results_df = results_df.sort_values('score', ascending=False)
+            results_df = results_df.drop_duplicates(subset=['ticker', 'date'], keep='first')
+            results_df = results_df.sort_values('date').reset_index(drop=True)
+            dupes_removed = before - len(results_df)
+            if dupes_removed > 0:
+                logger.info(f"Removed {dupes_removed} duplicate ticker+date rows (kept highest score)")
+
         if output_csv and not results_df.empty:
             results_df.to_csv(output_csv, index=False)
             logger.info(f"Results saved to {output_csv}")
