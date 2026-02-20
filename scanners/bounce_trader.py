@@ -2,7 +2,7 @@
 Bounce Trade Alert Monitor — Live price-level and time-based alerts for bounce (long) trades.
 
 Follows the live_watcher.py architecture (event-driven threading + TTS alerts) but purpose-built
-for the bounce playbook derived from 36 historical trades.
+for the bounce playbook derived from 93 historical trades.
 
 All levels are objective — anchored to open price, prior close, and selloff high.
 Optionally integrates with TRAC position data for position-aware alerts.
@@ -234,15 +234,15 @@ def get_ticker_cap(ticker: str) -> str:
 
 # Bounce intensity spec: (metric, higher_is_better, weight)
 # V2: Replaced volume (rho=0.04, zero predictive power) with momentum metrics.
-# V3: Correlations updated for 123-trade dataset.
+# V4: Correlations updated for 93-trade dataset.
 _BOUNCE_INTENSITY_SPEC = [
-    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.337)
-    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.319)
-    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.234)
-    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.250)
-    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.278)
-    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.138)
-    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.253)
+    ('selloff_total_pct',    False, 0.25),   # deeper selloff = better (rho=-0.451)
+    ('pct_change_3',         False, 0.20),   # more negative 3-day return = better (rho=-0.366)
+    ('gap_pct',              False, 0.15),   # bigger gap down = better (rho=-0.253)
+    ('pct_off_30d_high',     False, 0.15),   # further off 30d high = better (rho=-0.291)
+    ('pct_off_52wk_high',    False, 0.10),   # further off 52wk high = better (rho=-0.328)
+    ('consecutive_down_days', True, 0.10),   # more down days = better (rho=+0.163)
+    ('pct_change_15',        False, 0.05),   # more negative 15-day return = better (rho=-0.273)
 ]
 
 # Load reference bounce data once
@@ -565,7 +565,7 @@ class BounceTradeManager:
         if pc > op:
             half_gap = op + 0.5 * (pc - op)
             raw_targets.append(('50% Gap Fill', half_gap, '50 percent gap fill — 86 percent of trades reach this'))
-            raw_targets.append(('100% Gap Fill', pc, 'Full gap fill — 65 percent reach this'))
+            raw_targets.append(('100% Gap Fill', pc, 'Full gap fill — 63 percent reach this'))
 
         # Selloff retrace — only if selloff_high known
         if sh is not None and sh > op:
@@ -601,7 +601,7 @@ class BounceTradeManager:
         dd_levels = [
             ('-0.5 ATR', op - 0.5 * atr, 'Half ATR below open — within normal range'),
             ('-0.4 ATR', op - 0.4 * atr, 'Median drawdown before bounce — minus 0.4 ATR from open'),
-            ('-1.1 ATR', op - 1.1 * atr, '75th percentile worst drawdown — ASSESS'),
+            ('-1.2 ATR', op - 1.2 * atr, '75th percentile worst drawdown — ASSESS'),
         ]
 
         for name, price, detail in dd_levels:
@@ -836,9 +836,9 @@ class BounceTradeManager:
 
     def _fire_setup_alerts(self):
         if 'weakstock' in self.setup_type.lower():
-            self._alert('WEAKSTOCK bounce — median high plus 16 percent, close plus 9', priority=2)
+            self._alert('WEAKSTOCK bounce — median high plus 18 percent, close plus 10', priority=2)
         else:
-            self._alert('STRONGSTOCK bounce — median high plus 9 percent, close plus 6', priority=2)
+            self._alert('STRONGSTOCK bounce — median high plus 11 percent, close plus 6', priority=2)
 
         if self.is_etf:
             self._alert('ETF — more contained. Plus 7 percent median vs plus 37 for stocks on cluster days', priority=2)
@@ -851,7 +851,7 @@ class BounceTradeManager:
         # Announce score with breakdown (TTS)
         passed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if i.passed]
         failed_names = [i.name.replace('_', ' ') for i in self.pretrade_result.items if not i.passed]
-        score_msg = f'Pretrade score {self.bounce_score} out of 6 — {self.recommendation}'
+        score_msg = f'Pretrade score {self.bounce_score} out of 7 — {self.recommendation}'
         if passed_names:
             score_msg += f'. Passing: {", ".join(passed_names)}'
         if failed_names:
@@ -1251,7 +1251,7 @@ class BounceTradeManager:
         if not self.time_alerts_fired['10:00'] and t >= dt_time(10, 0):
             self.time_alerts_fired['10:00'] = True
             if self.low_water_mark < self.open_price:
-                self._alert('LOW NOT IN FIRST 30 MIN — quality degrades to 45 percent close green', priority=1)
+                self._alert('LOW NOT IN FIRST 30 MIN — quality degrades to 32 percent close green', priority=1)
             else:
                 self._alert('EARLY LOW CONFIRMED — 99 percent close green historically', priority=1)
 

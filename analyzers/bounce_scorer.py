@@ -2,13 +2,13 @@
 Bounce Setup Scorer + Pre-Trade Checklist (Setup-Based)
 
 Scores capitulation bounce setups based on SETUP TYPE, not market cap.
-Setup profiles are derived from 123 historical bounce trades in bounce_data.csv.
+Setup profiles are derived from 93 historical bounce trades in bounce_data.csv.
 
 Two setup profiles auto-detected from stock positioning:
   - GapFade_weakstock:  Stock already in downtrend, deep multi-day selloff to capitulation
-                        (28 Grade A trades: 86% WR, +9.1% avg P&L)
+                        (21 Grade A trades: 95% WR, +11.2% avg P&L)
   - GapFade_strongstock: Healthy stock hit by sudden selloff, gap down bounce
-                        (40 Grade A trades: 83% WR, +7.4% avg P&L)
+                        (15 Grade A trades: 94% WR, +12.0% avg P&L)
 
 Classification uses pct_from_200mav (primary) or pct_change_30 (fallback).
 
@@ -127,9 +127,9 @@ SETUP_PROFILES = {
     'GapFade_weakstock': SetupProfile(
         name='GapFade_weakstock',
         description='Weak stock capitulation bounce — stock already in downtrend, extended multi-day selloff',
-        sample_size=28,
-        historical_win_rate=0.86,
-        historical_avg_pnl=9.1,
+        sample_size=21,
+        historical_win_rate=0.95,
+        historical_avg_pnl=11.2,
 
         # Core criteria — cap-keyed thresholds
         # Thresholds set at p75 of winning trades (lenient: ~75% of winners pass)
@@ -173,23 +173,23 @@ SETUP_PROFILES = {
         },
 
         reference_medians={
-            'selloff_total_pct': -0.334,
+            'selloff_total_pct': -0.335,
             'consecutive_down_days': 5.0,
-            'pct_off_30d_high': -0.571,
-            'gap_pct': -0.057,
-            'prior_day_range_atr': 1.458,
-            'pct_change_3': -0.122,
-            'pct_off_52wk_high': -0.760,
-            'bounce_pct': 0.090,
+            'pct_off_30d_high': -0.580,
+            'gap_pct': -0.061,
+            'prior_day_range_atr': 1.410,
+            'pct_change_3': -0.135,
+            'pct_off_52wk_high': -0.754,
+            'bounce_pct': 0.112,
         },
     ),
 
     'GapFade_strongstock': SetupProfile(
         name='GapFade_strongstock',
         description='Strong stock pullback bounce — healthy stock hit by sudden selloff (macro, sector, earnings)',
-        sample_size=40,
-        historical_win_rate=0.83,
-        historical_avg_pnl=7.4,
+        sample_size=15,
+        historical_win_rate=0.94,
+        historical_avg_pnl=12.0,
 
         # Core criteria — cap-keyed thresholds
         selloff_total_pct={
@@ -233,14 +233,14 @@ SETUP_PROFILES = {
         },
 
         reference_medians={
-            'selloff_total_pct': -0.183,
-            'consecutive_down_days': 3.0,
-            'pct_off_30d_high': -0.325,
-            'gap_pct': -0.061,
-            'prior_day_range_atr': 1.203,
-            'pct_change_3': -0.090,
-            'pct_off_52wk_high': -0.416,
-            'bounce_pct': 0.057,
+            'selloff_total_pct': -0.165,
+            'consecutive_down_days': 2.0,
+            'pct_off_30d_high': -0.324,
+            'gap_pct': -0.092,
+            'prior_day_range_atr': 1.318,
+            'pct_change_3': -0.108,
+            'pct_off_52wk_high': -0.431,
+            'bounce_pct': 0.091,
         },
     ),
 }

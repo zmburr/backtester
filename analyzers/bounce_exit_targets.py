@@ -1,7 +1,7 @@
 """
 Data-Informed Exit Target Framework for Bounce Trades (Long)
 
-Based on analysis of 123 bounce trades:
+Based on analysis of 93 bounce trades:
 - ATR-based hit rates (targets ABOVE open)
 - Gap fill (red-to-green) hit rates
 - Prior day hi/lo hit rates
@@ -62,7 +62,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.80,
+            hit_rate=0.86,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -70,7 +70,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.64,
+            hit_rate=0.74,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -78,12 +78,12 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='Gap Fill (Red-to-Green)',
             target_type='level',
             value=0,
-            hit_rate=0.67,
+            hit_rate=0.68,
             avg_time_mins=None,
             position_pct=0.34
         ),
         time_stop='Can hold into afternoon - bounces can develop slowly',
-        notes='n=75. Largest sample. Gap fill works well as middle target.'
+        notes='n=50. Largest sample. Gap fill works well as middle target.'
     ),
 
     'Small': ExitFramework(
@@ -122,7 +122,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='0.5x ATR',
             target_type='atr',
             value=0.5,
-            hit_rate=0.96,
+            hit_rate=0.95,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -130,7 +130,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.83,
+            hit_rate=0.89,
             avg_time_mins=None,
             position_pct=0.33
         ),
@@ -138,12 +138,12 @@ BOUNCE_EXIT_FRAMEWORKS = {
             name='Gap Fill (Red-to-Green)',
             target_type='level',
             value=0,
-            hit_rate=0.67,
+            hit_rate=0.58,
             avg_time_mins=None,
             position_pct=0.34
         ),
         time_stop='Can hold into afternoon',
-        notes='n=24. Large caps have highest 0.5x ATR hit rate (96%).'
+        notes='n=19. Large caps have highest 0.5x ATR hit rate (95%).'
     ),
 
     # Micro: use Small defaults (n=0 in dataset)
@@ -180,7 +180,7 @@ BOUNCE_EXIT_FRAMEWORKS = {
 
 
 # =============================================================================
-# SUMMARY STATISTICS FROM BOUNCE ANALYSIS (123 trades)
+# SUMMARY STATISTICS FROM BOUNCE ANALYSIS (93 trades)
 # =============================================================================
 
 BOUNCE_CAP_STATISTICS = {
@@ -198,15 +198,15 @@ BOUNCE_CAP_STATISTICS = {
         'max_dip_pct': 7.7,
     },
     'Medium': {
-        'n': 75,
-        'hit_0_5x_atr': 80,
-        'hit_1_0x_atr': 64,
-        'hit_1_5x_atr': 43,
-        'hit_2_0x_atr': 31,
-        'hit_gap_fill': 67,
+        'n': 50,
+        'hit_0_5x_atr': 86,
+        'hit_1_0x_atr': 74,
+        'hit_1_5x_atr': 54,
+        'hit_2_0x_atr': 44,
+        'hit_gap_fill': 68,
         'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 9.7,
-        'avg_dip_atrs': 1.81,
+        'avg_dip_pct': 11.0,
+        'avg_dip_atrs': 2.38,
         'max_dip_pct': 60.4,
     },
     'Small': {
@@ -222,15 +222,15 @@ BOUNCE_CAP_STATISTICS = {
         'max_dip_pct': 53.6,
     },
     'Large': {
-        'n': 24,
-        'hit_0_5x_atr': 96,
-        'hit_1_0x_atr': 83,
-        'hit_1_5x_atr': 54,
+        'n': 19,
+        'hit_0_5x_atr': 95,
+        'hit_1_0x_atr': 89,
+        'hit_1_5x_atr': 58,
         'hit_2_0x_atr': 42,
-        'hit_gap_fill': 67,
+        'hit_gap_fill': 58,
         'hit_prior_day_hilo': 97,
-        'avg_dip_pct': 2.5,
-        'avg_dip_atrs': 0.86,
+        'avg_dip_pct': 2.8,
+        'avg_dip_atrs': 1.06,
         'max_dip_pct': 10.6,
     },
     'Micro': {
