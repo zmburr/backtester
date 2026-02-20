@@ -61,10 +61,6 @@ class SetupProfile:
     historical_win_rate: float      # Grade A win rate
     historical_avg_pnl: float       # Grade A avg P&L %
 
-    # Classification rules (how to identify this setup type)
-    classify_pct_from_50mav: Tuple[str, float]   # ('<=', -0.15) or ('>', -0.10)
-    classify_pct_change_30: Tuple[str, float]     # ('<=', -0.30) or ('>', -0.15)
-
     # Core criteria thresholds — cap-keyed dicts
     selloff_total_pct: Dict[str, float] = field(default_factory=dict)
     consecutive_down_days: Dict[str, int] = field(default_factory=dict)
@@ -135,10 +131,6 @@ SETUP_PROFILES = {
         historical_win_rate=0.86,
         historical_avg_pnl=9.1,
 
-        # Classification: below 50MA, negative 30d momentum
-        classify_pct_from_50mav=('<=', -0.15),
-        classify_pct_change_30=('<=', -0.25),
-
         # Core criteria — cap-keyed thresholds
         # Thresholds set at p75 of winning trades (lenient: ~75% of winners pass)
         selloff_total_pct={
@@ -198,10 +190,6 @@ SETUP_PROFILES = {
         sample_size=40,
         historical_win_rate=0.83,
         historical_avg_pnl=7.4,
-
-        # Classification: near/above 50MA, flat or positive 30d momentum
-        classify_pct_from_50mav=('>', -0.15),
-        classify_pct_change_30=('>', -0.25),
 
         # Core criteria — cap-keyed thresholds
         selloff_total_pct={
@@ -397,7 +385,12 @@ class BounceScorer:
             return 'F'
 
     def _get_recommendation(self, score: int) -> str:
-        """Recommendation based on 8 historical criteria."""
+        """Recommendation based on 8 historical criteria.
+
+        GO threshold is 7/8 (88%) here vs 6/7 (86%) in BouncePretrade.validate().
+        This is intentional: the 8th criterion (bounce_pct) is an outcome metric
+        not available pre-trade, so historical scoring has a higher absolute bar.
+        """
         if score >= 7:
             return 'GO'
         elif score == 6:
@@ -868,7 +861,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         if hist_levels is not None and len(hist_levels) >= 20:
             closes = hist_levels['close'].values
             sma20 = np.mean(closes[-20:])
-            std20 = np.std(closes[-20:])
+            std20 = np.std(closes[-20:], ddof=1)
             upper_band = sma20 + 2 * std20
             lower_band = sma20 - 2 * std20
 

@@ -23,10 +23,14 @@ logging.basicConfig(level=logging.INFO,
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
-bounce_df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
-bounce_df = bounce_df.dropna(subset=['ticker'])
-bounce_df = bounce_df.dropna(subset=['date'])
-bounce_df['ticker'] = bounce_df['ticker'].str.strip()
+try:
+    bounce_df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
+    bounce_df = bounce_df.dropna(subset=['ticker'])
+    bounce_df = bounce_df.dropna(subset=['date'])
+    bounce_df['ticker'] = bounce_df['ticker'].str.strip()
+except FileNotFoundError:
+    bounce_df = pd.DataFrame()
+    logging.warning(f"bounce_data.csv not found at {_DATA_DIR / 'bounce_data.csv'}")
 
 
 # ---------------------------------------------------------------------------
@@ -403,10 +407,15 @@ def calculate_bounce_atr(row, analysis_type, period=30):
     try:
         stock_data = _get_levels_daily(ticker, adjust_date_to_market(date, 1), period)
         if stock_data is not None and not stock_data.empty:
-            stock_data['tr'] = stock_data[['high', 'low', 'close']].apply(
-                lambda x: max(x['high'] - x['low'], abs(x['high'] - x['close']), abs(x['low'] - x['close'])),
-                axis=1
+            stock_data['prev_close'] = stock_data['close'].shift(1)
+            stock_data['tr'] = stock_data[['high', 'low', 'prev_close']].apply(
+                lambda x: max(
+                    x['high'] - x['low'],
+                    abs(x['high'] - x['prev_close']) if pd.notna(x['prev_close']) else x['high'] - x['low'],
+                    abs(x['low'] - x['prev_close']) if pd.notna(x['prev_close']) else x['high'] - x['low']
+                ), axis=1
             )
+            # Divide by mean close over period (smoothed ATR%) rather than last close
             atr = stock_data['tr'].mean() / stock_data['close'].mean()
             row['atr_pct'] = atr
 

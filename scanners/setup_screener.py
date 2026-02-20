@@ -270,7 +270,7 @@ class SetupScreener:
         if today_open and prior_close and prior_close > 0:
             metrics['gap_pct'] = (today_open - prior_close) / prior_close
         else:
-            metrics['gap_pct'] = 0.0
+            metrics['gap_pct'] = None
 
         # --- Percent changes over lookback windows ---
         for days, key in [(3, 'pct_change_3'), (15, 'pct_change_15'),
@@ -307,7 +307,7 @@ class SetupScreener:
         if len(hist) >= 20:
             last_20 = closes.values[-20:]
             sma20 = np.mean(last_20)
-            std20 = np.std(last_20)
+            std20 = np.std(last_20, ddof=1)
             lower_band = sma20 - 2 * std20
             upper_band = sma20 + 2 * std20
             metrics['closed_outside_lower_band'] = bool(current_close < lower_band)

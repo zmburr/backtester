@@ -277,6 +277,17 @@ def calculate_bounce_exit_targets(cap: str, entry_price: float, atr: float,
     """
     framework = get_bounce_exit_framework(cap)
 
+    if atr is None or atr <= 0:
+        logging.warning(f"ATR is {atr} for {cap} cap — cannot compute meaningful exit targets")
+        return {
+            'cap': cap, 'entry_price': entry_price, 'atr': atr,
+            'framework': framework, 'tiers': [],
+            'time_stop': framework.time_stop, 'notes': 'ATR unavailable — no targets computed',
+        }
+
+    if prior_close is None:
+        logging.warning("prior_close is None — gap fill target unavailable")
+
     targets = {
         'cap': cap,
         'entry_price': entry_price,

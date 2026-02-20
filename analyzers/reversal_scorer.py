@@ -211,7 +211,7 @@ CAP_THRESHOLDS = {
         prior_day_range_atr=0.8,  # >= 0.8x ATR
         rvol_score=1.0,           # >= 1x RVOL
         pct_change_3=0.05,        # >= 5% 3-day run
-        gap_pct=0.00,             # any gap OK
+        gap_pct=0.01,             # >= 1% gap (filters flat opens)
         reversal_pct=-0.03,       # >= 3% reversal
     ),
     'ETF': CriteriaThresholds(
@@ -219,7 +219,7 @@ CAP_THRESHOLDS = {
         prior_day_range_atr=1.0,  # >= 1x ATR
         rvol_score=1.5,           # >= 1.5x RVOL
         pct_change_3=0.03,        # >= 3% 3-day run
-        gap_pct=0.00,             # any gap OK
+        gap_pct=0.005,            # >= 0.5% gap (filters flat opens)
         reversal_pct=-0.015,      # >= 1.5% reversal
     ),
 }
@@ -244,7 +244,7 @@ class ReversalScorer:
     def _get_thresholds(self, cap: str) -> CriteriaThresholds:
         """Get thresholds for market cap."""
         if cap not in self.thresholds:
-            logging.warning(f"Unknown cap '{cap}', defaulting to Medium")
+            logging.warning(f"Unknown cap '{cap}' (type={type(cap).__name__}), defaulting to Medium")
             return self.thresholds['Medium']
         return self.thresholds[cap]
 
@@ -432,10 +432,13 @@ class ReversalScorer:
 
         for idx, row in df.iterrows():
             metrics = row.to_dict()
+            cap = row.get('cap', 'Medium')
+            if cap is None or (isinstance(cap, float) and pd.isna(cap)):
+                cap = 'Medium'
             result = self.score_setup(
                 ticker=row.get('ticker', ''),
                 date=row.get('date', ''),
-                cap=row.get('cap', 'Medium'),
+                cap=cap,
                 metrics=metrics
             )
             results.append({

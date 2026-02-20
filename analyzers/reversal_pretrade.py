@@ -110,8 +110,8 @@ REVERSAL_SETUP_PROFILES = {
             'Small': 0.25, 'Micro': 0.50, '_default': 0.10,
         },
         gap_pct={
-            'ETF': 0.00, 'Large': 0.00, 'Medium': 0.00,
-            'Small': 0.50, 'Micro': 0.20, '_default': 0.00,
+            'ETF': 0.005, 'Large': 0.01, 'Medium': 0.00,
+            'Small': 0.10, 'Micro': 0.20, '_default': 0.00,
         },
     ),
 }

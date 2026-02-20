@@ -182,14 +182,16 @@ def timestamp_to_string(timestamp_obj):
         raise TypeError("The provided object is not a Timestamp.")
 
 
-def _adjust_date(original_date, days_to_subtract):
+def _adjust_date(original_date, days_to_subtract, max_depth=30):
+    if days_to_subtract > max_depth:
+        return None
     nyse = mcal.get_calendar('NYSE')
     new_date = original_date - pd.Timedelta(days=days_to_subtract)
     trading_days = nyse.valid_days(start_date=new_date, end_date=original_date)
     if not trading_days.empty:
         adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
         if adjusted_date == original_date.strftime("%Y-%m-%d"):
-            return _adjust_date(original_date, days_to_subtract + 1)
+            return _adjust_date(original_date, days_to_subtract + 1, max_depth)
         else:
             return adjusted_date
     else:
@@ -212,6 +214,8 @@ def get_levels_data(ticker, date, window, multiplier, timespan):
         print(f'ticker: {ticker}, date: {date}, window: {window}, multiplier: {multiplier}, timespan: {timespan}')
         return None
     df = pd.DataFrame([vars(a) for a in aggs])
+    if df.empty:
+        return None
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df['timestamp'] = df['timestamp'].dt.tz_localize('UTC').dt.tz_convert(timezone('US/Eastern'))
     # Set 'timestamp' as index
@@ -245,6 +249,8 @@ def get_intraday(ticker, date, multiplier, timespan):
         print(f'ticker: {ticker}, date: {date}, multiplier: {multiplier}, timespan: {timespan}')
         return None
     df = pd.DataFrame([vars(a) for a in aggs])
+    if df.empty:
+        return None
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df['timestamp'] = df['timestamp'].dt.tz_localize('UTC').dt.tz_convert(timezone('US/Eastern'))
     df.set_index('timestamp', inplace=True)
@@ -286,7 +292,7 @@ def get_price_with_fallback(ticker, base_date, days_ago):
         except Exception as e:
             pass  # Continue decrementing days if an exception occurs
         days_ago -= 1
-    return 0  # or handle this case as needed
+    return None  # all lookback days exhausted
 
 
 def get_ticker_pct_move(ticker, date, current_price):
@@ -321,6 +327,12 @@ def get_ticker_pct_move(ticker, date, current_price):
 
 
 def get_current_price(ticker, date):
+    """Return the opening price for *ticker* on *date*.
+
+    Despite the name, this returns the **open** price (not the last/current
+    price).  Use ``get_actual_current_price`` for the most recent intraday
+    price instead.
+    """
     try:
         # If the date is in a different format, try converting it
         wrong_date = datetime.strptime(date, '%m/%d/%Y')
