@@ -1,7 +1,7 @@
 """
 Data-Informed Exit Target Framework for Parabolic Short Reversals
 
-Based on analysis of 52 Grade A trades:
+Based on analysis of 50 Grade A trades:
 - MFE/MAE analysis
 - ATR target hit rates
 - EMA target hit rates
@@ -57,23 +57,23 @@ EXIT_FRAMEWORKS = {
             position_pct=0.33
         ),
         tier2=ExitTarget(
-            name='4-Day EMA',
-            target_type='ema',
-            value=4,
-            hit_rate=0.71,  # 71% hit rate
+            name='1.5x ATR',
+            target_type='atr',
+            value=1.5,
+            hit_rate=0.86,  # 86% hit rate
             avg_time_mins=120,
             position_pct=0.33
         ),
         tier3=ExitTarget(
-            name='Prior Day Low',
-            target_type='level',
-            value=0,  # Prior day low
-            hit_rate=0.86,  # 86% hit rate
+            name='2.0x ATR with Trail',
+            target_type='atr',
+            value=2.0,
+            hit_rate=0.57,  # 57% hit rate
             avg_time_mins=180,
             position_pct=0.34
         ),
         time_stop='Exit remaining by 2:00 PM if targets not hit',
-        notes='Large caps have small moves but high hit rates. 4-day EMA works here.'
+        notes='Large caps have small moves but high hit rates. ATR targets more reliable than EMAs.'
     ),
 
     'ETF': ExitFramework(
@@ -82,22 +82,22 @@ EXIT_FRAMEWORKS = {
             name='1.0x ATR',
             target_type='atr',
             value=1.0,
-            hit_rate=0.80,  # 80% hit rate
+            hit_rate=1.00,  # 100% hit rate
             avg_time_mins=90,
             position_pct=0.33
         ),
         tier2=ExitTarget(
-            name='Gap Fill / Prior Close',
-            target_type='level',
-            value=0,
-            hit_rate=0.60,  # 60% hit rate
+            name='1.5x ATR',
+            target_type='atr',
+            value=1.5,
+            hit_rate=0.80,  # 80% hit rate
             avg_time_mins=120,
             position_pct=0.33
         ),
         tier3=ExitTarget(
-            name='1.5x ATR with Trail',
+            name='2.0x ATR with Trail',
             target_type='atr',
-            value=1.5,
+            value=2.0,
             hit_rate=0.80,  # 80% hit rate
             avg_time_mins=150,
             position_pct=0.34
@@ -112,7 +112,7 @@ EXIT_FRAMEWORKS = {
             name='Gap Fill / Prior Close',
             target_type='level',
             value=0,
-            hit_rate=0.81,  # 81% hit rate
+            hit_rate=0.79,  # 79% hit rate
             avg_time_mins=90,
             position_pct=0.33
         ),
@@ -120,7 +120,7 @@ EXIT_FRAMEWORKS = {
             name='1.5x ATR',
             target_type='atr',
             value=1.5,
-            hit_rate=0.65,  # 65% hit rate
+            hit_rate=0.86,  # 86% hit rate
             avg_time_mins=107,
             position_pct=0.33
         ),
@@ -128,7 +128,7 @@ EXIT_FRAMEWORKS = {
             name='2.0x ATR with Trail',
             target_type='atr',
             value=2.0,
-            hit_rate=0.45,  # 45% hit rate
+            hit_rate=0.69,  # 69% hit rate
             avg_time_mins=150,
             position_pct=0.34
         ),
@@ -204,73 +204,73 @@ EXIT_FRAMEWORKS = {
 
 CAP_STATISTICS = {
     'Large': {
-        'avg_mfe': 9.0,
-        'avg_captured': 8.2,
-        'efficiency': 87.9,
-        'hit_1x_atr': 86,
-        'hit_1_5x_atr': 43,
-        'hit_2x_atr': 14,
+        'avg_mfe': 8.7,
+        'avg_captured': 7.9,
+        'efficiency': 90.9,
+        'hit_1x_atr': 100,
+        'hit_1_5x_atr': 86,
+        'hit_2x_atr': 57,
         'hit_gap_fill': 100,
         'hit_prior_day_low': 86,
         'hit_4ema': 71,
-        'avg_time_to_mfe': 309,
+        'avg_time_to_mfe': 224,
         # Squeeze risk: How much stock typically runs ABOVE open before reversing
         'avg_squeeze_pct': 2.2,   # Average MAE (adverse move before MFE)
         'max_squeeze_pct': 11.1,  # Max observed squeeze above open
     },
     'ETF': {
-        'avg_mfe': 8.1,
-        'avg_captured': 3.3,
-        'efficiency': 59.9,
-        'hit_1x_atr': 80,
+        'avg_mfe': 7.5,
+        'avg_captured': 2.8,
+        'efficiency': 37.2,
+        'hit_1x_atr': 100,
         'hit_1_5x_atr': 80,
-        'hit_2x_atr': 40,
-        'hit_gap_fill': 60,
+        'hit_2x_atr': 80,
+        'hit_gap_fill': 40,
         'hit_prior_day_low': 40,
         'hit_4ema': 40,
-        'avg_time_to_mfe': 251,
+        'avg_time_to_mfe': 202,
         'avg_squeeze_pct': 0.4,
         'max_squeeze_pct': 0.7,
     },
     'Medium': {
-        'avg_mfe': 22.9,
-        'avg_captured': 12.5,
-        'efficiency': 11.1,
-        'hit_1x_atr': 81,
-        'hit_1_5x_atr': 65,
-        'hit_2x_atr': 45,
-        'hit_gap_fill': 81,
+        'avg_mfe': 23.1,
+        'avg_captured': 12.8,
+        'efficiency': 55.6,
+        'hit_1x_atr': 86,
+        'hit_1_5x_atr': 86,
+        'hit_2x_atr': 69,
+        'hit_gap_fill': 79,
         'hit_prior_day_low': 29,
         'hit_4ema': 20,
-        'avg_time_to_mfe': 205,
+        'avg_time_to_mfe': 165,
         'avg_squeeze_pct': 9.8,   # Medium caps can squeeze significantly
         'max_squeeze_pct': 49.4,  # GME-style squeezes possible
     },
     'Small': {
-        'avg_mfe': 21.6,
-        'avg_captured': 9.4,
-        'efficiency': 17.2,
+        'avg_mfe': 23.3,
+        'avg_captured': 11.3,
+        'efficiency': 48.4,
         'hit_1x_atr': 80,
         'hit_1_5x_atr': 80,
         'hit_2x_atr': 80,
         'hit_gap_fill': 60,
         'hit_prior_day_low': 0,
         'hit_4ema': 0,
-        'avg_time_to_mfe': 201,
+        'avg_time_to_mfe': 198,
         'avg_squeeze_pct': 9.5,
         'max_squeeze_pct': 28.2,
     },
     'Micro': {
-        'avg_mfe': 55.2,
-        'avg_captured': 48.1,
-        'efficiency': 86.5,
+        'avg_mfe': 56.3,
+        'avg_captured': 49.7,
+        'efficiency': 88.1,
         'hit_1x_atr': 100,
         'hit_1_5x_atr': 100,
         'hit_2x_atr': 100,
-        'hit_gap_fill': 100,
+        'hit_gap_fill': 75,
         'hit_prior_day_low': 75,
         'hit_4ema': 0,
-        'avg_time_to_mfe': 254,
+        'avg_time_to_mfe': 147,
         'avg_squeeze_pct': 13.8,  # Micro caps very volatile
         'max_squeeze_pct': 27.2,
     },

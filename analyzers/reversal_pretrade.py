@@ -8,7 +8,7 @@ per-setup-type profiles derived from historical Grade A+B trades.
 Starting setup type: 3DGapFade
   - Minimum 2 prior euphoric up days + euphoric gap up on the fade day
   - "Up day" = close > prior_close (a red candle that closes above prior close counts)
-  - 33 historical trades (23 A, 8 B, 2 C) in reversal_data.csv
+  - 33 historical trades (24 A, 8 B, 1 C) in reversal_data.csv
 
 Classification gate (all must be true):
   - consecutive_up_days >= 2
@@ -88,30 +88,30 @@ REVERSAL_SETUP_PROFILES = {
     '3DGapFade': ReversalSetupProfile(
         name='3DGapFade',
         description='2+ euphoric up days + gap up on fade day — classic parabolic exhaustion',
-        sample_size=31,
-        historical_win_rate=0.87,
-        historical_avg_pnl=14.8,
+        sample_size=32,
+        historical_win_rate=0.91,
+        historical_avg_pnl=14.5,
 
         pct_from_9ema={
-            'ETF': 0.05, 'Large': 0.08, 'Medium': 0.15,
-            'Small': 1.00, 'Micro': 1.20, '_default': 0.15,
+            'ETF': 0.10, 'Large': 0.11, 'Medium': 0.44,
+            'Small': 1.54, 'Micro': 1.27, '_default': 0.44,
         },
         prior_day_range_atr={
-            'ETF': 1.40, 'Large': 0.93, 'Medium': 1.00,
-            'Small': 1.95, 'Micro': 3.30, '_default': 1.00,
+            'ETF': 1.60, 'Large': 1.06, 'Medium': 1.15,
+            'Small': 2.50, 'Micro': 5.23, '_default': 1.15,
         },
         rvol_score={
-            'ETF': 1.80, 'Large': 1.35, 'Medium': 1.50,
-            'Small': 6.00, 'Micro': 1.60, '_default': 1.50,
+            'ETF': 2.75, 'Large': 1.92, 'Medium': 2.80,
+            'Small': 7.05, 'Micro': 1.65, '_default': 2.80,
         },
         # V2: 3-day momentum run-up (rho=+0.546, replaces consecutive_up_days rho=0.086)
         pct_change_3={
-            'ETF': 0.03, 'Large': 0.05, 'Medium': 0.10,
-            'Small': 0.25, 'Micro': 0.50, '_default': 0.10,
+            'ETF': 0.04, 'Large': 0.03, 'Medium': 0.09,
+            'Small': 0.92, 'Micro': 0.30, '_default': 0.09,
         },
         gap_pct={
-            'ETF': 0.005, 'Large': 0.01, 'Medium': 0.00,
-            'Small': 0.10, 'Micro': 0.20, '_default': 0.00,
+            'ETF': 0.02, 'Large': 0.02, 'Medium': 0.07,
+            'Small': 0.69, 'Micro': 0.30, '_default': 0.07,
         },
     ),
 }

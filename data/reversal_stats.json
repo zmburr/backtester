@@ -1,0 +1,58 @@
+{
+  "total_trades": 110,
+  "grade_a_count": 50,
+  "setup_distribution": {
+    "3DGapFade": 33,
+    "2DBreakoutIB": 23,
+    "2DGapFade": 18,
+    "GapDownTrendBreak": 15,
+    "1DBreakoutIB": 6,
+    "PriorDayLowBreak": 5,
+    "ConsolidationBreakdown": 4,
+    "RightSidePopFade": 4,
+    "1DMeanRevert": 2
+  },
+  "3dgapfade": {
+    "total": 33,
+    "ab_count": 32,
+    "ab_win_rate": 90.6,
+    "ab_avg_pnl": 14.5
+  },
+  "thresholds": {
+    "ETF": {
+      "pct_from_9ema": 0.0966,
+      "prior_day_range_atr": 1.5999,
+      "rvol_score": 2.7509,
+      "pct_change_3": 0.0444,
+      "gap_pct": 0.0243
+    },
+    "Large": {
+      "pct_from_9ema": 0.1072,
+      "prior_day_range_atr": 1.0599,
+      "rvol_score": 1.9159,
+      "pct_change_3": 0.0275,
+      "gap_pct": 0.0232
+    },
+    "Medium": {
+      "pct_from_9ema": 0.4435,
+      "prior_day_range_atr": 1.1508,
+      "rvol_score": 2.8047,
+      "pct_change_3": 0.0903,
+      "gap_pct": 0.0737
+    },
+    "Small": {
+      "pct_from_9ema": 1.537,
+      "prior_day_range_atr": 2.5031,
+      "rvol_score": 7.0464,
+      "pct_change_3": 0.9168,
+      "gap_pct": 0.6946
+    },
+    "Micro": {
+      "pct_from_9ema": 1.2742,
+      "prior_day_range_atr": 5.2275,
+      "rvol_score": 1.6457,
+      "pct_change_3": 0.3047,
+      "gap_pct": 0.3047
+    }
+  }
+}

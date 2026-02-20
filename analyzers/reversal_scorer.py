@@ -179,7 +179,7 @@ class CriteriaThresholds:
     reversal_pct: float        # Minimum reversal % (negative value)
 
 
-# Cap-specific thresholds - validated against 120 trades (V2)
+# Cap-specific thresholds - validated against 110 trades (V2)
 # TRUE A requires 5/6 or 6/6 criteria passed
 CAP_THRESHOLDS = {
     'Micro': CriteriaThresholds(

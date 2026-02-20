@@ -511,12 +511,12 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     }
 
 
-# Historical performance statistics by score (from 61 Grade A trades analysis)
+# Historical performance statistics by score (from 50 Grade A trades analysis, 110-trade dataset)
 SCORE_STATISTICS = {
-    5: {'trades': 25, 'win_rate': 100.0, 'avg_pnl': 13.3},
-    4: {'trades': 20, 'win_rate': 85.0, 'avg_pnl': 15.9},
-    3: {'trades': 6, 'win_rate': 83.3, 'avg_pnl': 10.5},
-    2: {'trades': 1, 'win_rate': 0.0, 'avg_pnl': -4.6},
+    5: {'trades': 24, 'win_rate': 100.0, 'avg_pnl': 15.5},
+    4: {'trades': 14, 'win_rate': 92.9, 'avg_pnl': 14.6},
+    3: {'trades': 8, 'win_rate': 87.5, 'avg_pnl': 14.6},
+    2: {'trades': 4, 'win_rate': 50.0, 'avg_pnl': 1.1},
     1: {'trades': 0, 'win_rate': 0.0, 'avg_pnl': 0.0},
     0: {'trades': 0, 'win_rate': 0.0, 'avg_pnl': 0.0},
 }
@@ -815,34 +815,34 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
   <li><strong>9EMA Distance</strong> - Price elevated above 9-day EMA</li>
   <li><strong>Range (ATR)</strong> - Prior day range vs ATR</li>
   <li><strong>RVOL</strong> - Volume vs 20-day average</li>
-  <li><strong>Consecutive Up Days</strong> - Momentum into the top</li>
+  <li><strong>3-Day Run-Up</strong> - Momentum into the top</li>
   <li><strong>Gap Up</strong> - Gap up on reversal day</li>
 </ol>
 
-<h3>Historical Performance by Score (61 Grade A Trades)</h3>
+<h3>Historical Performance by Score (50 Grade A Trades)</h3>
 <table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
 <tr style="background-color: #f0f0f0;"><th>Score</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th><th>Recommendation</th></tr>
-<tr style="background-color: #d4edda;"><td><strong>5/5</strong></td><td>25</td><td>100%</td><td>+13.3%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
-<tr style="background-color: #d4edda;"><td><strong>4/5</strong></td><td>20</td><td>85%</td><td>+15.9%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
-<tr style="background-color: #fff3cd;"><td><strong>3/5</strong></td><td>6</td><td>83%</td><td>+10.5%</td><td style="color: #ffc107;"><strong>CAUTION</strong></td></tr>
-<tr style="background-color: #f8d7da;"><td><strong>&lt;3</strong></td><td>1</td><td>0%</td><td>-4.6%</td><td style="color: #dc3545;"><strong>NO-GO</strong></td></tr>
+<tr style="background-color: #d4edda;"><td><strong>5/5</strong></td><td>24</td><td>100%</td><td>+15.5%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
+<tr style="background-color: #d4edda;"><td><strong>4/5</strong></td><td>14</td><td>93%</td><td>+14.6%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
+<tr style="background-color: #fff3cd;"><td><strong>3/5</strong></td><td>8</td><td>88%</td><td>+14.6%</td><td style="color: #ffc107;"><strong>CAUTION</strong></td></tr>
+<tr style="background-color: #f8d7da;"><td><strong>&lt;3</strong></td><td>4</td><td>50%</td><td>+1.1%</td><td style="color: #dc3545;"><strong>NO-GO</strong></td></tr>
 </table>
 
-<p><strong style="color: #28a745;">GO (4-5/5)</strong>: 45 trades, 93% win rate, +14.5% avg |
-<strong style="color: #ffc107;">CAUTION (3/5)</strong>: 6 trades, 83% win, +10.5% avg |
+<p><strong style="color: #28a745;">GO (4-5/5)</strong>: 38 trades, 97% win rate, +15.1% avg |
+<strong style="color: #ffc107;">CAUTION (3/5)</strong>: 8 trades, 88% win, +14.6% avg |
 <strong style="color: #dc3545;">NO-GO (&lt;3)</strong>: Skip</p>
 
-<h3>Target Price LEVELS (52 Grade A Trades - Measured from OPEN)</h3>
+<h3>Target Price LEVELS (50 Grade A Trades - Measured from OPEN)</h3>
 <p><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
 <table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
 <tr style="background-color: #f0f0f0;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th></tr>
-<tr><td><strong>Large</strong></td><td>Gap Fill (100%)</td><td>4-Day EMA (71%)</td><td>Prior Day Low (86%)</td></tr>
-<tr><td><strong>ETF</strong></td><td>1.0x ATR (80%)</td><td>Gap Fill (60%)</td><td>1.5x ATR (80%)</td></tr>
-<tr><td><strong>Medium</strong></td><td>Gap Fill (81%)</td><td>1.5x ATR (65%)</td><td>2.0x ATR (45%)</td></tr>
+<tr><td><strong>Large</strong></td><td>Gap Fill (100%)</td><td>1.5x ATR (86%)</td><td>2.0x ATR (57%)</td></tr>
+<tr><td><strong>ETF</strong></td><td>1.0x ATR (100%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
+<tr><td><strong>Medium</strong></td><td>Gap Fill (79%)</td><td>1.5x ATR (86%)</td><td>2.0x ATR (69%)</td></tr>
 <tr><td><strong>Small</strong></td><td>1.0x ATR (80%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
 <tr><td><strong>Micro</strong></td><td>1.5x ATR (100%)</td><td>2.0x ATR (100%)</td><td>2.5x ATR (100%)</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #666;"><em>Squeeze Risk: ETF +0.4% | Large +2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
+<p style="font-size: 0.85em; color: #666;"><em>Squeeze Risk: ETF +0.4% | Large +2.2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
 <hr>
 
 <h2>Bounce Setup Scoring Guide</h2>
