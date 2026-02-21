@@ -26,8 +26,8 @@ def play_sounds(text):
         tts.save(tempfile)
         playsound(tempfile, block=False)
         os.remove(tempfile)
-    except:
-        print("could not play sound")
+    except Exception:
+        logging.warning("could not play sound", exc_info=True)
 
 
 def get_time_elapsed(headline_time, current_time):

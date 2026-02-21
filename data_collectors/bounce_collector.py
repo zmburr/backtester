@@ -2,6 +2,7 @@
 Bounce data collector — fills bounce_data.csv with computed features.
 Follows the same pattern as combined_data_collection.py.
 """
+from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
 from data_queries.polygon_queries import (
@@ -23,14 +24,25 @@ logging.basicConfig(level=logging.INFO,
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
-try:
-    bounce_df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
-    bounce_df = bounce_df.dropna(subset=['ticker'])
-    bounce_df = bounce_df.dropna(subset=['date'])
-    bounce_df['ticker'] = bounce_df['ticker'].str.strip()
-except FileNotFoundError:
-    bounce_df = pd.DataFrame()
-    logging.warning(f"bounce_data.csv not found at {_DATA_DIR / 'bounce_data.csv'}")
+
+@lru_cache(maxsize=1)
+def _load_bounce_df():
+    try:
+        df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
+        df = df.dropna(subset=['ticker'])
+        df = df.dropna(subset=['date'])
+        df['ticker'] = df['ticker'].str.strip()
+        return df
+    except FileNotFoundError:
+        logging.warning("bounce_data.csv not found at %s", _DATA_DIR / 'bounce_data.csv')
+        return pd.DataFrame()
+
+
+def __getattr__(name):
+    """Lazy-load bounce_df on first access instead of at import time."""
+    if name == 'bounce_df':
+        return _load_bounce_df()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -825,7 +837,7 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    df_bounce = bounce_df.copy()
+    df_bounce = _load_bounce_df().copy()
 
     # Force-recalc: set selected cells to NA so fill_data recomputes them.
     recalc_cols = set(args.recalc_cols or [])

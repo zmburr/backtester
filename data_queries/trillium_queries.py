@@ -47,25 +47,6 @@ PWD  = os.getenv("SHEL_API_PWD")
 
 EASTERN = pytz.timezone("US/Eastern")
 
-def _adjust_date(original_date, days_to_subtract):
-    nyse = mcal.get_calendar('NYSE')
-    new_date = original_date - pd.Timedelta(days=days_to_subtract)
-    trading_days = nyse.valid_days(start_date=new_date, end_date=original_date)
-
-    if not trading_days.empty:
-        adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
-        if adjusted_date == original_date.strftime("%Y-%m-%d"):
-            return _adjust_date(original_date, days_to_subtract + 1)
-        else:
-            return adjusted_date
-    else:
-        return "No valid trading days found"
-
-
-def adjust_date_to_market(date_string, days_to_subtract):
-    date = pd.to_datetime(date_string)
-    return _adjust_date(date, days_to_subtract)
-
 # -------------------------------------------------------------------------- #
 #  Core data access helpers (all SHEL)                                       #
 # -------------------------------------------------------------------------- #
