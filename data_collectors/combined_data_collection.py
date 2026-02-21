@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
     adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data
@@ -11,12 +12,30 @@ logging.basicConfig(level=logging.INFO,
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DATA_DIR = _REPO_ROOT / 'data'
 
-momentum_df = pd.read_csv(_DATA_DIR / 'breakout_data.csv')
-momentum_df = momentum_df.dropna(subset=['ticker'])
-momentum_df = momentum_df.dropna(subset=['date'])
-reversal_df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
-reversal_df = reversal_df.dropna(subset=['ticker'])
-reversal_df = reversal_df.dropna(subset=['date'])
+
+@lru_cache(maxsize=1)
+def _load_momentum_df():
+    df = pd.read_csv(_DATA_DIR / 'breakout_data.csv')
+    df = df.dropna(subset=['ticker'])
+    df = df.dropna(subset=['date'])
+    return df
+
+
+@lru_cache(maxsize=1)
+def _load_reversal_df():
+    df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
+    df = df.dropna(subset=['ticker'])
+    df = df.dropna(subset=['date'])
+    return df
+
+
+def __getattr__(name):
+    """Lazy-load DataFrames on first access instead of at import time."""
+    if name == 'momentum_df':
+        return _load_momentum_df()
+    if name == 'reversal_df':
+        return _load_reversal_df()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def find_time_of_high_price(data):
@@ -732,7 +751,7 @@ BREAKOUT_COLUMN_ORDER = [
 
 if __name__ == '__main__':
     # Process breakout data
-    df_momentum = fill_data(momentum_df, 'momentum', fill_functions_momentum)
+    df_momentum = fill_data(_load_momentum_df(), 'momentum', fill_functions_momentum)
     # Reorder columns to match expected format, keeping any extra columns at the end
     existing_cols = [col for col in BREAKOUT_COLUMN_ORDER if col in df_momentum.columns]
     extra_cols = [col for col in df_momentum.columns if col not in BREAKOUT_COLUMN_ORDER]
@@ -740,7 +759,7 @@ if __name__ == '__main__':
     df_momentum.to_csv(_DATA_DIR / 'breakout_data.csv', index=False)
 
     # Process reversal data
-    df_reversal = fill_data(reversal_df, 'reversal', fill_functions_reversal)
+    df_reversal = fill_data(_load_reversal_df(), 'reversal', fill_functions_reversal)
     # Reorder columns to match expected format, keeping any extra columns at the end
     existing_cols = [col for col in REVERSAL_COLUMN_ORDER if col in df_reversal.columns]
     extra_cols = [col for col in df_reversal.columns if col not in REVERSAL_COLUMN_ORDER]

@@ -111,12 +111,6 @@ for routes in _DEFAULTS.values():
             except Exception as exc:
                 log.warning("Provider %s unavailable: %s", provider, exc)
 
-# ─────────────────────────── helpers ──────────────────────────────────────
-import re as _re
-def _strip_think(text: str) -> str:
-    """Remove <think>…</think> block (Groq DeepSeek, etc.)."""
-    return _re.sub(r"<think>.*?</think>", "", text, flags=_re.S).strip()
-
 # ─────────────────────────── main façade ─────────────────────────────────
 class LLMClientV2:
     async def chat(
@@ -277,9 +271,3 @@ if __name__ == "__main__":
 
         print(response)
     asyncio.run(smoke())
-
-def chat(messages, tier="smart_foundation", **kw):
-    caller = inspect.stack()[1]
-    loc    = f"{caller.filename}:{caller.lineno} in {caller.function}"
-    logging.info("🔹 llm.chat invoked from %s | tier=%s", loc, tier)
-    return _real_chat(messages, tier=tier, **kw)   # existing implementation

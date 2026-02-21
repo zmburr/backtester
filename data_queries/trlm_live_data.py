@@ -54,8 +54,8 @@ class TrlmData:
             self.handle.wait()
             try:
                 self.handle.raise_on_error()
-            except:
-                pass
+            except Exception:
+                logging.warning("SHEL stream error for %s", self.ticker, exc_info=True)
 
     def update_manager(self, current_data):
         logging.debug(f'Sending new data to stop manager - {current_data}')
