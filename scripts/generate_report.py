@@ -269,24 +269,24 @@ def format_bounce_intensity_html(intensity: Dict) -> str:
     score = intensity['composite']
 
     if score >= 65:
-        color = '#28a745'       # green — 100% WR, +23% avg historically
+        color = '#3fb950'       # green — 100% WR, +23% avg historically
         context = '100% WR, +23% avg'
     elif score >= 50:
-        color = '#28a745'       # green — 96% WR, +15% avg
+        color = '#3fb950'       # green — 96% WR, +15% avg
         context = '96% WR, +15% avg'
     elif score >= 40:
-        color = '#ffc107'       # yellow — transitional zone
+        color = '#e3b341'       # yellow — transitional zone
         context = 'transitional zone'
     else:
-        color = '#dc3545'       # red — below 50: 54% WR, -2% avg
+        color = '#f85149'       # red — below 50: 54% WR, -2% avg
         context = '54% WR, -2% avg'
 
     lines = [
         f'<div style="margin: 6px 0;">',
         f'<strong>Bounce Intensity: <span style="color: {color}; font-size: 1.1em;">{score:.0f}/100</span></strong>',
-        f'<span style="font-size: 0.85em; color: #666;"> ({context})</span>',
-        '<table style="font-size: 0.85em; margin-top: 4px;">',
-        '<tr style="color: #888;"><td style="padding-right: 10px;">Metric</td>'
+        f'<span style="font-size: 0.85em; color: #8b949e;"> ({context})</span>',
+        '<table style="font-size: 0.85em; margin-top: 4px; color: #c9d1d9;">',
+        '<tr style="color: #6e7681;"><td style="padding-right: 10px;">Metric</td>'
         '<td style="padding-right: 10px;">Percentile</td><td>Weight</td></tr>',
     ]
 
@@ -296,7 +296,6 @@ def format_bounce_intensity_html(intensity: Dict) -> str:
         'gap_pct': 'Gap down',
         'pct_off_30d_high': '30d high discount',
         'pct_off_52wk_high': '52wk high discount',
-        'consecutive_down_days': 'Down days',
         'pct_change_15': '15-day momentum',
     }
 
@@ -732,13 +731,13 @@ def format_pretrade_score_html(score_result: Dict) -> str:
 
     # Color coding
     if rec == 'GO':
-        color = '#28a745'  # green
+        color = '#3fb950'  # green
         rec_text = 'GO'
     elif rec == 'CAUTION':
-        color = '#ffc107'  # yellow
+        color = '#e3b341'  # yellow
         rec_text = 'CAUTION'
     else:
-        color = '#dc3545'  # red
+        color = '#f85149'  # red
         rec_text = 'NO-GO'
 
     # Get historical stats for this score
@@ -746,16 +745,16 @@ def format_pretrade_score_html(score_result: Dict) -> str:
     stats_text = f"Historical: {stats['win_rate']:.0f}% win rate, {stats['avg_pnl']:+.1f}% avg P&L (n={stats['trades']})"
 
     lines = [
-        f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px;">',
+        f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px; background-color: #0d1117;">',
         f'<strong style="color: {color}; font-size: 1.2em;">{rec_text}</strong> ',
-        f'<span>Score: {score}/5 ({cap} Cap)</span>',
-        f'<br><span style="font-size: 0.85em; color: #666;">{stats_text}</span>',
-        '<table style="margin-top: 8px; font-size: 0.9em;">',
+        f'<span style="color: #c9d1d9;">Score: {score}/5 ({cap} Cap)</span>',
+        f'<br><span style="font-size: 0.85em; color: #8b949e;">{stats_text}</span>',
+        '<table style="margin-top: 8px; font-size: 0.9em; color: #c9d1d9;">',
     ]
 
     for c in score_result['criteria']:
         status = '✓' if c['passed'] else '✗'
-        status_color = '#28a745' if c['passed'] else '#dc3545'
+        status_color = '#3fb950' if c['passed'] else '#f85149'
 
         # Format values
         if c['key'] == 'vol_signal':
@@ -792,42 +791,42 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
 
     # Color coding
     if rec == 'GO':
-        color = '#28a745'
+        color = '#3fb950'
     elif rec == 'CAUTION':
-        color = '#ffc107'
+        color = '#e3b341'
     else:
-        color = '#dc3545'
+        color = '#f85149'
 
     cap_label = getattr(result, 'cap', '')
     stats_text = (f"Profile: {profile.name} | {cap_label} Cap | Historical: {profile.historical_win_rate*100:.0f}% WR, "
                   f"+{profile.historical_avg_pnl:.0f}% avg P&L (n={profile.sample_size} Grade A)")
 
     lines = [
-        f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px;">',
+        f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px; background-color: #0d1117;">',
         f'<strong style="color: {color}; font-size: 1.2em;">BOUNCE {rec}</strong> ',
-        f'<span>Score: {score}/{result.max_score} ({cap_label} Cap)</span>',
-        f'<br><span style="font-size: 0.85em; color: #666;">{stats_text}</span>',
+        f'<span style="color: #c9d1d9;">Score: {score}/{result.max_score} ({cap_label} Cap)</span>',
+        f'<br><span style="font-size: 0.85em; color: #8b949e;">{stats_text}</span>',
     ]
 
     # Classification details
     if result.classification_details.get('signals'):
         signals_str = ' | '.join(result.classification_details['signals'])
-        lines.append(f'<br><span style="font-size: 0.8em; color: #888;">Classification: {signals_str}</span>')
+        lines.append(f'<br><span style="font-size: 0.8em; color: #6e7681;">Classification: {signals_str}</span>')
 
     # Bounce stats by recommendation
     bounce_stats = BOUNCE_SCORE_STATISTICS.get(rec, {})
     if bounce_stats:
         lines.append(
-            f'<br><span style="font-size: 0.85em; color: #666;">'
+            f'<br><span style="font-size: 0.85em; color: #8b949e;">'
             f'Historical {rec}: {bounce_stats["win_rate"]:.0f}% win rate, '
             f'{bounce_stats["avg_pnl"]:+.1f}% avg P&L (n={bounce_stats["trades"]})</span>'
         )
 
     # Criteria table
-    lines.append('<table style="margin-top: 8px; font-size: 0.9em;">')
+    lines.append('<table style="margin-top: 8px; font-size: 0.9em; color: #c9d1d9;">')
     for item in result.items:
         status = '✓' if item.passed else '✗'
-        status_color = '#28a745' if item.passed else '#dc3545'
+        status_color = '#3fb950' if item.passed else '#f85149'
         ref_base = item.reference or ''
 
         # Prefer a clean "A median: 52%" display for drawdown-style metrics
@@ -850,7 +849,7 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
 
         ref_parts = []
         if ref_base:
-            ref_parts.append(f'<span style="color: #999;">({ref_base})</span>')
+            ref_parts.append(f'<span style="color: #6e7681;">({ref_base})</span>')
         if targets_html:
             ref_parts.append(targets_html)
         ref_str = "<br>".join(ref_parts) if ref_parts else ''
@@ -866,14 +865,14 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
 
     # Bonuses
     if result.bonuses:
-        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #28a745;">')
+        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #3fb950;">')
         for bonus in result.bonuses:
             lines.append(f'<br>✦ {bonus}')
         lines.append('</div>')
 
     # Warnings
     if result.warnings:
-        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #dc3545;">')
+        lines.append('<div style="margin-top: 6px; font-size: 0.85em; color: #f85149;">')
         for warning in result.warnings:
             lines.append(f'<br>⚠ {warning}')
         lines.append('</div>')
@@ -889,11 +888,11 @@ COLUMNS_TO_COMPARE = ss.columns_to_compare
 # Report header (trading rules & daily checklist)
 # ---------------------------------------------
 
-HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist</h1>
+HEADER_HTML = """<h1 style="text-align:center; color: #f0f6fc;">Daily Trading Rules & Checklist</h1>
 
-<h2>Reversal Setup Scoring Guide</h2>
-<p>Each stock is scored on <strong>5 pre-trade criteria</strong> (cap-adjusted thresholds):</p>
-<ol>
+<h2 style="color: #f0f6fc;">Reversal Setup Scoring Guide</h2>
+<p style="color: #c9d1d9;">Each stock is scored on <strong>5 pre-trade criteria</strong> (cap-adjusted thresholds):</p>
+<ol style="color: #c9d1d9;">
   <li><strong>9EMA Distance</strong> - Price elevated above 9-day EMA</li>
   <li><strong>Range (ATR)</strong> - Prior day range vs ATR</li>
   <li><strong>RVOL</strong> - Volume vs 20-day average</li>
@@ -901,57 +900,56 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
   <li><strong>Gap Up</strong> - Gap up on reversal day</li>
 </ol>
 
-<h3>Historical Performance by Score (50 Grade A Trades)</h3>
-<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Score</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th><th>Recommendation</th></tr>
-<tr style="background-color: #d4edda;"><td><strong>5/5</strong></td><td>24</td><td>100%</td><td>+15.5%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
-<tr style="background-color: #d4edda;"><td><strong>4/5</strong></td><td>14</td><td>93%</td><td>+14.6%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
-<tr style="background-color: #fff3cd;"><td><strong>3/5</strong></td><td>8</td><td>88%</td><td>+14.6%</td><td style="color: #ffc107;"><strong>CAUTION</strong></td></tr>
-<tr style="background-color: #f8d7da;"><td><strong>&lt;3</strong></td><td>4</td><td>50%</td><td>+1.1%</td><td style="color: #dc3545;"><strong>NO-GO</strong></td></tr>
+<h3 style="color: #f0f6fc;">Historical Performance by Score (50 Grade A Trades)</h3>
+<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Score</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Trades</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Win Rate</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg P&L</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Recommendation</th></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>5/5</strong></td><td style="border: 1px solid #30363d;">24</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+15.5%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>4/5</strong></td><td style="border: 1px solid #30363d;">14</td><td style="border: 1px solid #30363d;">93%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td></tr>
+<tr style="background-color: #3d2f0a;"><td style="border: 1px solid #30363d;"><strong>3/5</strong></td><td style="border: 1px solid #30363d;">8</td><td style="border: 1px solid #30363d;">88%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #e3b341; border: 1px solid #30363d;"><strong>CAUTION</strong></td></tr>
+<tr style="background-color: #3d1f1f;"><td style="border: 1px solid #30363d;"><strong>&lt;3</strong></td><td style="border: 1px solid #30363d;">4</td><td style="border: 1px solid #30363d;">50%</td><td style="border: 1px solid #30363d;">+1.1%</td><td style="color: #f85149; border: 1px solid #30363d;"><strong>NO-GO</strong></td></tr>
 </table>
 
-<p><strong style="color: #28a745;">GO (4-5/5)</strong>: 38 trades, 97% win rate, +15.1% avg |
-<strong style="color: #ffc107;">CAUTION (3/5)</strong>: 8 trades, 88% win, +14.6% avg |
-<strong style="color: #dc3545;">NO-GO (&lt;3)</strong>: Skip</p>
+<p style="color: #c9d1d9;"><strong style="color: #3fb950;">GO (4-5/5)</strong>: 38 trades, 97% win rate, +15.1% avg |
+<strong style="color: #e3b341;">CAUTION (3/5)</strong>: 8 trades, 88% win, +14.6% avg |
+<strong style="color: #f85149;">NO-GO (&lt;3)</strong>: Skip</p>
 
-<h3>Target Price LEVELS (50 Grade A Trades - Measured from OPEN)</h3>
-<p><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th></tr>
-<tr><td><strong>Large</strong></td><td>Gap Fill (100%)</td><td>1.5x ATR (86%)</td><td>2.0x ATR (57%)</td></tr>
-<tr><td><strong>ETF</strong></td><td>1.0x ATR (100%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
-<tr><td><strong>Medium</strong></td><td>Gap Fill (79%)</td><td>1.5x ATR (86%)</td><td>2.0x ATR (69%)</td></tr>
-<tr><td><strong>Small</strong></td><td>1.0x ATR (80%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
-<tr><td><strong>Micro</strong></td><td>1.5x ATR (100%)</td><td>2.0x ATR (100%)</td><td>2.5x ATR (100%)</td></tr>
+<h3 style="color: #f0f6fc;">Target Price LEVELS (50 Grade A Trades - Measured from OPEN)</h3>
+<p style="color: #c9d1d9;"><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Cap</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 1 (33%)</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 2 (33%)</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 3 (34%)</th></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Large</strong></td><td style="border: 1px solid #30363d;">Gap Fill (100%)</td><td style="border: 1px solid #30363d;">1.5x ATR (86%)</td><td style="border: 1px solid #30363d;">2.0x ATR (57%)</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>ETF</strong></td><td style="border: 1px solid #30363d;">1.0x ATR (100%)</td><td style="border: 1px solid #30363d;">1.5x ATR (80%)</td><td style="border: 1px solid #30363d;">2.0x ATR (80%)</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Medium</strong></td><td style="border: 1px solid #30363d;">Gap Fill (79%)</td><td style="border: 1px solid #30363d;">1.5x ATR (86%)</td><td style="border: 1px solid #30363d;">2.0x ATR (69%)</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Small</strong></td><td style="border: 1px solid #30363d;">1.0x ATR (80%)</td><td style="border: 1px solid #30363d;">1.5x ATR (80%)</td><td style="border: 1px solid #30363d;">2.0x ATR (80%)</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Micro</strong></td><td style="border: 1px solid #30363d;">1.5x ATR (100%)</td><td style="border: 1px solid #30363d;">2.0x ATR (100%)</td><td style="border: 1px solid #30363d;">2.5x ATR (100%)</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #666;"><em>Squeeze Risk: ETF +0.4% | Large +2.2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
-<hr>
+<p style="font-size: 0.85em; color: #8b949e;"><em>Squeeze Risk: ETF +0.4% | Large +2.2% | Small/Medium +10% | Micro +14% above open before reversal</em></p>
+<hr style="border-color: #30363d;">
 
-<h2>Bounce Setup Scoring Guide</h2>
-<h3>Bounce Target Price LEVELS (83 GapFade Trades - Measured ABOVE Open)</h3>
-<p><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #c8e6c9;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th><th>n</th></tr>
-<tr><td><strong>ETF</strong></td><td>0.5x ATR (87%)</td><td>1.0x ATR (87%)</td><td>Gap Fill (53%)</td><td>15</td></tr>
-<tr><td><strong>Medium</strong></td><td>0.5x ATR (91%)</td><td>1.0x ATR (78%)</td><td>Gap Fill (73%)</td><td>45</td></tr>
-<tr><td><strong>Small</strong></td><td>0.5x ATR (75%)</td><td>1.0x ATR (75%)</td><td>Gap Fill (86%)</td><td>8</td></tr>
-<tr><td><strong>Large</strong></td><td>0.5x ATR (100%)</td><td>1.0x ATR (94%)</td><td>Gap Fill (69%)</td><td>16</td></tr>
-<tr><td><strong>Micro</strong></td><td colspan="3"><em>Uses Small defaults</em></td><td>0</td></tr>
+<h2 style="color: #f0f6fc;">Bounce Setup Scoring Guide</h2>
+<h3 style="color: #f0f6fc;">Bounce Target Price LEVELS (83 GapFade Trades - Measured ABOVE Open)</h3>
+<p style="color: #c9d1d9;"><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #1c3426;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Cap</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 1 (33%)</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 2 (33%)</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Tier 3 (34%)</th><th style="border: 1px solid #30363d; color: #c9d1d9;">n</th></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>ETF</strong></td><td style="border: 1px solid #30363d;">0.5x ATR (87%)</td><td style="border: 1px solid #30363d;">1.0x ATR (87%)</td><td style="border: 1px solid #30363d;">Gap Fill (53%)</td><td style="border: 1px solid #30363d;">15</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Medium</strong></td><td style="border: 1px solid #30363d;">0.5x ATR (91%)</td><td style="border: 1px solid #30363d;">1.0x ATR (78%)</td><td style="border: 1px solid #30363d;">Gap Fill (73%)</td><td style="border: 1px solid #30363d;">45</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Small</strong></td><td style="border: 1px solid #30363d;">0.5x ATR (75%)</td><td style="border: 1px solid #30363d;">1.0x ATR (75%)</td><td style="border: 1px solid #30363d;">Gap Fill (86%)</td><td style="border: 1px solid #30363d;">8</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Large</strong></td><td style="border: 1px solid #30363d;">0.5x ATR (100%)</td><td style="border: 1px solid #30363d;">1.0x ATR (94%)</td><td style="border: 1px solid #30363d;">Gap Fill (69%)</td><td style="border: 1px solid #30363d;">16</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Micro</strong></td><td colspan="3" style="border: 1px solid #30363d;"><em>Uses Small defaults</em></td><td style="border: 1px solid #30363d;">0</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -0.35 ATR drawdown below open before bounce. All trades median high = 2.09 ATR.</em></p>
-<p>Stocks <strong>not above all major moving averages</strong> (10/20/50 and 200 if available) are evaluated as bounce candidates. Auto-classified into two profiles:</p>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
-<tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>36</td><td>92%</td><td>+12.9%</td></tr>
-<tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>31</td><td>97%</td><td>+10.9%</td></tr>
+<p style="font-size: 0.85em; color: #8b949e;"><em>Dip Risk: Median -0.35 ATR drawdown below open before bounce. All trades median high = 2.09 ATR.</em></p>
+<p style="color: #c9d1d9;">Stocks <strong>not above all major moving averages</strong> (10/20/50 and 200 if available) are evaluated as bounce candidates. Auto-classified into two profiles:</p>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Profile</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Description</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Trades</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Win Rate</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg P&L</th></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>GapFade_weakstock</strong></td><td style="border: 1px solid #30363d;">Stock already in downtrend, deep multi-day selloff</td><td style="border: 1px solid #30363d;">36</td><td style="border: 1px solid #30363d;">92%</td><td style="border: 1px solid #30363d;">+12.9%</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>GapFade_strongstock</strong></td><td style="border: 1px solid #30363d;">Healthy stock hit by sudden selloff</td><td style="border: 1px solid #30363d;">31</td><td style="border: 1px solid #30363d;">97%</td><td style="border: 1px solid #30363d;">+10.9%</td></tr>
 </table>
-<p style="font-size: 0.85em; color: #dc3545;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. Excluded from all stats below.</p>
+<p style="font-size: 0.85em; color: #f85149;"><strong>WARNING: IntradayCapitch pattern = AVOID.</strong> n=9, 11% WR, -10.2% avg. Excluded from all stats below.</p>
 
-<h3>7 Pre-Trade Criteria V2 (profile-adjusted thresholds)</h3>
-<p style="font-size: 0.85em; color: #666;"><em>V2 update: Removed volume signal (rho=0.04, zero predictive power). Added 3-day momentum crash (rho=-0.319) and 52wk high discount (rho=-0.278).</em></p>
-<ol>
-  <li><strong>Deep Selloff</strong> &mdash; Total % decline over consecutive down days</li>
-  <li><strong>Consecutive Down Days</strong> &mdash; Multi-day selling pressure</li>
+<h3 style="color: #f0f6fc;">6 Pre-Trade Criteria V3 (profile-adjusted thresholds)</h3>
+<p style="font-size: 0.85em; color: #8b949e;"><em>V3 update: Removed consecutive down days (rho=+0.175, not significant within either setup). V2 removed volume signal, added 3-day momentum crash and 52wk high discount.</em></p>
+<ol style="color: #c9d1d9;">
+  <li><strong>Deep Selloff</strong> &mdash; Total % decline from recent high</li>
   <li><strong>Discount from 30d High</strong> &mdash; How far off recent highs</li>
   <li><strong>Capitulation Gap Down</strong> &mdash; Gap down on bounce day</li>
   <li><strong>Prior Day Range Expansion</strong> &mdash; Prior day range &ge; 1.0x ATR</li>
@@ -959,74 +957,73 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
   <li><strong>Discount from 52wk High</strong> &mdash; Distance from yearly peak (rho=-0.278)</li>
 </ol>
 
-<h3>Historical Performance by Recommendation (83 GapFade Trades, V2 Scoring)</h3>
-<p style="font-size: 0.85em; color: #666;"><em>Pre-trade uses 7 criteria; historical adds bounce_pct for 8 total. Run bounce_scorer.py for latest numbers.</em></p>
-<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Criteria</th><th>Description</th></tr>
-<tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO</strong></td><td>6-7 / 7</td><td>High-conviction setup, full size</td></tr>
-<tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION</strong></td><td>5 / 7</td><td>Marginal, reduced size</td></tr>
-<tr style="background-color: #f8d7da;"><td style="color: #dc3545;"><strong>NO-GO</strong></td><td>&lt;5 / 7</td><td>Do not trade</td></tr>
+<h3 style="color: #f0f6fc;">Historical Performance by Recommendation (83 GapFade Trades, V3 Scoring)</h3>
+<p style="font-size: 0.85em; color: #8b949e;"><em>Pre-trade uses 6 criteria; historical adds bounce_pct for 7 total. Run bounce_scorer.py for latest numbers.</em></p>
+<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Recommendation</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Criteria</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Description</th></tr>
+<tr style="background-color: #1c3426;"><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td><td style="border: 1px solid #30363d;">5-6 / 6</td><td style="border: 1px solid #30363d;">High-conviction setup, full size</td></tr>
+<tr style="background-color: #3d2f0a;"><td style="color: #e3b341; border: 1px solid #30363d;"><strong>CAUTION</strong></td><td style="border: 1px solid #30363d;">4 / 6</td><td style="border: 1px solid #30363d;">Marginal, reduced size</td></tr>
+<tr style="background-color: #3d1f1f;"><td style="color: #f85149; border: 1px solid #30363d;"><strong>NO-GO</strong></td><td style="border: 1px solid #30363d;">&lt;4 / 6</td><td style="border: 1px solid #30363d;">Do not trade</td></tr>
 </table>
 
-<p><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
+<p style="color: #c9d1d9;"><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
 
-<h2>Bounce Day Cheat Sheet (n=83 GapFade, cluster days n=7)</h2>
-<p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
+<h2 style="color: #f0f6fc;">Bounce Day Cheat Sheet (n=83 GapFade, cluster days n=7)</h2>
+<p style="font-size: 0.85em; color: #8b949e;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
 
-<h3>1. ATR-Based Targets</h3>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #c8e6c9;"><th></th><th>25th pct</th><th>Median</th><th>75th pct</th></tr>
-<tr><td><strong>High (target) — Cluster</strong></td><td>1.7 ATR</td><td>2.5 ATR</td><td>3.3 ATR</td></tr>
-<tr><td><strong>High (target) — All</strong></td><td>1.26 ATR</td><td>2.09 ATR</td><td>3.14 ATR</td></tr>
-<tr><td><strong>Close — Cluster</strong></td><td>0.9 ATR</td><td>1.4 ATR</td><td>2.2 ATR</td></tr>
-<tr><td><strong>Close — All</strong></td><td>0.57 ATR</td><td>1.19 ATR</td><td>2.07 ATR</td></tr>
-<tr><td><strong>Drawdown — All</strong></td><td>-1.02 ATR</td><td>-0.35 ATR</td><td>-0.18 ATR</td></tr>
+<h3 style="color: #f0f6fc;">1. ATR-Based Targets</h3>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #1c3426;"><th style="border: 1px solid #30363d; color: #c9d1d9;"></th><th style="border: 1px solid #30363d; color: #c9d1d9;">25th pct</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Median</th><th style="border: 1px solid #30363d; color: #c9d1d9;">75th pct</th></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>High (target) — Cluster</strong></td><td style="border: 1px solid #30363d;">1.7 ATR</td><td style="border: 1px solid #30363d;">2.5 ATR</td><td style="border: 1px solid #30363d;">3.3 ATR</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>High (target) — All</strong></td><td style="border: 1px solid #30363d;">1.26 ATR</td><td style="border: 1px solid #30363d;">2.09 ATR</td><td style="border: 1px solid #30363d;">3.14 ATR</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Close — Cluster</strong></td><td style="border: 1px solid #30363d;">0.9 ATR</td><td style="border: 1px solid #30363d;">1.4 ATR</td><td style="border: 1px solid #30363d;">2.2 ATR</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Close — All</strong></td><td style="border: 1px solid #30363d;">0.57 ATR</td><td style="border: 1px solid #30363d;">1.19 ATR</td><td style="border: 1px solid #30363d;">2.07 ATR</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Drawdown — All</strong></td><td style="border: 1px solid #30363d;">-1.02 ATR</td><td style="border: 1px solid #30363d;">-0.35 ATR</td><td style="border: 1px solid #30363d;">-0.18 ATR</td></tr>
 </table>
-<p style="font-size: 0.85em;"><strong>Scale out starting at 1 ATR, aggressive target 2-3 ATR.</strong></p>
+<p style="font-size: 0.85em; color: #c9d1d9;"><strong>Scale out starting at 1 ATR, aggressive target 2-3 ATR.</strong></p>
 
-<h3>2. Selloff Retrace Targets</h3>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Selloff Depth</th><th>Bounce High Retraces</th><th>Close Retraces</th></tr>
-<tr><td>5-20%</td><td>70% of selloff</td><td>48%</td></tr>
-<tr><td>20-40%</td><td><strong>71%</strong> of selloff</td><td><strong>37%</strong></td></tr>
-<tr><td>40%+</td><td><strong>50%</strong> of selloff</td><td>28%</td></tr>
+<h3 style="color: #f0f6fc;">2. Selloff Retrace Targets</h3>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Selloff Depth</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Bounce High Retraces</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Close Retraces</th></tr>
+<tr><td style="border: 1px solid #30363d;">5-20%</td><td style="border: 1px solid #30363d;">70% of selloff</td><td style="border: 1px solid #30363d;">48%</td></tr>
+<tr><td style="border: 1px solid #30363d;">20-40%</td><td style="border: 1px solid #30363d;"><strong>71%</strong> of selloff</td><td style="border: 1px solid #30363d;"><strong>37%</strong></td></tr>
+<tr><td style="border: 1px solid #30363d;">40%+</td><td style="border: 1px solid #30363d;"><strong>50%</strong> of selloff</td><td style="border: 1px solid #30363d;">28%</td></tr>
 </table>
-<p style="font-size: 0.85em;">Target ~50-71% retrace of prior selloff for the high. Close holds ~28-48%.</p>
+<p style="font-size: 0.85em; color: #c9d1d9;">Target ~50-71% retrace of prior selloff for the high. Close holds ~28-48%.</p>
 
-<h3>3. Gap Fill</h3>
-<ul style="font-size: 0.9em;">
+<h3 style="color: #f0f6fc;">3. Gap Fill</h3>
+<ul style="font-size: 0.9em; color: #c9d1d9;">
 <li>91% fill &gt;50% of the gap. 70% fill 100%+.</li>
 <li>Median high fills 189% of gap. Median close fills 112%.</li>
 <li>54% close above full gap fill.</li>
 <li><strong>50% gap fill = bread-and-butter first target. Full gap fill = achievable majority of the time.</strong></li>
 </ul>
 
-<h3>4. Key Decision Rules</h3>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Rule</th><th>Data</th></tr>
-<tr><td><strong>Take profits on the way up</strong></td><td>Only 63% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
-<tr><td><strong>First 30-min low = CRITICAL</strong></td><td>99% close green when low is in first 30 min (n=69). Late lows (after 30 min): 50% WR, +5.0% avg.</td></tr>
-<tr><td><strong>Cluster days &gt; solo</strong></td><td>Cluster: 96% WR, +12.7% avg. Solo: 79% WR, +6.7% avg.</td></tr>
-<tr><td><strong>Exhaustion gap = much better</strong></td><td>With exhaustion gap: 93% WR, +11.7% avg close. Without: 85% WR, +8.3% avg.</td></tr>
-<tr><td><strong>5+ consec down days = 90% WR</strong></td><td>5+ days: 90% WR, +14.2% avg. 4+ days: 92% WR, +13.6% avg.</td></tr>
-<tr><td><strong>Weak stock setups bounce harder</strong></td><td>Weakstock: med high +21.0%, med close +11.2%. Strongstock: med high +12.0%, med close +7.8%.</td></tr>
-<tr><td><strong>Closed outside lower BB = edge</strong></td><td>Outside BB: 91% WR, +11.7% avg. Inside BB: 89% WR, +9.3% avg.</td></tr>
-<tr><td><strong>Prior day closed near lows = capitulation</strong></td><td>Closed near lows (&le;15%): 89% WR, +8.6% avg. Not near lows: 91% WR, +12.3% avg.</td></tr>
-<tr><td><strong>Near 52-week low = bigger bounce</strong></td><td>Near 52wk low: +13.5% avg. Not near: +9.2% avg.</td></tr>
-<tr><td><strong>Large cap highest WR but all caps strong</strong></td><td>ETF: 93% WR, +6.4% avg. Large: 94% WR, +12.9%. Medium: 89% WR, +11.9%. Small: 88% WR, +6.7%.</td></tr>
+<h3 style="color: #f0f6fc;">4. Key Decision Rules</h3>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Rule</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Data</th></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Take profits on the way up</strong></td><td style="border: 1px solid #30363d;">Only 63% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>First 30-min low = CRITICAL</strong></td><td style="border: 1px solid #30363d;">99% close green when low is in first 30 min (n=69). Late lows (after 30 min): 50% WR, +5.0% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Cluster days &gt; solo</strong></td><td style="border: 1px solid #30363d;">Cluster: 96% WR, +12.7% avg. Solo: 79% WR, +6.7% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Exhaustion gap = much better</strong></td><td style="border: 1px solid #30363d;">With exhaustion gap: 93% WR, +11.7% avg close. Without: 85% WR, +8.3% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Weak stock setups bounce harder</strong></td><td style="border: 1px solid #30363d;">Weakstock: med high +21.0%, med close +11.2%. Strongstock: med high +12.0%, med close +7.8%.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Closed outside lower BB = edge</strong></td><td style="border: 1px solid #30363d;">Outside BB: 91% WR, +11.7% avg. Inside BB: 89% WR, +9.3% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Prior day closed near lows = capitulation</strong></td><td style="border: 1px solid #30363d;">Closed near lows (&le;15%): 89% WR, +8.6% avg. Not near lows: 91% WR, +12.3% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Near 52-week low = bigger bounce</strong></td><td style="border: 1px solid #30363d;">Near 52wk low: +13.5% avg. Not near: +9.2% avg.</td></tr>
+<tr><td style="border: 1px solid #30363d;"><strong>Large cap highest WR but all caps strong</strong></td><td style="border: 1px solid #30363d;">ETF: 93% WR, +6.4% avg. Large: 94% WR, +12.9%. Medium: 89% WR, +11.9%. Small: 88% WR, +6.7%.</td></tr>
 </table>
 
-<h3>5. Overnight Hold (cluster days: 98% gapped up next morning)</h3>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Metric</th><th>Cluster Days</th><th>All Trades</th></tr>
-<tr><td>Overnight positive %</td><td><strong>98%</strong> (54/55)</td><td>89%</td></tr>
-<tr><td>Median overnight</td><td><strong>+14.2%</strong></td><td>+11.3%</td></tr>
+<h3 style="color: #f0f6fc;">5. Overnight Hold (cluster days: 98% gapped up next morning)</h3>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Metric</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Cluster Days</th><th style="border: 1px solid #30363d; color: #c9d1d9;">All Trades</th></tr>
+<tr><td style="border: 1px solid #30363d;">Overnight positive %</td><td style="border: 1px solid #30363d;"><strong>98%</strong> (54/55)</td><td style="border: 1px solid #30363d;">89%</td></tr>
+<tr><td style="border: 1px solid #30363d;">Median overnight</td><td style="border: 1px solid #30363d;"><strong>+14.2%</strong></td><td style="border: 1px solid #30363d;">+11.3%</td></tr>
 </table>
-<p style="font-size: 0.85em;"><strong>Hold a portion overnight on cluster bounce days.</strong></p>
+<p style="font-size: 0.85em; color: #c9d1d9;"><strong>Hold a portion overnight on cluster bounce days.</strong></p>
 
-<h3>6. What Predicts Bigger Bounces (Spearman rank correlation, n=83 GapFade)</h3>
-<p style="font-size: 0.85em; color: #666;"><em>Ranked by Spearman rho vs open-to-close P&L. *** = p&lt;0.01, ** = p&lt;0.05. IntradayCapitch excluded.</em></p>
-<ol style="font-size: 0.9em;">
+<h3 style="color: #f0f6fc;">6. What Predicts Bigger Bounces (Spearman rank correlation, n=83 GapFade)</h3>
+<p style="font-size: 0.85em; color: #8b949e;"><em>Ranked by Spearman rho vs open-to-close P&L. *** = p&lt;0.01, ** = p&lt;0.05. IntradayCapitch excluded.</em></p>
+<ol style="font-size: 0.9em; color: #c9d1d9;">
 <li><strong>More negative 3-day return</strong> (rho=-0.539***) &mdash; #1 predictor. Short-term momentum crash.</li>
 <li><strong>Further off 30d high</strong> (rho=-0.493***) &mdash; Off 30%+: 94% WR, +12.5% avg. Off 40%+: 94% WR, +14.1% avg.</li>
 <li><strong>Further off 52wk high</strong> (rho=-0.439***) &mdash; Off 50%+: +14.4% avg.</li>
@@ -1034,26 +1031,25 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <li><strong>More negative 15-day return</strong> (rho=-0.411***) &mdash; Medium-term selling pressure.</li>
 <li><strong>Bigger gap down</strong> (rho=-0.362***) &mdash; Gap &gt;10%: 96% WR, +15.5% avg. Gap &gt;15%: 94% WR, +19.5% avg.</li>
 <li><strong>Low in first 30 min</strong> &mdash; Earlier low = better close. 99% close green when low is in first 30 min (n=69). Late lows: 50% WR.</li>
-<li><strong>More consecutive down days</strong> (rho=+0.175) &mdash; 5+ consec down: 90% WR, +14.2% avg.</li>
 <li><strong>Larger bounce-day range</strong> &mdash; Big range day = volatile capitulation = better outcome.</li>
 <li><strong>Higher ATR%</strong> &mdash; More volatile names bounce harder.</li>
 </ol>
-<p style="font-size: 0.85em; color: #dc3545;"><strong>NOT predictive:</strong> Bounce-day RVOL (rho=0.04), vol trend direction (rho=0.06), prior-day RVOL (rho=0.05), SPY context (rho=0.09). Volume metrics and SPY have zero correlation with bounce magnitude.</p>
+<p style="font-size: 0.85em; color: #f85149;"><strong>NOT predictive:</strong> Consecutive down days (rho=+0.175, not significant within-setup), bounce-day RVOL (rho=0.04), vol trend direction (rho=0.06), prior-day RVOL (rho=0.05), SPY context (rho=0.09). Volume metrics, down day count, and SPY have zero/weak correlation with bounce magnitude.</p>
 
-<h3>Bounce Intensity Score V2 (composite 0-100)</h3>
-<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
-<tr style="background-color: #f0f0f0;"><th>Intensity</th><th>N</th><th>Win Rate</th><th>Avg P&L</th><th>Med P&L</th><th>Avg High</th></tr>
-<tr style="background-color: #d4edda;"><td><strong>80+</strong></td><td>6</td><td>100%</td><td>+35.2%</td><td>+19.9%</td><td>+54.4%</td></tr>
-<tr style="background-color: #d4edda;"><td><strong>70-80</strong></td><td>4</td><td>100%</td><td>+13.1%</td><td>+11.8%</td><td>+29.1%</td></tr>
-<tr style="background-color: #d4edda;"><td><strong>60-70</strong></td><td>9</td><td>89%</td><td>+7.8%</td><td>+10.1%</td><td>+18.8%</td></tr>
-<tr style="background-color: #d4edda;"><td><strong>50-60</strong></td><td>7</td><td>100%</td><td>+9.5%</td><td>+7.1%</td><td>+13.8%</td></tr>
-<tr style="background-color: #f8d7da;"><td><strong>&lt;50</strong></td><td>28</td><td>54%</td><td>-1.8%</td><td>+1.7%</td><td>+8.5%</td></tr>
+<h3 style="color: #f0f6fc;">Bounce Intensity Score V2 (composite 0-100)</h3>
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #30363d; color: #c9d1d9;">
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Intensity</th><th style="border: 1px solid #30363d; color: #c9d1d9;">N</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Win Rate</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg P&L</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Med P&L</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg High</th></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>80+</strong></td><td style="border: 1px solid #30363d;">6</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+35.2%</td><td style="border: 1px solid #30363d;">+19.9%</td><td style="border: 1px solid #30363d;">+54.4%</td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>70-80</strong></td><td style="border: 1px solid #30363d;">4</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+13.1%</td><td style="border: 1px solid #30363d;">+11.8%</td><td style="border: 1px solid #30363d;">+29.1%</td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>60-70</strong></td><td style="border: 1px solid #30363d;">9</td><td style="border: 1px solid #30363d;">89%</td><td style="border: 1px solid #30363d;">+7.8%</td><td style="border: 1px solid #30363d;">+10.1%</td><td style="border: 1px solid #30363d;">+18.8%</td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>50-60</strong></td><td style="border: 1px solid #30363d;">7</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+9.5%</td><td style="border: 1px solid #30363d;">+7.1%</td><td style="border: 1px solid #30363d;">+13.8%</td></tr>
+<tr style="background-color: #3d1f1f;"><td style="border: 1px solid #30363d;"><strong>&lt;50</strong></td><td style="border: 1px solid #30363d;">28</td><td style="border: 1px solid #30363d;">54%</td><td style="border: 1px solid #30363d;">-1.8%</td><td style="border: 1px solid #30363d;">+1.7%</td><td style="border: 1px solid #30363d;">+8.5%</td></tr>
 </table>
-<p style="font-size: 0.85em;"><strong>Key threshold: Intensity &ge;50 = 96% WR, +14.8% avg P&L. Below 50 = 70% WR, +2.3% avg. Use 50 as minimum filter, 65+ for high-conviction sizing.</strong></p>
-<hr>
+<p style="font-size: 0.85em; color: #c9d1d9;"><strong>Key threshold: Intensity &ge;50 = 96% WR, +14.8% avg P&L. Below 50 = 70% WR, +2.3% avg. Use 50 as minimum filter, 65+ for high-conviction sizing.</strong></p>
+<hr style="border-color: #30363d;">
 
-<h2>Rules</h2>
-<ol>
+<h2 style="color: #f0f6fc;">Rules</h2>
+<ol style="color: #c9d1d9;">
   <li>Quality in everything – end day with quality & take breaks to maintain quality</li>
   <li>Push size in liquid names</li>
   <li>Start orderpipe</li>
@@ -1070,16 +1066,16 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
   <li>If it breaks upper or lower bound trend- hold until it fails trend as it's a pos signal (good RRR to see if it goes para)</li>
 </ol>
 
-<h2>News Rules / Reminders</h2>
-<ol>
+<h2 style="color: #f0f6fc;">News Rules / Reminders</h2>
+<ol style="color: #c9d1d9;">
   <li>CP on canada deal with US / CAR on any car tariff changes / STZ+EWW or TNA on Mexico / XLE short / MT LONG / KYIV on Russia Deal</li>
   <li>XRT SWK for Trump tariffs</li>
   <li>SILJ PAAS on Silver </li>
 
 </ol>
 
-<h2>Morning Checklist</h2>
-<ul>
+<h2 style="color: #f0f6fc;">Morning Checklist</h2>
+<ul style="color: #c9d1d9;">
   <li>Read overnight news</li>
   <li>Look at all stocks gapping up or down 5 %+ (Stockfetcher, MAT, NLRTs)</li>
   <li>Go through rules and reminders</li>
@@ -1210,7 +1206,7 @@ def _format_bounce_price_targets_html(
         median_pct_str = f"{median_pct:.1f}".rstrip("0").rstrip(".")
 
     lines = [
-        f'<div style="margin-top: 2px; color: #888; font-size: 0.82em; line-height: 1.25em;">'
+        f'<div style="margin-top: 2px; color: #8b949e; font-size: 0.82em; line-height: 1.25em;">'
         f'<div>{base_label}: <strong>{_fmt_dollars(base_price)}</strong></div>'
     ]
 
@@ -1294,8 +1290,8 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
 
     # Build section text
     lines: List[str] = [
-        f'<div style="border-top: 3px solid #212529; margin-top: 28px; padding-top: 10px;">'
-        f'<h2 style="margin: 0 0 8px 0; font-size: 1.3em; letter-spacing: 0.03em;">{ticker}</h2>'
+        f'<div style="border-top: 3px solid #f0f6fc; margin-top: 28px; padding-top: 10px;">'
+        f'<h2 style="margin: 0 0 8px 0; font-size: 1.3em; letter-spacing: 0.03em; color: #f0f6fc;">{ticker}</h2>'
         f'</div>'
     ]
 
@@ -1310,12 +1306,12 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
     is_bounce = bucket == "bounce"
 
     # Show routing decision near the top for quick scanning/debugging
-    bucket_color = {"reversal": "#0d6efd", "bounce": "#198754", "filtered": "#6c757d"}.get(bucket, "#6c757d")
-    bucket_bg = {"reversal": "#eef4ff", "bounce": "#edfbf1", "filtered": "#f5f5f5"}.get(bucket, "#f5f5f5")
+    bucket_color = {"reversal": "#58a6ff", "bounce": "#3fb950", "filtered": "#8b949e"}.get(bucket, "#8b949e")
+    bucket_bg = {"reversal": "#0c2d6b", "bounce": "#122117", "filtered": "#21262d"}.get(bucket, "#21262d")
     lines.append(
         f'<div style="margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; border: 1px solid {bucket_color}; background-color: {bucket_bg};">'
-        f'<strong style="color: {bucket_color};">Bucket:</strong> <strong>{bucket.upper()}</strong>'
-        f'<span style="color:#666;"> — {bucket_reason}</span>'
+        f'<strong style="color: {bucket_color};">Bucket:</strong> <strong style="color: #f0f6fc;">{bucket.upper()}</strong>'
+        f'<span style="color:#8b949e;"> — {bucket_reason}</span>'
         f'</div>'
     )
 
@@ -1383,9 +1379,9 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             lines.append(format_bounce_intensity_html(intensity))
         else:
             lines.append(
-                '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
-                '<strong style="color: #6c757d;">BOUNCE</strong> '
-                '<span>Bounce metrics unavailable; skipping bounce checklist.</span>'
+                '<div style="border: 2px solid #8b949e; padding: 10px; margin: 10px 0; border-radius: 5px; background-color: #0d1117;">'
+                '<strong style="color: #8b949e;">BOUNCE</strong> '
+                '<span style="color: #c9d1d9;">Bounce metrics unavailable; skipping bounce checklist.</span>'
                 '</div>'
             )
 
@@ -1417,16 +1413,16 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
         pct_3_str = f"{raw_pct_3 * 100:.1f}%" if has_pct_3 else "N/A"
         pct_120_str = f"{raw_pct_120 * 100:.1f}%" if has_pct_120 else "N/A"
         lines.append(
-            '<div style="border: 2px solid #6c757d; padding: 10px; margin: 10px 0; border-radius: 5px;">'
-            f'<strong style="color: #6c757d;">FILTERED</strong> '
-            f'<span>{bucket_reason} | 3-day: {pct_3_str} | 120-day: {pct_120_str}</span>'
+            '<div style="border: 2px solid #8b949e; padding: 10px; margin: 10px 0; border-radius: 5px; background-color: #0d1117;">'
+            f'<strong style="color: #8b949e;">FILTERED</strong> '
+            f'<span style="color: #c9d1d9;">{bucket_reason} | 3-day: {pct_3_str} | 120-day: {pct_120_str}</span>'
             '</div>'
         )
 
     # --- Extension from Moving Averages (always shown) ---
     if mav_data:
         mav_label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
-        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Extension from Moving Averages</h3>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Extension from Moving Averages</h3>')
         lines.append('<table style="font-size: 0.9em; margin-top: 0;">')
         for k, v in mav_data.items():
             lines.append(
@@ -1444,19 +1440,19 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
         # Flip so 100% = most extreme (most negative) bounce candidate.
         pcts = {k: round(100 - v, 1) for k, v in pcts.items()}
         setup_label = bounce_setup_type.replace('GapFade_', '')
-        lines.append(f'<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)})</h3>')
+        lines.append(f'<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)})</h3>')
     else:
         pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
-        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Reversal Percentiles</h3>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Reversal Percentiles</h3>')
     # Render percentiles as a styled table with color-coded extremes
     _pct_rows = ""
     for key in PERCENTILE_ORDER:
         if key in pcts:
             val = pcts[key]
-            bg = "#edfbf1" if val >= 75 else ("#fff0f0" if val <= 25 else "transparent")
+            bg = "#122117" if val >= 75 else ("#3d1f1f" if val <= 25 else "transparent")
             _pct_rows += (
                 f'<tr style="background:{bg};">'
-                f'<td style="padding: 2px 10px 2px 0; color:#555;">{key}</td>'
+                f'<td style="padding: 2px 10px 2px 0; color:#8b949e;">{key}</td>'
                 f'<td style="padding: 2px 0; font-weight:600;">{val:.1f}</td>'
                 f'</tr>'
             )
@@ -1469,18 +1465,18 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             return str(val)
 
     if pct_data:
-        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Absolute PCT Changes</h3>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Absolute PCT Changes</h3>')
         _pct_rows = "".join(
-            f'<tr><td style="padding: 2px 10px 2px 0; color:#555;">{k}</td>'
+            f'<tr><td style="padding: 2px 10px 2px 0; color:#8b949e;">{k}</td>'
             f'<td style="padding: 2px 0;">{_fmt(v)}</td></tr>'
             for k, v in pct_data.items()
         )
         lines.append(f'<table style="font-size: 0.85em; border-collapse: collapse; margin: 4px 0 8px 0;">{_pct_rows}</table>')
 
     if range_data:
-        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Range Data</h3>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Range Data</h3>')
         _rng_rows = "".join(
-            f'<tr><td style="padding: 2px 10px 2px 0; color:#555;">{k}</td>'
+            f'<tr><td style="padding: 2px 10px 2px 0; color:#8b949e;">{k}</td>'
             f'<td style="padding: 2px 0;">{_fmt(v)}</td></tr>'
             for k, v in range_data.items()
         )
@@ -1724,23 +1720,23 @@ def generate_report() -> str:
 
         # Put the long scoring guides at the bottom (tickers first).
         date_banner = (
-            f'<div style="background-color: #212529; color: #ffffff; padding: 10px 14px; '
-            f'font-size: 0.85em; border-radius: 4px 4px 0 0; margin-bottom: 16px;">'
+            f'<div style="background-color: #21262d; color: #ffffff; padding: 10px 14px; '
+            f'font-size: 0.85em; border-radius: 4px 4px 0 0; margin-bottom: 16px; border-bottom: 1px solid #30363d;">'
             f'<strong>Daily Watchlist Report</strong> &nbsp;|&nbsp; '
             f'{datetime.datetime.now().strftime("%A, %B %d %Y  %I:%M %p")} ET'
             f'</div>'
         )
         rules_separator = (
-            '<div style="margin: 20px 0 12px 0; padding: 10px 14px; background-color: #f8f9fa; '
-            'border-left: 4px solid #6c757d; font-size: 0.85em; color: #6c757d;">'
+            '<div style="margin: 20px 0 12px 0; padding: 10px 14px; background-color: #21262d; '
+            'border-left: 4px solid #8b949e; font-size: 0.85em; color: #8b949e;">'
             '<strong>TRADING RULES &amp; REFERENCE</strong> — scroll down for scoring guides and checklists'
             '</div>'
         )
         body_content = date_banner + "<br><br>\n".join(sections) + "<hr>" + rules_separator + HEADER_HTML
         html_report = (
             '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
-            'Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #212529; '
-            'font-size: 14px; line-height: 1.5;">'
+            'Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #c9d1d9; '
+            'background-color: #161b22; font-size: 14px; line-height: 1.5; padding: 16px;">'
             + body_content
             + '</div>'
         )

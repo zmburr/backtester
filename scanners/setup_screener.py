@@ -717,7 +717,6 @@ class SetupScreener:
                     'Score': f"{r.bounce_score}/{r.bounce_max_score}",
                     'Type': r.bounce_setup_type.replace('GapFade_', ''),
                     'Selloff': _fmt_pct(m.get('selloff_total_pct')),
-                    'Down Days': _fmt_int(m.get('consecutive_down_days')),
                     'Off 30d Hi': _fmt_pct(m.get('pct_off_30d_high')),
                     'Gap %': _fmt_pct(m.get('gap_pct')),
                     'RVOL': _fmt_x(m.get('prior_day_rvol')),
@@ -791,10 +790,6 @@ class SetupScreener:
                 actual_s = f"{actual * 100:.1f}%" if actual is not None else "N/A"
                 thresh_s = f"{abs(threshold) * 100:.0f}%"
                 direction = "<="
-            elif name == 'consecutive_down_days':
-                actual_s = str(int(actual)) if actual is not None else "N/A"
-                thresh_s = str(int(threshold))
-                direction = ">="
             elif name in ('vol_expansion', 'prior_day_range_atr'):
                 if actual is not None and not isinstance(actual, str):
                     actual_s = f"{actual:.2f}x"

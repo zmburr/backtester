@@ -16,11 +16,14 @@ Classification uses pct_from_200mav (primary) or pct_change_30 (fallback).
 V2 criteria update (Feb 2026):
   Removed vol_expansion (prior_day_rvol, rho=0.04 — zero predictive power).
   Added pct_change_3 (rho=-0.700, #2 predictor) and pct_off_52wk_high (rho=-0.487).
-  Pre-trade: 7 criteria. Historical: 8 criteria (adds bounce_pct).
+
+V3 criteria update (Feb 2026):
+  Removed consecutive_down_days (rho=+0.175 — not significant within either setup).
+  Pre-trade: 6 criteria. Historical: 7 criteria (adds bounce_pct).
 
 Two modes:
-1. Historical: Score all rows in bounce_data.csv (8/8 criteria) -> validates setups
-2. Live watchlist: Fetch data from Polygon, auto-classify, score 7 pre-trade criteria
+1. Historical: Score all rows in bounce_data.csv (7/7 criteria) -> validates setups
+2. Live watchlist: Fetch data from Polygon, auto-classify, score 6 pre-trade criteria
 
 Usage:
     from analyzers.bounce_scorer import BounceScorer, BouncePretrade, classify_stock
@@ -64,7 +67,6 @@ class SetupProfile:
 
     # Core criteria thresholds — cap-keyed dicts
     selloff_total_pct: Dict[str, float] = field(default_factory=dict)
-    consecutive_down_days: Dict[str, int] = field(default_factory=dict)
     pct_off_30d_high: Dict[str, float] = field(default_factory=dict)
     gap_pct: Dict[str, float] = field(default_factory=dict)
     prior_day_range_atr: Dict[str, float] = field(default_factory=dict)  # Range expansion
@@ -138,10 +140,6 @@ SETUP_PROFILES = {
             'ETF': -0.05, 'Large': -0.10, 'Medium': -0.17,
             'Small': -0.30, 'Micro': -0.30, '_default': -0.17,
         },
-        consecutive_down_days={
-            'ETF': 2, 'Large': 2, 'Medium': 4,
-            'Small': 4, 'Micro': 4, '_default': 4,
-        },
         pct_off_30d_high={
             'ETF': -0.24, 'Large': -0.30, 'Medium': -0.50,
             'Small': -0.50, 'Micro': -0.50, '_default': -0.50,
@@ -175,7 +173,6 @@ SETUP_PROFILES = {
 
         reference_medians={
             'selloff_total_pct': -0.335,
-            'consecutive_down_days': 5.0,
             'pct_off_30d_high': -0.580,
             'gap_pct': -0.061,
             'prior_day_range_atr': 1.410,
@@ -196,10 +193,6 @@ SETUP_PROFILES = {
         selloff_total_pct={
             'ETF': -0.05, 'Large': -0.04, 'Medium': -0.15,
             'Small': -0.10, 'Micro': -0.10, '_default': -0.15,
-        },
-        consecutive_down_days={
-            'ETF': 2, 'Large': 2, 'Medium': 3,
-            'Small': 2, 'Micro': 2, '_default': 3,
         },
         pct_off_30d_high={
             'ETF': -0.14, 'Large': -0.14, 'Medium': -0.20,
@@ -235,7 +228,6 @@ SETUP_PROFILES = {
 
         reference_medians={
             'selloff_total_pct': -0.165,
-            'consecutive_down_days': 2.0,
             'pct_off_30d_high': -0.324,
             'gap_pct': -0.092,
             'prior_day_range_atr': 1.318,
@@ -250,7 +242,6 @@ SETUP_PROFILES = {
 # Criteria display names
 CRITERIA_NAMES = {
     'selloff_total_pct': 'Deep selloff',
-    'consecutive_down_days': 'Consecutive down days',
     'pct_off_30d_high': 'Discount from 30d high',
     'gap_pct': 'Capitulation gap down',
     'prior_day_range_atr': 'Prior day range expansion',
@@ -323,7 +314,7 @@ def classify_from_setup_column(setup_name: str) -> str:
 # ---------------------------------------------------------------------------
 
 class BounceScorer:
-    """Scores bounce setups based on 8 setup-specific criteria (V2 + bounce_pct)."""
+    """Scores bounce setups based on 7 setup-specific criteria (V3 + bounce_pct)."""
 
     def __init__(self):
         self.profiles = SETUP_PROFILES
@@ -350,7 +341,6 @@ class BounceScorer:
 
         checks = [
             ('selloff_total_pct', metrics.get('selloff_total_pct'), profile.get_threshold('selloff_total_pct', cap), 'lte'),
-            ('consecutive_down_days', metrics.get('consecutive_down_days'), profile.get_threshold('consecutive_down_days', cap), 'gte'),
             ('pct_off_30d_high', metrics.get('pct_off_30d_high'), profile.get_threshold('pct_off_30d_high', cap), 'lte'),
             ('gap_pct', metrics.get('gap_pct'), profile.get_threshold('gap_pct', cap), 'lte'),
             ('prior_day_range_atr', metrics.get('one_day_before_range_pct'), profile.get_threshold('prior_day_range_atr', cap), 'gte'),
@@ -373,28 +363,28 @@ class BounceScorer:
         return len(passed), passed, failed
 
     def _score_to_grade(self, score: int) -> str:
-        """Grade based on 8 historical criteria (includes bounce_pct)."""
-        if score >= 8:
+        """Grade based on 7 historical criteria (includes bounce_pct)."""
+        if score >= 7:
             return 'A+'
-        elif score >= 7:
+        elif score >= 6:
             return 'A'
-        elif score == 6:
-            return 'B'
         elif score == 5:
+            return 'B'
+        elif score == 4:
             return 'C'
         else:
             return 'F'
 
     def _get_recommendation(self, score: int) -> str:
-        """Recommendation based on 8 historical criteria.
+        """Recommendation based on 7 historical criteria.
 
-        GO threshold is 7/8 (88%) here vs 6/7 (86%) in BouncePretrade.validate().
-        This is intentional: the 8th criterion (bounce_pct) is an outcome metric
+        GO threshold is 6/7 (86%) here vs 5/6 (83%) in BouncePretrade.validate().
+        This is intentional: the 7th criterion (bounce_pct) is an outcome metric
         not available pre-trade, so historical scoring has a higher absolute bar.
         """
-        if score >= 7:
+        if score >= 6:
             return 'GO'
-        elif score == 6:
+        elif score == 5:
             return 'CAUTION'
         else:
             return 'NO-GO'
@@ -407,7 +397,6 @@ class BounceScorer:
 
         criterion_to_metric = {
             'selloff_total_pct': 'selloff_total_pct',
-            'consecutive_down_days': 'consecutive_down_days',
             'pct_off_30d_high': 'pct_off_30d_high',
             'gap_pct': 'gap_pct',
             'prior_day_range_atr': 'one_day_before_range_pct',
@@ -417,7 +406,7 @@ class BounceScorer:
         }
 
         criteria_details = {}
-        for criterion in ['selloff_total_pct', 'consecutive_down_days',
+        for criterion in ['selloff_total_pct',
                           'pct_off_30d_high', 'gap_pct', 'prior_day_range_atr',
                           'pct_change_3', 'pct_off_52wk_high', 'bounce_pct']:
             metric_key = criterion_to_metric[criterion]
@@ -439,13 +428,13 @@ class BounceScorer:
             'setup_type': setup_type,
             'profile_name': profile.name,
             'score': score,
-            'max_score': 8,
+            'max_score': 7,
             'grade': grade,
             'recommendation': recommendation,
             'passed_criteria': passed,
             'failed_criteria': failed,
             'criteria_details': criteria_details,
-            'is_true_a': score >= 7,
+            'is_true_a': score >= 6,
             'cap': cap,
         }
 
@@ -487,12 +476,12 @@ class BounceScorer:
 
 class BouncePretrade:
     """
-    Validates bounce setups against 7 pre-trade criteria (V2).
+    Validates bounce setups against 6 pre-trade criteria (V3).
     Auto-classifies stock as weakstock/strongstock and applies the matching profile.
 
-    V2 criteria: selloff depth, consecutive down days, 30d high discount,
-    gap down, range expansion, 3-day momentum crash, 52wk high discount.
-    (Removed vol_expansion — rho=0.04, zero predictive power.)
+    V3 criteria: selloff depth, 30d high discount, gap down,
+    range expansion, 3-day momentum crash, 52wk high discount.
+    (V2 removed vol_expansion. V3 removed consecutive_down_days — rho=+0.175, not significant.)
     """
 
     def __init__(self):
@@ -515,8 +504,6 @@ class BouncePretrade:
         if criterion in ['selloff_total_pct', 'pct_off_30d_high', 'gap_pct',
                          'pct_change_3', 'pct_off_52wk_high']:
             return f"{value*100:.1f}%"
-        elif criterion == 'consecutive_down_days':
-            return f"{int(value)}"
         elif criterion == 'prior_day_range_atr':
             return f"{value:.2f}x"
         elif isinstance(value, bool):
@@ -528,8 +515,6 @@ class BouncePretrade:
         if criterion in ['selloff_total_pct', 'pct_off_30d_high', 'gap_pct',
                          'pct_change_3', 'pct_off_52wk_high']:
             return f"{abs(threshold)*100:.0f}%"
-        elif criterion == 'consecutive_down_days':
-            return f"{int(threshold)}"
         elif criterion == 'prior_day_range_atr':
             return f"{threshold:.1f}x"
         else:
@@ -557,9 +542,8 @@ class BouncePretrade:
 
         profile = self.profiles[setup_type]
 
-        # Step 2: Build pre-trade criteria (7 criteria, no bounce_pct)
+        # Step 2: Build pre-trade criteria (6 criteria, no bounce_pct)
         selloff_thresh = profile.get_threshold('selloff_total_pct', cap)
-        down_days_thresh = profile.get_threshold('consecutive_down_days', cap)
         off_30d_thresh = profile.get_threshold('pct_off_30d_high', cap)
         gap_thresh = profile.get_threshold('gap_pct', cap)
         range_thresh = profile.get_threshold('prior_day_range_atr', cap)
@@ -569,8 +553,6 @@ class BouncePretrade:
         criteria = [
             ('selloff_total_pct', 'selloff_total_pct', selloff_thresh,
              f'Deep selloff >= {abs(selloff_thresh)*100:.0f}%', 'lte'),
-            ('consecutive_down_days', 'consecutive_down_days', down_days_thresh,
-             f'Consecutive down days >= {int(down_days_thresh)}', 'gte'),
             ('pct_off_30d_high', 'pct_off_30d_high', off_30d_thresh,
              f'Discount from 30d high >= {abs(off_30d_thresh)*100:.0f}%', 'lte'),
             ('gap_pct', 'gap_pct', gap_thresh,
@@ -602,8 +584,6 @@ class BouncePretrade:
                 if criterion_key in ['selloff_total_pct', 'pct_off_30d_high', 'gap_pct',
                                      'pct_change_3', 'pct_off_52wk_high']:
                     ref_str = f"A median: {ref_median*100:.0f}%"
-                elif criterion_key == 'consecutive_down_days':
-                    ref_str = f"A median: {ref_median:.0f}"
                 else:
                     ref_str = f"A median: {ref_median:.1f}x"
             else:
@@ -642,12 +622,12 @@ class BouncePretrade:
                 and metrics.get('day_of_range_pct', 0) >= 4.0):
             warnings.append('Looks like IntradayCapitch pattern (17% WR, -13.6% avg) — AVOID')
 
-        # Step 5: Recommendation (7 pre-trade criteria)
-        max_score = 7
-        if score >= 6:
+        # Step 5: Recommendation (6 pre-trade criteria)
+        max_score = 6
+        if score >= 5:
             recommendation = 'GO'
             summary = f"PASS: {score}/{max_score} criteria met — matches {profile.name} profile ({cap} Cap)"
-        elif score == 5:
+        elif score == 4:
             recommendation = 'CAUTION'
             failed_names = [i.name for i in items if not i.passed]
             summary = f"MARGINAL: {score}/{max_score} — Missing: {', '.join(failed_names)}"
@@ -1005,11 +985,6 @@ def print_score_report(result: Dict):
             threshold_str = f"{threshold*100:.1f}%"
             direction = "<=" if criterion != 'bounce_pct' else ">="
             ref_str = f"  (A median: {ref*100:.0f}%)" if ref else ""
-        elif criterion == 'consecutive_down_days':
-            actual_str = f"{int(actual)}" if actual is not None and not pd.isna(actual) else "N/A"
-            threshold_str = f"{int(threshold)}"
-            direction = ">="
-            ref_str = f"  (A median: {ref:.0f})" if ref else ""
         else:  # prior_day_range_atr
             actual_str = f"{actual:.2f}x" if actual is not None and not pd.isna(actual) else "N/A"
             threshold_str = f"{threshold:.1f}x"
@@ -1065,12 +1040,12 @@ if __name__ == '__main__':
     # Performance by score
     print("\nPERFORMANCE BY SCORE:")
     print("-" * 60)
-    for score_val in [8, 7, 6, 5, 4, 3, 2, 1, 0]:
+    for score_val in [7, 6, 5, 4, 3, 2, 1, 0]:
         subset = scored_df[scored_df['criteria_score'] == score_val]
         if len(subset) > 0:
             win_rate = (subset['pnl'] > 0).mean() * 100
             avg_pnl = subset['pnl'].mean()
-            print(f"Score {score_val}/8: {len(subset):2d} trades | Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
+            print(f"Score {score_val}/7: {len(subset):2d} trades | Win: {win_rate:5.1f}% | Avg P&L: {avg_pnl:+6.1f}%")
 
     # ------------------------------------------------------------------
     # 2. GO vs NO-GO performance comparison
@@ -1110,14 +1085,14 @@ if __name__ == '__main__':
         if len(subset) > 0:
             avg_score = subset['criteria_score'].mean()
             go_pct = (subset['recommendation'] == 'GO').mean() * 100
-            print(f"Grade {grade}: {len(subset):2d} trades | Avg Score: {avg_score:.1f}/8 | GO rate: {go_pct:.0f}%")
+            print(f"Grade {grade}: {len(subset):2d} trades | Avg Score: {avg_score:.1f}/7 | GO rate: {go_pct:.0f}%")
 
     # Show sample reports
     print("\n" + "=" * 70)
     print("SAMPLE SCORE REPORTS")
     print("=" * 70)
 
-    for score_val in [8, 7, 6, 5]:
+    for score_val in [7, 6, 5, 4]:
         sample = scored_df[scored_df['criteria_score'] == score_val]
         if len(sample) > 0:
             row = sample.iloc[0]

@@ -346,7 +346,7 @@ class BounceContext:
     is_etf: bool
     has_exhaustion_gap: bool
     bounce_intensity: float     # 0-100
-    bounce_score: int           # 0-5
+    bounce_score: int           # 0-6
     recommendation: str         # 'GO', 'CAUTION', 'NO-GO'
     consecutive_down_days: int
     metrics: Dict = field(default_factory=dict)
@@ -759,7 +759,7 @@ class BounceTradeManager:
         price_label = 'Open' if self.open_locked else 'Premarket'
         lock_status = '' if self.open_locked else ' [PRELIMINARY — will update at 9:30]'
         print(f'  BOUNCE MONITOR: {self.ticker} | {price_label}: ${self.open_price:.2f} | ATR: ${self.atr:.2f}{lock_status}')
-        print(f'  Cap: {self.cap} | Type: {self.setup_type} | Score: {self.bounce_score}/5 ({self.recommendation})')
+        print(f'  Cap: {self.cap} | Type: {self.setup_type} | Score: {self.bounce_score}/6 ({self.recommendation})')
         print(f'  Intensity: {self.bounce_intensity:.0f}/100 | Gap: {self.gap_pct * 100:+.1f}%')
         if self.selloff_high:
             print(f'  Selloff High: ${self.selloff_high:.2f} | Down Days: {self.consecutive_down_days}')
