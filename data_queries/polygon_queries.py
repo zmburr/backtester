@@ -14,6 +14,10 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 
 poly_client = RESTClient(api_key=os.getenv("POLYGON_API_KEY"))
 
+# Increase HTTP connection pool size for parallel requests (default is 1, causes contention)
+import urllib3
+poly_client.client = urllib3.PoolManager(num_pools=12, maxsize=12)
+
 
 def get_atr(ticker, date):
     # ATR is the greatest of the following: high-low / high - previous close / low - previous close

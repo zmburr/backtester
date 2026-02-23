@@ -15,6 +15,9 @@ import datetime
 import os
 import shutil
 import logging
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from weasyprint import HTML
@@ -49,7 +52,7 @@ if not _WKHTMLTOPDF_PATH:
 from scanners import stock_screener as ss
 from data_collectors.combined_data_collection import reversal_df
 from analyzers.charter import create_daily_chart, cleanup_charts
-from data_queries.polygon_queries import get_levels_data, get_daily, get_atr, get_actual_current_price as get_actual_current_price_polygon
+from data_queries.polygon_queries import get_levels_data, get_daily, get_atr, get_actual_current_price as get_actual_current_price_polygon  # noqa: F401 — accessed via _pq_module after cache install
 
 try:
     from data_queries.trillium_queries import get_actual_current_price_trill
@@ -64,6 +67,86 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
+
+# ---------------------------------------------------------------------------
+# In-memory API response cache — eliminates redundant API calls across phases
+# ---------------------------------------------------------------------------
+import data_queries.polygon_queries as _pq_module
+
+# Save original functions before any monkey-patching
+_orig_get_levels_data = _pq_module.get_levels_data
+_orig_get_daily = _pq_module.get_daily
+_orig_get_atr = _pq_module.get_atr
+_orig_get_actual_current_price = _pq_module.get_actual_current_price
+
+
+class ReportCache:
+    """Thread-safe cache for polygon_queries API calls used during report generation.
+
+    Monkey-patches the module-level functions so all downstream code (bounce_scorer,
+    charter, exit_targets, etc.) transparently hits cache — zero signature changes.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._levels = {}    # (ticker, date, window, mult, ts) -> DataFrame
+        self._daily = {}     # (ticker, date) -> obj
+        self._atr = {}       # (ticker, date) -> float
+        self._price = {}     # ticker -> float
+
+    def get_levels_data(self, ticker, date, window, multiplier, timespan):
+        key = (ticker, date, window, multiplier, timespan)
+        with self._lock:
+            if key in self._levels:
+                return self._levels[key]
+        result = _orig_get_levels_data(ticker, date, window, multiplier, timespan)
+        with self._lock:
+            self._levels[key] = result
+        return result
+
+    def get_daily(self, ticker, date):
+        key = (ticker, date)
+        with self._lock:
+            if key in self._daily:
+                return self._daily[key]
+        result = _orig_get_daily(ticker, date)
+        with self._lock:
+            self._daily[key] = result
+        return result
+
+    def get_atr(self, ticker, date):
+        key = (ticker, date)
+        with self._lock:
+            if key in self._atr:
+                return self._atr[key]
+        result = _orig_get_atr(ticker, date)
+        with self._lock:
+            self._atr[key] = result
+        return result
+
+    def get_actual_current_price(self, ticker, date=None):
+        with self._lock:
+            if ticker in self._price:
+                return self._price[ticker]
+        result = _orig_get_actual_current_price(ticker, date) if date else _orig_get_actual_current_price(ticker)
+        with self._lock:
+            self._price[ticker] = result
+        return result
+
+    def install(self):
+        """Monkey-patch polygon_queries module to use cached versions."""
+        _pq_module.get_levels_data = self.get_levels_data
+        _pq_module.get_daily = self.get_daily
+        _pq_module.get_atr = self.get_atr
+        _pq_module.get_actual_current_price = self.get_actual_current_price
+
+    def uninstall(self):
+        """Restore original polygon_queries functions."""
+        _pq_module.get_levels_data = _orig_get_levels_data
+        _pq_module.get_daily = _orig_get_daily
+        _pq_module.get_atr = _orig_get_atr
+        _pq_module.get_actual_current_price = _orig_get_actual_current_price
+
 
 # Load bounce data and split by setup type for percentile comparisons
 _bounce_csv = Path(__file__).resolve().parent.parent / "data" / "bounce_data.csv"
@@ -326,7 +409,7 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
     metrics = {}
     try:
         # Get historical data (35 days for calculations)
-        df = get_levels_data(ticker, date, 35, 1, 'day')
+        df = _pq_module.get_levels_data(ticker, date, 35, 1, 'day')
         if df is None or len(df) < 5:
             return metrics
 
@@ -361,7 +444,7 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
                 pass
         if live_price is None:
             try:
-                live_price = get_actual_current_price_polygon(ticker, date)
+                live_price = _pq_module.get_actual_current_price(ticker, date)
             except Exception:
                 pass
         reference_price = live_price if live_price is not None else prior_close
@@ -377,7 +460,7 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
 
             # 3. Prior day range as multiple of ATR
             prior_range = prior_high - prior_low
-            atr = get_atr(ticker, date)
+            atr = _pq_module.get_atr(ticker, date)
             if atr and atr > 0:
                 metrics['prior_day_range_atr'] = prior_range / atr
 
@@ -547,7 +630,7 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
     data = {}
     try:
         # Get historical data for EMA and prior levels
-        df = get_levels_data(ticker, date, 10, 1, 'day')
+        df = _pq_module.get_levels_data(ticker, date, 10, 1, 'day')
         if df is None or len(df) < 2:
             return data
 
@@ -588,7 +671,7 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
 
             # 1) Polygon daily open/close agg (may be unavailable premarket)
             try:
-                daily = get_daily(ticker, date)
+                daily = _pq_module.get_daily(ticker, date)
                 open_candidate = getattr(daily, 'open', None) if daily else None
             except Exception:
                 open_candidate = None
@@ -617,7 +700,7 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
                     pass
             if ref_price is None:
                 try:
-                    ref_price = get_actual_current_price_polygon(ticker, date)
+                    ref_price = _pq_module.get_actual_current_price(ticker, date)
                     ref_source = 'live'
                 except Exception:
                     # Last resort: prior close
@@ -632,7 +715,7 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
         # Get ATR
         # Use ATR as-of the prior completed daily bar when possible (stable, objective).
         atr_date = data.get('prior_bar_date') or date
-        atr = get_atr(ticker, atr_date)
+        atr = _pq_module.get_atr(ticker, atr_date)
         if atr:
             data['atr'] = atr
 
@@ -1200,8 +1283,11 @@ def route_playbook(pct_data_in: Dict, mav_data_in: Dict) -> Tuple[str, str]:
     return "bounce", "MA data incomplete (default bounce)"
 
 
-def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_metrics: dict = None, bounce_metrics: dict = None) -> str:
-    """Return formatted string section for one ticker and create its chart."""
+def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, bounce_metrics: dict = None) -> Tuple[str, list]:
+    """Build HTML content for one ticker (everything except chart generation).
+
+    Returns (html_string, chart_hlines) so chart rendering can happen separately.
+    """
 
     pct_data = data.get("pct_data", {})
     range_data = data.get("range_data", {})
@@ -1390,17 +1476,8 @@ def _generate_ticker_section(ticker: str, data: dict, charts_dir: str, pretrade_
             if pc and pc < op:
                 chart_hlines.append((pc, 'green', f'Prior Close ${pc:.2f}'))
 
-    # Generate chart and embed inline
-    try:
-        chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
-        img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
-        lines.append(img_tag)
-    except Exception as e:
-        print(f"Failed to generate chart for {ticker}: {e}")
-        lines.append(f"<p><em>Chart unavailable for {ticker}</em></p>")
-
-    # Return HTML block
-    return "\n".join(lines)
+    # Return HTML (without chart) and chart overlay data
+    return "\n".join(lines), chart_hlines
 
 
 def _png_to_data_uri(path: Path) -> str:
@@ -1464,120 +1541,185 @@ def _save_report_pdf(html_report: str, output_dir: str = "reports") -> str | Non
 def generate_report() -> str:
     """Return a giant string report and create all charts under *charts/*."""
 
+    _MAX_WORKERS = 8
+    timings = {}
+    t_total_start = time.time()
+
     watchlist = ss.watchlist
     charts_dir = "charts"  # same default as charter
     Path(charts_dir).mkdir(exist_ok=True)
 
-    # Collect new metrics for watchlist tickers
-    all_data = ss.get_all_stocks_data(watchlist)
+    # Install API response cache to eliminate redundant calls across phases
+    cache = ReportCache()
+    cache.install()
 
-    # Collect pre-trade metrics for reversal scoring
-    print("Fetching pre-trade reversal metrics...")
-    today = datetime.datetime.now().strftime('%Y-%m-%d')
-    pretrade_metrics_all = {}
-    for ticker in watchlist:
-        try:
-            pretrade_metrics_all[ticker] = get_pretrade_metrics(ticker, today)
-            print(f"  {ticker}: {pretrade_metrics_all[ticker]}")
-        except Exception as e:
-            print(f"  {ticker}: Failed to get pretrade metrics - {e}")
-            pretrade_metrics_all[ticker] = {}
+    try:
+        # --- Phase 1: Collect screener metrics (parallelized in stock_screener) ---
+        t0 = time.time()
+        all_data = ss.get_all_stocks_data(watchlist)
+        timings['get_all_stocks_data'] = time.time() - t0
 
-    # Route tickers into bounce vs reversal buckets (MA-based routing)
-    print("Routing tickers into bounce vs reversal buckets...")
-    bucket_map: Dict[str, str] = {}
-    for ticker in watchlist:
-        ticker_data = all_data.get(ticker, {})
-        bucket, _reason = route_playbook(
-            ticker_data.get("pct_data", {}) or {},
-            ticker_data.get("mav_data", {}) or {},
-        )
-        bucket_map[ticker] = bucket
+        # --- Phase 2: Collect pre-trade metrics (parallel) ---
+        t0 = time.time()
+        print("Fetching pre-trade reversal metrics (parallel)...")
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        pretrade_metrics_all = {}
+        with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+            futures = {executor.submit(get_pretrade_metrics, t, today): t for t in watchlist}
+            for future in as_completed(futures):
+                ticker = futures[future]
+                try:
+                    pretrade_metrics_all[ticker] = future.result()
+                    print(f"  {ticker}: {pretrade_metrics_all[ticker]}")
+                except Exception as e:
+                    print(f"  {ticker}: Failed to get pretrade metrics - {e}")
+                    pretrade_metrics_all[ticker] = {}
+        timings['get_pretrade_metrics'] = time.time() - t0
 
-    bounce_ct = sum(1 for b in bucket_map.values() if b == "bounce")
-    rev_ct = sum(1 for b in bucket_map.values() if b == "reversal")
-    print(f"Bucket counts — bounce: {bounce_ct} | reversal: {rev_ct}")
-
-    # Collect bounce pre-trade metrics for tickers in the bounce bucket
-    print("Fetching bounce pre-trade metrics (bounce bucket)...")
-    bounce_metrics_all = {}
-    for ticker in watchlist:
-        try:
-            if bucket_map.get(ticker) == "bounce":
-                bounce_metrics_all[ticker] = fetch_bounce_metrics(ticker, today)
-                # Debug: show prior_day_rvol value
-                pdr = bounce_metrics_all[ticker].get('prior_day_rvol')
-                print(f"  {ticker}: bounce metrics fetched (prior_day_rvol={pdr})")
-        except Exception as e:
-            print(f"  {ticker}: Failed to get bounce metrics - {e}")
-
-    # ---- Split watchlist into bounce vs reversal/other, sort each independently ----
-    def _safe_float(x, default=float('-inf')):
-        try:
-            return float(x)
-        except (TypeError, ValueError):
-            return default
-
-    bounce_tickers = []
-    other_tickers = []
-    _bounce_intensity_cache = {}
-
-    for ticker in watchlist:
-        if bucket_map.get(ticker) == "bounce":
-            if ticker in bounce_metrics_all:
-                # Classify setup type to use setup-specific ref data for intensity
-                _st, _ = classify_stock(bounce_metrics_all[ticker])
-                _ref = BOUNCE_DF_WEAK if _st == 'GapFade_weakstock' else BOUNCE_DF_STRONG
-                intensity = compute_bounce_intensity(bounce_metrics_all[ticker], ref_df=_ref)
-                _bounce_intensity_cache[ticker] = intensity['composite']
-            else:
-                _bounce_intensity_cache[ticker] = 0
-            bounce_tickers.append(ticker)
-        else:
-            other_tickers.append(ticker)
-
-    # Sort bounce candidates by intensity score (highest first)
-    bounce_tickers.sort(key=lambda t: _bounce_intensity_cache.get(t, 0), reverse=True)
-
-    # Sort reversal/other by pct_change_15 reversal percentile (descending)
-    _rev_pcts_cache = {}
-    for ticker in other_tickers:
-        try:
-            _rev_pcts_cache[ticker] = ss.calculate_percentiles(
-                reversal_df, all_data.get(ticker, {}), COLUMNS_TO_COMPARE
+        # Route tickers into bounce vs reversal buckets (MA-based routing)
+        print("Routing tickers into bounce vs reversal buckets...")
+        bucket_map: Dict[str, str] = {}
+        for ticker in watchlist:
+            ticker_data = all_data.get(ticker, {})
+            bucket, _reason = route_playbook(
+                ticker_data.get("pct_data", {}) or {},
+                ticker_data.get("mav_data", {}) or {},
             )
-        except Exception:
-            _rev_pcts_cache[ticker] = {}
+            bucket_map[ticker] = bucket
 
-    other_tickers.sort(
-        key=lambda t: _safe_float(_rev_pcts_cache.get(t, {}).get("pct_change_15")),
-        reverse=True
-    )
+        bounce_ct = sum(1 for b in bucket_map.values() if b == "bounce")
+        rev_ct = sum(1 for b in bucket_map.values() if b == "reversal")
+        print(f"Bucket counts — bounce: {bounce_ct} | reversal: {rev_ct}")
 
-    # Bounce candidates first, then reversal/other
-    sorted_watchlist = bounce_tickers + other_tickers
-    # -----------------------------------------------------------------------
+        # --- Phase 3: Collect bounce pre-trade metrics (parallel) ---
+        t0 = time.time()
+        print("Fetching bounce pre-trade metrics (parallel)...")
+        bounce_tickers_to_fetch = [t for t in watchlist if bucket_map.get(t) == "bounce"]
+        bounce_metrics_all = {}
+        with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+            futures = {executor.submit(fetch_bounce_metrics, t, today): t for t in bounce_tickers_to_fetch}
+            for future in as_completed(futures):
+                ticker = futures[future]
+                try:
+                    bounce_metrics_all[ticker] = future.result()
+                    pdr = bounce_metrics_all[ticker].get('prior_day_rvol')
+                    print(f"  {ticker}: bounce metrics fetched (prior_day_rvol={pdr})")
+                except Exception as e:
+                    print(f"  {ticker}: Failed to get bounce metrics - {e}")
+        timings['fetch_bounce_metrics'] = time.time() - t0
 
-    sections = [
-        _generate_ticker_section(ticker, all_data[ticker], charts_dir,
-                                 pretrade_metrics_all.get(ticker, {}),
-                                 bounce_metrics_all.get(ticker))
-        for ticker in sorted_watchlist
-    ]
+        # ---- Split watchlist into bounce vs reversal/other, sort each independently ----
+        def _safe_float(x, default=float('-inf')):
+            try:
+                return float(x)
+            except (TypeError, ValueError):
+                return default
 
-    # Put the long scoring guides at the bottom (tickers first).
-    html_report = "<br><br>\n".join(sections) + "<hr>" + HEADER_HTML
+        bounce_tickers = []
+        other_tickers = []
+        _bounce_intensity_cache = {}
 
-    # Persist a copy of the report locally before (or even if) e-mailing
-    _save_report_pdf(html_report)
+        for ticker in watchlist:
+            if bucket_map.get(ticker) == "bounce":
+                if ticker in bounce_metrics_all:
+                    # Classify setup type to use setup-specific ref data for intensity
+                    _st, _ = classify_stock(bounce_metrics_all[ticker])
+                    _ref = BOUNCE_DF_WEAK if _st == 'GapFade_weakstock' else BOUNCE_DF_STRONG
+                    intensity = compute_bounce_intensity(bounce_metrics_all[ticker], ref_df=_ref)
+                    _bounce_intensity_cache[ticker] = intensity['composite']
+                else:
+                    _bounce_intensity_cache[ticker] = 0
+                bounce_tickers.append(ticker)
+            else:
+                other_tickers.append(ticker)
 
-    # Send email as HTML
-    send_email(
-        to_email="zburr@trlm.com",
-        subject="Daily Watchlist Report",
-        body=html_report,
-        is_html=True,
-    )
+        # Sort bounce candidates by intensity score (highest first)
+        bounce_tickers.sort(key=lambda t: _bounce_intensity_cache.get(t, 0), reverse=True)
+
+        # Sort reversal/other by pct_change_15 reversal percentile (descending)
+        _rev_pcts_cache = {}
+        for ticker in other_tickers:
+            try:
+                _rev_pcts_cache[ticker] = ss.calculate_percentiles(
+                    reversal_df, all_data.get(ticker, {}), COLUMNS_TO_COMPARE
+                )
+            except Exception:
+                _rev_pcts_cache[ticker] = {}
+
+        other_tickers.sort(
+            key=lambda t: _safe_float(_rev_pcts_cache.get(t, {}).get("pct_change_15")),
+            reverse=True
+        )
+
+        # Bounce candidates first, then reversal/other
+        sorted_watchlist = bounce_tickers + other_tickers
+        # -----------------------------------------------------------------------
+
+        # --- Phase 4: Build ticker HTML sections (parallel) + charts (sequential) ---
+        t0 = time.time()
+        print("Building ticker HTML sections (parallel)...")
+        ticker_results: Dict[str, Tuple[str, list]] = {}
+        with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+            futures = {
+                executor.submit(
+                    _build_ticker_html, ticker, all_data[ticker],
+                    pretrade_metrics_all.get(ticker, {}),
+                    bounce_metrics_all.get(ticker)
+                ): ticker
+                for ticker in sorted_watchlist
+            }
+            for future in as_completed(futures):
+                ticker = futures[future]
+                try:
+                    ticker_results[ticker] = future.result()
+                except Exception as e:
+                    print(f"Error building section for {ticker}: {e}")
+                    ticker_results[ticker] = (f"<h2>{ticker}</h2><p>Error building section: {e}</p>", [])
+        timings['build_ticker_html'] = time.time() - t0
+
+        # Sequential chart rendering (mplfinance uses matplotlib global state, not thread-safe)
+        t0 = time.time()
+        print("Generating charts (sequential)...")
+        sections = []
+        for ticker in sorted_watchlist:
+            html, chart_hlines = ticker_results[ticker]
+            try:
+                chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
+                img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
+                html += "\n" + img_tag
+            except Exception as e:
+                print(f"Failed to generate chart for {ticker}: {e}")
+                html += f"\n<p><em>Chart unavailable for {ticker}</em></p>"
+            sections.append(html)
+        timings['chart_rendering'] = time.time() - t0
+
+        # Put the long scoring guides at the bottom (tickers first).
+        html_report = "<br><br>\n".join(sections) + "<hr>" + HEADER_HTML
+
+        # Persist a copy of the report locally before (or even if) e-mailing
+        _save_report_pdf(html_report)
+
+        # Send email as HTML
+        send_email(
+            to_email="zburr@trlm.com",
+            subject="Daily Watchlist Report",
+            body=html_report,
+            is_html=True,
+        )
+
+    finally:
+        # Always restore original functions
+        cache.uninstall()
+
+    timings['total'] = time.time() - t_total_start
+
+    # Print timing summary
+    print("\n" + "=" * 60)
+    print("TIMING SUMMARY")
+    print("=" * 60)
+    for phase, elapsed in timings.items():
+        print(f"  {phase:30s} {elapsed:6.1f}s")
+    print("=" * 60)
 
     return html_report
 

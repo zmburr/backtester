@@ -8,7 +8,9 @@ from data_queries.polygon_queries import get_intraday
 # New dependency for faster static charts
 import mplfinance as mpf
 
-# Matplotlib for figure management
+# Force non-interactive backend before importing pyplot (thread-safe, headless)
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -171,25 +173,6 @@ def save_chart(
 
     axes[0].legend(handles=handles, loc='upper left')
 
-    # Quick on-screen preview with legend
-    preview_fig, preview_axes = mpf.plot(
-        df,
-        type="candle",
-        style="charles",
-        title=f"{ticker.upper()} – Daily (1Y)",
-        mav=(200, 100, 50, 10),
-        mavcolors=["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"],
-        addplot=[mpf.make_addplot(df['close'].ewm(span=9, adjust=False).mean(), color='orange', width=1, linestyle='dashed')],
-        volume=True,
-        returnfig=True,
-    )
-
-    # add 1y high line to preview
-    year_high = df['high'].max()
-    preview_axes[0].axhline(y=year_high, color='grey', linestyle='--', linewidth=1)
-    preview_handles = handles + [Line2D([], [], color='grey', linestyle='--', label='1Y High')]
-    preview_axes[0].legend(handles=preview_handles, loc='upper left')
-
     # Save figure
     fig.savefig(png_path, dpi=dpi, bbox_inches='tight')
     plt.close(fig)
@@ -257,27 +240,6 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     df = get_levels_data(ticker, end_date, window=start_window, multiplier=1, timespan="day")
     if df is None or df.empty:
         raise ValueError(f"No data returned for {ticker}")
-
-    # Quick on-screen preview with legend
-    preview_fig, preview_axes = mpf.plot(
-        df,
-        type="candle",
-        style="charles",
-        title=f"{ticker.upper()} – Daily (1Y)",
-        mav=(200, 100, 50, 10),
-        mavcolors=["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"],
-        addplot=[mpf.make_addplot(df['close'].ewm(span=9, adjust=False).mean(), color='orange', width=1, linestyle='dashed')],
-        volume=True,
-        returnfig=True,
-    )
-    from matplotlib.lines import Line2D
-    prev_handles = [
-        Line2D([], [], color=c, label=lbl)
-        for c, lbl in zip(["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"], ["SMA200", "SMA100", "SMA50", "SMA10"])
-    ] + [Line2D([], [], color='orange', linestyle='dashed', label='EMA9')]
-    preview_axes[0].legend(handles=prev_handles, loc='upper left')
-    preview_fig.show()
-    plt.close(preview_fig)
 
     # Save PNG and return path using mplfinance backend with MAs
     hlines = [(df['high'].max(), 'grey', '1Y High')]

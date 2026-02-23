@@ -43,7 +43,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['BIDU','AMD','AAPL','GOOGL','NVDA','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR']
+watchlist = ['AMD','AAPL','GOOGL','NVDA',"EWY",'GLW','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR']
 # watchlist = ['MSTR','COIN','IBIT','ORCL']
 
 print(watchlist)
@@ -187,19 +187,18 @@ def add_percent_of_adv_columns(volume_data):
     return volume_data
 
 def get_stock_data(ticker):
-    # Pass the date argument to all query functions
-    # Try Trillium first for current price
+    # Polygon-first for current price (Trillium price endpoint fails often off-hours)
     current_price = None
     try:
-        current_price = get_actual_current_price_trill(ticker)
-        print(f'[Trillium] Current price for {ticker} on {date}: {current_price}')
+        current_price = get_actual_current_price_polygon(ticker, date)
+        print(f'[Polygon] Current price for {ticker} on {date}: {current_price}')
     except Exception as e:
-        print(f"[Trillium] price fetch failed for {ticker}: {e}, trying Polygon")
+        print(f"[Polygon] price fetch failed for {ticker}: {e}, trying Trillium")
         try:
-            current_price = get_actual_current_price_polygon(ticker, date)
-            print(f'[Polygon] Current price for {ticker} on {date}: {current_price}')
+            current_price = get_actual_current_price_trill(ticker)
+            print(f'[Trillium] Current price for {ticker} on {date}: {current_price}')
         except Exception as e2:
-            print(f"[Polygon] price fetch also failed for {ticker}: {e2}")
+            print(f"[Trillium] price fetch also failed for {ticker}: {e2}")
             current_price = None
 
     # Fallback to prior day close if no current price available
@@ -254,11 +253,17 @@ def get_stock_data(ticker):
         }
     }
 
-def get_all_stocks_data(watchlist):
+def get_all_stocks_data(watchlist, max_workers=8):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     all_data = {}
-    for ticker in watchlist:
-        ticker_data = get_stock_data(ticker)
-        all_data.update(ticker_data)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(get_stock_data, t): t for t in watchlist}
+        for future in as_completed(futures):
+            ticker = futures[future]
+            try:
+                all_data.update(future.result())
+            except Exception as e:
+                print(f"Error fetching {ticker}: {e}")
     return all_data
 
 def calculate_percentiles(df, stock_data, columns):
