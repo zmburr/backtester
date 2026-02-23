@@ -43,6 +43,7 @@ def add_two_hours(time_str):
 
 def get_ticker_mavs_open(ticker, date):
     results = {}
+    indicator_date = date  # Date used for SMA/EMA API calls
     try:
         # Get the high of day for the given date
         daily_data = get_daily(ticker, date)
@@ -54,6 +55,7 @@ def get_ticker_mavs_open(ticker, date):
                 print(f"No daily data available for {ticker} on {date} or prior day")
                 return None
             high_of_day = daily_data.close  # Use prior close as reference in premarket
+            indicator_date = prior_date  # Use prior date for SMA/EMA lookups too
             print(f"Using prior day ({prior_date}) close as reference for {ticker}: {high_of_day}")
         else:
             high_of_day = daily_data.high
@@ -65,20 +67,38 @@ def get_ticker_mavs_open(ticker, date):
     def calculate_pct_mav(window):
         try:
             mav = poly_client.get_sma(
-                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=date
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=indicator_date
             ).values[0].value
             return (high_of_day - mav) / mav
-        except (AttributeError, IndexError, TypeError) as e:
-            print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
+        except (AttributeError, IndexError, TypeError):
+            # Insufficient history - try with available data using smaller window
+            if window > 10:
+                try:
+                    mav = poly_client.get_sma(
+                        ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10
+                    ).values[0].value
+                    return (high_of_day - mav) / mav
+                except (AttributeError, IndexError, TypeError):
+                    pass
+            print(f"Moving average (window={window}) missing or unavailable for {ticker} on {indicator_date}")
             return None
     def calculate_pct_mavema(window):
         try:
             mav = poly_client.get_ema(
-                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=date
+                ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10, timestamp=indicator_date
             ).values[0].value
             return (high_of_day - mav) / mav
-        except (AttributeError, IndexError, TypeError) as e:
-            print(f"Moving average (window={window}) missing or unavailable for {ticker} on {date}: {e}")
+        except (AttributeError, IndexError, TypeError):
+            # Insufficient history - try without timestamp filter
+            if window > 5:
+                try:
+                    mav = poly_client.get_ema(
+                        ticker=ticker, timespan='day', adjusted=True, window=window, series_type='close', order="desc", limit=10
+                    ).values[0].value
+                    return (high_of_day - mav) / mav
+                except (AttributeError, IndexError, TypeError):
+                    pass
+            print(f"EMA (window={window}) missing or unavailable for {ticker} on {indicator_date}")
             return None
     # Calculate percentage differences for each moving average
     results['pct_from_9ema'] = calculate_pct_mavema(9)
@@ -86,12 +106,12 @@ def get_ticker_mavs_open(ticker, date):
     results['pct_from_20mav'] = calculate_pct_mav(20)
     results['pct_from_50mav'] = calculate_pct_mav(50)
     results['pct_from_200mav'] = calculate_pct_mav(200)
-    
+
     # Calculate ATR distance from 50-day moving average
     try:
         # Get the 50-day moving average value for the specific date
         mav_50 = poly_client.get_sma(
-            ticker=ticker, timespan='day', adjusted=True, window=50, series_type='close', order="desc", limit=10, timestamp=date
+            ticker=ticker, timespan='day', adjusted=True, window=50, series_type='close', order="desc", limit=10, timestamp=indicator_date
         ).values[0].value
 
         # Get ATR for the ticker
@@ -107,7 +127,7 @@ def get_ticker_mavs_open(ticker, date):
     except (AttributeError, IndexError, TypeError) as e:
         print(f"ATR distance calculation failed for {ticker} on {date}: {e}")
         results['atr_distance_from_50mav'] = None
-    
+
     # Filter out None values
     results = {key: value for key, value in results.items() if value is not None}
     if not results:
