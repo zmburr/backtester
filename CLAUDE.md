@@ -2,6 +2,7 @@
 
 Algorithmic trading analysis and backtesting platform for equities. Analyzes stock price movements, volume patterns, and technical breakouts to test reversal, momentum, and bounce trading strategies on historical data.
 
+
 ## Project Structure
 
 ```

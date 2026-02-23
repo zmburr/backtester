@@ -6,7 +6,6 @@ saves one PNG chart per ticker in the *charts/* directory.
 """
 
 from pathlib import Path
-from textwrap import indent
 from typing import List, Dict, Optional, Tuple
 from support.config import send_email
 import pandas as pd
@@ -903,7 +902,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </ol>
 
 <h3>Historical Performance by Score (50 Grade A Trades)</h3>
-<table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
+<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Score</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th><th>Recommendation</th></tr>
 <tr style="background-color: #d4edda;"><td><strong>5/5</strong></td><td>24</td><td>100%</td><td>+15.5%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
 <tr style="background-color: #d4edda;"><td><strong>4/5</strong></td><td>14</td><td>93%</td><td>+14.6%</td><td style="color: #28a745;"><strong>GO</strong></td></tr>
@@ -917,7 +916,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 
 <h3>Target Price LEVELS (50 Grade A Trades - Measured from OPEN)</h3>
 <p><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th></tr>
 <tr><td><strong>Large</strong></td><td>Gap Fill (100%)</td><td>1.5x ATR (86%)</td><td>2.0x ATR (57%)</td></tr>
 <tr><td><strong>ETF</strong></td><td>1.0x ATR (100%)</td><td>1.5x ATR (80%)</td><td>2.0x ATR (80%)</td></tr>
@@ -931,7 +930,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <h2>Bounce Setup Scoring Guide</h2>
 <h3>Bounce Target Price LEVELS (83 GapFade Trades - Measured ABOVE Open)</h3>
 <p><strong>These are fixed price levels ABOVE open for long bounce trades. Gap Fill = Red-to-Green move.</strong> Exit 1/3 at each tier:</p>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #c8e6c9;"><th>Cap</th><th>Tier 1 (33%)</th><th>Tier 2 (33%)</th><th>Tier 3 (34%)</th><th>n</th></tr>
 <tr><td><strong>ETF</strong></td><td>0.5x ATR (87%)</td><td>1.0x ATR (87%)</td><td>Gap Fill (53%)</td><td>15</td></tr>
 <tr><td><strong>Medium</strong></td><td>0.5x ATR (91%)</td><td>1.0x ATR (78%)</td><td>Gap Fill (73%)</td><td>45</td></tr>
@@ -941,7 +940,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 <p style="font-size: 0.85em; color: #666;"><em>Dip Risk: Median -0.35 ATR drawdown below open before bounce. All trades median high = 2.09 ATR.</em></p>
 <p>Stocks <strong>not above all major moving averages</strong> (10/20/50 and 200 if available) are evaluated as bounce candidates. Auto-classified into two profiles:</p>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Profile</th><th>Description</th><th>Trades</th><th>Win Rate</th><th>Avg P&L</th></tr>
 <tr><td><strong>GapFade_weakstock</strong></td><td>Stock already in downtrend, deep multi-day selloff</td><td>36</td><td>92%</td><td>+12.9%</td></tr>
 <tr><td><strong>GapFade_strongstock</strong></td><td>Healthy stock hit by sudden selloff</td><td>31</td><td>97%</td><td>+10.9%</td></tr>
@@ -962,7 +961,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 
 <h3>Historical Performance by Recommendation (83 GapFade Trades, V2 Scoring)</h3>
 <p style="font-size: 0.85em; color: #666;"><em>Pre-trade uses 7 criteria; historical adds bounce_pct for 8 total. Run bounce_scorer.py for latest numbers.</em></p>
-<table border="1" cellpadding="8" style="border-collapse: collapse; margin: 10px 0;">
+<table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Recommendation</th><th>Criteria</th><th>Description</th></tr>
 <tr style="background-color: #d4edda;"><td style="color: #28a745;"><strong>GO</strong></td><td>6-7 / 7</td><td>High-conviction setup, full size</td></tr>
 <tr style="background-color: #fff3cd;"><td style="color: #ffc107;"><strong>CAUTION</strong></td><td>5 / 7</td><td>Marginal, reduced size</td></tr>
@@ -975,7 +974,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <p style="font-size: 0.85em; color: #666;"><em>All targets use only pre-entry information. Cluster days = multiple names bouncing same day.</em></p>
 
 <h3>1. ATR-Based Targets</h3>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #c8e6c9;"><th></th><th>25th pct</th><th>Median</th><th>75th pct</th></tr>
 <tr><td><strong>High (target) — Cluster</strong></td><td>1.7 ATR</td><td>2.5 ATR</td><td>3.3 ATR</td></tr>
 <tr><td><strong>High (target) — All</strong></td><td>1.26 ATR</td><td>2.09 ATR</td><td>3.14 ATR</td></tr>
@@ -986,7 +985,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <p style="font-size: 0.85em;"><strong>Scale out starting at 1 ATR, aggressive target 2-3 ATR.</strong></p>
 
 <h3>2. Selloff Retrace Targets</h3>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Selloff Depth</th><th>Bounce High Retraces</th><th>Close Retraces</th></tr>
 <tr><td>5-20%</td><td>70% of selloff</td><td>48%</td></tr>
 <tr><td>20-40%</td><td><strong>71%</strong> of selloff</td><td><strong>37%</strong></td></tr>
@@ -1003,7 +1002,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </ul>
 
 <h3>4. Key Decision Rules</h3>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Rule</th><th>Data</th></tr>
 <tr><td><strong>Take profits on the way up</strong></td><td>Only 63% of open-to-high retained at close. Only 31% close above 75% of high.</td></tr>
 <tr><td><strong>First 30-min low = CRITICAL</strong></td><td>99% close green when low is in first 30 min (n=69). Late lows (after 30 min): 50% WR, +5.0% avg.</td></tr>
@@ -1018,7 +1017,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 </table>
 
 <h3>5. Overnight Hold (cluster days: 98% gapped up next morning)</h3>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Metric</th><th>Cluster Days</th><th>All Trades</th></tr>
 <tr><td>Overnight positive %</td><td><strong>98%</strong> (54/55)</td><td>89%</td></tr>
 <tr><td>Median overnight</td><td><strong>+14.2%</strong></td><td>+11.3%</td></tr>
@@ -1042,7 +1041,7 @@ HEADER_HTML = """<h1 style="text-align:center;">Daily Trading Rules & Checklist<
 <p style="font-size: 0.85em; color: #dc3545;"><strong>NOT predictive:</strong> Bounce-day RVOL (rho=0.04), vol trend direction (rho=0.06), prior-day RVOL (rho=0.05), SPY context (rho=0.09). Volume metrics and SPY have zero correlation with bounce magnitude.</p>
 
 <h3>Bounce Intensity Score V2 (composite 0-100)</h3>
-<table border="1" cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">
+<table cellpadding="6" style="border-collapse: collapse; margin: 10px 0; font-size: 0.9em; border: 1px solid #dee2e6;">
 <tr style="background-color: #f0f0f0;"><th>Intensity</th><th>N</th><th>Win Rate</th><th>Avg P&L</th><th>Med P&L</th><th>Avg High</th></tr>
 <tr style="background-color: #d4edda;"><td><strong>80+</strong></td><td>6</td><td>100%</td><td>+35.2%</td><td>+19.9%</td><td>+54.4%</td></tr>
 <tr style="background-color: #d4edda;"><td><strong>70-80</strong></td><td>4</td><td>100%</td><td>+13.1%</td><td>+11.8%</td><td>+29.1%</td></tr>
@@ -1294,7 +1293,11 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
     mav_data = data.get("mav_data", {})
 
     # Build section text
-    lines: List[str] = [f"<h2>Ticker: {ticker}</h2>"]
+    lines: List[str] = [
+        f'<div style="border-top: 3px solid #212529; margin-top: 28px; padding-top: 10px;">'
+        f'<h2 style="margin: 0 0 8px 0; font-size: 1.3em; letter-spacing: 0.03em;">{ticker}</h2>'
+        f'</div>'
+    ]
 
     # --- Routing: MA positioning (preferred) with pct-change fallback ---
     raw_pct_3 = pct_data.get("pct_change_3")
@@ -1308,8 +1311,9 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
 
     # Show routing decision near the top for quick scanning/debugging
     bucket_color = {"reversal": "#0d6efd", "bounce": "#198754", "filtered": "#6c757d"}.get(bucket, "#6c757d")
+    bucket_bg = {"reversal": "#eef4ff", "bounce": "#edfbf1", "filtered": "#f5f5f5"}.get(bucket, "#f5f5f5")
     lines.append(
-        f'<div style="margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; border: 1px solid {bucket_color};">'
+        f'<div style="margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; border: 1px solid {bucket_color}; background-color: {bucket_bg};">'
         f'<strong style="color: {bucket_color};">Bucket:</strong> <strong>{bucket.upper()}</strong>'
         f'<span style="color:#666;"> — {bucket_reason}</span>'
         f'</div>'
@@ -1422,7 +1426,7 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
     # --- Extension from Moving Averages (always shown) ---
     if mav_data:
         mav_label = lambda k: k.removeprefix("pct_from_").removesuffix("mav") + " MA"
-        lines.append('<h3 style="margin: 4px 0 2px 0;">Extension from Moving Averages</h3>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Extension from Moving Averages</h3>')
         lines.append('<table style="font-size: 0.9em; margin-top: 0;">')
         for k, v in mav_data.items():
             lines.append(
@@ -1440,11 +1444,23 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
         # Flip so 100% = most extreme (most negative) bounce candidate.
         pcts = {k: round(100 - v, 1) for k, v in pcts.items()}
         setup_label = bounce_setup_type.replace('GapFade_', '')
-        lines.append(f"<strong>Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)}):</strong>")
+        lines.append(f'<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)})</h3>')
     else:
         pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
-        lines.append("<strong>Reversal Percentiles:</strong>")
-    lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{_format_percentile_dict(pcts)}</pre>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Reversal Percentiles</h3>')
+    # Render percentiles as a styled table with color-coded extremes
+    _pct_rows = ""
+    for key in PERCENTILE_ORDER:
+        if key in pcts:
+            val = pcts[key]
+            bg = "#edfbf1" if val >= 75 else ("#fff0f0" if val <= 25 else "transparent")
+            _pct_rows += (
+                f'<tr style="background:{bg};">'
+                f'<td style="padding: 2px 10px 2px 0; color:#555;">{key}</td>'
+                f'<td style="padding: 2px 0; font-weight:600;">{val:.1f}</td>'
+                f'</tr>'
+            )
+    lines.append(f'<table style="font-size: 0.85em; border-collapse: collapse; margin: 4px 0 8px 0;">{_pct_rows}</table>')
 
     def _fmt(val):
         try:
@@ -1453,12 +1469,22 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             return str(val)
 
     if pct_data:
-        lines.append("<strong>Absolute PCT Changes:</strong>")
-        lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{indent(chr(10).join([f"{k}: {_fmt(v)}" for k, v in pct_data.items()]), "    ")}</pre>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Absolute PCT Changes</h3>')
+        _pct_rows = "".join(
+            f'<tr><td style="padding: 2px 10px 2px 0; color:#555;">{k}</td>'
+            f'<td style="padding: 2px 0;">{_fmt(v)}</td></tr>'
+            for k, v in pct_data.items()
+        )
+        lines.append(f'<table style="font-size: 0.85em; border-collapse: collapse; margin: 4px 0 8px 0;">{_pct_rows}</table>')
 
     if range_data:
-        lines.append('<br><strong>Range Data:</strong>')
-        lines.append(f'<pre style="margin: 2px 0; font-size: 0.9em;">{indent(chr(10).join([f"{k}: {_fmt(v)}" for k, v in range_data.items()]), "    ")}</pre>')
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d;">Range Data</h3>')
+        _rng_rows = "".join(
+            f'<tr><td style="padding: 2px 10px 2px 0; color:#555;">{k}</td>'
+            f'<td style="padding: 2px 0;">{_fmt(v)}</td></tr>'
+            for k, v in range_data.items()
+        )
+        lines.append(f'<table style="font-size: 0.85em; border-collapse: collapse; margin: 4px 0 8px 0;">{_rng_rows}</table>')
 
     # Build ATR overlay lines for GO reversal charts
     chart_hlines = []
@@ -1685,7 +1711,10 @@ def generate_report() -> str:
             html, chart_hlines = ticker_results[ticker]
             try:
                 chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
-                img_tag = f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" style="max-width:800px;">'
+                img_tag = (
+                    f'<img src="{_png_to_data_uri(chart_path)}" alt="{ticker} chart" '
+                    f'style="max-width:800px; display:block; margin-top:10px; border-radius:4px;">'
+                )
                 html += "\n" + img_tag
             except Exception as e:
                 print(f"Failed to generate chart for {ticker}: {e}")
@@ -1694,7 +1723,27 @@ def generate_report() -> str:
         timings['chart_rendering'] = time.time() - t0
 
         # Put the long scoring guides at the bottom (tickers first).
-        html_report = "<br><br>\n".join(sections) + "<hr>" + HEADER_HTML
+        date_banner = (
+            f'<div style="background-color: #212529; color: #ffffff; padding: 10px 14px; '
+            f'font-size: 0.85em; border-radius: 4px 4px 0 0; margin-bottom: 16px;">'
+            f'<strong>Daily Watchlist Report</strong> &nbsp;|&nbsp; '
+            f'{datetime.datetime.now().strftime("%A, %B %d %Y  %I:%M %p")} ET'
+            f'</div>'
+        )
+        rules_separator = (
+            '<div style="margin: 20px 0 12px 0; padding: 10px 14px; background-color: #f8f9fa; '
+            'border-left: 4px solid #6c757d; font-size: 0.85em; color: #6c757d;">'
+            '<strong>TRADING RULES &amp; REFERENCE</strong> — scroll down for scoring guides and checklists'
+            '</div>'
+        )
+        body_content = date_banner + "<br><br>\n".join(sections) + "<hr>" + rules_separator + HEADER_HTML
+        html_report = (
+            '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
+            'Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #212529; '
+            'font-size: 14px; line-height: 1.5;">'
+            + body_content
+            + '</div>'
+        )
 
         # Persist a copy of the report locally before (or even if) e-mailing
         _save_report_pdf(html_report)
