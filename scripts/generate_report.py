@@ -66,6 +66,7 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
+from data_queries.ticker_cache import TickerCache
 
 # ---------------------------------------------------------------------------
 # In-memory API response cache — eliminates redundant API calls across phases
@@ -84,16 +85,33 @@ class ReportCache:
 
     Monkey-patches the module-level functions so all downstream code (bounce_scorer,
     charter, exit_targets, etc.) transparently hits cache — zero signature changes.
+
+    Daily bar requests (timespan='day', multiplier=1) are routed through a
+    persistent disk-backed ``TickerCache`` so repeated runs (same day or
+    next day) hit parquet files instead of Polygon.
     """
 
     def __init__(self):
         self._lock = threading.Lock()
+        self._ticker_cache = TickerCache()  # persistent disk cache for daily bars
         self._levels = {}    # (ticker, date, window, mult, ts) -> DataFrame
         self._daily = {}     # (ticker, date) -> obj
         self._atr = {}       # (ticker, date) -> float
         self._price = {}     # ticker -> float
 
     def get_levels_data(self, ticker, date, window, multiplier, timespan):
+        # Route daily bar requests through the persistent disk cache.
+        if timespan == 'day' and multiplier == 1:
+            key = (ticker, date, window, multiplier, timespan)
+            with self._lock:
+                if key in self._levels:
+                    return self._levels[key]
+            result = self._ticker_cache.get_daily_bars(ticker, date, window)
+            with self._lock:
+                self._levels[key] = result
+            return result
+
+        # Non-daily requests go through the original Polygon function with in-memory cache.
         key = (ticker, date, window, multiplier, timespan)
         with self._lock:
             if key in self._levels:

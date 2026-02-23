@@ -1,23 +1,6 @@
-# Polygon imports (used as fallback)
-from data_queries.polygon_queries import (
-    get_actual_current_price as get_actual_current_price_polygon,
-    get_levels_data as get_levels_data_polygon,
-    get_atr,
-    fetch_and_calculate_volumes as fetch_and_calculate_volumes_polygon,
-    get_ticker_pct_move as get_ticker_pct_move_polygon,
-    get_ticker_mavs_open,  # No Trillium equivalent - Polygon only
-    get_daily as get_daily_polygon,
-    adjust_date_to_market as adjust_date_to_market_polygon,
-)
-# Trillium imports (primary data source)
-from data_queries.trillium_queries import (
-    get_actual_current_price_trill,
-    get_levels_data as get_levels_data_trill,
-    fetch_and_calculate_volumes as fetch_and_calculate_volumes_trill,
-    get_ticker_pct_move as get_ticker_pct_move_trill,
-    get_daily as get_daily_trill,
-    adjust_date_to_market as adjust_date_to_market_trill,
-)
+from data_queries.ticker_cache import TickerCache
+from data_queries.local_metrics import compute_screener_metrics
+from data_queries.polygon_queries import get_intraday
 from datetime import datetime, timedelta
 from tabulate import tabulate
 import pandas as pd
@@ -25,6 +8,9 @@ from data_collectors.combined_data_collection import reversal_df, momentum_df
 from scipy.stats import percentileofscore
 import matplotlib.pyplot as plt
 import os
+
+# Shared ticker cache instance (persistent across calls, thread-safe)
+_cache = TickerCache()
 
 # Adjust the date to the last market day if today is Saturday or Sunday
 today = datetime.now()
@@ -43,7 +29,7 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['AMD','AAPL','GOOGL','NVDA',"EWY",'GLW','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','USAR','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR']
+watchlist = ['AMD','AAPL','GOOGL','NVDA',"CRWD","EWY",'GLW','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','U','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR']
 # watchlist = ['MSTR','COIN','IBIT','ORCL']
 
 print(watchlist)
@@ -187,71 +173,43 @@ def add_percent_of_adv_columns(volume_data):
     return volume_data
 
 def get_stock_data(ticker):
-    # Polygon-first for current price (Trillium price endpoint fails often off-hours)
-    current_price = None
+    """Fetch all screening metrics for *ticker* using cached daily bars + 1 intraday call.
+
+    Reduces API calls from ~15/ticker to ~2/ticker (1 daily bars from cache,
+    1 intraday for premarket/first-N-minute volume and current price).
+    """
+    empty = {ticker: {'pct_data': {}, 'volume_data': {}, 'range_data': {}, 'mav_data': {}}}
     try:
-        current_price = get_actual_current_price_polygon(ticker, date)
-        print(f'[Polygon] Current price for {ticker} on {date}: {current_price}')
-    except Exception as e:
-        print(f"[Polygon] price fetch failed for {ticker}: {e}, trying Trillium")
-        try:
-            current_price = get_actual_current_price_trill(ticker)
-            print(f'[Trillium] Current price for {ticker} on {date}: {current_price}')
-        except Exception as e2:
-            print(f"[Trillium] price fetch also failed for {ticker}: {e2}")
-            current_price = None
+        # 0-1 API calls (0 on cache hit, 1 on cache miss / incremental update)
+        daily_bars = _cache.get_daily_bars(ticker, date, window=310)
+        if daily_bars is None or daily_bars.empty:
+            print(f"[Cache] No daily data for {ticker}")
+            return empty
 
-    # Fallback to prior day close if no current price available
-    if current_price is None:
+        # 1 API call for intraday data (volume metrics + current price)
+        intraday = None
+        current_price = None
         try:
-            # Try Trillium for adjust_date_to_market
-            try:
-                prior_date = adjust_date_to_market_trill(date, 1)
-            except Exception:
-                prior_date = adjust_date_to_market_polygon(date, 1)
-
-            # Try Trillium for get_daily, fall back to Polygon
-            try:
-                prior_daily = get_daily_trill(ticker, prior_date)
-                current_price = prior_daily['close']  # Trillium returns dict
-                print(f"[Trillium] Using prior day ({prior_date}) close for {ticker}: {current_price}")
-            except Exception:
-                prior_daily = get_daily_polygon(ticker, prior_date)
-                current_price = prior_daily.close  # Polygon returns object
-                print(f"[Polygon] Using prior day ({prior_date}) close for {ticker}: {current_price}")
+            intraday = get_intraday(ticker, date, 1, 'minute')
+            if intraday is not None and not intraday.empty:
+                current_price = intraday.iloc[-1].close
+                print(f"[Intraday] Current price for {ticker}: {current_price}")
         except Exception as e:
-            print(f"Failed to get prior day close for {ticker}: {e}")
+            print(f"[Intraday] Failed for {ticker}: {e}")
 
-    # Try Trillium for pct_move, fall back to Polygon
-    try:
-        pct_data = get_ticker_pct_move_trill(ticker, date, current_price)
-        print(f"[Trillium] get_ticker_pct_move succeeded for {ticker}")
+        # Fall back to last daily close if no intraday price
+        if current_price is None:
+            current_price = daily_bars.iloc[-1]['close']
+            print(f"[Cache] Using last bar close for {ticker}: {current_price}")
+
+        metrics = compute_screener_metrics(
+            daily_bars, date, current_price=current_price, intraday=intraday,
+        )
+        return {ticker: metrics}
+
     except Exception as e:
-        print(f"[Trillium] get_ticker_pct_move failed for {ticker}: {e}, falling back to Polygon")
-        pct_data = get_ticker_pct_move_polygon(ticker, date, current_price)
-
-    # Try Trillium for volumes, fall back to Polygon
-    try:
-        volume_data = fetch_and_calculate_volumes_trill(ticker, date)
-        print(f"[Trillium] fetch_and_calculate_volumes succeeded for {ticker}")
-    except Exception as e:
-        print(f"[Trillium] fetch_and_calculate_volumes failed for {ticker}: {e}, falling back to Polygon")
-        volume_data = fetch_and_calculate_volumes_polygon(ticker, date)
-
-    volume_data = add_percent_of_adv_columns(volume_data)
-    range_data = add_range_data(ticker)
-
-    # Moving averages - Polygon only (no Trillium equivalent)
-    mav_data = get_ticker_mavs_open(ticker, date) or {}
-
-    return {
-        ticker: {
-            'pct_data': pct_data,
-            'volume_data': volume_data,
-            'range_data': range_data,
-            'mav_data': mav_data,
-        }
-    }
+        print(f"Error in get_stock_data for {ticker}: {e}")
+        return empty
 
 def get_all_stocks_data(watchlist, max_workers=8):
     from concurrent.futures import ThreadPoolExecutor, as_completed
