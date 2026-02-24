@@ -351,7 +351,7 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
     n = stats.get('n', 0)
 
     # Green theme for bounce (long) trades
-    color = '#2e7d32'  # dark green
+    color = '#2ea043'  # dark green
 
     open_price = targets['entry_price']
     atr = targets['atr']
@@ -369,19 +369,19 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
     sample_warning = ''
     if n < 10:
         sample_warning = (
-            f'<p style="margin: 4px 0; font-size: 0.8em; background: #fff3cd; '
-            f'padding: 4px 6px; border-radius: 4px; color: #856404;">'
+            f'<p style="margin: 4px 0; font-size: 0.8em; background: #3d2f0a; '
+            f'padding: 4px 6px; border-radius: 4px; color: #e3b341;">'
             f'&#9888; Small sample size (n={n}) — use targets as guidelines, not guarantees</p>'
         )
 
     html = f'''
-    <div style="border: 2px solid {color}; padding: 12px; margin: 10px 0; border-radius: 8px; background: #f1f8e9;">
+    <div style="border: 2px solid {color}; padding: 12px; margin: 10px 0; border-radius: 8px; background: #122117;">
         <h4 style="color: {color}; margin: 0 0 10px 0;">BOUNCE TARGET LEVELS - {cap} Cap (n={n})</h4>
-        <p style="margin: 0 0 8px 0; font-size: 0.85em;">Ref: ${open_price:.2f} ({ref_label}) | ATR: ${atr:.2f}</p>
-        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #666;"><em>Price levels ABOVE the reference price — mark these on your chart. Gap Fill = Red-to-Green move.</em></p>
+        <p style="margin: 0 0 8px 0; font-size: 0.85em; color: #c9d1d9;">Ref: ${open_price:.2f} ({ref_label}) | ATR: ${atr:.2f}</p>
+        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #8b949e;"><em>Price levels ABOVE the reference price — mark these on your chart. Gap Fill = Red-to-Green move.</em></p>
         {sample_warning}
-        <table style="width: 100%; font-size: 0.9em; border-collapse: collapse;">
-            <tr style="background: #c8e6c9;">
+        <table style="width: 100%; font-size: 0.9em; border-collapse: collapse; color: #c9d1d9;">
+            <tr style="background: #1c3426;">
                 <th style="padding: 5px; text-align: left;">Tier</th>
                 <th style="padding: 5px; text-align: left;">Target</th>
                 <th style="padding: 5px; text-align: right;">Level</th>
@@ -393,7 +393,7 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
     for tier in targets['tiers']:
         price_str = f"${tier['target_price']:.2f}" if tier.get('target_price') else "—"
         pct_str = f"(+{tier['target_pct']*100:.1f}%)" if tier.get('target_pct') else ""
-        note_str = f' <span style="color:#999;font-size:0.8em;">({tier["note"]})</span>' if tier.get('note') else ""
+        note_str = f' <span style="color:#6e7681;font-size:0.8em;">({tier["note"]})</span>' if tier.get('note') else ""
 
         html += f'''
             <tr>
@@ -414,7 +414,7 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
     dip_html = ""
     if avg_dip:
         dip_html = f'''
-        <p style="margin: 8px 0; font-size: 0.85em; background: #ffebee; padding: 6px; border-radius: 4px;">
+        <p style="margin: 8px 0; font-size: 0.85em; background: #3d1f1f; padding: 6px; border-radius: 4px; color: #f0b0b0;">
             <strong>&#9888; Dip Risk:</strong> Avg -{avg_dip:.0f}% below open before bounce ({avg_dip_atrs:.1f} ATRs) | Max -{max_dip:.0f}%<br>
             <strong>Potential LOD:</strong> ${potential_lod:.2f} (based on avg dip)
         </p>
@@ -423,7 +423,7 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
     html += f'''
         </table>
         {dip_html}
-        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: #666;">
+        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: #8b949e;">
             <strong>Time:</strong> {targets['time_stop']}<br>
             <strong>Note:</strong> {targets['notes']}
         </p>

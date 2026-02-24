@@ -2,6 +2,11 @@
 
 Algorithmic trading analysis and backtesting platform for equities. Analyzes stock price movements, volume patterns, and technical breakouts to test reversal, momentum, and bounce trading strategies on historical data.
 
+## Purpose
+
+1. **Never miss a trade**: The primary goal is to ensure no bounce, momentum, or capitulation setups are missed. Scanners, screeners, and alerts exist to surface every viable opportunity.
+2. **Rule enforcement, not execution**: The "trader" files (e.g., `bounce_trader.py`, `live_watcher.py`) are decision-support tools that help follow trading rules in the moment. They do NOT execute any trades or manage any real risk — all execution is done manually by the trader.
+
 
 ## Project Structure
 

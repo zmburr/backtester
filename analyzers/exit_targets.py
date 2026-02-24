@@ -390,23 +390,23 @@ def format_exit_targets_html(targets: Dict) -> str:
 
     # Color coding by cap
     cap_colors = {
-        'Large': '#2196F3',
-        'ETF': '#9C27B0',
-        'Medium': '#FF9800',
-        'Small': '#4CAF50',
-        'Micro': '#F44336',
+        'Large': '#58a6ff',
+        'ETF': '#bc8cff',
+        'Medium': '#e3b341',
+        'Small': '#3fb950',
+        'Micro': '#f85149',
     }
-    color = cap_colors.get(cap, '#666')
+    color = cap_colors.get(cap, '#8b949e')
 
     open_price = targets['entry_price']
     atr = targets['atr']
     html = f'''
-    <div style="border: 2px solid {color}; padding: 12px; margin: 10px 0; border-radius: 8px; background: #f9f9f9;">
+    <div style="border: 2px solid {color}; padding: 12px; margin: 10px 0; border-radius: 8px; background: #0d1117;">
         <h4 style="color: {color}; margin: 0 0 10px 0;">TARGET LEVELS - {cap} Cap</h4>
-        <p style="margin: 0 0 8px 0; font-size: 0.85em;">Ref: ${open_price:.2f} (live) | ATR: ${atr:.2f}</p>
-        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #666;"><em>Price levels from live price - mark these on your chart</em></p>
-        <table style="width: 100%; font-size: 0.9em; border-collapse: collapse;">
-            <tr style="background: #eee;">
+        <p style="margin: 0 0 8px 0; font-size: 0.85em; color: #c9d1d9;">Ref: ${open_price:.2f} (live) | ATR: ${atr:.2f}</p>
+        <p style="margin: 0 0 8px 0; font-size: 0.8em; color: #8b949e;"><em>Price levels from live price - mark these on your chart</em></p>
+        <table style="width: 100%; font-size: 0.9em; border-collapse: collapse; color: #c9d1d9;">
+            <tr style="background: #21262d;">
                 <th style="padding: 5px; text-align: left;">Tier</th>
                 <th style="padding: 5px; text-align: left;">Target</th>
                 <th style="padding: 5px; text-align: right;">Level</th>
@@ -438,7 +438,7 @@ def format_exit_targets_html(targets: Dict) -> str:
     squeeze_html = ""
     if avg_squeeze:
         squeeze_html = f'''
-        <p style="margin: 8px 0; font-size: 0.85em; background: #fff3cd; padding: 6px; border-radius: 4px;">
+        <p style="margin: 8px 0; font-size: 0.85em; background: #3d2f0a; padding: 6px; border-radius: 4px; color: #e3b341;">
             <strong>⚠️ Squeeze Risk:</strong> Avg +{avg_squeeze:.1f}% above open before reversal (max +{max_squeeze:.0f}%)<br>
             <strong>Potential HOD:</strong> ${potential_hod:.2f} (based on avg squeeze)
         </p>
@@ -447,7 +447,7 @@ def format_exit_targets_html(targets: Dict) -> str:
     html += f'''
         </table>
         {squeeze_html}
-        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: #666;">
+        <p style="margin: 10px 0 0 0; font-size: 0.85em; color: #8b949e;">
             <strong>Time:</strong> {targets['time_stop']}<br>
             <strong>Note:</strong> {targets['notes']}
         </p>
