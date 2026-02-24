@@ -5,9 +5,11 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from analyzers.bounce_scorer import BounceScorer, BouncePretrade, classify_from_setup_column
+from analyzers.bootstrap import bootstrap_win_rate, bootstrap_mean_pnl, format_ci
 from scanners.bounce_trader import compute_bounce_intensity
 
-df_all = pd.read_csv('data/bounce_data.csv')
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+df_all = pd.read_csv(os.path.join(DATA_DIR, 'bounce_data.csv'))
 print(f'Total trades (all): {len(df_all)}')
 ic = df_all[df_all['Setup'].str.contains('IntradayCapitch', case=False, na=False)]
 print(f'IntradayCapitch: {len(ic)} trades (excluded from stats)')
@@ -23,18 +25,18 @@ print('\n=== RECOMMENDATION (8-criteria historical) ===')
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = scored[scored['recommendation'] == rec]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'{rec}: {len(s)} trades, {wr:.1f}% WR, {avg:+.1f}% avg P&L')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'{rec}: {len(s)} trades, WR: {format_ci(wr_ci)}, Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # Score distribution
 print('\n=== SCORE DISTRIBUTION ===')
 for sc in range(8, -1, -1):
     s = scored[scored['criteria_score'] == sc]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'Score {sc}/8: {len(s)} trades, {wr:.1f}% WR, {avg:+.1f}% avg P&L')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'Score {sc}/8: {len(s)} trades, WR: {format_ci(wr_ci)}, Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # Pre-trade (7 criteria) stats
 print('\n=== PRE-TRADE 7-CRITERIA ===')
@@ -53,10 +55,10 @@ pr_df = pd.DataFrame(pretrade_results)
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = pr_df[pr_df['rec'] == rec]
     if len(s) > 0:
-        pnl = s['pnl'].dropna() * 100
-        wr = (pnl > 0).sum() / len(pnl) * 100
-        avg = pnl.mean()
-        print(f'{rec}: {len(s)} trades, {wr:.1f}% WR, {avg:+.1f}% avg P&L')
+        pnl = (s['pnl'].dropna() * 100).values
+        wr_ci = bootstrap_win_rate(pnl)
+        avg_ci = bootstrap_mean_pnl(pnl)
+        print(f'{rec}: {len(s)} trades, WR: {format_ci(wr_ci)}, Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # Profile stats (Grade A only)
 print('\n=== PROFILE STATS (Grade A only) ===')
@@ -202,10 +204,10 @@ print('\n=== PRE-TRADE SCORE DISTRIBUTION ===')
 for sc in range(7, -1, -1):
     s = pr_df[pr_df['score'] == sc]
     if len(s) > 0:
-        pnl = s['pnl'].dropna() * 100
-        wr = (pnl > 0).sum() / len(pnl) * 100
-        avg = pnl.mean()
-        print(f'Score {sc}/7: {len(s)} trades, {wr:.0f}% WR, {avg:+.1f}% avg')
+        pnl = (s['pnl'].dropna() * 100).values
+        wr_ci = bootstrap_win_rate(pnl)
+        avg_ci = bootstrap_mean_pnl(pnl)
+        print(f'Score {sc}/7: {len(s)} trades, WR: {format_ci(wr_ci)}, Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # Near 52wk low
 print('\n=== NEAR 52WK LOW ===')

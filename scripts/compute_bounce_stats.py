@@ -3,8 +3,13 @@ import pandas as pd
 import numpy as np
 import json
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-df = pd.read_csv('data/bounce_data.csv')
+from analyzers.bootstrap import bootstrap_win_rate, bootstrap_mean_pnl, format_ci, bootstrap_to_dict
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+df = pd.read_csv(os.path.join(DATA_DIR, 'bounce_data.csv'))
 
 # Convert numeric columns
 num_cols = ['bounce_open_close_pct','bounce_open_high_pct','bounce_open_low_pct','atr_pct',
@@ -31,11 +36,14 @@ for setup in ['GapFade_weakstock', 'GapFade_strongstock']:
     move_h = s.loc[valid_atr, 'bounce_open_high_pct'] / s.loc[valid_atr, 'atr_pct']
     move_l = s.loc[valid_atr, 'bounce_open_low_pct'] / s.loc[valid_atr, 'atr_pct']
 
+    pnl_vals = (oc * 100).values
     key = setup.replace('GapFade_', '')
     stats[key] = {
         'n': len(s),
         'wr': round((oc > 0).sum() / len(oc) * 100, 1) if len(oc) > 0 else 0,
         'avg_pnl': round(oc.mean() * 100, 1),
+        'wr_ci': bootstrap_to_dict(bootstrap_win_rate(pnl_vals)),
+        'avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(pnl_vals)),
         'med_oc': round(oc.median() * 100, 1),
         'med_oh': round(oh.median() * 100, 1),
         'med_ol': round(ol.median() * 100, 1),
@@ -73,10 +81,13 @@ for cap in ['Large', 'Medium', 'ETF', 'Small']:
     valid_gap = gap.notna() & oh.notna() & (gap > 0)
     gf = (oh[valid_gap] >= gap[valid_gap]) if valid_gap.sum() > 0 else pd.Series(dtype=float)
 
+    cap_pnl_vals = (oc * 100).values
     stats[f'cap_{cap}'] = {
         'n': len(s),
         'wr': round((oc > 0).sum() / len(oc) * 100, 1),
         'avg_pnl': round(oc.mean() * 100, 1),
+        'wr_ci': bootstrap_to_dict(bootstrap_win_rate(cap_pnl_vals)),
+        'avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(cap_pnl_vals)),
         'hit_0_5x': round((move_h >= 0.5).sum() / len(move_h) * 100, 0) if len(move_h) > 0 else 0,
         'hit_1_0x': round((move_h >= 1.0).sum() / len(move_h) * 100, 0) if len(move_h) > 0 else 0,
         'hit_1_5x': round((move_h >= 1.5).sum() / len(move_h) * 100, 0) if len(move_h) > 0 else 0,
@@ -200,7 +211,40 @@ for dd in [2, 3, 4, 5]:
             'avg': round(oc_sub.mean() * 100, 1),
         }
 
-with open('data/bounce_stats_123.json', 'w') as f:
+# === BOOTSTRAP CI SUMMARY ===
+overall_pnl = df['bounce_open_close_pct'].dropna() * 100
+stats['bootstrap'] = {
+    'overall_wr_ci': bootstrap_to_dict(bootstrap_win_rate(overall_pnl.values)),
+    'overall_avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(overall_pnl.values)),
+}
+
+print('\n' + '=' * 70)
+print('BOOTSTRAP CONFIDENCE INTERVALS (95%)')
+print('=' * 70)
+
+wr_ci = bootstrap_win_rate(overall_pnl.values)
+avg_ci = bootstrap_mean_pnl(overall_pnl.values)
+print(f'\nOverall ({len(overall_pnl)} trades):')
+print(f'  Win Rate: {format_ci(wr_ci)}')
+print(f'  Avg P&L:  {format_ci(avg_ci, is_pnl=True)}')
+
+for setup in ['GapFade_weakstock', 'GapFade_strongstock']:
+    s = df[df['Setup'] == setup]
+    pnl = s['bounce_open_close_pct'].dropna() * 100
+    if len(pnl) > 0:
+        print(f'\n{setup} ({len(pnl)} trades):')
+        print(f'  Win Rate: {format_ci(bootstrap_win_rate(pnl.values))}')
+        print(f'  Avg P&L:  {format_ci(bootstrap_mean_pnl(pnl.values), is_pnl=True)}')
+
+for cap in ['Large', 'Medium', 'ETF', 'Small']:
+    s = df[df['cap'] == cap]
+    pnl = s['bounce_open_close_pct'].dropna() * 100
+    if len(pnl) > 0:
+        print(f'\n{cap} ({len(pnl)} trades):')
+        print(f'  Win Rate: {format_ci(bootstrap_win_rate(pnl.values))}')
+        print(f'  Avg P&L:  {format_ci(bootstrap_mean_pnl(pnl.values), is_pnl=True)}')
+
+json_path = os.path.join(DATA_DIR, 'bounce_stats_123.json')
+with open(json_path, 'w') as f:
     json.dump(stats, f, indent=2)
-print('Stats saved to data/bounce_stats_123.json')
-print(json.dumps(stats, indent=2))
+print(f'\nStats saved to {json_path}')

@@ -16,7 +16,21 @@
     "total": 33,
     "ab_count": 32,
     "ab_win_rate": 90.6,
-    "ab_avg_pnl": 14.5
+    "ab_avg_pnl": 14.5,
+    "ab_win_rate_ci": {
+      "point": 90.62,
+      "ci_lower": 75.0,
+      "ci_upper": 96.88,
+      "n": 32,
+      "method": "BCa"
+    },
+    "ab_avg_pnl_ci": {
+      "point": 14.47,
+      "ci_lower": 8.96,
+      "ci_upper": 20.65,
+      "n": 32,
+      "method": "BCa"
+    }
   },
   "thresholds": {
     "ETF": {
@@ -53,6 +67,36 @@
       "rvol_score": 1.6457,
       "pct_change_3": 0.3047,
       "gap_pct": 0.3047
+    }
+  },
+  "bootstrap": {
+    "overall_wr_ci": {
+      "point": 94.55,
+      "ci_lower": 89.09,
+      "ci_upper": 98.18,
+      "n": 110,
+      "method": "BCa"
+    },
+    "overall_avg_pnl_ci": {
+      "point": 13.4,
+      "ci_lower": 11.1,
+      "ci_upper": 16.11,
+      "n": 110,
+      "method": "BCa"
+    },
+    "grade_a_wr_ci": {
+      "point": 92.0,
+      "ci_lower": 80.0,
+      "ci_upper": 98.0,
+      "n": 50,
+      "method": "BCa"
+    },
+    "grade_a_avg_pnl_ci": {
+      "point": 13.92,
+      "ci_lower": 10.16,
+      "ci_upper": 18.72,
+      "n": 50,
+      "method": "BCa"
     }
   }
 }

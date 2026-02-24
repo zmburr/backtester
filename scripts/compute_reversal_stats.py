@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from analyzers.reversal_scorer import ReversalScorer, compute_reversal_intensity
 from analyzers.reversal_pretrade import ReversalPretrade, classify_reversal_setup
+from analyzers.bootstrap import bootstrap_win_rate, bootstrap_mean_pnl, format_ci, bootstrap_to_dict
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 df = pd.read_csv(os.path.join(DATA_DIR, 'reversal_data.csv'))
@@ -33,29 +34,29 @@ setup_counts = df['setup'].value_counts()
 print(f'\nSetup types ({len(setup_counts)}):')
 for setup, count in setup_counts.items():
     subset = df[df['setup'] == setup]
-    wr = (subset['pnl'] > 0).mean() * 100
-    avg = subset['pnl'].mean()
+    wr_ci = bootstrap_win_rate(subset['pnl'].values)
+    avg_ci = bootstrap_mean_pnl(subset['pnl'].values)
     grades = subset['trade_grade'].value_counts().to_dict()
     grade_str = ', '.join(f'{g}:{c}' for g, c in sorted(grades.items()))
-    print(f'  {setup:30s}: {count:3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}% | Grades: {grade_str}')
+    print(f'  {setup:30s}: {count:3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)} | Grades: {grade_str}')
 
 # Grade distribution overall
 print(f'\nOverall grade distribution:')
 for grade in ['A', 'B', 'C']:
     subset = df[df['trade_grade'] == grade]
     if len(subset) > 0:
-        wr = (subset['pnl'] > 0).mean() * 100
-        avg = subset['pnl'].mean()
-        print(f'  Grade {grade}: {len(subset):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(subset['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(subset['pnl'].values)
+        print(f'  Grade {grade}: {len(subset):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # Cap distribution
 print(f'\nCap distribution:')
 for cap in ['ETF', 'Large', 'Medium', 'Small', 'Micro']:
     subset = df[df['cap'] == cap]
     if len(subset) > 0:
-        wr = (subset['pnl'] > 0).mean() * 100
-        avg = subset['pnl'].mean()
-        print(f'  {cap:8s}: {len(subset):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(subset['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(subset['pnl'].values)
+        print(f'  {cap:8s}: {len(subset):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # =====================================================================
 # 2. 3DGapFade PROFILE STATS
@@ -72,10 +73,10 @@ print(f'Cap distribution: {gf["cap"].value_counts().to_dict()}')
 gf_ab = gf[gf['trade_grade'].isin(['A', 'B'])].copy()
 print(f'\n3DGapFade A+B: {len(gf_ab)}')
 if len(gf_ab) > 0:
-    wr = (gf_ab['pnl'] > 0).mean() * 100
-    avg = gf_ab['pnl'].mean()
-    print(f'  Win rate: {wr:.1f}%')
-    print(f'  Avg P&L: {avg:+.1f}%')
+    wr_ci = bootstrap_win_rate(gf_ab['pnl'].values)
+    avg_ci = bootstrap_mean_pnl(gf_ab['pnl'].values)
+    print(f'  Win rate: {format_ci(wr_ci)}')
+    print(f'  Avg P&L: {format_ci(avg_ci, is_pnl=True)}')
     print(f'  Median P&L: {gf_ab["pnl"].median():+.1f}%')
 
 # =====================================================================
@@ -153,18 +154,18 @@ print('\nALL TRADES - by pretrade_score:')
 for sc in range(5, -1, -1):
     s = scored[scored['pretrade_score'] == sc]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  Score {sc}/5: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  Score {sc}/5: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # By pretrade recommendation
 print('\nALL TRADES - by recommendation:')
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = scored[scored['pretrade_recommendation'] == rec]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  {rec:8s}: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  {rec:8s}: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # =====================================================================
 # 5. SCORE_STATISTICS for generate_report (Grade A trades only)
@@ -184,7 +185,9 @@ for sc in range(5, -1, -1):
     if len(s) > 0:
         wr = (s['pnl'] > 0).mean() * 100
         avg = s['pnl'].mean()
-        print(f"    {sc}: {{'trades': {len(s)}, 'win_rate': {wr:.1f}, 'avg_pnl': {avg:.1f}}},")
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f"    {sc}: {{'trades': {len(s)}, 'win_rate': {wr:.1f}, 'avg_pnl': {avg:.1f}}},  # WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}")
     else:
         print(f"    {sc}: {{'trades': 0, 'win_rate': 0.0, 'avg_pnl': 0.0}},")
 print('}')
@@ -194,9 +197,9 @@ print('\nGrade A - GO/CAUTION/NO-GO summary:')
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = grade_a[grade_a['pretrade_recommendation'] == rec]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  {rec:8s}: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  {rec:8s}: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # =====================================================================
 # 6. EXIT TARGET HIT RATES BY CAP (Grade A trades)
@@ -394,17 +397,17 @@ print('\nBy score:')
 for sc in range(5, -1, -1):
     s = gf_df[gf_df['score'] == sc]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  Score {sc}/5: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  Score {sc}/5: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 print('\nBy recommendation:')
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = gf_df[gf_df['recommendation'] == rec]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  {rec:8s}: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  {rec:8s}: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # A+B only
 gf_ab_scored = gf_df[gf_df['trade_grade'].isin(['A', 'B'])]
@@ -413,9 +416,9 @@ print('\nA+B by recommendation:')
 for rec in ['GO', 'CAUTION', 'NO-GO']:
     s = gf_ab_scored[gf_ab_scored['recommendation'] == rec]
     if len(s) > 0:
-        wr = (s['pnl'] > 0).mean() * 100
-        avg = s['pnl'].mean()
-        print(f'  {rec:8s}: {len(s):3d} trades | WR: {wr:5.1f}% | Avg: {avg:+6.1f}%')
+        wr_ci = bootstrap_win_rate(s['pnl'].values)
+        avg_ci = bootstrap_mean_pnl(s['pnl'].values)
+        print(f'  {rec:8s}: {len(s):3d} trades | WR: {format_ci(wr_ci)} | Avg: {format_ci(avg_ci, is_pnl=True)}')
 
 # =====================================================================
 # 11. BACKSCANNER PRE-FILTER VALIDATION
@@ -449,17 +452,17 @@ caution = grade_a[grade_a['pretrade_recommendation'] == 'CAUTION']
 nogo = grade_a[grade_a['pretrade_recommendation'] == 'NO-GO']
 
 if len(go) > 0:
-    go_wr = (go['pnl'] > 0).mean() * 100
-    go_avg = go['pnl'].mean()
-    print(f'GO (4-5/5): {len(go)} trades, {go_wr:.0f}% win rate, {go_avg:+.1f}% avg')
+    go_wr_ci = bootstrap_win_rate(go['pnl'].values)
+    go_avg_ci = bootstrap_mean_pnl(go['pnl'].values)
+    print(f'GO (4-5/5): {len(go)} trades, WR: {format_ci(go_wr_ci)}, Avg: {format_ci(go_avg_ci, is_pnl=True)}')
 if len(caution) > 0:
-    c_wr = (caution['pnl'] > 0).mean() * 100
-    c_avg = caution['pnl'].mean()
-    print(f'CAUTION (3/5): {len(caution)} trades, {c_wr:.0f}% win, {c_avg:+.1f}% avg')
+    c_wr_ci = bootstrap_win_rate(caution['pnl'].values)
+    c_avg_ci = bootstrap_mean_pnl(caution['pnl'].values)
+    print(f'CAUTION (3/5): {len(caution)} trades, WR: {format_ci(c_wr_ci)}, Avg: {format_ci(c_avg_ci, is_pnl=True)}')
 if len(nogo) > 0:
-    n_wr = (nogo['pnl'] > 0).mean() * 100
-    n_avg = nogo['pnl'].mean()
-    print(f'NO-GO (<3): {len(nogo)} trades, {n_wr:.0f}% win, {n_avg:+.1f}% avg')
+    n_wr_ci = bootstrap_win_rate(nogo['pnl'].values)
+    n_avg_ci = bootstrap_mean_pnl(nogo['pnl'].values)
+    print(f'NO-GO (<3): {len(nogo)} trades, WR: {format_ci(n_wr_ci)}, Avg: {format_ci(n_avg_ci, is_pnl=True)}')
 
 # Exit target hit rates by cap for HTML table (Grade A trades)
 print('\nExit target table (Grade A):')
@@ -488,8 +491,16 @@ stats_json = {
         'ab_count': int(len(gf_ab)),
         'ab_win_rate': round((gf_ab['pnl'] > 0).mean() * 100, 1) if len(gf_ab) > 0 else 0,
         'ab_avg_pnl': round(gf_ab['pnl'].mean(), 1) if len(gf_ab) > 0 else 0,
+        'ab_win_rate_ci': bootstrap_to_dict(bootstrap_win_rate(gf_ab['pnl'].values)) if len(gf_ab) > 0 else None,
+        'ab_avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(gf_ab['pnl'].values)) if len(gf_ab) > 0 else None,
     },
     'thresholds': threshold_output,
+    'bootstrap': {
+        'overall_wr_ci': bootstrap_to_dict(bootstrap_win_rate(df['pnl'].values)),
+        'overall_avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(df['pnl'].values)),
+        'grade_a_wr_ci': bootstrap_to_dict(bootstrap_win_rate(grade_a['pnl'].values)),
+        'grade_a_avg_pnl_ci': bootstrap_to_dict(bootstrap_mean_pnl(grade_a['pnl'].values)),
+    },
 }
 
 json_path = os.path.join(DATA_DIR, 'reversal_stats.json')
