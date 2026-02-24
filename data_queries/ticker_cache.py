@@ -4,20 +4,23 @@ Stores daily bars per ticker as parquet files in ``data/ticker_cache/``.
 On each call: load cached file, find last cached date, fetch only new bars
 from Polygon, append, save back.
 
-**Never caches today's bar** (partial during market hours) but includes it
-in the returned DataFrame when available from a fresh fetch.
+Caches today's bar only after the market session has closed (4 PM ET).
+During market hours, today's bar is included in the returned DataFrame
+from a fresh fetch but not persisted to disk.
 
 Thread-safe with per-ticker locks for use with ``ThreadPoolExecutor``.
 """
 
 import os
 import threading
+import datetime as _dt
 from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 import pandas_market_calendars as mcal
+from pytz import timezone as _tz
 
 # Import the original Polygon function *before* any monkey-patching happens.
 # This module is imported at the top of generate_report.py, which saves
@@ -25,6 +28,32 @@ import pandas_market_calendars as mcal
 from data_queries.polygon_queries import get_levels_data as _polygon_get_levels_data
 
 _nyse = mcal.get_calendar('NYSE')
+_eastern = _tz('US/Eastern')
+
+
+def is_today_finalized(today_date) -> bool:
+    """Return True if the trading session for *today_date* has ended.
+
+    True when:
+    - *today_date* is not a trading day (weekend / holiday), OR
+    - *today_date* is a trading day and the current time is past 4:00 PM ET.
+
+    Used to decide whether today's daily bar is complete and safe to cache /
+    include in moving-average calculations.
+    """
+    valid_days = _nyse.valid_days(start_date=today_date, end_date=today_date)
+    if len(valid_days) == 0:
+        # Not a trading day — no bar expected for this date.
+        return True
+
+    now_et = _dt.datetime.now(_eastern)
+    if now_et.date() != today_date:
+        # Asking about a date other than the current calendar day.
+        return today_date < now_et.date()
+
+    # Same calendar day — check if the NYSE session has closed (4:00 PM ET).
+    market_close = now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+    return now_et >= market_close
 
 
 class TickerCache:
@@ -149,13 +178,19 @@ class TickerCache:
     @staticmethod
     def _count_missing_trading_days(last_cached_date, today_date) -> int:
         """Return the number of *completed* trading days between cache end
-        and today (exclusive on both ends of today).
+        and today.
+
+        When today's session has closed, today is counted as a completed day.
+        Otherwise it is excluded (bar still partial).
 
         A return value of 0 means the cache already contains data for every
-        completed trading day up to (but not including) today.
+        completed trading day.
         """
         start = last_cached_date + timedelta(days=1)
-        end = today_date - timedelta(days=1)  # exclude today (possibly partial)
+        if is_today_finalized(today_date):
+            end = today_date  # today's bar is complete — include it
+        else:
+            end = today_date - timedelta(days=1)  # exclude today (possibly partial)
         if start > end:
             return 0
         return len(_nyse.valid_days(start_date=start, end_date=end))
@@ -163,8 +198,15 @@ class TickerCache:
     def _persist_completed(
         self, df: pd.DataFrame, today_date, ticker: str,
     ) -> None:
-        """Save only *completed* daily bars (everything before today)."""
-        mask = df.index.map(lambda ts: ts.date() < today_date)
+        """Save completed daily bars to disk.
+
+        When today's session has closed, today's bar is included (it is
+        finalized).  During market hours, only bars before today are saved.
+        """
+        if is_today_finalized(today_date):
+            mask = df.index.map(lambda ts: ts.date() <= today_date)
+        else:
+            mask = df.index.map(lambda ts: ts.date() < today_date)
         to_cache = df.loc[mask]
         if not to_cache.empty:
             self._save_cache(ticker, to_cache)

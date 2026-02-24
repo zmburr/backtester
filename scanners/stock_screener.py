@@ -1,5 +1,6 @@
-from data_queries.ticker_cache import TickerCache
+from data_queries.ticker_cache import TickerCache, is_today_finalized
 from data_queries.local_metrics import compute_screener_metrics
+import data_queries.polygon_queries as _pq
 from data_queries.polygon_queries import get_intraday
 from datetime import datetime, timedelta
 from tabulate import tabulate
@@ -177,6 +178,9 @@ def get_stock_data(ticker):
 
     Reduces API calls from ~15/ticker to ~2/ticker (1 daily bars from cache,
     1 intraday for premarket/first-N-minute volume and current price).
+
+    When today's session has closed, also tries the live-price API so that
+    percentile and scoring calculations use the most current price available.
     """
     empty = {ticker: {'pct_data': {}, 'volume_data': {}, 'range_data': {}, 'mav_data': {}}}
     try:
@@ -196,6 +200,18 @@ def get_stock_data(ticker):
                 print(f"[Intraday] Current price for {ticker}: {current_price}")
         except Exception as e:
             print(f"[Intraday] Failed for {ticker}: {e}")
+
+        # Try live-price API for the most up-to-date quote (e.g. after-hours).
+        # Uses _pq module reference so the ReportCache monkey-patch is honoured.
+        today_date = pd.to_datetime(date).date()
+        if is_today_finalized(today_date):
+            try:
+                live = _pq.get_actual_current_price(ticker, date)
+                if live is not None:
+                    print(f"[Live] Current price for {ticker}: {live}")
+                    current_price = live
+            except Exception as e:
+                print(f"[Live] Failed for {ticker}: {e}")
 
         # Fall back to last daily close if no intraday price
         if current_price is None:

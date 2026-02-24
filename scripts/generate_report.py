@@ -66,7 +66,7 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
-from data_queries.ticker_cache import TickerCache
+from data_queries.ticker_cache import TickerCache, is_today_finalized
 
 # ---------------------------------------------------------------------------
 # In-memory API response cache — eliminates redundant API calls across phases
@@ -432,18 +432,25 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
         # Calculate 9-day EMA
         df['ema_9'] = df['close'].ewm(span=9, adjust=False).mean()
 
-        # Determine if today's bar is in the data or if we're in premarket
+        # Determine if today's bar is in the data or if we're in premarket.
+        # When the market has closed, today's bar is finalized and should be
+        # treated as the latest completed bar (use iloc[-1]).
         today_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
         last_bar_date = df.index[-1].date()
-        is_premarket = last_bar_date != today_date
+        today_bar_present = (last_bar_date == today_date)
+        today_complete = is_today_finalized(today_date)
+        # Use the last bar directly when it IS the prior completed day:
+        # either today's bar is absent, or it's present and finalized.
+        use_last_bar = (not today_bar_present) or today_complete
 
-        if is_premarket and len(df) >= 1:
-            # Premarket: last bar is yesterday
+        if use_last_bar and len(df) >= 1:
+            # Last bar is the most recent completed day
             prior_close = df['close'].iloc[-1]
             prior_high = df['high'].iloc[-1]
             prior_low = df['low'].iloc[-1]
             prior_ema9 = df['ema_9'].iloc[-1]
         elif len(df) >= 2:
+            # Today's bar is partial — skip it, use the bar before
             prior_close = df['close'].iloc[-2]
             prior_high = df['high'].iloc[-2]
             prior_low = df['low'].iloc[-2]
@@ -482,8 +489,8 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
 
             # 4. 3-day momentum run-up (V2: replaces consecutive_up_days)
             if len(df) >= 4:
-                # Use completed bars only (exclude today if present)
-                if is_premarket:
+                # Use completed bars only (exclude today if partial)
+                if use_last_bar:
                     close_now = df['close'].iloc[-1]
                     close_3ago = df['close'].iloc[-4] if len(df) >= 4 else df['close'].iloc[0]
                 else:
@@ -496,11 +503,11 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
             if len(df) >= 20:
                 avg_vol = df['volume'].iloc[-21:-1].mean()  # 20 days before today
                 if avg_vol and avg_vol > 0:
-                    if is_premarket:
-                        # Premarket: last bar is yesterday
+                    if use_last_bar:
+                        # Last bar is the most recent completed day
                         prior_day_vol = df['volume'].iloc[-1]
                     else:
-                        # Market hours: second-to-last bar is yesterday
+                        # Today's bar is partial — use second-to-last
                         prior_day_vol = df['volume'].iloc[-2] if len(df) >= 2 else 0
                     metrics['prior_day_rvol'] = prior_day_vol / avg_vol if prior_day_vol else 0
                     # Premarket volume from Polygon intraday
@@ -653,7 +660,9 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
         # Calculate 4-day EMA
         df['ema_4'] = df['close'].ewm(span=4, adjust=False).mean()
 
-        # Determine if Polygon included today's (possibly in-progress) daily bar
+        # Determine if Polygon included today's (possibly in-progress) daily bar.
+        # When the market has closed, today's bar is finalized and IS the
+        # most recent completed bar (prior_idx = -1).
         today_date = None
         has_today_bar = False
         try:
@@ -663,10 +672,13 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
         except Exception:
             has_today_bar = False
 
+        today_complete = is_today_finalized(today_date) if today_date else False
+
         # Prior completed daily bar index:
-        # - If today's bar is present, prior day is -2
-        # - Otherwise (premarket / no today bar), prior day is -1
-        prior_idx = -2 if has_today_bar and len(df) >= 2 else -1
+        # - If today's bar is present AND still partial, prior day is -2
+        # - Otherwise (premarket, no today bar, or today finalized), prior day is -1
+        skip_today = has_today_bar and not today_complete
+        prior_idx = -2 if skip_today and len(df) >= 2 else -1
 
         data['prior_close'] = float(df['close'].iloc[prior_idx])
         data['prior_low'] = float(df['low'].iloc[prior_idx])

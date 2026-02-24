@@ -13,6 +13,8 @@ from typing import Dict, Optional
 import pandas as pd
 import numpy as np
 
+from data_queries.ticker_cache import is_today_finalized
+
 
 # ======================================================================
 # Public API
@@ -54,8 +56,14 @@ def compute_screener_metrics(
     except Exception:
         pass
 
-    # Completed bars only (exclude today's partial bar).
-    hist = daily_bars.iloc[:-1] if has_today_bar and len(daily_bars) > 1 else daily_bars
+    # Completed bars only — exclude today's bar when the session is still
+    # open (partial data).  When the market has closed, today's bar is
+    # finalized and should be included in MA / range / volume calculations.
+    today_complete = is_today_finalized(today_date)
+    if has_today_bar and not today_complete and len(daily_bars) > 1:
+        hist = daily_bars.iloc[:-1]
+    else:
+        hist = daily_bars
     if len(hist) < 2:
         return empty
 
@@ -63,15 +71,15 @@ def compute_screener_metrics(
     if current_price is None:
         current_price = daily_bars.iloc[-1]['close']
 
-    # For MA extension: original code uses HIGH of day when today's bar
-    # exists, prior close otherwise.  If we have intraday data we can
-    # derive high-of-day; otherwise fall back to current_price.
-    if has_today_bar:
+    # Reference price for MA distance calculations.
+    # During market hours: use HIGH of day (shows max extension for screening).
+    # After market close: use current_price (live/close — shows where it IS now).
+    if has_today_bar and not today_complete:
         mav_ref = daily_bars.iloc[-1]['high']
-    elif intraday is not None and not intraday.empty:
+    elif intraday is not None and not intraday.empty and not today_complete:
         mav_ref = intraday['high'].max()
     else:
-        mav_ref = current_price  # best available
+        mav_ref = current_price  # after hours or best available
 
     pct_data = _compute_pct_data(daily_bars, hist, date, current_price)
     mav_data = _compute_mav_data(hist, mav_ref)
