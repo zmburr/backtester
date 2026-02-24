@@ -30,6 +30,8 @@ class entrySignals:
         if self.trade.side == 1 and (self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data[
             'two_min_return'] < 0):
             breakout_row = df[df['close'] < premarket_low].first_valid_index()
+            if breakout_row is None:
+                return
             first_break_index_pos = df.index.get_loc(breakout_row)
             first_break_row = df.iloc[first_break_index_pos]
             if first_break_row is not None:
@@ -37,7 +39,7 @@ class entrySignals:
                 new_df = df.between_time(new_start_time, add_two_hours(new_start_time))
                 signal_breakout_row = new_df[new_df['close'] > premarket_low].first_valid_index()
                 if signal_breakout_row is not None:
-                    index_pos = df.index.get_loc(signal_breakout_row)
+                    index_pos = new_df.index.get_loc(signal_breakout_row)
                     row = new_df.iloc[index_pos]
                     self.trade.premarket_low_break_time = timestamp_to_string(row.name)
                     self.trade.premarket_low_break_price = row.close
@@ -60,6 +62,8 @@ class entrySignals:
         if self.trade.side == -1 and (self.trade.contingency_data['five_min_return'] > 0 or self.trade.contingency_data[
             'two_min_return'] > 0):
             breakout_row = df[df['close'] > premarket_high].first_valid_index()
+            if breakout_row is None:
+                return
             first_break_index_pos = df.index.get_loc(breakout_row)
             first_break_row = df.iloc[first_break_index_pos]
             if first_break_row is not None:
@@ -124,6 +128,8 @@ class entrySignals:
             breakout_row = df[df['close'] > df['high'].shift(1)].first_valid_index()
         else:
             breakout_row = df[df['close'] < df['low'].shift(1)].first_valid_index()
+        if breakout_row is None:
+            return
         index_pos = df.index.get_loc(breakout_row)
         row = df.iloc[index_pos]
         self.trade.two_min_break_time = timestamp_to_string(row.name)

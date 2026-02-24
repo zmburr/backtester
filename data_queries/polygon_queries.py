@@ -164,6 +164,9 @@ def fetch_and_calculate_volumes(ticker, date):
 def get_range_vol_expansion_data(ticker, date):
     logging.info(f'Fetching and calculating range expansion data for {ticker} on {date}')
     df = get_levels_data(ticker, date, 40, 1, 'day')
+    if df is None or df.empty:
+        logging.error(f"No data returned from get_levels_data for {ticker} on {date}.")
+        return None
     # Calculate True Range (TR) components
     df['high-low'] = df['high'] - df['low']
     df['high-previous_close'] = abs(df['high'] - df['close'].shift())

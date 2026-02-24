@@ -1,5 +1,6 @@
 from data_queries.polygon_queries import get_intraday, add_two_hours
 from datetime import datetime, timedelta
+import logging
 
 
 def remove_halts(df):
@@ -56,6 +57,9 @@ class exitSignals:
     def __init__(self, trade):
         self.trade = trade
         self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=5, timespan='second')
+        if self.trade.signal_time is None:
+            logging.warning(f"signal_time is None for {self.trade.ticker} on {self.trade.date} — cannot compute exit signals")
+            return
         self.search_time = self.trade.signal_time[11:]
         self.on_close()
 

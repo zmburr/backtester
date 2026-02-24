@@ -155,6 +155,8 @@ class backtestTrade:
     def calculate_risk_metrics(self):
         if self.signal_price is None or self.signal_time is None:
             return
+        if self.best_stop_price is None:
+            return
         if self.side == 1:
             self.max_loss = self.signal_price - self.best_stop_price
             self.max_profit = self.high_price - self.signal_price
@@ -163,4 +165,5 @@ class backtestTrade:
             self.max_loss = self.best_stop_price - self.signal_price
             self.max_profit = self.signal_price - self.low_price
             self.max_close_profit = self.signal_price - self.close_price
-        self.risk_reward_ratio = self.max_close_profit / self.max_loss
+        if self.max_loss and self.max_loss != 0:
+            self.risk_reward_ratio = self.max_close_profit / self.max_loss

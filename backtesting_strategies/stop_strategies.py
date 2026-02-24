@@ -50,10 +50,12 @@ class stopStrategies:
             low = df.low.min()
             if stop_price:
                 setattr(self.trade, f'{signal}_stopped_out', True if df['low'].min() < stop_price else False)
-                setattr(self.trade, f'{signal}_drawdown', (signal_price - low) / (signal_price - stop_price))
+                denom = signal_price - stop_price
+                setattr(self.trade, f'{signal}_drawdown', (signal_price - low) / denom if denom != 0 else 0)
         else:
             high = df.high.max()
             if stop_price:
                 setattr(self.trade, f'{signal}_stopped_out', True if df['high'].max() > stop_price else False)
-                setattr(self.trade, f'{signal}_drawdown', (high - signal_price) / (stop_price - signal_price))
+                denom = stop_price - signal_price
+                setattr(self.trade, f'{signal}_drawdown', (high - signal_price) / denom if denom != 0 else 0)
 
