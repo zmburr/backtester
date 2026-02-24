@@ -13,6 +13,8 @@ from typing import Dict, Optional
 import pandas as pd
 import numpy as np
 
+from data_queries.ticker_cache import is_today_finalized
+
 
 # ======================================================================
 # Public API
@@ -54,8 +56,14 @@ def compute_screener_metrics(
     except Exception:
         pass
 
-    # Completed bars only (exclude today's partial bar).
-    hist = daily_bars.iloc[:-1] if has_today_bar and len(daily_bars) > 1 else daily_bars
+    # Completed bars only — exclude today's bar when the session is still
+    # open (partial data).  When the market has closed, today's bar is
+    # finalized and should be included in MA / range / volume calculations.
+    today_complete = is_today_finalized(today_date)
+    if has_today_bar and not today_complete and len(daily_bars) > 1:
+        hist = daily_bars.iloc[:-1]
+    else:
+        hist = daily_bars
     if len(hist) < 2:
         return empty
 
