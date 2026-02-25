@@ -367,6 +367,8 @@ def get_current_price(ticker, date):
     except ValueError:
         pass
     data = get_daily(ticker, date)
+    if data is None:
+        return None
     return data.open
 
 

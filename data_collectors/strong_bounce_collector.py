@@ -476,11 +476,6 @@ DEFAULT_CONFIG = {
 # -----------------------------------------------------------------------------
 # Seed and runner
 # -----------------------------------------------------------------------------
-@dataclass
-class Setup:
-    ticker: str
-    date: str
-
 SEED_SETUPS: List[Setup] = [
     Setup("NVAX", "8/12/2020"),
     Setup("PLTR", "8/20/2025"),
