@@ -370,18 +370,50 @@ def get_current_price(ticker, date):
     return data.open
 
 
+def get_ticker_snapshot(ticker):
+    """Get Polygon snapshot for a ticker. Returns snapshot object or None on error.
+
+    The snapshot includes last_trade, day OHLCV, prev_day, and minute bar data.
+    """
+    try:
+        snapshot = poly_client.get_snapshot_ticker('stocks', ticker)
+        return snapshot
+    except Exception as e:
+        print(f"Snapshot error for {ticker}: {e}")
+        return None
+
+
 def get_actual_current_price(ticker, date):
     """
-    Retrieves the actual current price for a ticker on the given date.
-    If the provided date falls on a weekend, it is adjusted to the previous Friday.
+    Retrieves the actual current price for a ticker using the Polygon snapshot endpoint.
+    Falls back to get_daily() if the snapshot is unavailable.
     """
-    # Convert the provided date string to a datetime object
+    # Try snapshot first (single lightweight call)
+    snapshot = get_ticker_snapshot(ticker)
+    if snapshot is not None:
+        # Priority: last_trade.price > day.close > minute.close
+        try:
+            if snapshot.last_trade and snapshot.last_trade.price:
+                return snapshot.last_trade.price
+        except AttributeError:
+            pass
+        try:
+            if snapshot.day and snapshot.day.close:
+                return snapshot.day.close
+        except AttributeError:
+            pass
+        try:
+            if snapshot.min and snapshot.min.close:
+                return snapshot.min.close
+        except AttributeError:
+            pass
+
+    # Fallback: get_daily close for the adjusted date
     try:
         dt = datetime.strptime(date, '%Y-%m-%d')
     except ValueError:
         print(f"Invalid date format: {date}. Expected 'YYYY-MM-DD'.")
         return None
-    # Adjust if the date is on a weekend
     if dt.weekday() == 5:  # Saturday
         dt -= timedelta(days=1)
     elif dt.weekday() == 6:  # Sunday
@@ -389,17 +421,12 @@ def get_actual_current_price(ticker, date):
     adj_date = dt.strftime('%Y-%m-%d')
 
     try:
-        data = get_intraday(ticker, adj_date, 1, 'second')
-        price = data.iloc[-1].close
-        if price:
-            return price
-        else:
-            data = get_intraday(ticker, adj_date, 1, 'minute')
-            price = data.iloc[-1].close
-            return price
+        daily = get_daily(ticker, adj_date)
+        if daily and daily.close:
+            return daily.close
     except Exception as e:
-        print(f"Error fetching actual current price for {ticker} on {adj_date}: {e}")
-        return None
+        print(f"Error fetching fallback price for {ticker} on {adj_date}: {e}")
+    return None
 
 
 def check_pct_move(row):
