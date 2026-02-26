@@ -498,6 +498,11 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
                     close_3ago = df['close'].iloc[-5] if len(df) >= 5 else df['close'].iloc[0]
                 if close_3ago and close_3ago > 0:
                     metrics['pct_change_3'] = (close_now - close_3ago) / close_3ago
+                metrics['close_3_ago'] = close_3ago
+
+            # Reference prices for upgrade analysis (priority_report.py)
+            metrics['prior_close'] = prior_close
+            metrics['ema_9'] = prior_ema9
 
             # 5. Volume signal (prior day RVOL + premarket RVOL)
             if len(df) >= 20:
