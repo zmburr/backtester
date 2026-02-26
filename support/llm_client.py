@@ -21,6 +21,7 @@ Override the default model or provider via kwargs.
 from __future__ import annotations
 import os
 from support.config import OPENAI_API_KEY, TOGETHER_API_KEY, CEREBRAS_API_KEY, GROQ_API_KEY, PPLX_API_KEY
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 from groq import Groq
 from typing import Union, List, Dict
 import asyncio
@@ -41,6 +42,10 @@ else:
         openai_legacy = None
 from together import Together
 from cerebras.cloud.sdk import Cerebras
+try:
+    import anthropic as _anthropic_mod
+except ImportError:
+    _anthropic_mod = None
 import re as _re
 import requests  # for Perplexity API client
 
@@ -55,7 +60,8 @@ def _strip_think(text: str) -> str:
 
 # -------------------- model routing table --------------------
 Tier = Literal["fast_foundation", "fast_thinking",
-               "fast_foundation_fallback", "smart_foundation", "smart_thinking"]
+               "fast_foundation_fallback", "smart_foundation", "smart_thinking",
+               "medium_claude"]
 
 _DEFAULTS: Dict[Tier, List[tuple[str, str]]] = {
     "fast_foundation": [
@@ -72,6 +78,9 @@ _DEFAULTS: Dict[Tier, List[tuple[str, str]]] = {
     ],
     "smart_thinking": [
         ("openai", os.getenv("SMART_THINK_OAI_MODEL", "o3")),
+    ],
+    "medium_claude": [
+        ("anthropic", os.getenv("MEDIUM_CLAUDE_MODEL", "claude-sonnet-4-20250514")),
     ],
 }
 
@@ -98,6 +107,41 @@ def _build_client(provider: str) -> Callable[..., Any]:
     if provider == "groq":
         client = Groq(api_key=GROQ_API_KEY)
         return client.chat.completions.create
+
+    if provider == "anthropic":
+        if _anthropic_mod is None:
+            raise RuntimeError("anthropic SDK not installed")
+        if not ANTHROPIC_API_KEY:
+            raise RuntimeError("ANTHROPIC_API_KEY not set")
+        _anth_client = _anthropic_mod.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+        def _anthropic_create(model, messages, temperature=0.0, **kwargs):
+            """Wrapper that adapts OpenAI-style messages to the Anthropic API."""
+            system_text = None
+            user_messages = []
+            for m in messages:
+                if m["role"] == "system":
+                    system_text = m["content"]
+                else:
+                    user_messages.append({"role": m["role"], "content": m["content"]})
+            create_kwargs = dict(model=model, messages=user_messages, max_tokens=1024, temperature=temperature)
+            if system_text:
+                create_kwargs["system"] = system_text
+            resp = _anth_client.messages.create(**create_kwargs)
+            # Return an object with .choices[0].message.content for compatibility
+            class _Msg:
+                def __init__(self, content):
+                    self.content = content
+            class _Choice:
+                def __init__(self, content):
+                    self.message = _Msg(content)
+            class _Resp:
+                def __init__(self, content):
+                    self.choices = [_Choice(content)]
+            text = resp.content[0].text if resp.content else ""
+            return _Resp(text)
+
+        return _anthropic_create
 
     raise ValueError(f"unknown provider '{provider}'")
 

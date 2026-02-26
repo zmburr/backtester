@@ -278,7 +278,7 @@ async def generate_llm_narrative(
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": user_msg},
             ],
-            tier="smart_foundation",
+            tier="medium_claude",
             temperature=0.3,
         )
         return result.strip() if result else _fallback_narrative(ticker, bucket, rec)
