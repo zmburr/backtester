@@ -39,8 +39,14 @@ else:
         import openai as openai_legacy
     except Exception:         # pragma: no cover - optional dependency
         openai_legacy = None
-from together import Together
-from cerebras.cloud.sdk import Cerebras
+try:
+    from together import Together
+except ImportError:
+    Together = None
+try:
+    from cerebras.cloud.sdk import Cerebras
+except ImportError:
+    Cerebras = None
 import re as _re
 import requests  # for Perplexity API client
 
