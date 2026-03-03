@@ -30,8 +30,9 @@ columns_to_compare = [
     'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct'
 ]
 # Example watchlist
-watchlist = ['AMD','AAPL','GOOGL','NVDA',"CRWD","EWY",'GLW','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','U','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR']
+watchlist = ['AMD','AAPL','GOOGL','NVDA',"CRWD","EWY",'GLW','AVGO','PLTR','ORCL','LITE','MSFT','MU','IONQ','WDC','STX','BITF','IREN','HYMC','HL','PAAS','SLV','GLD','MP','GDXJ','BE','OKLO','SMR','QS','RKLB','GWRE','APP','OPEN','CRML','FIGR','SNDK','PL','BETR','RGTI','CRWV','NBIS','CRDO','U','TSLA','HUBS','DOCU','DUOL','FIG','IBIT','ETHE','TEAM','MSTR','KWEB']
 # watchlist = ['TEAM','NOW','CRM','FIG','SAP','ADBE','PANW','ZS', 'CRWD' ,'INTU','HUBS','DOCU','DUOL','U','DDOG','TYL','MNDY','ASAN','NICE','GWRE','NET','GTLB']
+# watchlist = ['LITE']
 
 print(watchlist)
 

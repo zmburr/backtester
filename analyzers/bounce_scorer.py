@@ -316,8 +316,8 @@ def classify_from_setup_column(setup_name: str) -> str:
 class BounceScorer:
     """Scores bounce setups based on 7 setup-specific criteria (V3 + bounce_pct)."""
 
-    def __init__(self):
-        self.profiles = SETUP_PROFILES
+    def __init__(self, profiles=None):
+        self.profiles = profiles or SETUP_PROFILES
 
     def _get_profile(self, setup_type: str) -> SetupProfile:
         if setup_type not in self.profiles:
@@ -484,8 +484,8 @@ class BouncePretrade:
     (V2 removed vol_expansion. V3 removed consecutive_down_days — rho=+0.175, not significant.)
     """
 
-    def __init__(self):
-        self.profiles = SETUP_PROFILES
+    def __init__(self, profiles=None):
+        self.profiles = profiles or SETUP_PROFILES
 
     def _check_condition(self, value, threshold, operator: str) -> bool:
         if value is None or (isinstance(value, float) and pd.isna(value)):

@@ -234,12 +234,37 @@ CRITERIA_NAMES = {
     'reversal_pct': 'Large reversal',
 }
 
+# ---------------------------------------------------------------------------
+# Readiness gate — euphoric setups need multi-day momentum to reverse
+# Walk-forward validated: +31.5pp GO vs NOGO separation on OOS data.
+# Without this gate, the 6-criteria scorer can't distinguish winners from
+# losers because it measures "is this parabolic?" — which every logged trade
+# already is by selection. The readiness gate asks "has the euphoria built
+# enough multi-day fuel to actually exhaust?"
+# ---------------------------------------------------------------------------
+
+# Setup types that require multi-day momentum confirmation
+EUPHORIC_SETUPS = {
+    '3DGapFade', '2DGapFade', '2DBreakoutIB', '1DBreakoutIB', '1DMeanRevert',
+}
+
+# Minimum pct_change_3 for euphoric setups to qualify as GO.
+# Derived from training-data p25 of euphoric A+B trades per cap, with 3% floor.
+READINESS_THRESHOLDS = {
+    'ETF': 0.03,     # 3% floor (sparse training data)
+    'Large': 0.03,   # 3% floor (sparse training data)
+    'Medium': 0.10,  # 10% — p25 from 37 training trades
+    'Small': 0.08,   # 8% — p25 from 5 training trades
+    'Micro': 0.40,   # 40% — p25 from 9 training trades
+}
+
 
 class ReversalScorer:
     """Scores reversal setups based on 6 cap-adjusted criteria."""
 
-    def __init__(self):
-        self.thresholds = CAP_THRESHOLDS
+    def __init__(self, thresholds=None, readiness_thresholds=None):
+        self.thresholds = thresholds or CAP_THRESHOLDS
+        self.readiness_thresholds = readiness_thresholds or READINESS_THRESHOLDS
 
     def _get_thresholds(self, cap: str) -> CriteriaThresholds:
         """Get thresholds for market cap."""
@@ -353,13 +378,29 @@ class ReversalScorer:
         else:
             return 'NO-GO'
 
-    def score_setup(self, ticker: str, date: str, cap: str, metrics: Dict) -> Dict:
+    def _check_readiness(self, setup: str, cap: str, metrics: Dict) -> Tuple[bool, Optional[float]]:
+        """Check if euphoric setup has enough multi-day momentum to reverse.
+
+        Returns (passed, threshold) — breakdown setups always pass.
+        """
+        if not setup or setup not in EUPHORIC_SETUPS:
+            return True, None
+
+        threshold = self.readiness_thresholds.get(cap, 0.03)
+        pct_change_3 = metrics.get('pct_change_3')
+        if pct_change_3 is None or (isinstance(pct_change_3, float) and pd.isna(pct_change_3)):
+            return False, threshold
+        return pct_change_3 >= threshold, threshold
+
+    def score_setup(self, ticker: str, date: str, cap: str, metrics: Dict,
+                    setup: str = None) -> Dict:
         """
         Score a reversal setup against 6 cap-adjusted criteria.
 
         Returns dict with:
           - Full 6-criterion score/grade/recommendation (includes outcome)
           - Pre-trade score (criteria 1-5 only, no outcome leakage)
+          - Readiness gate result (euphoric setups need sufficient 3D momentum)
           - Intensity (0-100 continuous ATR-adjusted score) when pretrade is GO
         """
         thresholds = self._get_thresholds(cap)
@@ -372,6 +413,11 @@ class ReversalScorer:
         pretrade_score = len(pretrade_passed)
         pretrade_grade = self._pretrade_grade(pretrade_score)
         pretrade_rec = self._pretrade_recommendation(pretrade_score)
+
+        # Readiness gate: euphoric setups need multi-day momentum
+        readiness_passed, readiness_threshold = self._check_readiness(setup, cap, metrics)
+        if not readiness_passed and pretrade_rec != 'NO-GO':
+            pretrade_rec = 'NO-GO'
 
         # Build detailed breakdown
         criteria_details = {}
@@ -414,6 +460,9 @@ class ReversalScorer:
             'pretrade_max': 5,
             'pretrade_grade': pretrade_grade,
             'pretrade_recommendation': pretrade_rec,
+            # Readiness gate
+            'readiness_passed': readiness_passed,
+            'readiness_threshold': readiness_threshold,
             # V3: continuous intensity (None if not GO or no atr_pct)
             'intensity': intensity,
         }
@@ -435,11 +484,15 @@ class ReversalScorer:
             cap = row.get('cap', 'Medium')
             if cap is None or (isinstance(cap, float) and pd.isna(cap)):
                 cap = 'Medium'
+            setup = row.get('setup', '')
+            if setup is None or (isinstance(setup, float) and pd.isna(setup)):
+                setup = ''
             result = self.score_setup(
                 ticker=row.get('ticker', ''),
                 date=row.get('date', ''),
                 cap=cap,
-                metrics=metrics
+                metrics=metrics,
+                setup=str(setup),
             )
             results.append({
                 'criteria_score': result['score'],
@@ -450,6 +503,7 @@ class ReversalScorer:
                 'pretrade_score': result['pretrade_score'],
                 'pretrade_grade': result['pretrade_grade'],
                 'pretrade_recommendation': result['pretrade_recommendation'],
+                'readiness_passed': result['readiness_passed'],
                 'intensity': result['intensity'],
             })
 

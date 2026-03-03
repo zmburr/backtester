@@ -3,8 +3,13 @@
 Filters the full watchlist down to high-conviction setups, then adds:
   1. Historical comps (z-score Euclidean distance)
   2. Upgrade threshold analysis (CAUTION → what flips to GO)
-  3. LLM-generated narrative (Cerebras fast_foundation tier)
+  3. LLM-generated narrative (Anthropic tool-use loop with news pre-fetch)
   4. Charts + exit targets
+
+Narratives use Anthropic Claude directly (tool_use API) with 4 optional tools:
+search_news, query_bounce_data, query_reversal_data, find_similar_trades.
+News is pre-fetched in parallel via Perplexity before narrative generation.
+Falls back to llm.chat() if Anthropic SDK is unavailable.
 
 Sent via email to zmburr@gmail.com morning + evening.
 """
@@ -13,11 +18,20 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import pandas as pd
 import numpy as np
+import json
+import os
 import datetime
 import time
 import logging
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+try:
+    import anthropic as _anthropic_mod
+    _anthropic_available = bool(_anthropic_mod)
+except ImportError:
+    _anthropic_mod = None
+    _anthropic_available = False
 
 # --- Reuse from generate_report.py ---
 import scripts.generate_report as gr
@@ -35,7 +49,7 @@ from analyzers.bounce_exit_targets import (
     format_bounce_exit_targets_html,
 )
 from support.config import send_email
-from support.llm_client import llm
+from support.llm_client import llm, perplexity_search
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s – %(message)s")
 log = logging.getLogger(__name__)
@@ -57,6 +71,329 @@ BOUNCE_COMP_COLUMNS = [
 REVERSAL_COMP_COLUMNS = [
     "pct_from_9ema", "gap_pct", "pct_change_3", "one_day_before_range_pct",
 ]
+
+
+# ---------------------------------------------------------------------------
+# JSON serialization helpers (from dashboard/data/chat_tools.py)
+# ---------------------------------------------------------------------------
+
+class _NumpyEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy/pandas types."""
+    def default(self, obj):
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+        if isinstance(obj, (np.bool_,)):
+            return bool(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (pd.Timestamp,)):
+            return str(obj)
+        return super().default(obj)
+
+
+def _sanitize(obj):
+    """Convert numpy/pandas types to native Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    try:
+        if pd.isna(obj):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return obj
+
+
+def _dumps(obj, **kwargs):
+    """json.dumps with numpy/pandas type handling."""
+    return json.dumps(_sanitize(obj), cls=_NumpyEncoder, **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# 0. News Pre-fetch
+# ---------------------------------------------------------------------------
+
+def _prefetch_news(tickers: List[str]) -> Dict[str, str]:
+    """Pre-fetch recent news for all priority tickers in parallel.
+
+    Uses Perplexity to get a quick news summary per ticker.
+    Returns {ticker: news_summary_text}. Failures return empty string.
+    """
+    results: Dict[str, str] = {}
+
+    def _fetch_one(ticker: str) -> Tuple[str, str]:
+        try:
+            resp = perplexity_search(
+                f"{ticker} stock news catalyst today",
+                system_prompt=(
+                    "You are a financial news analyst. Summarize the most important "
+                    "recent news and catalysts for this stock in 2-3 sentences. "
+                    "Focus on price-moving events: earnings, upgrades/downgrades, "
+                    "deals, regulatory actions, macro drivers."
+                ),
+            )
+            content = resp.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return ticker, content[:2000]  # cap length
+        except Exception as e:
+            log.warning(f"News prefetch failed for {ticker}: {e}")
+            return ticker, ""
+
+    with ThreadPoolExecutor(max_workers=min(len(tickers), _MAX_WORKERS)) as executor:
+        futs = [executor.submit(_fetch_one, t) for t in tickers]
+        for f in as_completed(futs):
+            try:
+                tk, text = f.result()
+                results[tk] = text
+            except Exception as e:
+                log.warning(f"News prefetch future failed: {e}")
+
+    fetched = sum(1 for v in results.values() if v)
+    log.info(f"News prefetch: {fetched}/{len(tickers)} tickers got news context")
+    return results
+
+
+# ---------------------------------------------------------------------------
+# 0b. Narrative Tool Definitions + Executor
+# ---------------------------------------------------------------------------
+
+def _define_narrative_tools() -> list:
+    """Return 4 tools in Anthropic tool_use format for narrative generation."""
+    return [
+        {
+            "name": "search_news",
+            "description": (
+                "Search for recent news about a topic using Perplexity AI. "
+                "Use when the pre-loaded news context is insufficient or you need "
+                "more detail on a specific catalyst."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (e.g., 'NVDA earnings Q4 results')",
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+        {
+            "name": "query_bounce_data",
+            "description": (
+                "Query and filter the historical BOUNCE (long) trades dataset. "
+                "Bounces are long trades on capitulation selloffs — stock going UP "
+                "after entry is a good outcome. "
+                "Can filter by ticker, P&L range, setup type, and cap."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Filter by ticker symbol"},
+                    "min_pnl": {"type": "number", "description": "Minimum P&L % filter"},
+                    "max_pnl": {"type": "number", "description": "Maximum P&L % filter"},
+                    "setup_type": {
+                        "type": "string",
+                        "description": "Filter by setup type (GapFade_weakstock or GapFade_strongstock)",
+                    },
+                    "cap": {"type": "string", "description": "Filter by cap (ETF/Large/Medium/Small/Micro)"},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "query_reversal_data",
+            "description": (
+                "Query and filter the historical REVERSAL (short) trades dataset. "
+                "Reversals are SHORT trades on parabolic moves — stock going DOWN "
+                "after entry is a good outcome. P&L is inverted: negative "
+                "reversal_open_close_pct means the stock fell, which is a WIN for "
+                "the short. Can filter by ticker, setup type, cap, and grade."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Filter by ticker symbol"},
+                    "setup": {
+                        "type": "string",
+                        "description": "Filter by setup type (e.g., '3DGapFade', '2DBreakoutIB')",
+                    },
+                    "cap": {"type": "string", "description": "Filter by cap"},
+                    "grade": {"type": "string", "description": "Filter by trade grade (A/B/C/D/F)"},
+                },
+                "required": [],
+            },
+        },
+        {
+            "name": "find_similar_trades",
+            "description": (
+                "Find historical trades most similar to a given set of metrics "
+                "using z-score standardized Euclidean distance. Returns closest "
+                "comparable past trades with their outcomes."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Ticker to find comps for"},
+                    "trade_type": {
+                        "type": "string",
+                        "description": "Trade type: 'bounce' (long) or 'reversal' (short). Default: 'reversal'",
+                    },
+                },
+                "required": ["ticker"],
+            },
+        },
+    ]
+
+
+def _execute_narrative_tool(tool_name: str, tool_input: dict) -> str:
+    """Execute a narrative tool and return a JSON string result."""
+    try:
+        if tool_name == "search_news":
+            query = tool_input.get("query", "")
+            if not query:
+                return _dumps({"error": "query is required"})
+            resp = perplexity_search(query)
+            if isinstance(resp, dict):
+                choices = resp.get("choices", [])
+                if choices:
+                    content = choices[0].get("message", {}).get("content", "")
+                    return _dumps({"query": query, "response": content[:3000]})
+            return _dumps({"query": query, "response": str(resp)[:3000]})
+
+        elif tool_name == "query_bounce_data":
+            df = _BOUNCE_DF.copy()
+            if tool_input.get("ticker"):
+                df = df[df["ticker"].str.upper() == tool_input["ticker"].upper()]
+            if tool_input.get("setup_type"):
+                if "Setup" in df.columns:
+                    from analyzers.bounce_scorer import classify_from_setup_column
+                    df["_profile"] = df["Setup"].apply(classify_from_setup_column)
+                    df = df[df["_profile"] == tool_input["setup_type"]]
+            if tool_input.get("cap") and "cap" in df.columns:
+                df = df[df["cap"].str.strip() == tool_input["cap"]]
+            if "bounce_open_close_pct" in df.columns:
+                df["pnl"] = pd.to_numeric(df["bounce_open_close_pct"], errors="coerce") * 100
+                if tool_input.get("min_pnl") is not None:
+                    df = df[df["pnl"] >= tool_input["min_pnl"]]
+                if tool_input.get("max_pnl") is not None:
+                    df = df[df["pnl"] <= tool_input["max_pnl"]]
+            total = len(df)
+            if total == 0:
+                return _dumps({"message": "No matching bounce trades found", "total": 0})
+            pnl = pd.to_numeric(df.get("bounce_open_close_pct"), errors="coerce").dropna() * 100
+            win_rate = float((pnl > 0).mean() * 100) if len(pnl) > 0 else 0
+            avg_pnl = float(pnl.mean()) if len(pnl) > 0 else 0
+            display_cols = [c for c in ["date", "ticker", "cap", "Setup", "trade_grade", "bounce_open_close_pct"] if c in df.columns]
+            records = df.tail(15)[display_cols].to_dict("records")
+            return _dumps({"total_trades": total, "win_rate": round(win_rate, 1), "avg_pnl_pct": round(avg_pnl, 1), "recent_trades": records}, indent=2, default=str)
+
+        elif tool_name == "query_reversal_data":
+            df = _REVERSAL_DF.copy()
+            if tool_input.get("ticker"):
+                df = df[df["ticker"].str.upper() == tool_input["ticker"].upper()]
+            if tool_input.get("setup") and "setup" in df.columns:
+                df = df[df["setup"] == tool_input["setup"]]
+            if tool_input.get("cap") and "cap" in df.columns:
+                df = df[df["cap"].str.strip() == tool_input["cap"]]
+            if tool_input.get("grade") and "trade_grade" in df.columns:
+                df = df[df["trade_grade"] == tool_input["grade"]]
+            total = len(df)
+            if total == 0:
+                return _dumps({"message": "No matching reversal trades found", "total": 0})
+            # Reversal P&L: negate because short → stock down = profit
+            pnl = -pd.to_numeric(df.get("reversal_open_close_pct"), errors="coerce").dropna() * 100
+            win_rate = float((pnl > 0).mean() * 100) if len(pnl) > 0 else 0
+            avg_pnl = float(pnl.mean()) if len(pnl) > 0 else 0
+            display_cols = [c for c in ["date", "ticker", "cap", "setup", "trade_grade", "reversal_open_close_pct"] if c in df.columns]
+            records = df.tail(15)[display_cols].to_dict("records")
+            return _dumps({"total_trades": total, "win_rate_pct": round(win_rate, 1), "avg_pnl_pct": round(avg_pnl, 1), "note": "P&L inverted: positive = stock fell = short won", "recent_trades": records}, indent=2, default=str)
+
+        elif tool_name == "find_similar_trades":
+            ticker = tool_input.get("ticker", "").upper()
+            trade_type = tool_input.get("trade_type", "reversal").lower()
+            if not ticker:
+                return _dumps({"error": "ticker is required"})
+            # We need live metrics — try fetching from screener
+            try:
+                stock_data = ss.get_all_stocks_data([ticker]).get(ticker, {})
+            except Exception:
+                return _dumps({"error": f"Could not fetch data for {ticker}"})
+            if not stock_data:
+                return _dumps({"error": f"No data returned for {ticker}"})
+
+            if trade_type == "bounce":
+                ref_df = _BOUNCE_DF
+                comp_cols = BOUNCE_COMP_COLUMNS
+            else:
+                ref_df = _REVERSAL_DF
+                comp_cols = REVERSAL_COMP_COLUMNS
+
+            # Build current metrics from stock_data
+            current_metrics = {}
+            for col in comp_cols:
+                for src_key in ["pct_data", "mav_data", "range_data"]:
+                    src = stock_data.get(src_key, {})
+                    if src and col in src:
+                        try:
+                            current_metrics[col] = float(src[col])
+                        except (TypeError, ValueError):
+                            pass
+                        break
+
+            if not current_metrics:
+                return _dumps({"error": f"No metric data available for {ticker}"})
+
+            cap = gr.get_ticker_cap(ticker)
+            comps = find_historical_comps(current_metrics, ref_df, comp_cols, cap, n_comps=10)
+            if comps.empty:
+                return _dumps({"message": f"No similar {trade_type} trades found for {ticker}"})
+
+            outcome_col = "bounce_open_high_pct" if trade_type == "bounce" else "reversal_open_low_pct"
+            results_list = []
+            for _, row in comps.iterrows():
+                pnl_val = row.get(outcome_col)
+                if trade_type == "reversal" and pnl_val is not None:
+                    try:
+                        pnl_val = -float(pnl_val) * 100  # invert for short
+                    except (TypeError, ValueError):
+                        pnl_val = None
+                elif trade_type == "bounce" and pnl_val is not None:
+                    try:
+                        pnl_val = float(pnl_val) * 100
+                    except (TypeError, ValueError):
+                        pnl_val = None
+                results_list.append({
+                    "ticker": str(row.get("ticker", "")),
+                    "date": str(row.get("date", "")),
+                    "cap": str(row.get("cap", "")),
+                    "grade": str(row.get("trade_grade", "")),
+                    "pnl_pct": round(pnl_val, 1) if pnl_val is not None else None,
+                    "distance": round(float(row.get("_distance", 0)), 4),
+                })
+
+            return _dumps({
+                "ticker": ticker,
+                "trade_type": trade_type,
+                "similar_trades": results_list,
+            }, indent=2)
+
+        else:
+            return _dumps({"error": f"Unknown tool: {tool_name}"})
+
+    except Exception as e:
+        log.error(f"Narrative tool {tool_name} failed: {e}")
+        return _dumps({"error": str(e)})
 
 
 # ---------------------------------------------------------------------------
@@ -217,26 +554,42 @@ async def generate_llm_narrative(
     metrics: Dict,
     comps: pd.DataFrame,
     upgrade_info: List[Dict],
+    news_context: str = "",
 ) -> str:
-    """Generate a 2-3 sentence actionable narrative via Cerebras fast_foundation."""
+    """Generate a 2-3 sentence actionable narrative via Anthropic tool-use loop.
 
-    # Summarize comps
+    Uses the Anthropic SDK directly (not the llm facade) to support tool_use.
+    Max 5 iterations per narrative. Falls back to llm.chat() if Anthropic unavailable.
+    """
+
+    # ── Build context strings ──
+
+    # Comp summary
     comp_summary = "No historical comps available."
     if comps is not None and not comps.empty:
         outcome_col = "bounce_open_high_pct" if bucket == "bounce" else "reversal_open_low_pct"
         if outcome_col in comps.columns:
             outcomes = comps[outcome_col].dropna()
             if not outcomes.empty:
-                comp_summary = (
-                    f"{len(comps)} closest comps: median outcome {outcomes.median()*100:.1f}%, "
-                    f"range {outcomes.min()*100:.1f}% to {outcomes.max()*100:.1f}%"
-                )
+                if bucket == "reversal":
+                    # Invert for short: stock going down = profit
+                    display_outcomes = -outcomes
+                    comp_summary = (
+                        f"{len(comps)} closest comps: median short P&L {display_outcomes.median()*100:.1f}%, "
+                        f"range {display_outcomes.min()*100:.1f}% to {display_outcomes.max()*100:.1f}% "
+                        f"(positive = stock fell = short won)"
+                    )
+                else:
+                    comp_summary = (
+                        f"{len(comps)} closest comps: median outcome {outcomes.median()*100:.1f}%, "
+                        f"range {outcomes.min()*100:.1f}% to {outcomes.max()*100:.1f}%"
+                    )
                 grades = comps["trade_grade"].value_counts().to_dict() if "trade_grade" in comps.columns else {}
                 if grades:
                     grade_str = ", ".join(f"{g}: {n}" for g, n in sorted(grades.items()))
                     comp_summary += f". Grades: {grade_str}"
 
-    # Build key metrics summary
+    # Key metrics
     key_metrics = []
     if bucket == "bounce":
         for k in ["selloff_total_pct", "gap_pct", "pct_off_30d_high", "pct_change_3"]:
@@ -257,21 +610,102 @@ async def generate_llm_narrative(
     if upgrade_info:
         gaps = [f"{u['criterion']}: {u['note']}" for u in upgrade_info if u.get("note")]
         if gaps:
-            upgrade_text = f"Upgrade gaps (CAUTION→GO): {'; '.join(gaps)}"
+            upgrade_text = f"\nUpgrade gaps (CAUTION→GO): {'; '.join(gaps)}"
 
+    # Direction context
+    if bucket == "reversal":
+        direction_note = (
+            "IMPORTANT: This is a REVERSAL (SHORT) setup. We are SHORTING the stock. "
+            "The stock going DOWN after entry is a GOOD outcome / profit. "
+            "The stock going UP after entry is a BAD outcome / loss."
+        )
+    else:
+        direction_note = (
+            "IMPORTANT: This is a BOUNCE (LONG) setup. We are BUYING the stock on a selloff dip. "
+            "The stock going UP after entry is a GOOD outcome / profit. "
+            "The stock going DOWN further after entry is a BAD outcome / loss."
+        )
+
+    # ── System prompt ──
     system_msg = (
-        "You are a concise trading analyst. Write 2-3 sentences of actionable analysis. "
-        "Focus on conviction level, key risks, and what to watch for at the open. "
-        "No disclaimers, no hedge language."
+        "You are a concise trading analyst generating pre-market narratives. "
+        "Write exactly 2-3 sentences of actionable analysis. "
+        "Focus on conviction level, key catalyst, and what to watch at the open. "
+        "No disclaimers, no hedge language. "
+        "You have tools available if you need more data, but prefer using the "
+        "pre-loaded context when sufficient. Only call a tool if the provided "
+        "context is missing critical information."
     )
+
+    # ── User message with pre-loaded context ──
+    news_section = f"\nRecent news: {news_context}" if news_context else ""
     user_msg = (
+        f"{direction_note}\n\n"
         f"Ticker: {ticker}\n"
         f"Setup: {bucket.upper()} — {rec}\n"
         f"Key metrics: {', '.join(key_metrics) if key_metrics else 'N/A'}\n"
-        f"Historical comps: {comp_summary}\n"
+        f"Historical comps: {comp_summary}"
         f"{upgrade_text}"
+        f"{news_section}"
     )
 
+    # ── Try Anthropic tool-use loop (sync, run in executor) ──
+    if _anthropic_available and _anthropic_mod:
+        try:
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise RuntimeError("ANTHROPIC_API_KEY not set")
+
+            loop = asyncio.get_running_loop()
+
+            def _run_tool_loop() -> str:
+                client = _anthropic_mod.Anthropic(api_key=api_key)
+                tools = _define_narrative_tools()
+                messages = [{"role": "user", "content": user_msg}]
+
+                max_iterations = 5
+                for iteration in range(max_iterations):
+                    response = client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        system=system_msg,
+                        messages=messages,
+                        tools=tools,
+                        max_tokens=1024,
+                        temperature=0.3,
+                    )
+
+                    if response.stop_reason == "tool_use":
+                        # Process tool calls
+                        messages.append({"role": "assistant", "content": response.content})
+                        tool_results = []
+                        for block in response.content:
+                            if block.type == "tool_use":
+                                log.info(f"  [{ticker}] tool call: {block.name}({block.input})")
+                                result = _execute_narrative_tool(block.name, block.input)
+                                tool_results.append({
+                                    "type": "tool_result",
+                                    "tool_use_id": block.id,
+                                    "content": result,
+                                })
+                        messages.append({"role": "user", "content": tool_results})
+                    else:
+                        # Extract final text
+                        text_parts = [b.text for b in response.content if hasattr(b, "text")]
+                        return "\n".join(text_parts).strip()
+
+                # Exhausted iterations — pull whatever text is in the last response
+                text_parts = [b.text for b in response.content if hasattr(b, "text")]
+                return "\n".join(text_parts).strip() if text_parts else ""
+
+            result = await loop.run_in_executor(None, _run_tool_loop)
+            if result:
+                return result
+            return _fallback_narrative(ticker, bucket, rec)
+
+        except Exception as e:
+            log.warning(f"Anthropic narrative failed for {ticker}: {e}; falling back to llm.chat()")
+
+    # ── Fallback: plain llm.chat() without tools ──
     try:
         result = await llm.chat(
             messages=[
@@ -283,7 +717,7 @@ async def generate_llm_narrative(
         )
         return result.strip() if result else _fallback_narrative(ticker, bucket, rec)
     except Exception as e:
-        log.warning(f"LLM narrative failed for {ticker}: {e}")
+        log.warning(f"LLM narrative fallback also failed for {ticker}: {e}")
         return _fallback_narrative(ticker, bucket, rec)
 
 
@@ -707,8 +1141,15 @@ def generate_priority_report() -> str:
                     item["ticker"], item["bucket"], item["score_result"], item["metrics"]
                 )
 
-        # 4c) LLM narratives (concurrent)
-        print("Phase 4c: Generating LLM narratives...")
+        # 4b½) News pre-fetch (parallel Perplexity calls)
+        priority_tickers = [item["ticker"] for item in priority]
+        print(f"Phase 4b½: Pre-fetching news for {len(priority_tickers)} tickers...")
+        t_news = time.time()
+        news_map = _prefetch_news(priority_tickers)
+        timings["news_prefetch"] = time.time() - t_news
+
+        # 4c) LLM narratives (concurrent, with tool-use)
+        print("Phase 4c: Generating LLM narratives (tool-use enabled)...")
         narrative_map: Dict[str, str] = {}
 
         async def _gather_narratives():
@@ -724,6 +1165,7 @@ def generate_priority_report() -> str:
                         item["metrics"],
                         comps_map.get(item["ticker"], pd.DataFrame()),
                         upgrade_map.get(item["ticker"], []),
+                        news_context=news_map.get(item["ticker"], ""),
                     )
                 )
             results = await asyncio.gather(*tasks, return_exceptions=True)

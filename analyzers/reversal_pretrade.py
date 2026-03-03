@@ -43,8 +43,10 @@ from datetime import datetime
 
 try:
     from analyzers.bounce_scorer import ChecklistItem, ChecklistResult
+    from analyzers.reversal_scorer import EUPHORIC_SETUPS, READINESS_THRESHOLDS
 except ImportError:
     from bounce_scorer import ChecklistItem, ChecklistResult
+    from reversal_scorer import EUPHORIC_SETUPS, READINESS_THRESHOLDS
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -188,8 +190,9 @@ class ReversalPretrade:
     Returns a ChecklistResult with score and recommendation.
     """
 
-    def __init__(self):
-        self.profiles = REVERSAL_SETUP_PROFILES
+    def __init__(self, profiles=None, readiness_thresholds=None):
+        self.profiles = profiles or REVERSAL_SETUP_PROFILES
+        self.readiness_thresholds = readiness_thresholds or READINESS_THRESHOLDS
 
     def _check_gte(self, value, threshold) -> bool:
         if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -283,7 +286,7 @@ class ReversalPretrade:
             failed_names = [i.name for i in items if not i.passed]
             summary = f"FAIL: Only {score}/{max_score} — Missing: {', '.join(failed_names)}"
 
-        return ChecklistResult(
+        result = ChecklistResult(
             ticker=ticker,
             setup_type=setup_type,
             timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -297,6 +300,28 @@ class ReversalPretrade:
             classification_details={'setup_type': setup_type, 'cap': cap, 'grade': grade},
             cap=cap,
         )
+
+        # Readiness gate: euphoric setups need sufficient multi-day momentum
+        if setup_type in EUPHORIC_SETUPS and self.readiness_thresholds:
+            readiness_thresh = self.readiness_thresholds.get(cap, 0.03)
+            pct_change_3_val = metrics.get('pct_change_3')
+            readiness_failed = (
+                pct_change_3_val is None
+                or (isinstance(pct_change_3_val, float) and pd.isna(pct_change_3_val))
+                or pct_change_3_val < readiness_thresh
+            )
+            if readiness_failed and result.recommendation != 'NO-GO':
+                result.recommendation = 'NO-GO'
+                actual_str = f"{pct_change_3_val * 100:.1f}%" if pct_change_3_val is not None else "N/A"
+                result.warnings.append(
+                    f"READINESS: 3D momentum {actual_str} < {readiness_thresh * 100:.0f}% min for {cap}"
+                )
+                result.summary = (
+                    f"READINESS GATE: 3D momentum insufficient for {cap} cap "
+                    f"({actual_str} < {readiness_thresh * 100:.0f}%)"
+                )
+
+        return result
 
     def print_checklist(self, result: ChecklistResult):
         """Print a formatted checklist for a reversal setup."""
