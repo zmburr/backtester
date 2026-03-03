@@ -241,8 +241,8 @@ def get_price_with_fallback(ticker: str, base_date: str, days_ago: int) -> float
             price = get_daily(ticker, candidate_date)["open"]
             if price is not None:
                 return price
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.debug("get_price_with_fallback: %s days_ago=%d — %s", ticker, days_ago, exc)
         days_ago -= 1
     return None
 

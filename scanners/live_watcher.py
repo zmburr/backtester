@@ -10,7 +10,7 @@ from data_queries.polygon_queries import get_levels_data, get_atr
 from data_queries.trillium_queries import adjust_date_to_market
 from scipy.stats import percentileofscore
 from data_collectors.combined_data_collection import reversal_df, momentum_df
-from capitch_stock_screener import get_stock_data
+from scanners.stock_screener import get_stock_data
 from tabulate import tabulate
 
 warnings.simplefilter(action='ignore', category=FutureWarning)

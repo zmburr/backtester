@@ -294,17 +294,15 @@ def adjust_date_forward(date_string, days_to_add):
         return "days_to_add must be a non-negative integer"
     # Initialize NYSE calendar
     nyse = mcal.get_calendar('NYSE')
-    # Add days to date and find the next valid trading day
+    # Advance by `days_to_add` trading days
     new_date = date
-    while True:
-        new_date += pd.Timedelta(days=1)  # Increment the day
-        # Check if the new date is a valid trading day
-        trading_days = nyse.valid_days(start_date=new_date, end_date=new_date)
-        if not trading_days.empty:
-            # Found a valid trading day, format and return it
-            adjusted_date = trading_days[0].date().strftime("%Y-%m-%d")
-            break
-    return adjusted_date
+    trading_days_found = 0
+    while trading_days_found < days_to_add:
+        new_date += pd.Timedelta(days=1)
+        valid = nyse.valid_days(start_date=new_date, end_date=new_date)
+        if not valid.empty:
+            trading_days_found += 1
+    return new_date.strftime("%Y-%m-%d")
 
 
 def get_price_with_fallback(ticker, base_date, days_ago):
@@ -317,7 +315,7 @@ def get_price_with_fallback(ticker, base_date, days_ago):
             if price is not None:  # Check if the price exists
                 return price
         except Exception as e:
-            pass  # Continue decrementing days if an exception occurs
+            logging.debug("get_price_with_fallback: %s days_ago=%d — %s", ticker, days_ago, e)
         days_ago -= 1
     return None  # all lookback days exhausted
 
@@ -367,7 +365,7 @@ def get_current_price(ticker, date):
     except ValueError:
         pass
     data = get_daily(ticker, date)
-    return data.open
+    return data.open if data is not None else None
 
 
 def get_ticker_snapshot(ticker):

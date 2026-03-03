@@ -2,6 +2,7 @@ from data_queries.ticker_cache import TickerCache, is_today_finalized
 from data_queries.local_metrics import compute_screener_metrics
 import data_queries.polygon_queries as _pq
 from data_queries.polygon_queries import get_intraday
+from data_queries.trillium_queries import get_levels_data as get_levels_data_trill
 from datetime import datetime, timedelta
 from tabulate import tabulate
 import pandas as pd
@@ -54,7 +55,7 @@ def add_range_data(ticker):
             print(f"[Trillium] get_levels_data succeeded for {ticker}")
         except Exception as e:
             print(f"[Trillium] get_levels_data failed for {ticker}: {e}, falling back to Polygon")
-            df = get_levels_data_polygon(ticker, date, 60, 1, 'day')
+            df = _pq.get_levels_data(ticker, date, 60, 1, 'day')
         if df is None or df.empty:
             return {}
 

@@ -78,9 +78,12 @@ class exitSignals:
 
     def on_close(self):
         close_data = self.data.between_time('15:59:00', '16:00:00')
-        self.trade.close_price = close_data.iloc[-1].close
-        self.trade.high_price = self.data.high.max()
-        self.trade.low_price = self.data.low.min()
+        if close_data.empty:
+            self.trade.close_price = self.data.iloc[-1].close if not self.data.empty else None
+        else:
+            self.trade.close_price = close_data.iloc[-1].close
+        self.trade.high_price = self.data.high.max() if not self.data.empty else None
+        self.trade.low_price = self.data.low.min() if not self.data.empty else None
 
 # from backtesting_strategies.trade import backtestTrade
 #
