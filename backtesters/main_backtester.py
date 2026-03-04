@@ -1,6 +1,8 @@
 from pathlib import Path
 import pandas as pd
 from datetime import datetime, timedelta
+from support.date_utils import parse_row_date
+from support.csv_utils import save_csv_atomic
 import pandas_market_calendars as mcal
 from analyzers.charter import create_chart
 from backtesting_strategies.trade import backtestTrade
@@ -26,8 +28,7 @@ if __name__ == '__main__':
     df = reversal_df if trade_type == 'reversal' else momentum_df
     for index, row in df.iterrows():
         ticker = row['ticker']
-        wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-        date = wrong_date.strftime('%Y-%m-%d')
+        date = parse_row_date(row)
         logging.info(f'Processing trade for {ticker} on {date}')
         trade = backtestTrade(date, ticker, 'SELL') if trade_type == 'reversal' else backtestTrade(date, ticker, 'BUY')
         entry = entrySignals(trade)
@@ -47,4 +48,4 @@ if __name__ == '__main__':
     trades_df.drop('recommendation', axis=1, inplace=True)
     trades_df.drop('side', axis=1, inplace=True)
     print(tabulate(trades_df, headers=trades_df.columns))
-    trades_df.to_csv(_DATA_DIR / f'{trade_type}_backtest_results.csv')
+    save_csv_atomic(trades_df, _DATA_DIR / f'{trade_type}_backtest_results.csv')

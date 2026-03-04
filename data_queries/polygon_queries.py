@@ -9,6 +9,30 @@ from pandas import Timestamp
 import logging
 from pytz import timezone
 from dotenv import load_dotenv
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, before_sleep_log
+from support.date_utils import csv_date_to_iso, parse_row_date
+from support.market_session import (
+    PREMARKET_START, MARKET_OPEN, MARKET_OPEN_PLUS_5MIN,
+    MARKET_OPEN_PLUS_10MIN, MARKET_OPEN_PLUS_15MIN, MARKET_OPEN_PLUS_30MIN,
+)
+
+logger = logging.getLogger(__name__)
+
+_RETRYABLE_EXCEPTIONS = (
+    requests.exceptions.ConnectionError,
+    requests.exceptions.Timeout,
+    requests.exceptions.HTTPError,
+    ConnectionError,
+    TimeoutError,
+)
+
+_polygon_retry = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 
@@ -149,11 +173,11 @@ def fetch_and_calculate_volumes(ticker, date):
     metrics = {
         'avg_daily_vol': adv['volume'].sum() / len(adv['volume']) if len(adv['volume']) > 0 else 0,
         'vol_on_breakout_day': data['volume'].sum() if data is not None and not data.empty else None,
-        'premarket_vol': data.between_time('06:00:00', '09:30:00')['volume'].sum() if data is not None and not data.empty else None,
-        'vol_in_first_5_min': data.between_time('09:30:00', '09:35:00')['volume'].sum() if data is not None and not data.empty else None,
-        'vol_in_first_15_min': data.between_time('09:30:00', '09:45:00')['volume'].sum() if data is not None and not data.empty else None,
-        'vol_in_first_10_min': data.between_time('09:30:00', '09:40:00')['volume'].sum() if data is not None and not data.empty else None,
-        'vol_in_first_30_min': data.between_time('09:30:00', '10:00:00')['volume'].sum() if data is not None and not data.empty else None,
+        'premarket_vol': data.between_time(PREMARKET_START, MARKET_OPEN)['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_5_min': data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_5MIN)['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_15_min': data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_15MIN)['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_10_min': data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_10MIN)['volume'].sum() if data is not None and not data.empty else None,
+        'vol_in_first_30_min': data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_30MIN)['volume'].sum() if data is not None and not data.empty else None,
         'vol_one_day_before': adv.iloc[-2].volume if len(adv) >= 2 else None,
         'vol_two_day_before': adv.iloc[-3].volume if len(adv) >= 3 else None,
         'vol_three_day_before': adv.iloc[-4].volume if len(adv) >= 4 else None
@@ -230,12 +254,15 @@ def adjust_date_to_market(date_string, days_to_subtract):
     return _adjust_date(date, days_to_subtract)
 
 
+@_polygon_retry
 def get_levels_data(ticker, date, window, multiplier, timespan):
     aggs = []
     try:
         for a in poly_client.list_aggs(ticker=ticker, multiplier=multiplier, timespan=timespan,
                                        from_=adjust_date_to_market(date, window), to=date, limit=50000):
             aggs.append(a)
+    except _RETRYABLE_EXCEPTIONS:
+        raise
     except KeyError:
         print("polygon levels error - data doesn't exist")
         print(f'ticker: {ticker}, date: {date}, window: {window}, multiplier: {multiplier}, timespan: {timespan}')
@@ -250,16 +277,20 @@ def get_levels_data(ticker, date, window, multiplier, timespan):
     return df
 
 
+@_polygon_retry
 def get_daily(ticker, date):
     """Get daily OHLC data. Returns None if data not found (e.g., premarket)."""
     try:
         request = poly_client.get_daily_open_close_agg(ticker, date)
         return request
+    except _RETRYABLE_EXCEPTIONS:
+        raise
     except Exception as e:
         print(f"get_daily error for {ticker} on {date}: {e}")
         return None
 
 
+@_polygon_retry
 def get_intraday(ticker, date, multiplier, timespan):
     """
     Function to get price information for a ticker on a given date.
@@ -271,6 +302,8 @@ def get_intraday(ticker, date, multiplier, timespan):
         for a in poly_client.list_aggs(ticker=ticker, multiplier=multiplier, timespan=timespan, from_=date, to=date,
                                        limit=50000):
             aggs.append(a)
+    except _RETRYABLE_EXCEPTIONS:
+        raise
     except KeyError:
         print("poly intraday error - data doesn't exist")
         print(f'ticker: {ticker}, date: {date}, multiplier: {multiplier}, timespan: {timespan}')
@@ -360,16 +393,12 @@ def get_current_price(ticker, date):
     price).  Use ``get_actual_current_price`` for the most recent intraday
     price instead.
     """
-    try:
-        # If the date is in a different format, try converting it
-        wrong_date = datetime.strptime(date, '%m/%d/%Y')
-        date = datetime.strftime(wrong_date, '%Y-%m-%d')
-    except ValueError:
-        pass
+    date = csv_date_to_iso(date)
     data = get_daily(ticker, date)
     return data.open
 
 
+@_polygon_retry
 def get_ticker_snapshot(ticker):
     """Get Polygon snapshot for a ticker. Returns snapshot object or None on error.
 
@@ -378,6 +407,8 @@ def get_ticker_snapshot(ticker):
     try:
         snapshot = poly_client.get_snapshot_ticker('stocks', ticker)
         return snapshot
+    except _RETRYABLE_EXCEPTIONS:
+        raise
     except Exception as e:
         print(f"Snapshot error for {ticker}: {e}")
         return None
@@ -431,8 +462,7 @@ def get_actual_current_price(ticker, date):
 
 def check_pct_move(row):
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running check_pct_move for {ticker} on {date}')
     current_price = get_current_price(ticker, date)
     try:

@@ -1,4 +1,10 @@
 from data_queries.polygon_queries import get_intraday, get_levels_data
+from support.market_session import (
+    PREMARKET_START, PREMARKET_END, MARKET_OPEN,
+    MARKET_OPEN_PLUS_2MIN, MARKET_OPEN_PLUS_5MIN, MARKET_OPEN_PLUS_10MIN,
+    MARKET_OPEN_PLUS_15MIN, MARKET_OPEN_PLUS_20MIN, MARKET_OPEN_PLUS_25MIN,
+    MARKET_OPEN_PLUS_30MIN,
+)
 from tabulate import tabulate
 
 class contingencyData:
@@ -39,14 +45,14 @@ class contingencyData:
         self.adv = get_levels_data(self.ticker, self.date, 30, 1, 'day')
         self.avg_daily_vol = self.adv['volume'].sum() / len(self.adv['volume'])
         self.data = get_intraday(self.ticker, self.date, multiplier=5, timespan='second')
-        self.premarket_data = self.data.between_time('06:00:00', '09:29:59')
-        self.two_min_data = self.data.between_time('09:30:00', '09:32:00')
-        self.five_min_data = self.data.between_time('09:30:00', '09:35:00')
-        self.ten_min_data = self.data.between_time('09:30:00', '09:40:00')
-        self.fifteen_min_data = self.data.between_time('09:30:00', '09:45:00')
-        self.twenty_min_data = self.data.between_time('09:30:00', '09:50:00')
-        self.twenty_five_min_data = self.data.between_time('09:30:00', '09:55:00')
-        self.thirty_min_data = self.data.between_time('09:30:00', '10:00:00')
+        self.premarket_data = self.data.between_time(PREMARKET_START, PREMARKET_END)
+        self.two_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_2MIN)
+        self.five_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_5MIN)
+        self.ten_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_10MIN)
+        self.fifteen_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_15MIN)
+        self.twenty_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_20MIN)
+        self.twenty_five_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_25MIN)
+        self.thirty_min_data = self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_30MIN)
         self.premarket_high = self.premarket_data['high'].max()
         self.premarket_low = self.premarket_data['low'].min()
         self.premarket_vwap = self.premarket_data['vwap'].sum() / len(self.premarket_data['vwap'])

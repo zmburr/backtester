@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 from tabulate import tabulate
 from datetime import datetime, timedelta
+from support.date_utils import parse_row_date
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
@@ -23,8 +24,7 @@ def get_day_after(df):
     day_after_data = []
     for index, row in df.iterrows():
         try:
-            wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-            date = datetime.strftime(wrong_date, '%Y-%m-%d')
+            date = parse_row_date(row)
             day_of = get_daily(row['ticker'], date)
             day_of_high = day_of.high
             day_of_low = day_of.low

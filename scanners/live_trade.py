@@ -1,4 +1,5 @@
 from data_queries.trillium_queries import get_intraday, get_daily
+from support.market_session import PREMARKET_START, MARKET_OPEN
 from datetime import datetime
 import logging
 
@@ -14,8 +15,8 @@ class Trade:
         self.recommendation = recommendation
         self.position_size = 1000 if self.recommendation == 'BUY' else -1000
         self.side = 1 if self.position_size > 0 else -1
-        self.premarket_low = self.data.between_time('06:00:00', self.current_time).low.min()
-        self.premarket_high = self.data.between_time('06:00:00', self.current_time).high.max()
+        self.premarket_low = self.data.between_time(PREMARKET_START, self.current_time).low.min()
+        self.premarket_high = self.data.between_time(PREMARKET_START, self.current_time).high.max()
         self.low_of_day = self.data.low.min()
         self.high_of_day = self.data.high.max()
         self.open_price = None
@@ -24,8 +25,8 @@ class Trade:
         self.daily = get_daily(self.ticker, self.date)
 
     def set_low_high_of_day(self):
-        self.low_of_day = self.data.between_time('09:30:00', self.current_time).low.min()
-        self.high_of_day = self.data.between_time('09:30:00', self.current_time).high.max()
+        self.low_of_day = self.data.between_time(MARKET_OPEN, self.current_time).low.min()
+        self.high_of_day = self.data.between_time(MARKET_OPEN, self.current_time).high.max()
 
     def set_stop(self):
         if self.side == 1:

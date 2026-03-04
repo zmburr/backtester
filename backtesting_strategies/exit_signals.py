@@ -1,4 +1,5 @@
 from data_queries.polygon_queries import get_intraday, add_two_hours
+from support.market_session import MARKET_CLOSE, NEAR_CLOSE
 from datetime import datetime, timedelta
 import logging
 
@@ -69,7 +70,7 @@ class exitSignals:
         results = {}
         for bar_type in [2, 3, 4, 5]:
             self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=bar_type, timespan='minute')
-            df = self.data.between_time(self.search_time, '16:00:00')
+            df = self.data.between_time(self.search_time, MARKET_CLOSE)
             if exit_strategy == 'delayed':
                 results[f'{bar_type}-minute_{exit_strategy}'] = get_delaystrat_exit(df, self.trade.side, bar_type)
             elif exit_strategy == 'quick':
@@ -77,7 +78,7 @@ class exitSignals:
         return results
 
     def on_close(self):
-        close_data = self.data.between_time('15:59:00', '16:00:00')
+        close_data = self.data.between_time(NEAR_CLOSE, MARKET_CLOSE)
         self.trade.close_price = close_data.iloc[-1].close
         self.trade.high_price = self.data.high.max()
         self.trade.low_price = self.data.low.min()

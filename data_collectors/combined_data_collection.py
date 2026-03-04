@@ -6,6 +6,9 @@ import pandas as pd
 import logging
 from tabulate import tabulate
 from datetime import datetime, timedelta
+from support.date_utils import csv_date_to_iso, parse_row_date
+from support.market_session import PREMARKET_START, PREMARKET_END, MARKET_OPEN, MARKET_CLOSE, AFTERHOURS_END
+from support.csv_utils import load_csv, save_csv_atomic
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -15,18 +18,12 @@ _DATA_DIR = _REPO_ROOT / 'data'
 
 @lru_cache(maxsize=1)
 def _load_momentum_df():
-    df = pd.read_csv(_DATA_DIR / 'breakout_data.csv')
-    df = df.dropna(subset=['ticker'])
-    df = df.dropna(subset=['date'])
-    return df
+    return load_csv(_DATA_DIR / 'breakout_data.csv', 'breakout')
 
 
 @lru_cache(maxsize=1)
 def _load_reversal_df():
-    df = pd.read_csv(_DATA_DIR / 'reversal_data.csv')
-    df = df.dropna(subset=['ticker'])
-    df = df.dropna(subset=['date'])
-    return df
+    return load_csv(_DATA_DIR / 'reversal_data.csv', 'reversal')
 
 
 def __getattr__(name):
@@ -47,8 +44,7 @@ def find_time_of_high_price(data):
 
 def fill_function_time_of_high_price(row):
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running fill_function_time_of_high_price for {ticker} on {date}')
     data = get_intraday(ticker, date, multiplier=1, timespan='minute')
     time_of_high_price = find_time_of_high_price(data)
@@ -64,8 +60,7 @@ def find_time_of_low_price(data):
 
 
 def get_current_price(ticker, date):
-    wrong_date = datetime.strptime(date, '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = csv_date_to_iso(date)
     data = get_daily(ticker, date)
     return data.open
 
@@ -80,8 +75,7 @@ def get_pct_volume(row):
 
 def get_pct_from_mavs(row):
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_pct_from_mavs for {ticker} on {date}')
     try:
         metrics = get_ticker_mavs_open(ticker, date)
@@ -96,8 +90,7 @@ def get_pct_from_mavs(row):
 
 def get_volume(row):
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_volume for {ticker} on {date}')
 
     metrics = fetch_and_calculate_volumes(ticker, date)
@@ -108,8 +101,7 @@ def get_volume(row):
 
 def get_range_vol_expansion(row):
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_range_expansion for {ticker} on {date}')
 
     metrics = get_range_vol_expansion_data(ticker, date)
@@ -131,8 +123,7 @@ def check_breakout_stats(row, analysis_type):
     - row: The original row updated with the calculated stats.
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running check_breakout_stats for {ticker} on {date} for {analysis_type} analysis')
 
     try:
@@ -147,7 +138,7 @@ def check_breakout_stats(row, analysis_type):
         if analysis_type == 'momentum':
             high_price = daily_data.high
             post_high_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-            post_high = post_high_data.between_time('16:00:00', '20:00:00').high.max()
+            post_high = post_high_data.between_time(MARKET_CLOSE, AFTERHOURS_END).high.max()
 
             # Calculating percentages for momentum
             row['gap_pct'] = (open_price - prev_close) / prev_close
@@ -159,7 +150,7 @@ def check_breakout_stats(row, analysis_type):
         elif analysis_type == 'reversal':
             low_price = daily_data.low
             post_low_data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-            post_low = post_low_data.between_time('16:00:00', '20:00:00').low.min()
+            post_low = post_low_data.between_time(MARKET_CLOSE, AFTERHOURS_END).low.min()
 
             # Calculating percentages for reversal
             row['gap_pct'] = (open_price - prev_close) / prev_close
@@ -179,8 +170,7 @@ def check_breakout_stats(row, analysis_type):
 
 def get_spy(row):
     ticker = 'SPY'
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     row_ticker = row['ticker']
     logging.info(f'Running get_spy for {row_ticker} on {date}')
 
@@ -212,8 +202,7 @@ def get_conditionals(row, analysis_type):
     - row: The input row updated with the computed conditionals.
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_conditionals for {ticker} on {date} for {analysis_type} analysis')
 
     try:
@@ -267,9 +256,7 @@ def calculate_atr(row, analysis_type, period=30):
     - Updated row with ATR calculations.
     """
     ticker = row['ticker']
-    date_str = row['date']
-    wrong_date = datetime.strptime(date_str, '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running calculate_atr for {ticker} on {date}')
     try:
         stock_data = get_levels_data(ticker, adjust_date_to_market(date, 1), period, 1, 'day')
@@ -290,7 +277,7 @@ def calculate_atr(row, analysis_type, period=30):
             logging.warning(f'No data available for {ticker} on {date}.')
 
     except Exception as e:
-        logging.error(f'Error calculating ATR for {ticker} on {date_str}: {e}')
+        logging.error(f'Error calculating ATR for {ticker} on {date}: {e}')
 
     return row
 
@@ -307,13 +294,12 @@ def get_duration(row, analysis_type):
     - row: The input row updated with the time and duration of the breakout or reversal.
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_duration for {ticker} on {date} for {analysis_type} analysis')
 
     data = get_intraday(ticker, date, multiplier=1, timespan='minute')
-    premarket_data = data.between_time('6:00:00', '09:29:59')
-    regular_session_data = data.between_time('09:30:00', '16:00:00')
+    premarket_data = data.between_time(PREMARKET_START, PREMARKET_END)
+    regular_session_data = data.between_time(MARKET_OPEN, MARKET_CLOSE)
 
     if analysis_type == 'momentum':
         premarket_extreme = premarket_data.high.max()
@@ -354,8 +340,7 @@ def get_bollinger_bands(row, analysis_type):
     - closed_outside_upper_band: True if prior day closed outside upper band
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_bollinger_bands for {ticker} on {date}')
 
     try:
@@ -400,8 +385,7 @@ def get_volume_profile(row, analysis_type):
     - rvol_score: Relative volume score (day's vol / 20-day avg, normalized)
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_volume_profile for {ticker} on {date}')
 
     try:
@@ -435,8 +419,7 @@ def get_prior_day_context(row, analysis_type):
     - prior_day_range_atr: Prior day's range as multiple of ATR
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_prior_day_context for {ticker} on {date}')
 
     try:
@@ -480,8 +463,7 @@ def get_intraday_timing(row, analysis_type):
     - gap_from_pm_high: Open price vs premarket high (negative = opened below PM high)
     """
     ticker = row['ticker']
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running get_intraday_timing for {ticker} on {date}')
 
     try:
@@ -490,8 +472,8 @@ def get_intraday_timing(row, analysis_type):
             return row
 
         # Get premarket high and open price
-        premarket_data = data.between_time('06:00:00', '09:29:59')
-        regular_session = data.between_time('09:30:00', '16:00:00')
+        premarket_data = data.between_time(PREMARKET_START, PREMARKET_END)
+        regular_session = data.between_time(MARKET_OPEN, MARKET_CLOSE)
 
         if not premarket_data.empty and not regular_session.empty:
             pm_high = premarket_data['high'].max()
@@ -525,8 +507,7 @@ def get_market_context(row, analysis_type):
     - spy_5day_return: SPY return over past 5 trading days
     - uvxy_close: UVXY close on prior day (volatility proxy, since VIX not on Polygon)
     """
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     row_ticker = row['ticker']
     logging.info(f'Running get_market_context for {row_ticker} on {date}')
 
@@ -756,7 +737,7 @@ if __name__ == '__main__':
     existing_cols = [col for col in BREAKOUT_COLUMN_ORDER if col in df_momentum.columns]
     extra_cols = [col for col in df_momentum.columns if col not in BREAKOUT_COLUMN_ORDER]
     df_momentum = df_momentum[existing_cols + extra_cols]
-    df_momentum.to_csv(_DATA_DIR / 'breakout_data.csv', index=False)
+    save_csv_atomic(df_momentum, _DATA_DIR / 'breakout_data.csv')
 
     # Process reversal data
     df_reversal = fill_data(_load_reversal_df(), 'reversal', fill_functions_reversal)
@@ -764,4 +745,4 @@ if __name__ == '__main__':
     existing_cols = [col for col in REVERSAL_COLUMN_ORDER if col in df_reversal.columns]
     extra_cols = [col for col in df_reversal.columns if col not in REVERSAL_COLUMN_ORDER]
     df_reversal = df_reversal[existing_cols + extra_cols]
-    df_reversal.to_csv(_DATA_DIR / 'reversal_data.csv', index=False)
+    save_csv_atomic(df_reversal, _DATA_DIR / 'reversal_data.csv')

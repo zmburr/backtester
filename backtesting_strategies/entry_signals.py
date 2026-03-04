@@ -1,4 +1,5 @@
 from data_queries.polygon_queries import get_intraday, timestamp_to_string, add_two_hours
+from support.market_session import PREMARKET_START, PREMARKET_END, MARKET_OPEN
 import logging
 
 
@@ -7,7 +8,7 @@ class entrySignals:
         self.trade = trade
         self.data = get_intraday(self.trade.ticker, self.trade.date, multiplier=5, timespan='second')
         self.two_min_data = get_intraday(self.trade.ticker, self.trade.date, multiplier=2, timespan='minute')
-        self.search_time = '09:30:00'
+        self.search_time = MARKET_OPEN
 
         try:
             self.premarket_low_break()
@@ -24,7 +25,7 @@ class entrySignals:
         self.two_min_break()
 
     def premarket_low_break(self):
-        premarket_low = self.data.between_time('06:00:00', '09:29:59').low.min()
+        premarket_low = self.data.between_time(PREMARKET_START, PREMARKET_END).low.min()
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
         # Check if the trade side is 1 and five_min_return is less than 0
         if self.trade.side == 1 and (self.trade.contingency_data['five_min_return'] < 0 or self.trade.contingency_data[
@@ -55,7 +56,7 @@ class entrySignals:
             self.trade.premarket_low_break_price = row.close
 
     def premarket_high_break(self):
-        premarket_high = self.data.between_time('06:00:00', '09:29:59').high.max()
+        premarket_high = self.data.between_time(PREMARKET_START, PREMARKET_END).high.max()
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
 
         # Check if the trade side is -1 and five_min_return or two_min_return is greater than 0
@@ -87,7 +88,7 @@ class entrySignals:
 
     def open_price_break(self):
         # Get the open price of the trading day
-        open_price = self.data.between_time('09:30:00', '09:30:00').iloc[0].open
+        open_price = self.data.between_time(MARKET_OPEN, MARKET_OPEN).iloc[0].open
         df = self.data.between_time(self.search_time, add_two_hours(self.search_time))
 
         # Determine the direction of the trade and identify the first break

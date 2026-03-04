@@ -18,6 +18,9 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime
+from support.date_utils import parse_row_date
+from support.market_session import PREMARKET_START, PREMARKET_END, MARKET_OPEN, MARKET_CLOSE
+from support.csv_utils import load_csv, save_csv_atomic
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -28,9 +31,7 @@ _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 @lru_cache(maxsize=1)
 def _load_bounce_df():
     try:
-        df = pd.read_csv(_DATA_DIR / 'bounce_data.csv')
-        df = df.dropna(subset=['ticker'])
-        df = df.dropna(subset=['date'])
+        df = load_csv(_DATA_DIR / 'bounce_data.csv', 'bounce')
         df['ticker'] = df['ticker'].str.strip()
         return df
     except FileNotFoundError:
@@ -48,9 +49,7 @@ def __getattr__(name):
 # ---------------------------------------------------------------------------
 # Helper: parse date from row
 # ---------------------------------------------------------------------------
-def _parse_date(row):
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    return datetime.strftime(wrong_date, '%Y-%m-%d')
+_parse_date = parse_row_date
 
 
 # ---------------------------------------------------------------------------
@@ -368,8 +367,8 @@ def get_bounce_intraday_timing(row, analysis_type):
         if data is None or data.empty:
             return row
 
-        premarket_data = data.between_time('06:00:00', '09:29:59')
-        regular_session = data.between_time('09:30:00', '16:00:00')
+        premarket_data = data.between_time(PREMARKET_START, PREMARKET_END)
+        regular_session = data.between_time(MARKET_OPEN, MARKET_CLOSE)
 
         if regular_session.empty:
             return row
@@ -453,8 +452,8 @@ def get_bounce_duration(row, analysis_type):
         if data is None or data.empty:
             return row
 
-        premarket_data = data.between_time('06:00:00', '09:29:59')
-        regular_session = data.between_time('09:30:00', '16:00:00')
+        premarket_data = data.between_time(PREMARKET_START, PREMARKET_END)
+        regular_session = data.between_time(MARKET_OPEN, MARKET_CLOSE)
 
         if premarket_data.empty or regular_session.empty:
             return row
@@ -487,8 +486,7 @@ def _get_volume_bounce(row):
     ticker = row['ticker']
     if not _is_canadian(ticker):
         return get_volume(row)
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running _get_volume_bounce (trillium) for {ticker} on {date}')
     try:
         metrics = trlm.fetch_and_calculate_volumes(ticker, date)
@@ -504,8 +502,7 @@ def _get_range_vol_expansion_bounce(row):
     ticker = row['ticker']
     if not _is_canadian(ticker):
         return get_range_vol_expansion(row)
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running _get_range_vol_expansion_bounce (trillium) for {ticker} on {date}')
     try:
         df = _get_levels_daily(ticker, date, 40)
@@ -541,8 +538,7 @@ def _get_pct_from_mavs_bounce(row):
     ticker = row['ticker']
     if not _is_canadian(ticker):
         return get_pct_from_mavs(row)
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running _get_pct_from_mavs_bounce (trillium) for {ticker} on {date}')
     try:
         daily_data = _get_daily(ticker, date)
@@ -583,8 +579,7 @@ def _check_pct_move_bounce(row):
     ticker = row['ticker']
     if not _is_canadian(ticker):
         return check_pct_move(row)
-    wrong_date = datetime.strptime(row['date'], '%m/%d/%Y')
-    date = datetime.strftime(wrong_date, '%Y-%m-%d')
+    date = parse_row_date(row)
     logging.info(f'Running _check_pct_move_bounce (trillium) for {ticker} on {date}')
     try:
         daily = _get_daily(ticker, date)
@@ -892,5 +887,5 @@ if __name__ == '__main__':
     extra_cols = [col for col in df_bounce.columns if col not in BOUNCE_COLUMN_ORDER]
     df_bounce = df_bounce[existing_cols + extra_cols]
 
-    df_bounce.to_csv(_DATA_DIR / 'bounce_data.csv', index=False)
+    save_csv_atomic(df_bounce, _DATA_DIR / 'bounce_data.csv')
     logging.info(f'Bounce data saved. {len(df_bounce)} rows, {len(df_bounce.columns)} columns.')
