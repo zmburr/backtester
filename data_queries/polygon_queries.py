@@ -340,19 +340,32 @@ def adjust_date_forward(date_string, days_to_add):
     return adjusted_date
 
 
-def get_price_with_fallback(ticker, base_date, days_ago):
-    while days_ago > 0:
-        try:
-            # Fetch the adjusted market date and get the daily price
-            adjusted_date = adjust_date_to_market(base_date, days_ago)
-            price = get_daily(ticker, adjusted_date).close
-            print(adjusted_date, price)
-            if price is not None:  # Check if the price exists
-                return price
-        except Exception as e:
-            pass  # Continue decrementing days if an exception occurs
-        days_ago -= 1
-    return None  # all lookback days exhausted
+def get_price_with_fallback(ticker, base_date, trading_days_ago):
+    """Get closing price N *trading days* before base_date.
+
+    Uses the NYSE calendar to count back exactly ``trading_days_ago``
+    trading sessions (not calendar days).
+    """
+    nyse = mcal.get_calendar('NYSE')
+    base_dt = pd.to_datetime(base_date)
+    # Generous calendar-day window to ensure enough trading days
+    lookback = timedelta(days=int(trading_days_ago * 2) + 10)
+    schedule = nyse.valid_days(start_date=base_dt - lookback, end_date=base_dt)
+    # Exclude base_date itself (we want days *before* the trade)
+    cutoff = base_dt.normalize()
+    if schedule.tz is not None:
+        cutoff = cutoff.tz_localize(schedule.tz)
+    schedule = schedule[schedule < cutoff]
+    if len(schedule) < trading_days_ago:
+        return None
+    target_date = schedule[-trading_days_ago].strftime('%Y-%m-%d')
+    try:
+        result = get_daily(ticker, target_date)
+        if result and result.close is not None:
+            return result.close
+    except Exception:
+        pass
+    return None
 
 
 def get_ticker_pct_move(ticker, date, current_price):
