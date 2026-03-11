@@ -66,6 +66,7 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
+from analyzers.reversal_scorer import ReversalScorer
 from data_queries.ticker_cache import TickerCache, is_today_finalized
 
 # ---------------------------------------------------------------------------
@@ -340,19 +341,18 @@ BOUNCE_COLUMNS_TO_COMPARE = [
 ]
 
 # -------------------------------------------------
-# Pre-Trade Reversal Scoring V2 (5 of 6 criteria - excludes reversal_pct since pre-trade)
+# Pre-Trade Reversal Scoring V3 (5 of 6 criteria - excludes reversal_pct since pre-trade)
 # V2: Replaced consecutive_up_days (rho=0.086) with pct_change_3 (rho=+0.546)
+# V3: Thresholds sourced from ReversalScorer (single source of truth).
+#     Added momentum percentile gate from scorer.
 # -------------------------------------------------
 
-# Cap-adjusted thresholds for pre-trade screening
-# Same as reversal_scorer.py but without reversal_pct
-PRETRADE_THRESHOLDS = {
-    'Micro': {'pct_from_9ema': 0.80, 'prior_day_range_atr': 3.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.50, 'gap_pct': 0.15},
-    'Small': {'pct_from_9ema': 0.40, 'prior_day_range_atr': 2.0, 'prior_day_rvol': 2.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.25, 'gap_pct': 0.10},
-    'Medium': {'pct_from_9ema': 0.15, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'pct_change_3': 0.10, 'gap_pct': 0.05},
-    'Large': {'pct_from_9ema': 0.08, 'prior_day_range_atr': 0.8, 'prior_day_rvol': 1.0, 'premarket_rvol': 0.05, 'pct_change_3': 0.05, 'gap_pct': 0.00},
-    'ETF': {'pct_from_9ema': 0.04, 'prior_day_range_atr': 1.0, 'prior_day_rvol': 1.5, 'premarket_rvol': 0.05, 'pct_change_3': 0.03, 'gap_pct': 0.00},
-}
+# Thresholds sourced from analyzers.reversal_scorer.CAP_THRESHOLDS — no local copy.
+# Premarket RVOL threshold is live-specific (not in historical scorer).
+_PREMARKET_RVOL_THRESHOLD = 0.05
+
+# Singleton scorer instance for threshold lookups + momentum gate
+_reversal_scorer = ReversalScorer()
 
 # Known ETFs (type detection from Polygon can be unreliable)
 KNOWN_ETFS = {'GLD', 'SLV', 'GDXJ', 'QQQ', 'SPY', 'XLE', 'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLY', 'XLB', 'XLU',
@@ -537,29 +537,35 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     """
     Score a potential reversal setup using 5 pre-trade criteria.
 
+    Thresholds are sourced from ReversalScorer.CAP_THRESHOLDS (single source of
+    truth). Volume uses an OR gate (prior-day RVOL *or* premarket RVOL) since
+    the report runs live when premarket data is available.
+
+    Gates applied after scoring:
+      - Momentum percentile gate: pct_change_3 must rank above 15th pctile
+        in the cap-stratified reference distribution (filters near-zero momentum).
+
     Returns dict with:
         - score: 0-5
         - max_score: 5
         - recommendation: GO/CAUTION/NO-GO
         - criteria: list of (name, passed, threshold, actual) tuples
+        - momentum_pctile_passed / momentum_pctile_3 (gate details)
     """
     if cap is None:
         cap = get_ticker_cap(ticker)
 
-    if cap not in PRETRADE_THRESHOLDS:
-        cap = 'Medium'
-
-    thresholds = PRETRADE_THRESHOLDS[cap]
+    thresholds = _reversal_scorer._get_thresholds(cap)
 
     criteria = []
     score = 0
 
-    # Check each criterion
+    # Check 4 simple criteria using scorer's thresholds
     criteria_checks = [
-        ('9EMA Distance', 'pct_from_9ema', thresholds['pct_from_9ema']),
-        ('Range (ATR)', 'prior_day_range_atr', thresholds['prior_day_range_atr']),
-        ('3-Day Run-Up', 'pct_change_3', thresholds['pct_change_3']),
-        ('Gap Up', 'gap_pct', thresholds['gap_pct']),
+        ('9EMA Distance', 'pct_from_9ema', thresholds.pct_from_9ema),
+        ('Range (ATR)', 'prior_day_range_atr', thresholds.prior_day_range_atr),
+        ('3-Day Run-Up', 'pct_change_3', thresholds.pct_change_3),
+        ('Gap Up', 'gap_pct', thresholds.gap_pct),
     ]
 
     for name, key, threshold in criteria_checks:
@@ -581,11 +587,12 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
             'actual': actual,
         })
 
-    # Vol signal: either prior day RVOL or premarket RVOL meets threshold
+    # Vol signal: either prior day RVOL or premarket RVOL meets threshold.
+    # Prior-day threshold comes from the scorer; premarket is live-specific.
     prior_rvol = metrics.get('prior_day_rvol')
     pm_rvol = metrics.get('premarket_rvol')
-    prior_thresh = thresholds['prior_day_rvol']
-    pm_thresh = thresholds['premarket_rvol']
+    prior_thresh = thresholds.rvol_score
+    pm_thresh = _PREMARKET_RVOL_THRESHOLD
     prior_pass = prior_rvol is not None and not pd.isna(prior_rvol) and prior_rvol >= prior_thresh
     pm_pass = pm_rvol is not None and not pd.isna(pm_rvol) and pm_rvol >= pm_thresh
     vol_passed = prior_pass or pm_pass
@@ -612,6 +619,13 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     else:
         recommendation = 'NO-GO'
 
+    # --- Momentum percentile gate ---
+    # Filters near-zero momentum trades that pass binary criteria but lack
+    # sufficient run-up fuel (e.g. AVGO 6/20/2024 at 2nd pctile).
+    mom_passed, mom_pctile = _reversal_scorer._check_momentum_percentile(cap, metrics)
+    if not mom_passed and recommendation == 'GO':
+        recommendation = 'NO-GO'
+
     return {
         'ticker': ticker,
         'cap': cap,
@@ -619,6 +633,8 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
         'max_score': 5,
         'recommendation': recommendation,
         'criteria': criteria,
+        'momentum_pctile_passed': mom_passed,
+        'momentum_pctile_3': mom_pctile,
     }
 
 
@@ -813,7 +829,21 @@ def format_pretrade_score_html(score_result: Dict) -> str:
             f'<td>{actual_str}</td></tr>'
         )
 
-    lines.append('</table></div>')
+    lines.append('</table>')
+
+    # Show momentum percentile gate if it downgraded the recommendation
+    mom_passed = score_result.get('momentum_pctile_passed')
+    mom_pctile = score_result.get('momentum_pctile_3')
+    if mom_passed is not None and not mom_passed:
+        pctile_str = f"{mom_pctile:.0f}th" if mom_pctile is not None else "N/A"
+        lines.append(
+            f'<div style="margin-top: 6px; padding: 4px 8px; border-left: 3px solid #f85149; '
+            f'font-size: 0.85em; color: #f85149;">'
+            f'Momentum gate: pct_change_3 at {pctile_str} pctile (min 15th) — downgraded to NO-GO'
+            f'</div>'
+        )
+
+    lines.append('</div>')
     return '\n'.join(lines)
 
 
