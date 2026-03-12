@@ -258,13 +258,22 @@ READINESS_THRESHOLDS = {
     'Micro': 0.40,   # 40% — p25 from 9 training trades
 }
 
+# Minimum percentile rank for 3-day momentum (cap-stratified).
+# Filters near-zero or negative momentum trades that pass the binary criteria
+# but lack sufficient run-up fuel. At 15th pctile this catches cases like
+# AVGO 6/20/2024 (pct_change_3=-1.39%, 2nd pctile) while passing 95%+ of
+# legitimate setups.
+MOMENTUM_PCTILE_MIN = 15.0
+
 
 class ReversalScorer:
     """Scores reversal setups based on 6 cap-adjusted criteria."""
 
-    def __init__(self, thresholds=None, readiness_thresholds=None):
+    def __init__(self, thresholds=None, readiness_thresholds=None,
+                 momentum_pctile_min=None):
         self.thresholds = thresholds or CAP_THRESHOLDS
         self.readiness_thresholds = readiness_thresholds or READINESS_THRESHOLDS
+        self.momentum_pctile_min = momentum_pctile_min if momentum_pctile_min is not None else MOMENTUM_PCTILE_MIN
 
     def _get_thresholds(self, cap: str) -> CriteriaThresholds:
         """Get thresholds for market cap."""
@@ -392,6 +401,28 @@ class ReversalScorer:
             return False, threshold
         return pct_change_3 >= threshold, threshold
 
+    def _check_momentum_percentile(self, cap: str, metrics: Dict) -> Tuple[bool, Optional[float]]:
+        """Check if 3-day momentum is above the minimum percentile for its cap group.
+
+        Ranks pct_change_3 against the Grade-A reference distribution for the
+        same cap group. Returns (passed, percentile_value).
+        """
+        pct_change_3 = metrics.get('pct_change_3')
+        if pct_change_3 is None or (isinstance(pct_change_3, float) and pd.isna(pct_change_3)):
+            return False, None
+
+        cap_group = _CAP_GROUPS.get(cap, 'large')
+        ref_df = _ref_by_cap_group.get(cap_group, _reversal_ref)
+        if ref_df.empty:
+            return True, None
+
+        ref_vals = ref_df['pct_change_3'].dropna().values
+        if len(ref_vals) == 0:
+            return True, None
+
+        pctile = _pctrank(ref_vals, pct_change_3, kind='rank')
+        return pctile >= self.momentum_pctile_min, round(pctile, 1)
+
     def score_setup(self, ticker: str, date: str, cap: str, metrics: Dict,
                     setup: str = None) -> Dict:
         """
@@ -417,6 +448,11 @@ class ReversalScorer:
         # Readiness gate: euphoric setups need multi-day momentum
         readiness_passed, readiness_threshold = self._check_readiness(setup, cap, metrics)
         if not readiness_passed and pretrade_rec != 'NO-GO':
+            pretrade_rec = 'NO-GO'
+
+        # Momentum percentile gate: 3-day momentum must rank above floor
+        mom_pctile_passed, mom_pctile_3 = self._check_momentum_percentile(cap, metrics)
+        if not mom_pctile_passed and pretrade_rec == 'GO':
             pretrade_rec = 'NO-GO'
 
         # Build detailed breakdown
@@ -463,6 +499,9 @@ class ReversalScorer:
             # Readiness gate
             'readiness_passed': readiness_passed,
             'readiness_threshold': readiness_threshold,
+            # Momentum percentile gate
+            'momentum_pctile_3': mom_pctile_3,
+            'momentum_pctile_passed': mom_pctile_passed,
             # V3: continuous intensity (None if not GO or no atr_pct)
             'intensity': intensity,
         }
@@ -504,6 +543,8 @@ class ReversalScorer:
                 'pretrade_grade': result['pretrade_grade'],
                 'pretrade_recommendation': result['pretrade_recommendation'],
                 'readiness_passed': result['readiness_passed'],
+                'momentum_pctile_3': result['momentum_pctile_3'],
+                'momentum_pctile_passed': result['momentum_pctile_passed'],
                 'intensity': result['intensity'],
             })
 
@@ -519,6 +560,11 @@ def print_score_report(result: Dict):
     print(f"Market Cap: {result['cap']}")
     print(f"Full Score: {result['score']}/{result['max_score']} ({result['grade']}) — {result['recommendation']}")
     print(f"Pre-Trade:  {result['pretrade_score']}/{result['pretrade_max']} ({result['pretrade_grade']}) — {result['pretrade_recommendation']}")
+    mom_pctile = result.get('momentum_pctile_3')
+    mom_passed = result.get('momentum_pctile_passed')
+    if mom_pctile is not None:
+        status = "PASS" if mom_passed else "FAIL"
+        print(f"Mom Pctile: {mom_pctile:.1f} (3d, min {MOMENTUM_PCTILE_MIN}) — {status}")
     intensity = result.get('intensity')
     print(f"Intensity:  {intensity:.0f}/100" if intensity is not None else "Intensity:  N/A")
     print()

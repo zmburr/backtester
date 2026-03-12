@@ -25,24 +25,52 @@ backtester/
 │   └── strong_bounce_collector.py  # Scanner feature extractor (SHEL/Trillium)
 ├── data_queries/                   # External data source integration
 │   ├── polygon_queries.py          # Polygon.io REST API wrapper (primary)
+│   ├── bloomberg_screener.py       # Bloomberg equity screener integration
+│   ├── local_metrics.py            # Locally-computed metrics (no API calls)
+│   ├── ticker_cache.py             # Ticker metadata cache
 │   └── trillium_queries.py         # SHEL DataGateway integration (fallback)
 ├── analyzers/                      # Analysis and visualization
 │   ├── charter.py                  # Chart generation (Plotly & mplfinance)
 │   ├── bounce_scorer.py            # Pre-trade checklist & setup classification
 │   ├── bounce_exit_targets.py      # Exit target framework for bounces
+│   ├── crack_analyzer.py           # Crack-day pattern analysis
+│   ├── crack_covering_rules.py     # Covering rules for reversal exits
+│   ├── exit_optimizer.py           # Exit strategy optimization
+│   ├── pretrade_checklist.py       # Generic pre-trade checklist
 │   ├── reversal_scorer.py          # Parabolic short scoring (6 cap-adjusted criteria)
 │   └── reversal_pretrade.py        # Per-setup-type reversal pre-trade validator
 ├── scanners/                       # Stock screening and monitoring
 │   ├── setup_screener.py           # Universe screener for parabolic short + bounce setups
-│   ├── historical_backscanner.py   # Historical backscanner (all tickers, bulk Polygon data)
+│   ├── historical_backscanner.py   # Historical backscanner for reversals (bulk Polygon data)
+│   ├── bounce_backscanner.py       # Historical backscanner for bounce setups (bulk Polygon data)
 │   ├── stock_screener.py           # Watchlist screener with percentile rankings
 │   ├── live_watcher.py             # Live market monitoring
-│   └── bounce_trader.py            # Live bounce trade monitor with TTS alerts
+│   ├── bounce_trader.py            # Live bounce trade monitor with TTS alerts
+│   └── reversal_trader.py          # Live reversal/crack trade monitor with TTS alerts
+├── charting/                       # Streamlit trade prep app
+│   ├── app.py                      # Entry: streamlit run charting/app.py
+│   └── components/                 # candlestick, annotations, news_panel, game_plan, trade_form, watchlist
+├── dashboard/                      # Streamlit multi-page trading dashboard
+│   ├── app.py                      # Entry: streamlit run dashboard/app.py
+│   └── pages/                      # 1_Report.py, 2_Chat.py
+├── validation/                     # Walk-forward validation engine
+│   ├── walk_forward_engine.py      # Orchestrates split → derive → score → measure → compare
+│   ├── threshold_deriver.py        # Data-driven threshold derivation from training set
+│   ├── temporal_split.py           # Train/validate/test temporal splits
+│   └── metrics.py                  # PeriodMetrics, DegradationReport
+├── automation/                     # Daily review automation (BAT scripts + prompts)
+├── predictor_store/                # ML predictor model
 ├── scripts/
-│   └── generate_report.py          # Daily trading report generation
+│   ├── generate_report.py          # Daily trading report generation
+│   ├── priority_report.py          # Priority report generation
+│   ├── screener_report.py          # Screener-based report
+│   └── mean_reversion_eval.py      # Mean reversion GO/NOGO evaluation
 ├── support/
 │   ├── config.py                   # Email, API keys, environment variables
-│   └── llm_client.py               # LLM provider routing
+│   ├── llm_client.py               # LLM provider routing
+│   ├── csv_utils.py                # CSV read/write helpers
+│   ├── date_utils.py               # Date parsing and market calendar utilities
+│   └── market_session.py           # Market session detection (pre/regular/post/closed)
 ├── data/                           # CSV data storage
 │   ├── breakout_data.csv           # Momentum/breakout trading signals
 │   ├── reversal_data.csv           # Reversal trading signals
@@ -197,6 +225,23 @@ Key classes:
 - `SetupProfile` - Profile dataclass with thresholds
 - `ChecklistResult` - Validation output
 
+### `scanners/reversal_trader.py`
+Live market monitor for reversal/crack day setups. Mirrors `bounce_trader.py` architecture (event-driven threading + TTS alerts) but purpose-built for the parabolic short playbook.
+- Tracks 2-minute Prior Bar Breaks in real time
+- Classifies crack patterns via `CoveringRules`
+- Position-sizing alerts, ATR-based targets
+- Integrates `ReversalPretrade` + `ReversalScorer` + `compute_reversal_intensity()`
+- Optional `--trac` flag for TRAC position tracking
+
+### `scanners/bounce_backscanner.py`
+Historical backscanner specifically for bounce setups (parallel to `historical_backscanner.py` for reversals). Uses Polygon's `get_grouped_daily_aggs()` for bulk efficiency.
+- Pipeline: bulk fetch → build per-ticker history → pre-filter (consecutive down days, gap down, discount) → `BouncePretrade.validate()` → output CSV
+- Pre-filter reduces ~12K tickers before scoring (zero API calls for metrics computation)
+- Supports `--verify` flag to cross-check against `bounce_data.csv`
+- Supports `--cap` filter (e.g. `--cap Large,ETF,Medium`)
+
+Key class: `BounceBackscanner`
+
 ### `scanners/setup_screener.py`
 Universe screener that searches across tickers for parabolic short and capitulation bounce setups. Fetches daily OHLCV from Polygon (single API call per ticker), computes all metrics locally, then scores against criteria.
 
@@ -292,6 +337,22 @@ vol_three_day_before, vol_two_day_before, bp, npl, size
 - API/internal dates: `%Y-%m-%d` (e.g., "2024-01-15")
 - Functions convert between formats as needed
 
+## Environment Setup
+
+Requires a `.env` file in the project root with API keys loaded via `python-dotenv`:
+```
+POLYGON_API_KEY=...        # Required — primary data source
+OPENAI_API_KEY=...         # LLM for reports/analysis
+GROQ_API_KEY=...           # Fast LLM inference (fallback)
+TOGETHER_API_KEY=...       # LLM fallback
+CEREBRAS_API_KEY=...       # LLM fallback
+PPLX_API_KEY=...           # Perplexity for news queries (charting app)
+SERP_API_KEY=...           # Search API
+GMAIL_PASSWORD=...         # Email report delivery (app password)
+```
+
+Python venv: `venv/Scripts/python.exe` (Windows)
+
 ## Common Commands
 
 ```bash
@@ -331,13 +392,39 @@ python data_collectors/bounce_collector.py
 # Validate reversal thresholds against reversal_data.csv
 python analyzers/reversal_pretrade.py
 
+# --- Reversal Live Monitor ---
+
+# Live reversal/crack trade monitoring (real-time with TTS alerts)
+python scanners/reversal_trader.py GLD ETF
+python scanners/reversal_trader.py MSTR              # auto-detect cap
+python scanners/reversal_trader.py GLD ETF --dry-run  # test mode
+python scanners/reversal_trader.py GLD ETF --trac     # TRAC position tracking
+
 # --- Historical Backscanner Commands ---
 
-# Scan 1 year for 3DGapFade setups
+# Scan 1 year for 3DGapFade setups (reversal)
 python -m scanners.historical_backscanner --start 2024-01-01 --end 2024-12-31 --setup 3DGapFade
 
-# Scan 5 years
+# Scan 5 years (reversal)
 python -m scanners.historical_backscanner --start 2020-01-01 --end 2024-12-31 --setup 3DGapFade
+
+# Scan 1 year for bounce setups
+python -m scanners.bounce_backscanner --start 2024-01-01 --end 2024-12-31
+python -m scanners.bounce_backscanner --start 2024-01-01 --end 2024-12-31 --cap Large,ETF,Medium
+python -m scanners.bounce_backscanner --start 2024-08-05 --end 2024-08-05 --verify
+
+# --- Streamlit Apps ---
+
+# Trade prep & charting app (candlestick charts, news, game plans)
+streamlit run charting/app.py
+
+# Trading dashboard (reports, chat)
+streamlit run dashboard/app.py
+
+# --- Validation ---
+
+# Run walk-forward validation
+python scripts/run_walk_forward.py
 ```
 
 ## Dependencies

@@ -130,23 +130,24 @@ SETUP_PROFILES = {
     'GapFade_weakstock': SetupProfile(
         name='GapFade_weakstock',
         description='Weak stock capitulation bounce — stock already in downtrend, extended multi-day selloff',
-        sample_size=36,
+        sample_size=37,
         historical_win_rate=0.92,
         historical_avg_pnl=12.9,
 
         # Core criteria — cap-keyed thresholds
         # Thresholds set at p75 of winning trades (lenient: ~75% of winners pass)
+        # Re-derived 2026-03-10 after trading-day pct_change fix
         selloff_total_pct={
-            'ETF': -0.05, 'Large': -0.10, 'Medium': -0.17,
-            'Small': -0.30, 'Micro': -0.30, '_default': -0.17,
+            'ETF': -0.15, 'Large': -0.18, 'Medium': -0.30,
+            'Small': -0.33, 'Micro': -0.33, '_default': -0.20,
         },
         pct_off_30d_high={
-            'ETF': -0.24, 'Large': -0.30, 'Medium': -0.50,
-            'Small': -0.50, 'Micro': -0.50, '_default': -0.50,
+            'ETF': -0.30, 'Large': -0.38, 'Medium': -0.53,
+            'Small': -0.66, 'Micro': -0.50, '_default': -0.41,
         },
         gap_pct={
-            'ETF': -0.03, 'Large': -0.03, 'Medium': -0.02,
-            'Small': -0.09, 'Micro': -0.09, '_default': -0.02,
+            'ETF': -0.04, 'Large': -0.08, 'Medium': -0.03,
+            'Small': -0.09, 'Micro': -0.09, '_default': -0.03,
         },
         prior_day_range_atr={
             'ETF': 1.0, 'Large': 1.0, 'Medium': 1.0,
@@ -155,14 +156,14 @@ SETUP_PROFILES = {
         # V2: 3-day momentum crash (rho=-0.700, #2 predictor)
         # Thresholds from p75 of winning weak-stock trades
         pct_change_3={
-            'ETF': -0.10, 'Large': -0.08, 'Medium': -0.20,
-            'Small': -0.20, 'Micro': -0.20, '_default': -0.13,
+            'ETF': -0.15, 'Large': -0.25, 'Medium': -0.21,
+            'Small': -0.30, 'Micro': -0.20, '_default': -0.21,
         },
         # V2: discount from 52wk high (rho=-0.487)
         # Thresholds from p75 of winning weak-stock trades
         pct_off_52wk_high={
-            'ETF': -0.30, 'Large': -0.30, 'Medium': -0.50,
-            'Small': -0.50, 'Micro': -0.50, '_default': -0.50,
+            'ETF': -0.34, 'Large': -0.53, 'Medium': -0.72,
+            'Small': -0.84, 'Micro': -0.50, '_default': -0.57,
         },
         bounce_pct=0.02,
 
@@ -172,35 +173,36 @@ SETUP_PROFILES = {
         },
 
         reference_medians={
-            'selloff_total_pct': -0.335,
-            'pct_off_30d_high': -0.580,
-            'gap_pct': -0.061,
-            'prior_day_range_atr': 1.410,
-            'pct_change_3': -0.135,
-            'pct_off_52wk_high': -0.754,
-            'bounce_pct': 0.112,
+            'selloff_total_pct': -0.296,
+            'pct_off_30d_high': -0.546,
+            'gap_pct': -0.066,
+            'prior_day_range_atr': 1.545,
+            'pct_change_3': -0.262,
+            'pct_off_52wk_high': -0.729,
+            'bounce_pct': 0.113,
         },
     ),
 
     'GapFade_strongstock': SetupProfile(
         name='GapFade_strongstock',
         description='Strong stock pullback bounce — healthy stock hit by sudden selloff (macro, sector, earnings)',
-        sample_size=31,
+        sample_size=29,
         historical_win_rate=0.97,
         historical_avg_pnl=10.9,
 
         # Core criteria — cap-keyed thresholds
+        # Re-derived 2026-03-10 after trading-day pct_change fix
         selloff_total_pct={
-            'ETF': -0.05, 'Large': -0.04, 'Medium': -0.15,
-            'Small': -0.10, 'Micro': -0.10, '_default': -0.15,
+            'ETF': -0.14, 'Large': -0.10, 'Medium': -0.16,
+            'Small': -0.21, 'Micro': -0.10, '_default': -0.15,
         },
         pct_off_30d_high={
-            'ETF': -0.14, 'Large': -0.14, 'Medium': -0.20,
-            'Small': -0.20, 'Micro': -0.20, '_default': -0.20,
+            'ETF': -0.26, 'Large': -0.31, 'Medium': -0.28,
+            'Small': -0.45, 'Micro': -0.20, '_default': -0.29,
         },
         gap_pct={
-            'ETF': -0.02, 'Large': -0.01, 'Medium': -0.03,
-            'Small': -0.10, 'Micro': -0.10, '_default': -0.03,
+            'ETF': -0.05, 'Large': -0.09, 'Medium': -0.04,
+            'Small': -0.13, 'Micro': -0.10, '_default': -0.05,
         },
         prior_day_range_atr={
             'ETF': 1.0, 'Large': 1.0, 'Medium': 1.0,
@@ -209,14 +211,14 @@ SETUP_PROFILES = {
         # V2: 3-day momentum crash (rho=-0.700, #2 predictor)
         # Thresholds from p75 of winning strong-stock trades
         pct_change_3={
-            'ETF': -0.08, 'Large': -0.05, 'Medium': -0.05,
-            'Small': -0.15, 'Micro': -0.15, '_default': -0.08,
+            'ETF': -0.20, 'Large': -0.20, 'Medium': -0.14,
+            'Small': -0.22, 'Micro': -0.15, '_default': -0.19,
         },
         # V2: discount from 52wk high (rho=-0.487)
         # Thresholds from p75 of winning strong-stock trades
         pct_off_52wk_high={
-            'ETF': -0.20, 'Large': -0.15, 'Medium': -0.20,
-            'Small': -0.30, 'Micro': -0.30, '_default': -0.20,
+            'ETF': -0.26, 'Large': -0.33, 'Medium': -0.32,
+            'Small': -0.45, 'Micro': -0.30, '_default': -0.32,
         },
         bounce_pct=0.02,
 
@@ -227,12 +229,12 @@ SETUP_PROFILES = {
         },
 
         reference_medians={
-            'selloff_total_pct': -0.165,
-            'pct_off_30d_high': -0.324,
-            'gap_pct': -0.092,
-            'prior_day_range_atr': 1.318,
-            'pct_change_3': -0.108,
-            'pct_off_52wk_high': -0.431,
+            'selloff_total_pct': -0.175,
+            'pct_off_30d_high': -0.327,
+            'gap_pct': -0.100,
+            'prior_day_range_atr': 1.337,
+            'pct_change_3': -0.219,
+            'pct_off_52wk_high': -0.429,
             'bounce_pct': 0.091,
         },
     ),
