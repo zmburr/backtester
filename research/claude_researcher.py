@@ -92,10 +92,15 @@ def _parse_json(text: str) -> Optional[any]:
 class ClaudeResearcher:
     """LLM brain that proposes experiments and synthesizes findings."""
 
-    def __init__(self, model: str = "opus", timeout: int = 120):
+    def __init__(self, model: str = "opus", timeout: int = 120,
+                 memory_context: str = ""):
         self.model = model
         self.timeout = timeout
         self.call_count = 0
+        if memory_context:
+            self.system_prompt = SYSTEM_PROMPT + "\n\n" + memory_context
+        else:
+            self.system_prompt = SYSTEM_PROMPT
 
     def propose_initial_experiments(self, data_overview: str,
                                      experiment_catalog: str) -> List[Dict]:
@@ -120,7 +125,7 @@ Propose 2-3 experiments to start with. For each, return JSON:
 
 Pick experiments that will give broad insight into both strategies. Start with feature_importance or filter_sweep for the strategy with more data, then branch out."""
 
-        response = ask_claude(prompt, system=SYSTEM_PROMPT, model=self.model,
+        response = ask_claude(prompt, system=self.system_prompt, model=self.model,
                               timeout=self.timeout)
         self.call_count += 1
 
@@ -167,7 +172,7 @@ Prioritize:
 3. Cross-strategy insights (if something works for reversal, test it for bounce)
 4. Risk assessment (if expectancy improved, check if risk metrics are acceptable)"""
 
-        response = ask_claude(prompt, system=SYSTEM_PROMPT, model=self.model,
+        response = ask_claude(prompt, system=self.system_prompt, model=self.model,
                               timeout=self.timeout)
         self.call_count += 1
 
@@ -193,11 +198,12 @@ Write a synthesis with:
 2. KEY TAKEAWAYS: For each significant finding, explain what it means for trading decisions.
 3. RECOMMENDED ACTIONS: Concrete steps the trader should take (e.g., add a filter, adjust position sizing).
 4. NEXT SESSION IDEAS: 2-3 experiments worth running next time.
+5. LESSONS LEARNED: 3-5 bullet points reflecting on what you learned this session that should guide future research. Include: what experiment strategies worked/didn't, which hypotheses were confirmed/rejected, what to explore vs avoid next time, and any meta-insights about the data or methodology.
 
 Write in plain English for a trader. Focus on expectancy improvement.
 Return as plain text (not JSON)."""
 
-        response = ask_claude(prompt, system=SYSTEM_PROMPT, model=self.model,
+        response = ask_claude(prompt, system=self.system_prompt, model=self.model,
                               timeout=self.timeout)
         self.call_count += 1
 

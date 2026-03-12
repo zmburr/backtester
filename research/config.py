@@ -40,6 +40,9 @@ class ResearchConfig:
     # Email
     email_to: str = "zmburr@gmail.com"
 
+    # Memory
+    memory_dir: Path = field(default=None)
+
     def __post_init__(self):
         if self.data_dir is None:
             self.data_dir = self.project_root / "data"
@@ -47,6 +50,8 @@ class ResearchConfig:
             self.results_dir = self.project_root / "research" / "results" / "sessions"
         if self.reports_dir is None:
             self.reports_dir = self.project_root / "research" / "reports"
+        if self.memory_dir is None:
+            self.memory_dir = self.project_root / "research" / "memory"
 
     @property
     def reversal_csv(self) -> Path:

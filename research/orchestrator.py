@@ -14,6 +14,7 @@ from research.experiments.base import ExperimentResult
 from research.claude_researcher import ClaudeResearcher
 from research.result_store import ResultStore, get_session_dir
 from research.statistical_guard import StatisticalGuard
+from research.memory.memory_store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,21 @@ class ResearchOrchestrator:
     def __init__(self, config: ResearchConfig = None, session_name: str = None):
         self.config = config or ResearchConfig()
         self.registry: ExperimentRegistry = build_default_registry()
+
+        # Load persistent memory
+        self.memory = MemoryStore(self.config.memory_dir)
+        self.memory.load()
+        self.memory.update_baselines(self.config)
+        staleness_warnings = self.memory.check_staleness()
+        for warning in staleness_warnings:
+            logger.warning(f"Memory staleness: {warning}")
+        memory_context = self.memory.render_for_prompt()
+        logger.info(f"Memory loaded: {self.memory.summary()}")
+
         self.researcher = ClaudeResearcher(
             model=self.config.claude_model,
             timeout=self.config.claude_timeout,
+            memory_context=memory_context,
         )
         self.guard = StatisticalGuard(
             alpha=self.config.alpha,
@@ -90,6 +103,8 @@ class ResearchOrchestrator:
 
                     self.results.append(result)
                     self.store.save_result(result, iteration)
+                    self.memory.update_from_result(result, self.config)
+                    self.memory.save()
                     iteration += 1
 
                     logger.info(f"Result: {'SIGNIFICANT' if result.is_significant else 'not significant'}")
@@ -112,6 +127,12 @@ class ResearchOrchestrator:
             stats = self._session_stats()
             self.store.mark_complete(stats)
 
+            # Record session in memory
+            session_id = self.store.session_dir.name
+            self.memory.record_session(session_id, stats)
+            self.memory.prune()
+            self.memory.save()
+
         except Exception as e:
             logger.error(f"Session failed: {e}")
             logger.error(traceback.format_exc())
@@ -127,7 +148,39 @@ class ResearchOrchestrator:
 
         all_summaries = "\n\n".join(r.summary_for_claude() for r in self.results)
         stats = self._session_stats()
-        return self.researcher.synthesize_findings(all_summaries, stats)
+        synthesis = self.researcher.synthesize_findings(all_summaries, stats)
+
+        # Extract and save lessons from synthesis
+        lessons = self._extract_lessons(synthesis)
+        if lessons:
+            session_id = self.store.session_dir.name
+            self.memory.append_lessons(lessons, session_id)
+            self.memory.save()
+            logger.info(f"Saved {len(lessons)} chars of lessons to memory")
+
+        return synthesis
+
+    def _extract_lessons(self, synthesis: str) -> str:
+        """Extract LESSONS LEARNED section from synthesis text."""
+        markers = ["LESSONS LEARNED", "LESSONS", "SESSION LESSONS"]
+        for marker in markers:
+            idx = synthesis.upper().find(marker)
+            if idx == -1:
+                continue
+            # Find start of content (skip the header line)
+            content_start = synthesis.find("\n", idx)
+            if content_start == -1:
+                continue
+            content = synthesis[content_start:].strip()
+            # Find end — next major section header (### or ##) or end of text
+            lines = content.split("\n")
+            lesson_lines = []
+            for line in lines:
+                if line.startswith("##") and lesson_lines:
+                    break
+                lesson_lines.append(line)
+            return "\n".join(lesson_lines).strip()
+        return ""
 
     def _run_experiment(self, exp_type: str, params: dict,
                         iteration: int) -> Optional[ExperimentResult]:
