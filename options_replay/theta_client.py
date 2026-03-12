@@ -401,7 +401,7 @@ def get_option_greeks(symbol: str, expiration: str, strike: float, right: str,
         return cached
 
     try:
-        rows = _paginated_get(f"{V3}/option/history/greeks/first_order", {
+        resp = _session.get(f"{V3}/option/history/greeks/first_order", params={
             "symbol": symbol.upper(),
             "expiration": exp_fmt,
             "strike": strike,
@@ -409,7 +409,22 @@ def get_option_greeks(symbol: str, expiration: str, strike: float, right: str,
             "start_date": date_fmt,
             "end_date": date_fmt,
             "interval": interval,
+            "format": "json",
         })
+        # 472 = "no data found" — normal for some contracts
+        if resp.status_code == 472:
+            logger.debug("No greeks data for %s %s %s%s on %s", symbol, exp_fmt, strike_str, right_short, date_fmt)
+            empty = pd.DataFrame()
+            save_to_cache(empty, symbol, date_fmt, "greeks",
+                          exp=exp_fmt, strike=strike_str, right=right_short, interval=interval)
+            return empty
+        resp.raise_for_status()
+        data = resp.json()
+        rows = []
+        if "response" in data:
+            rows = data["response"]
+        elif isinstance(data, list):
+            rows = data
     except requests.exceptions.ConnectionError:
         raise ThetaTerminalOfflineError("Theta Terminal not reachable.")
 
