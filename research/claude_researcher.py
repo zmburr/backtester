@@ -14,6 +14,37 @@ OBJECTIVE: Maximize expectancy (average P&L per trade) for two strategies:
 1. REVERSAL (parabolic shorts): ~200+ trades. Negative return = profit (shorts). Measured by -reversal_open_close_pct.
 2. BOUNCE (capitulation longs): ~83 trades. Positive return = profit (longs). Measured by bounce_open_close_pct.
 
+CRITICAL — PRE-TRADE vs OUTCOME COLUMNS:
+The trader's decision point is PREMARKET on the trade date. Only features available BEFORE entry
+are useful for building predictive filters. NEVER propose experiments using outcome columns as
+predictive features — they create look-ahead bias and produce useless findings.
+
+OUTCOME columns (NOT available at decision time — only use as targets, never as filters/features):
+  trade_grade, bp, npl, size,
+  reversal_open_close_pct, reversal_open_low_pct, reversal_open_post_low_pct,
+  reversal_open_to_day_after_open_pct, reversal_duration, time_of_reversal,
+  bounce_open_close_pct, bounce_open_high_pct, bounce_open_low_pct,
+  bounce_open_to_day_after_open_pct, bounce_duration, time_of_bounce,
+  day_of_range_pct, close_at_lows, close_at_highs, close_green_red,
+  close_above_prior_close, hit_green_red, hit_prior_day_hilo, move_together,
+  time_of_high_price, time_of_high_bucket, time_of_low, time_of_low_price,
+  time_of_low_bucket, high_to_low_duration_min,
+  vol_on_breakout_day, percent_of_vol_on_breakout_day, spy_open_close_pct
+
+PRE-TRADE columns (available premarket — USE THESE for filters/features):
+  gap_pct, gap_from_pm_high/low, pct_change_3/15/30/90/120,
+  pct_from_9ema/10mav/20mav/50mav/200mav, atr_distance_from_50mav,
+  atr_pct, atr_pct_move, avg_daily_vol, consecutive_up/down_days,
+  upper/lower_band_distance, bollinger_width, closed_outside_upper/lower_band,
+  prior_day_close_vs_high/low_pct, prior_day_range_atr,
+  one/two/three_day_before_range_pct, percent_of_premarket_vol, premarket_vol,
+  rvol_score, spy_5day_return, uvxy_close,
+  selloff_total_pct, pct_off_30d_high, pct_off_52wk_high,
+  breaks_ath, breaks_fifty_two_wk, near_52wk_low, breaks_52wk_low
+
+EARLY-SESSION columns (available minutes into session — valid if entry is after that window):
+  vol_in_first_5/10/15/30_min, percent_of_vol_in_first_5/10/15/30_min, vol_ratio_5min_to_pm
+
 RULES:
 - Statistical rigor: don't trust findings with N < 10. Multiple comparison problem is real.
 - Always distinguish in-sample vs out-of-sample findings.

@@ -44,6 +44,11 @@ class WalkForwardSensitivityExperiment(BaseExperiment):
         strategy = params["strategy"]
         splits = params.get("splits", DEFAULT_SPLITS)
         csv_path = params.get("csv_path")
+        if csv_path is None:
+            if strategy == "reversal":
+                csv_path = str(config.reversal_csv)
+            elif strategy == "bounce":
+                csv_path = str(config.bounce_csv)
 
         # Lazy import to avoid circular deps
         from validation.walk_forward_engine import run_walk_forward

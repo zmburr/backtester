@@ -2,9 +2,76 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# ---------------------------------------------------------------------------
+# Column classifications: pre-trade (predictive) vs outcome (post-trade)
+#
+# OUTCOME columns are data you only know AFTER the trade plays out.
+# They must NEVER be used as predictive features — only as target variables.
+# ---------------------------------------------------------------------------
+
+OUTCOME_COLUMNS: Set[str] = {
+    # --- Trade result / P&L ---
+    "trade_grade",                          # assigned after the trade
+    "bp", "npl", "size",                    # actual trading P&L and position size
+
+    # --- Reversal outcome ---
+    "reversal_open_close_pct",              # target variable (reversal P&L)
+    "reversal_open_low_pct",                # max adverse excursion
+    "reversal_open_post_low_pct",           # recovery after low
+    "reversal_open_to_day_after_open_pct",  # overnight hold result
+    "reversal_duration",                    # how long reversal took
+    "time_of_reversal",                     # when reversal occurred
+
+    # --- Bounce outcome ---
+    "bounce_open_close_pct",                # target variable (bounce P&L)
+    "bounce_open_high_pct",                 # max favorable excursion
+    "bounce_open_low_pct",                  # max adverse excursion
+    "bounce_open_to_day_after_open_pct",    # overnight hold result
+    "bounce_duration",                      # how long bounce took
+    "time_of_bounce",                       # when bounce occurred
+
+    # --- Same-day price action (only known at/after close) ---
+    "day_of_range_pct",                     # intraday range on trade day
+    "close_at_lows",                        # did it close at lows
+    "close_at_highs",                       # did it close at highs
+    "close_green_red",                      # close direction
+    "close_above_prior_close",              # close vs prior close
+    "hit_green_red",                        # hit green/red during session
+    "hit_prior_day_hilo",                   # hit prior day high/low
+    "move_together",                        # stock & SPY same direction (same-day)
+    "time_of_high_price",                   # when HOD occurred
+    "time_of_high_bucket",                  # HOD time bucket
+    "time_of_low",                          # when LOD occurred (reversal)
+    "time_of_low_price",                    # when LOD occurred (bounce)
+    "time_of_low_bucket",                   # LOD time bucket
+    "high_to_low_duration_min",             # HOD-to-LOD duration
+
+    # --- Same-day volume (total day only known at close) ---
+    "vol_on_breakout_day",                  # total volume on trade day
+    "percent_of_vol_on_breakout_day",       # % of avg volume on trade day
+
+    # --- Same-day SPY (only known at close) ---
+    "spy_open_close_pct",                   # SPY return on trade day
+}
+
+# Early-session columns: available minutes into the session, NOT premarket.
+# These are valid predictive features but only if entry is after that window.
+EARLY_SESSION_COLUMNS: Set[str] = {
+    "vol_in_first_5_min", "vol_in_first_10_min",
+    "vol_in_first_15_min", "vol_in_first_30_min",
+    "percent_of_vol_in_first_5_min", "percent_of_vol_in_first_10_min",
+    "percent_of_vol_in_first_15_min", "percent_of_vol_in_first_30_min",
+    "vol_ratio_5min_to_pm",
+}
+
+
+def is_predictive(column: str) -> bool:
+    """Return True if a column is available at decision time (pre-trade)."""
+    return column not in OUTCOME_COLUMNS
 
 
 @dataclass

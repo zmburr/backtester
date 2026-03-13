@@ -209,9 +209,7 @@ class ResearchOrchestrator:
             logger.error(traceback.format_exc())
             # Return a failure result so it's tracked
             return ExperimentResult(
-                experiment_id=ExperimentResult.__dataclass_fields__["experiment_id"].default_factory()
-                if hasattr(ExperimentResult.__dataclass_fields__["experiment_id"], "default_factory")
-                else f"err-{iteration}",
+                experiment_id=f"err-{iteration}",
                 experiment_type=exp_type,
                 strategy=params.get("strategy", "unknown"),
                 parameters=params,

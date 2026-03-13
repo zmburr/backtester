@@ -7,6 +7,7 @@ import numpy as np
 from typing import Dict, List
 
 from research.experiments.base import BaseExperiment, ExperimentResult
+from research.config import OUTCOME_COLUMNS
 
 try:
     from scipy.stats import spearmanr
@@ -22,20 +23,29 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Default feature columns to analyze
+# Default feature columns to analyze (pre-trade / early-session only — no outcome data)
 DEFAULT_FEATURES = [
+    # Price momentum (known premarket)
     "pct_change_15", "pct_change_30", "pct_change_3", "pct_change_90", "pct_change_120",
+    # Distance from moving averages (known premarket)
     "pct_from_10mav", "pct_from_20mav", "pct_from_50mav", "pct_from_9ema", "pct_from_200mav",
-    "atr_distance_from_50mav", "day_of_range_pct", "atr_pct",
-    "percent_of_premarket_vol", "percent_of_vol_in_first_5_min",
-    "percent_of_vol_in_first_10_min", "percent_of_vol_in_first_15_min",
-    "percent_of_vol_in_first_30_min", "percent_of_vol_on_breakout_day",
-    "gap_pct", "one_day_before_range_pct",
-    "upper_band_distance", "bollinger_width",
+    "atr_distance_from_50mav",
+    # Volatility / range (known premarket)
+    "atr_pct",
+    "one_day_before_range_pct",
+    # Volume (premarket + early session)
+    "percent_of_premarket_vol",
+    "percent_of_vol_in_first_5_min", "percent_of_vol_in_first_10_min",
+    "percent_of_vol_in_first_15_min", "percent_of_vol_in_first_30_min",
     "vol_ratio_5min_to_pm", "rvol_score",
+    # Gap (known at open)
+    "gap_pct", "gap_from_pm_high",
+    # Bollinger bands (known from prior close)
+    "upper_band_distance", "bollinger_width",
+    # Prior day context (known premarket)
     "prior_day_close_vs_high_pct", "consecutive_up_days", "prior_day_range_atr",
-    "gap_from_pm_high",
-    "spy_5day_return", "uvxy_close", "spy_open_close_pct",
+    # Market context (known premarket)
+    "spy_5day_return", "uvxy_close",
 ]
 
 STRATEGY_CONFIG = {
@@ -79,6 +89,8 @@ class FeatureImportanceExperiment(BaseExperiment):
         scfg = STRATEGY_CONFIG[strategy]
         target_mode = params.get("target", "pnl")
         features = params.get("features", DEFAULT_FEATURES)
+        # Guard: strip any outcome columns Claude may have proposed
+        features = [f for f in features if f not in OUTCOME_COLUMNS]
         grade = params.get("grade")
         cap = params.get("cap")
 

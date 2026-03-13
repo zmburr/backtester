@@ -112,18 +112,20 @@ def analyze_indicator_impact(df, target_col='reversal_open_close_pct'):
     pnl = -df[target_col]
 
     indicators = [
-        # Existing indicators
+        # Price momentum (pre-trade)
         'pct_change_15', 'pct_change_30', 'pct_change_3',
+        # Distance from MAs (pre-trade)
         'pct_from_10mav', 'pct_from_20mav', 'pct_from_50mav', 'pct_from_9ema',
-        'atr_distance_from_50mav', 'day_of_range_pct',
+        'atr_distance_from_50mav',
+        # Volume (premarket + early session)
         'percent_of_premarket_vol', 'percent_of_vol_in_first_5_min',
-        'gap_pct',
-        # New indicators
-        'upper_band_distance', 'bollinger_width',
         'vol_ratio_5min_to_pm', 'rvol_score',
+        # Gap / Bollinger / prior day (pre-trade)
+        'gap_pct', 'gap_from_pm_high',
+        'upper_band_distance', 'bollinger_width',
         'prior_day_close_vs_high_pct', 'consecutive_up_days', 'prior_day_range_atr',
-        'time_of_high_bucket', 'gap_from_pm_high',
-        'spy_5day_return', 'uvxy_close'
+        # Market context (pre-trade)
+        'spy_5day_return', 'uvxy_close',
     ]
 
     correlations = []
@@ -186,17 +188,10 @@ def find_optimal_filters(df, grade='A', min_sample=10, target_col='reversal_open
         ('consecutive_up_days', '>=', [2, 3, 4, 5]),
         ('prior_day_range_atr', '>=', [1.5, 2.0, 2.5, 3.0]),
 
-        # Timing filters
-        ('time_of_high_bucket', '==', [1]),  # High in first 30 min
-        ('time_of_high_bucket', '<=', [2]),  # High before 11 AM
-
         # Market context filters
         ('spy_5day_return', '>=', [0, 0.01, 0.02]),  # Market up
         ('spy_5day_return', '<=', [0, -0.01, -0.02]),  # Market down
         ('uvxy_close', '>=', [15, 20, 25, 30]),
-
-        # Range expansion
-        ('day_of_range_pct', '>=', [2.0, 2.5, 3.0, 3.5, 4.0]),
     ]
 
     all_results = []
@@ -287,9 +282,9 @@ def find_best_filter_combinations(df, top_filters, max_combo_size=3, min_sample=
 def analyze_conditional_rates(df, target_col='reversal_open_close_pct'):
     """Analyze performance by boolean conditional columns."""
     conditionals = [
-        'hit_green_red', 'close_green_red', 'close_at_lows',
-        'move_together', 'breaks_fifty_two_wk', 'breaks_ath',
-        'hit_prior_day_hilo', 'closed_outside_upper_band'
+        # Pre-trade boolean columns only (no same-day outcome data)
+        'breaks_fifty_two_wk', 'breaks_ath',
+        'closed_outside_upper_band',
     ]
 
     results = []

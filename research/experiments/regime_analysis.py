@@ -48,14 +48,6 @@ DEFAULT_REGIME_DEFS = {
             {"label": "high_vol", "op": ">=", "threshold": 25},
         ],
     },
-    "spy_daily": {
-        "column": "spy_open_close_pct",
-        "buckets": [
-            {"label": "spy_red", "op": "<", "threshold": -0.005},
-            {"label": "spy_neutral", "op": "between", "low": -0.005, "high": 0.005},
-            {"label": "spy_green", "op": ">", "threshold": 0.005},
-        ],
-    },
 }
 
 
@@ -70,10 +62,10 @@ class RegimeAnalysisExperiment(BaseExperiment):
     def describe_capabilities(self) -> str:
         return (
             "Buckets trades by market conditions and compares performance across regimes.\n"
-            "Uses existing columns (spy_5day_return, uvxy_close, spy_open_close_pct) in the trade CSVs.\n"
+            "Uses pre-trade columns (spy_5day_return, uvxy_close) in the trade CSVs.\n"
             "Params:\n"
             "  - strategy: 'reversal' or 'bounce' (required)\n"
-            "  - regime: 'spy_trend', 'volatility', 'spy_daily', or 'all' (default: 'all')\n"
+            "  - regime: 'spy_trend', 'volatility', or 'all' (default: 'all')\n"
             "  - grade: filter to specific grade (default: None)\n"
             "  - cap: filter to specific cap (default: None)\n"
             "Returns: per-regime metrics, best/worst regimes, Fisher exact between best and worst."

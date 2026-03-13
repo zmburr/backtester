@@ -7,6 +7,7 @@ import numpy as np
 from typing import Dict, List
 
 from research.experiments.base import BaseExperiment, ExperimentResult
+from research.config import OUTCOME_COLUMNS
 from analyzers.filter_optimizer import (
     load_reversal_data,
     calculate_metrics,
@@ -56,11 +57,12 @@ class FilterSweepExperiment(BaseExperiment):
     def describe_capabilities(self) -> str:
         return (
             "Tests single filters and 2-3 filter combinations to find thresholds that improve expectancy.\n"
+            "Only uses pre-trade columns (available before entry) — outcome columns are excluded.\n"
             "Params:\n"
             "  - strategy: 'reversal' or 'bounce' (required)\n"
             "  - grade: trade grade filter, e.g. 'A', 'B', or None for all (default: None)\n"
             "  - cap: cap size filter, e.g. 'Micro', 'Small', etc. or None (default: None)\n"
-            "  - columns_to_sweep: list of specific columns to test, or None for all defaults\n"
+            "  - columns_to_sweep: list of pre-trade columns to test, or None for all defaults\n"
             "  - min_sample: minimum trades after filtering (default: 10)\n"
             "  - max_combo_size: max combination size 2 or 3 (default: 2)\n"
             "  - top_n_filters: how many top single filters to use for combos (default: 10)\n"
