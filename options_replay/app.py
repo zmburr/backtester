@@ -8,6 +8,7 @@ Run: python -m options_replay.app
 import sys
 import os
 import logging
+import threading
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -45,6 +46,16 @@ except Exception as e:
     TRADES_DF = pd.DataFrame()
     TRADE_OPTIONS = []
 
+# ── Batch state (shared with background thread) ────────────
+_batch_state = {
+    "running": False,
+    "completed": 0,
+    "total": 0,
+    "current_symbol": "",
+    "results_path": None,
+    "error": None,
+}
+
 # ── Dash App ────────────────────────────────────────────────
 app = Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Options Replay"
@@ -77,6 +88,26 @@ def _input_style():
     }
 
 
+TAB_STYLE = {
+    "backgroundColor": C["surface"],
+    "color": C["text3"],
+    "border": f"1px solid {C['border']}",
+    "borderBottom": "none",
+    "padding": "10px 20px",
+    "fontFamily": "Outfit, sans-serif",
+    "fontSize": "12px",
+    "fontWeight": "600",
+    "letterSpacing": "1px",
+    "textTransform": "uppercase",
+}
+TAB_SELECTED = {
+    **TAB_STYLE,
+    "backgroundColor": C["bg"],
+    "color": C["gold"],
+    "borderTop": f"2px solid {C['gold']}",
+}
+
+
 # ── Layout ──────────────────────────────────────────────────
 app.layout = html.Div([
     # Header
@@ -98,85 +129,113 @@ app.layout = html.Div([
         "gap": "12px",
     }),
 
-    # Trade Selector
-    html.Div([
-        # CSV trade dropdown
-        html.Div([
-            html.Label("Select a Trade", style=_label()),
-            dcc.Dropdown(
-                id="trade-dropdown",
-                options=TRADE_OPTIONS,
-                placeholder="Pick a trade from your history...",
-                style={"fontSize": "12px"},
-            ),
-        ], style={"flex": "1"}),
+    # Tabs
+    dcc.Tabs(id="main-tabs", value="single", children=[
+        dcc.Tab(label="SINGLE TRADE", value="single",
+                style=TAB_STYLE, selected_style=TAB_SELECTED),
+        dcc.Tab(label="BATCH ANALYSIS", value="batch",
+                style=TAB_STYLE, selected_style=TAB_SELECTED),
+    ], style={"margin": "0 30px"}),
 
-        html.Div("OR", style={
-            **_mono("12px", "600", C["text3"]),
-            "padding": "24px 16px 0 16px",
-        }),
-
-        # Manual input
-        html.Div([
-            html.Label("Manual Entry", style=_label()),
-            html.Div([
-                dcc.Input(id="manual-ticker", placeholder="Ticker",
-                         style={**_input_style(), "width": "80px"}),
-                dcc.Input(id="manual-date", placeholder="2025-03-12",
-                         style={**_input_style(), "width": "110px"}),
-                dcc.Input(id="manual-time", placeholder="14:30",
-                         style={**_input_style(), "width": "70px"}),
-                dcc.Dropdown(id="manual-direction",
-                            options=[{"label": "Long", "value": "LONG"},
-                                     {"label": "Short", "value": "SHORT"}],
-                            value="LONG",
-                            style={"width": "90px", "fontSize": "12px"}),
-                html.Button("Analyze", id="manual-go-btn", style={
-                    "backgroundColor": C["gold"],
-                    "color": C["bg"],
-                    "border": "none",
-                    "borderRadius": "3px",
-                    "padding": "8px 16px",
-                    "fontWeight": "600",
-                    "fontSize": "12px",
-                    "cursor": "pointer",
-                }),
-            ], style={"display": "flex", "gap": "6px", "alignItems": "center"}),
-        ]),
-    ], style={
-        **_card(),
-        "display": "flex",
-        "alignItems": "flex-start",
-        "gap": "16px",
-        "margin": "16px 30px",
-    }),
-
-    # Window slider
-    html.Div([
-        html.Label("Analysis Window", style=_label()),
-        dcc.Slider(
-            id="window-slider",
-            min=15, max=45, step=15, value=30,
-            marks={15: "15 min", 30: "30 min", 45: "45 min"},
-        ),
-    ], style={
-        **_card(),
-        "margin": "0 30px 16px 30px",
-        "padding": "12px 20px",
-    }),
-
-    # Status / Loading
-    dcc.Loading(
-        id="loading-results",
-        type="default",
-        color=C["gold"],
-        children=html.Div(id="results-container", style={"padding": "0 30px 30px 30px"}),
-    ),
+    # Tab content
+    html.Div(id="tab-content"),
 
 ], style={"backgroundColor": C["bg"], "minHeight": "100vh"})
 
 
-# ── Main callback ───────────────────────────────────────────
+# ── Tab switching ───────────────────────────────────────────
+@app.callback(
+    Output("tab-content", "children"),
+    Input("main-tabs", "value"),
+)
+def render_tab(tab):
+    if tab == "batch":
+        return _batch_layout()
+    return _single_trade_layout()
+
+
+# ═══════════════════════════════════════════════════════════
+# TAB 1: SINGLE TRADE
+# ═══════════════════════════════════════════════════════════
+
+def _single_trade_layout():
+    return html.Div([
+        # Trade Selector
+        html.Div([
+            html.Div([
+                html.Label("Select a Trade", style=_label()),
+                dcc.Dropdown(
+                    id="trade-dropdown",
+                    options=TRADE_OPTIONS,
+                    placeholder="Pick a trade from your history...",
+                    style={"fontSize": "12px"},
+                ),
+            ], style={"flex": "1"}),
+
+            html.Div("OR", style={
+                **_mono("12px", "600", C["text3"]),
+                "padding": "24px 16px 0 16px",
+            }),
+
+            html.Div([
+                html.Label("Manual Entry", style=_label()),
+                html.Div([
+                    dcc.Input(id="manual-ticker", placeholder="Ticker",
+                             style={**_input_style(), "width": "80px"}),
+                    dcc.Input(id="manual-date", placeholder="2025-03-12",
+                             style={**_input_style(), "width": "110px"}),
+                    dcc.Input(id="manual-time", placeholder="14:30",
+                             style={**_input_style(), "width": "70px"}),
+                    dcc.Dropdown(id="manual-direction",
+                                options=[{"label": "Long", "value": "LONG"},
+                                         {"label": "Short", "value": "SHORT"}],
+                                value="LONG",
+                                style={"width": "90px", "fontSize": "12px"}),
+                    html.Button("Analyze", id="manual-go-btn", style={
+                        "backgroundColor": C["gold"],
+                        "color": C["bg"],
+                        "border": "none",
+                        "borderRadius": "3px",
+                        "padding": "8px 16px",
+                        "fontWeight": "600",
+                        "fontSize": "12px",
+                        "cursor": "pointer",
+                    }),
+                ], style={"display": "flex", "gap": "6px", "alignItems": "center"}),
+            ]),
+        ], style={
+            **_card(),
+            "display": "flex",
+            "alignItems": "flex-start",
+            "gap": "16px",
+            "margin": "16px 30px",
+        }),
+
+        # Window slider
+        html.Div([
+            html.Label("Analysis Window", style=_label()),
+            dcc.Slider(
+                id="window-slider",
+                min=15, max=45, step=15, value=30,
+                marks={15: "15 min", 30: "30 min", 45: "45 min"},
+            ),
+        ], style={
+            **_card(),
+            "margin": "0 30px 16px 30px",
+            "padding": "12px 20px",
+        }),
+
+        # Results
+        dcc.Loading(
+            id="loading-results",
+            type="default",
+            color=C["gold"],
+            children=html.Div(id="results-container", style={"padding": "0 30px 30px 30px"}),
+        ),
+    ])
+
+
+# ── Single trade callback ──────────────────────────────────
 @app.callback(
     Output("results-container", "children"),
     [Input("trade-dropdown", "value"),
@@ -221,14 +280,13 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
     time_of_day = entry_time.strftime("%H:%M:%S")
     side = int(trade.get("side", 1))
 
-    # ── Step 1: Check Theta Terminal ─────────────────────
     if not check_terminal_running():
         return _error_card(
             "Theta Terminal is not running. Please start the Java process "
             "and ensure it's listening on localhost:25503."
         )
 
-    # ── Step 2: Fetch underlying data via Polygon ────────
+    # Fetch underlying
     try:
         from data_queries.polygon_queries import get_intraday
         underlying_df = get_intraday(symbol, date_str, 1, "minute")
@@ -238,10 +296,8 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
         logger.warning("Failed to fetch underlying for %s: %s", symbol, e)
         underlying_df = pd.DataFrame()
 
-    # Get underlying price at entry for chain filtering
     underlying_price = float(trade.get("avg_price", 0))
     if underlying_price <= 0 and not underlying_df.empty:
-        # Find price closest to entry time
         try:
             entry_tz = entry_time
             if hasattr(underlying_df.index, 'tz') and underlying_df.index.tz is not None:
@@ -256,7 +312,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
     if underlying_price <= 0:
         return _error_card(f"Could not determine underlying price for {symbol} on {date_str}.")
 
-    # ── Step 3: Fetch options chain snapshot ──────────────
+    # Chain snapshot
     try:
         chain_df = get_chain_snapshot(symbol, date_str, time_of_day)
     except ThetaTerminalOfflineError as e:
@@ -267,7 +323,6 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
     if chain_df.empty:
         return _error_card(f"No options chain data for {symbol} on {date_str} at {time_of_day}.")
 
-    # ── Step 4: Filter chain ─────────────────────────────
     filtered = filter_chain(chain_df, underlying_price, side, date_str)
     if filtered.empty:
         return _error_card(
@@ -275,7 +330,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
             "The chain may have had insufficient liquidity."
         )
 
-    # ── Step 5: Fetch per-contract data (parallel) ───────
+    # Per-contract data (parallel)
     ohlc_dict = {}
     quotes_dict = {}
     greeks_dict = {}
@@ -302,7 +357,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
             except Exception as e:
                 logger.warning("Contract fetch failed: %s", e)
 
-    # ── Step 6: Compute returns and score ────────────────
+    # Compute returns and score
     returns_df = compute_option_returns(filtered, ohlc_dict, quotes_dict,
                                         entry_time.to_pydatetime() if hasattr(entry_time, 'to_pydatetime') else entry_time,
                                         hold_minutes, greeks_dict=greeks_dict)
@@ -311,8 +366,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
     if scored_df.empty:
         return _error_card("Scoring produced no results. The contracts may have had no price movement.")
 
-    # ── Step 7: Compute ideal play ───────────────────────
-    # Underlying max during window
+    # Ideal play
     underlying_max = underlying_price
     if not underlying_df.empty:
         try:
@@ -332,7 +386,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
 
     ideal = compute_ideal_play_summary(scored_df.iloc[0], underlying_price, underlying_max, side)
 
-    # ── Step 8: Build all figures ────────────────────────
+    # Build figures
     entry_dt = entry_time.to_pydatetime() if hasattr(entry_time, 'to_pydatetime') else entry_time
 
     exit_time_raw = trade.get("exit_time")
@@ -345,16 +399,14 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
 
     fig_underlying = fig_underlying_candlestick(
         underlying_df, entry_dt, exit_dt, underlying_price, side, hold_minutes)
-
     fig_heatmap = fig_chain_heatmap(filtered, underlying_price)
     fig_table = fig_top_options_table(scored_df)
     fig_returns = fig_return_comparison(scored_df)
     fig_liquidity = fig_liquidity_comparison(scored_df)
-
     option_figs = fig_option_price_grid(scored_df, quotes_dict, ohlc_dict,
                                          entry_dt, hold_minutes)
 
-    # ── Step 9: Assemble layout ──────────────────────────
+    # Assemble layout
     direction = "LONG" if side == 1 else "SHORT"
     net_pnl = trade.get("net_pnl", 0)
     pnl_color = C["profit"] if net_pnl >= 0 else C["loss"]
@@ -388,12 +440,15 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
                 html.Span(f"{ideal['label']}", style=_mono("18px", "700", C["gold"])),
             ], style={"marginBottom": "8px"}),
             html.Div([
-                _stat_pill("Entry", f"${ideal['entry_mid']:.2f}"),
-                _stat_pill("Max", f"${ideal['max_mid']:.2f}"),
-                _stat_pill("Return", f"{ideal['return_pct']:.0%}",
+                _stat_pill("Entry (Ask)", f"${ideal.get('entry_ask', ideal['entry_mid']):.2f}"),
+                _stat_pill("Max (Bid)", f"${ideal.get('max_bid', ideal['max_mid']):.2f}"),
+                _stat_pill("Realistic", f"{ideal['return_pct']:.0%}",
                           color=C["profit"] if ideal["return_pct"] > 0 else C["loss"]),
+                _stat_pill("Raw", f"{ideal.get('raw_return_pct', ideal['return_pct']):.0%}",
+                          color=C["text3"]),
+                _stat_pill("Spread Cost", f"{ideal.get('spread_cost_pct', 0):.0%}",
+                          color=C["loss"]),
                 _stat_pill("$/Contract", f"${ideal['return_per_contract']:.0f}"),
-                _stat_pill("Spread", f"{ideal['spread_pct']:.1%}"),
                 _stat_pill("Volume", f"{ideal['volume']:,}"),
                 _stat_pill("Leverage", f"{ideal['leverage']:.0f}x"),
                 _stat_pill("DTE", str(ideal.get("dte", "?"))),
@@ -420,7 +475,7 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
         # Ranked table
         dcc.Graph(figure=fig_table, style={"height": f"{max(200, 50 + len(scored_df) * 32)}px"}),
 
-        # Returns vs Liquidity side by side
+        # Returns vs Liquidity
         html.Div([
             html.Div([dcc.Graph(figure=fig_returns)], style={"flex": "1"}),
             html.Div([dcc.Graph(figure=fig_liquidity)], style={"flex": "1"}),
@@ -429,11 +484,10 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
         # Chain heatmap
         dcc.Graph(figure=fig_heatmap, style={"height": "300px"}),
 
-        # Option price charts — 2x4 grid
+        # Option price charts
         html.Div("OPTION PRICE CHARTS", style={**_label(), "marginTop": "20px", "marginBottom": "10px"}),
     ]
 
-    # Add option charts in 2-column grid
     for i in range(0, len(option_figs), 2):
         row_children = []
         for j in range(2):
@@ -448,6 +502,350 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
 
     return html.Div(children, className="anim-stagger")
 
+
+# ═══════════════════════════════════════════════════════════
+# TAB 2: BATCH ANALYSIS
+# ═══════════════════════════════════════════════════════════
+
+def _batch_layout():
+    return html.Div([
+        # Controls
+        html.Div([
+            html.Div([
+                html.Label("Trade Filter", style=_label()),
+                dcc.Dropdown(
+                    id="batch-filter",
+                    options=[
+                        {"label": f"All $10K+ trades ({len(TRADE_OPTIONS)})", "value": "all"},
+                        {"label": "Long only", "value": "long"},
+                        {"label": "Short only", "value": "short"},
+                        {"label": "Top 50 by P&L", "value": "top50"},
+                        {"label": "Top 100 by P&L", "value": "top100"},
+                    ],
+                    value="top50",
+                    style={"fontSize": "12px"},
+                ),
+            ], style={"flex": "1"}),
+
+            html.Div([
+                html.Label("Hold Windows", style=_label()),
+                dcc.Checklist(
+                    id="batch-windows",
+                    options=[
+                        {"label": " 5m", "value": 5},
+                        {"label": " 15m", "value": 15},
+                        {"label": " 30m", "value": 30},
+                    ],
+                    value=[5, 15, 30],
+                    inline=True,
+                    style={**_mono("12px", "400", C["text"]), "marginTop": "8px"},
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"marginRight": "12px"},
+                ),
+            ], style={"flex": "1"}),
+
+            html.Div([
+                html.Button("Run Batch", id="batch-run-btn", style={
+                    "backgroundColor": C["gold"],
+                    "color": C["bg"],
+                    "border": "none",
+                    "borderRadius": "3px",
+                    "padding": "10px 20px",
+                    "fontWeight": "700",
+                    "fontSize": "12px",
+                    "cursor": "pointer",
+                    "marginTop": "20px",
+                }),
+                html.Button("Load Last", id="batch-load-btn", style={
+                    "backgroundColor": C["surface"],
+                    "color": C["text2"],
+                    "border": f"1px solid {C['border']}",
+                    "borderRadius": "3px",
+                    "padding": "10px 16px",
+                    "fontWeight": "600",
+                    "fontSize": "12px",
+                    "cursor": "pointer",
+                    "marginTop": "20px",
+                    "marginLeft": "8px",
+                }),
+            ], style={"display": "flex"}),
+        ], style={
+            **_card(),
+            "display": "flex",
+            "alignItems": "flex-start",
+            "gap": "20px",
+            "margin": "16px 30px",
+        }),
+
+        # Progress
+        html.Div([
+            html.Div(id="batch-progress-text",
+                     style={**_mono("12px", "400", C["text2"]), "marginBottom": "6px"}),
+            html.Div([
+                html.Div(id="batch-progress-bar", style={
+                    "width": "0%",
+                    "height": "4px",
+                    "backgroundColor": C["gold"],
+                    "borderRadius": "2px",
+                    "transition": "width 0.3s ease",
+                }),
+            ], style={
+                "backgroundColor": C["border"],
+                "borderRadius": "2px",
+                "height": "4px",
+                "overflow": "hidden",
+            }),
+        ], id="batch-progress-container", style={
+            **_card(),
+            "margin": "0 30px 16px 30px",
+            "display": "none",
+        }),
+
+        # Results
+        html.Div(id="batch-results-container", style={"padding": "0 30px 30px 30px"}),
+
+        # Polling interval
+        dcc.Interval(id="batch-poll", interval=2000, disabled=True),
+
+    ], style={"padding": "0"})
+
+
+def _get_trade_indices(filter_value: str) -> list:
+    """Get trade indices based on filter selection."""
+    if TRADES_DF.empty:
+        return []
+
+    df = TRADES_DF.copy()
+    # get_trade_options already filters to $10K+, so we work from the same set
+    mask = df["net_pnl"].abs() >= 10_000
+
+    if filter_value == "long":
+        mask = mask & (df["side"] == 1)
+    elif filter_value == "short":
+        mask = mask & (df["side"] == -1)
+
+    filtered = df[mask].copy()
+
+    if filter_value == "top50":
+        filtered = filtered.nlargest(50, "net_pnl")
+    elif filter_value == "top100":
+        filtered = filtered.nlargest(100, "net_pnl")
+
+    return filtered.index.tolist()
+
+
+# ── Batch: Start ───────────────────────────────────────────
+@app.callback(
+    [Output("batch-poll", "disabled", allow_duplicate=True),
+     Output("batch-progress-container", "style", allow_duplicate=True),
+     Output("batch-progress-text", "children", allow_duplicate=True),
+     Output("batch-progress-bar", "style", allow_duplicate=True)],
+    Input("batch-run-btn", "n_clicks"),
+    [State("batch-filter", "value"),
+     State("batch-windows", "value")],
+    prevent_initial_call=True,
+)
+def start_batch(n_clicks, filter_value, windows):
+    if _batch_state["running"]:
+        return no_update, no_update, no_update, no_update
+
+    trade_indices = _get_trade_indices(filter_value or "top50")
+    if not trade_indices:
+        return True, no_update, "No trades match the filter.", no_update
+
+    windows = windows or [5, 15, 30]
+
+    _batch_state.update({
+        "running": True,
+        "completed": 0,
+        "total": len(trade_indices),
+        "current_symbol": "",
+        "results_path": None,
+        "error": None,
+    })
+
+    def _progress_cb(completed, total, symbol):
+        _batch_state["completed"] = completed
+        _batch_state["current_symbol"] = symbol
+
+    def _run():
+        try:
+            from options_replay.batch_analyzer import run_batch, save_batch_results
+            results = run_batch(TRADES_DF, trade_indices,
+                               hold_windows=windows,
+                               progress_callback=_progress_cb)
+            if not results.empty:
+                path = save_batch_results(results)
+                _batch_state["results_path"] = str(path)
+            else:
+                _batch_state["error"] = "No results produced — all trades may have failed."
+        except Exception as e:
+            logger.error("Batch failed: %s", e)
+            _batch_state["error"] = str(e)
+        finally:
+            _batch_state["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    progress_style = {
+        **_card(),
+        "margin": "0 30px 16px 30px",
+        "display": "block",
+    }
+    bar_style = {"width": "0%", "height": "4px",
+                 "backgroundColor": C["gold"], "borderRadius": "2px",
+                 "transition": "width 0.3s ease"}
+
+    return False, progress_style, f"Starting batch (0/{len(trade_indices)})...", bar_style
+
+
+# ── Batch: Poll progress ──────────────────────────────────
+@app.callback(
+    [Output("batch-progress-text", "children", allow_duplicate=True),
+     Output("batch-progress-bar", "style", allow_duplicate=True),
+     Output("batch-results-container", "children"),
+     Output("batch-poll", "disabled"),
+     Output("batch-progress-container", "style")],
+    Input("batch-poll", "n_intervals"),
+    prevent_initial_call=True,
+)
+def poll_batch(n):
+    completed = _batch_state["completed"]
+    total = _batch_state["total"] or 1
+    symbol = _batch_state["current_symbol"]
+    pct = (completed / total) * 100
+
+    bar_style = {"width": f"{pct:.0f}%", "height": "4px",
+                 "backgroundColor": C["gold"], "borderRadius": "2px",
+                 "transition": "width 0.3s ease"}
+    progress_style = {**_card(), "margin": "0 30px 16px 30px", "display": "block"}
+    text = f"Processing: {completed}/{total}  {symbol}  ({pct:.0f}%)"
+
+    if not _batch_state["running"]:
+        # Done
+        if _batch_state["error"]:
+            return (
+                f"Error: {_batch_state['error']}",
+                bar_style,
+                _error_card(_batch_state["error"]),
+                True,
+                progress_style,
+            )
+
+        # Load and render results
+        results_children = _render_batch_results(_batch_state["results_path"])
+        return (
+            f"Complete: {total} trades processed",
+            {"width": "100%", "height": "4px",
+             "backgroundColor": C["profit"], "borderRadius": "2px"},
+            results_children,
+            True,
+            progress_style,
+        )
+
+    return text, bar_style, no_update, False, progress_style
+
+
+# ── Batch: Load last ──────────────────────────────────────
+@app.callback(
+    Output("batch-results-container", "children", allow_duplicate=True),
+    Input("batch-load-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def load_last_batch(n_clicks):
+    from options_replay.batch_analyzer import load_batch_results
+    df = load_batch_results()
+    if df is None:
+        return _error_card("No saved batch results found in data/batch_results/.")
+    return _render_batch_results_from_df(df)
+
+
+def _render_batch_results(results_path: str):
+    """Load a CSV path and render batch results."""
+    try:
+        df = pd.read_csv(results_path)
+        return _render_batch_results_from_df(df)
+    except Exception as e:
+        return _error_card(f"Failed to load results: {e}")
+
+
+def _render_batch_results_from_df(df: pd.DataFrame):
+    """Build the full batch results dashboard from a DataFrame."""
+    from options_replay.batch_aggregator import (
+        add_buckets, compute_category_stats,
+        compute_cross_stats, compute_hold_window_stats, compute_summary,
+    )
+    from options_replay.batch_charts import (
+        fig_return_by_delta_bucket, fig_return_by_dte_bucket,
+        fig_return_by_moneyness, fig_delta_vs_return_scatter,
+        fig_iv_vs_return_scatter, fig_moneyness_dte_heatmap,
+        fig_hold_window_comparison, fig_spread_cost_by_category,
+        fig_return_distribution, fig_win_rate_by_category,
+        fig_summary_stats_table,
+    )
+
+    df = add_buckets(df)
+    summary = compute_summary(df)
+
+    # Stats at 30-min window (or largest available)
+    default_window = 30 if 30 in df["hold_window"].unique() else df["hold_window"].max()
+
+    delta_agg = compute_category_stats(df, "delta_bucket", hold_window=default_window)
+    dte_agg = compute_category_stats(df, "dte_bucket", hold_window=default_window)
+    moneyness_agg = compute_category_stats(df, "moneyness_5", hold_window=default_window)
+    window_stats = compute_hold_window_stats(df, "moneyness_5")
+
+    values_pivot, count_pivot = compute_cross_stats(
+        df, "moneyness_5", "dte_bucket", hold_window=default_window
+    )
+
+    children = [
+        # Summary table
+        dcc.Graph(figure=fig_summary_stats_table(summary), style={"height": "310px"}),
+
+        # Row 1: Scatters
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_delta_vs_return_scatter(
+                df[df["hold_window"] == default_window] if "hold_window" in df.columns else df
+            ))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_iv_vs_return_scatter(
+                df[df["hold_window"] == default_window] if "hold_window" in df.columns else df
+            ))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 2: Return by delta / DTE
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_return_by_delta_bucket(delta_agg))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_return_by_dte_bucket(dte_agg))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 3: Moneyness / Win rate
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_return_by_moneyness(moneyness_agg))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_win_rate_by_category(delta_agg, moneyness_agg))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 4: Heatmap (full width)
+        dcc.Graph(figure=fig_moneyness_dte_heatmap(values_pivot, count_pivot)),
+
+        # Row 5: Hold window / Spread cost
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_hold_window_comparison(window_stats))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_spread_cost_by_category(delta_agg, moneyness_agg))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 6: Distribution (full width)
+        dcc.Graph(figure=fig_return_distribution(
+            df[df["hold_window"] == default_window] if "hold_window" in df.columns else df
+        )),
+    ]
+
+    return html.Div(children, className="anim-stagger")
+
+
+# ═══════════════════════════════════════════════════════════
+# SHARED HELPERS
+# ═══════════════════════════════════════════════════════════
 
 def _stat_pill(label: str, value: str, color: str = None) -> html.Div:
     """Small stat display: label on top, value below."""

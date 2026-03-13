@@ -242,20 +242,20 @@ def fig_top_options_table(scored_df: pd.DataFrame) -> go.Figure:
         return series.apply(lambda x: f"{x:.{decimals}f}" if pd.notna(x) else "—")
 
     # Format columns
-    headers = ["Rank", "Contract", "DTE", "Entry", "Max", "Return %",
-               "Delta", "Theta", "Vega", "IV",
+    headers = ["Rank", "Contract", "DTE", "Entry (Ask)", "Max (Bid)", "Raw %", "Real %", "Spread Cost",
+               "Delta", "IV",
                "Spread %", "Volume", "OI", "Score"]
 
     cell_values = [
         df["rank"],
         labels,
         df.get("dte", pd.Series(dtype=int)),
-        df["entry_mid"].apply(lambda x: f"${x:.2f}"),
-        df["max_mid"].apply(lambda x: f"${x:.2f}"),
+        df.get("entry_ask", df["entry_mid"]).apply(lambda x: f"${x:.2f}"),
+        df.get("max_bid", df["max_mid"]).apply(lambda x: f"${x:.2f}"),
         df["raw_return_pct"].apply(lambda x: f"{x:.0%}"),
+        df.get("realistic_return_pct", df["raw_return_pct"]).apply(lambda x: f"{x:.0%}"),
+        df.get("spread_cost_pct", pd.Series(0, index=df.index)).apply(lambda x: f"{x:.0%}"),
         _fmt_greek(df.get("delta", pd.Series(dtype=float)), 2),
-        _fmt_greek(df.get("theta", pd.Series(dtype=float)), 3),
-        _fmt_greek(df.get("vega", pd.Series(dtype=float)), 3),
         df.get("implied_vol", pd.Series(dtype=float)).apply(
             lambda x: f"{x:.0%}" if pd.notna(x) else "—"),
         df["avg_spread_pct_window"].apply(lambda x: f"{x:.1%}"),
@@ -411,7 +411,7 @@ def fig_option_price_chart(quotes_df: pd.DataFrame, ohlc_df: pd.DataFrame,
 
 
 def fig_return_comparison(scored_df: pd.DataFrame) -> go.Figure:
-    """Horizontal bar chart of return % for top options, colored by score."""
+    """Grouped horizontal bar chart: raw return vs realistic return."""
     fig = go.Figure()
 
     if scored_df.empty:
@@ -420,35 +420,41 @@ def fig_return_comparison(scored_df: pd.DataFrame) -> go.Figure:
     df = scored_df.sort_values("composite_score", ascending=True)
     labels = [contract_label(row) for _, row in df.iterrows()]
 
-    # Color gradient: gold for high score, steel for low
-    max_score = df["composite_score"].max()
-    min_score = df["composite_score"].min()
-    score_range = max_score - min_score if max_score != min_score else 1
+    has_realistic = "realistic_return_pct" in df.columns
 
-    colors = []
-    for _, row in df.iterrows():
-        t = (row["composite_score"] - min_score) / score_range
-        # Interpolate between steel and gold
-        r = int(88 + t * (200 - 88))
-        g = int(137 + t * (164 - 137))
-        b = int(160 + t * (110 - 160))
-        colors.append(f"rgb({r},{g},{b})")
-
+    # Raw return (muted)
     fig.add_trace(go.Bar(
         y=labels,
         x=df["raw_return_pct"] * 100,
         orientation="h",
-        marker_color=colors,
+        marker_color=C["steel"],
+        opacity=0.4,
+        name="Raw (mid→high)",
         text=df["raw_return_pct"].apply(lambda x: f"{x:.0%}"),
         textposition="auto",
-        textfont=dict(color=C["text"], size=10),
+        textfont=dict(color=C["text3"], size=9),
     ))
 
+    # Realistic return (prominent)
+    if has_realistic:
+        fig.add_trace(go.Bar(
+            y=labels,
+            x=df["realistic_return_pct"] * 100,
+            orientation="h",
+            marker_color=C["gold"],
+            name="Realistic (ask→bid)",
+            text=df["realistic_return_pct"].apply(lambda x: f"{x:.0%}"),
+            textposition="auto",
+            textfont=dict(color=C["text"], size=10),
+        ))
+
     fig.update_layout(
-        title="Return Comparison",
+        title="Return Comparison — Raw vs Realistic",
         xaxis_title="Return %",
-        height=max(250, len(df) * 35 + 80),
+        barmode="group",
+        height=max(280, len(df) * 45 + 80),
         margin=dict(l=120, r=20, t=50, b=40),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
     return _apply_dark_theme(fig)

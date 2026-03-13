@@ -233,6 +233,23 @@ def compute_option_returns(filtered_df: pd.DataFrame, ohlc_dict: dict,
             if not valid.empty:
                 avg_spread_pct = (valid["spread"] / valid["mid"]).mean()
 
+        # Realistic returns: buy at ask, sell at bid
+        entry_ask = row.get("ask", 0)
+        if entry_ask <= 0:
+            entry_ask = entry_mid  # fallback
+
+        max_bid = 0
+        time_to_max_bid = 0
+        if not window_quotes.empty and "bid" in window_quotes.columns:
+            valid_bids = window_quotes[window_quotes["bid"] > 0]["bid"]
+            if not valid_bids.empty:
+                max_bid = float(valid_bids.max())
+                max_bid_idx = valid_bids.idxmax()
+                time_to_max_bid = (max_bid_idx - window_quotes.index[0]).total_seconds() / 60
+
+        realistic_return_pct = (max_bid - entry_ask) / entry_ask if entry_ask > 0 and max_bid > 0 else 0
+        spread_cost_pct = raw_return_pct - realistic_return_pct
+
         # Extract greeks at entry time
         entry_greeks = _extract_entry_greeks(
             greeks_dict.get(key, pd.DataFrame()) if greeks_dict else pd.DataFrame(),
@@ -241,9 +258,14 @@ def compute_option_returns(filtered_df: pd.DataFrame, ohlc_dict: dict,
 
         results.append({
             "entry_mid": entry_mid,
+            "entry_ask": entry_ask,
             "max_mid": max_mid,
+            "max_bid": max_bid,
             "raw_return_pct": raw_return_pct,
+            "realistic_return_pct": realistic_return_pct,
+            "spread_cost_pct": spread_cost_pct,
             "time_to_max_min": time_to_max,
+            "time_to_max_bid_min": time_to_max_bid,
             "volume_during_window": vol_window,
             "avg_spread_pct_window": avg_spread_pct,
             **entry_greeks,
@@ -259,9 +281,14 @@ def compute_option_returns(filtered_df: pd.DataFrame, ohlc_dict: dict,
 def _empty_return_row() -> dict:
     return {
         "entry_mid": 0,
+        "entry_ask": 0,
         "max_mid": 0,
+        "max_bid": 0,
         "raw_return_pct": 0,
+        "realistic_return_pct": 0,
+        "spread_cost_pct": 0,
         "time_to_max_min": 0,
+        "time_to_max_bid_min": 0,
         "volume_during_window": 0,
         "avg_spread_pct_window": 0,
         **{col: None for col in _GREEK_COLS},
@@ -295,8 +322,9 @@ def score_options(returns_df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
             return pd.Series(0.5, index=series.index)
         return series.rank(pct=True, method="average")
 
-    # Raw return score (higher = better)
-    df["return_score"] = _pctrank(df["raw_return_pct"]) * 40
+    # Return score — use realistic return (accounts for spread crossing)
+    return_col = "realistic_return_pct" if "realistic_return_pct" in df.columns else "raw_return_pct"
+    df["return_score"] = _pctrank(df[return_col]) * 40
 
     # Spread score (lower spread = better, so invert)
     spread = df["avg_spread_pct_window"].fillna(1.0)
@@ -358,20 +386,24 @@ def compute_ideal_play_summary(top_option: pd.Series, underlying_entry: float,
                                 underlying_max: float, side: int) -> dict:
     """Generate the ideal play narrative for the #1 ranked option."""
     entry_mid = top_option.get("entry_mid", 0)
+    entry_ask = top_option.get("entry_ask", entry_mid)
     max_mid = top_option.get("max_mid", 0)
-    return_pct = top_option.get("raw_return_pct", 0)
+    max_bid = top_option.get("max_bid", 0)
+    raw_return_pct = top_option.get("raw_return_pct", 0)
+    realistic_return_pct = top_option.get("realistic_return_pct", 0)
+    spread_cost_pct = top_option.get("spread_cost_pct", 0)
     spread_pct = top_option.get("avg_spread_pct_window", 0)
     volume = top_option.get("volume_during_window", 0)
     dte = top_option.get("dte", 0)
     label = contract_label(top_option)
     score = top_option.get("composite_score", 0)
 
-    # Leverage vs stock
+    # Leverage vs stock — use realistic return
     stock_return = abs(underlying_max - underlying_entry) / underlying_entry if underlying_entry > 0 else 0
-    leverage = return_pct / stock_return if stock_return > 0 else 0
+    leverage = realistic_return_pct / stock_return if stock_return > 0 else 0
 
-    # Return per contract (options are 100 shares per contract)
-    return_per_contract = (max_mid - entry_mid) * 100
+    # Return per contract — realistic (buy at ask, sell at max bid)
+    return_per_contract = (max_bid - entry_ask) * 100 if max_bid > 0 else 0
 
     # Fillability assessment
     if volume >= 500 and spread_pct < 0.05:
@@ -381,20 +413,17 @@ def compute_ideal_play_summary(top_option: pd.Series, underlying_entry: float,
     else:
         fillability = "Low"
 
-    # Narrative
+    # Narrative — show both raw and realistic
     direction = "call" if side == 1 else "put"
     moneyness = top_option.get("moneyness_label", "ATM")
     verdict = (
         f"This was a {fillability.lower()}-liquidity {moneyness} {direction} with "
-        f"{return_pct:.0%} return vs {stock_return:.1%} stock move — "
-        f"{leverage:.0f}x leverage"
+        f"{realistic_return_pct:.0%} realistic return ({raw_return_pct:.0%} raw) "
+        f"vs {stock_return:.1%} stock move — {leverage:.0f}x leverage. "
+        f"Spread cost ate {spread_cost_pct:.0%} of theoretical return."
     )
-    if spread_pct > 0:
-        verdict += f" with {spread_pct:.1%} avg spread"
     if volume > 0:
-        verdict += f" and {volume:,} contracts traded."
-    else:
-        verdict += "."
+        verdict += f" {volume:,} contracts traded."
 
     # Greeks at entry
     delta = top_option.get("delta", None)
@@ -406,8 +435,12 @@ def compute_ideal_play_summary(top_option: pd.Series, underlying_entry: float,
     return {
         "label": label,
         "entry_mid": entry_mid,
+        "entry_ask": entry_ask,
         "max_mid": max_mid,
-        "return_pct": return_pct,
+        "max_bid": max_bid,
+        "return_pct": realistic_return_pct,
+        "raw_return_pct": raw_return_pct,
+        "spread_cost_pct": spread_cost_pct,
         "return_per_contract": return_per_contract,
         "spread_pct": spread_pct,
         "volume": volume,
