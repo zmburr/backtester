@@ -136,6 +136,8 @@ app.layout = html.Div([
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
         dcc.Tab(label="BATCH ANALYSIS", value="batch",
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
+        dcc.Tab(label="SYSTEMS", value="systems",
+                style=TAB_STYLE, selected_style=TAB_SELECTED),
     ], style={"margin": "0 30px"}),
 
     # Tab content
@@ -152,6 +154,8 @@ app.layout = html.Div([
 def render_tab(tab):
     if tab == "batch":
         return _batch_layout()
+    if tab == "systems":
+        return _systems_layout()
     return _single_trade_layout()
 
 
@@ -834,6 +838,134 @@ def _render_batch_results_from_df(df: pd.DataFrame):
     ]
 
     return html.Div(children, className="anim-stagger")
+
+
+# ═══════════════════════════════════════════════════════════
+# TAB 3: SYSTEMS
+# ═══════════════════════════════════════════════════════════
+
+def _systems_layout():
+    return html.Div([
+        # Controls
+        html.Div([
+            html.Div([
+                html.Button("Load Batch Data", id="systems-load-btn", style={
+                    "backgroundColor": C["gold"],
+                    "color": C["bg"],
+                    "border": "none",
+                    "borderRadius": "3px",
+                    "padding": "10px 20px",
+                    "fontWeight": "700",
+                    "fontSize": "12px",
+                    "cursor": "pointer",
+                }),
+                html.Span(id="systems-status",
+                          style={**_mono("12px", "400", C["text3"]), "marginLeft": "12px"}),
+            ], style={"display": "flex", "alignItems": "center"}),
+        ], style={
+            **_card(),
+            "margin": "16px 30px",
+        }),
+
+        # Results
+        html.Div(id="systems-results-container", style={"padding": "0 30px 30px 30px"}),
+    ], style={"padding": "0"})
+
+
+@app.callback(
+    [Output("systems-results-container", "children"),
+     Output("systems-status", "children")],
+    Input("systems-load-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def load_systems_data(n_clicks):
+    from options_replay.batch_analyzer import load_batch_results
+    from options_replay.systems_analyzer import (
+        prepare_systems_data, compute_hotkey_grid,
+        compute_price_otm_grid, recommend_hotkeys, compute_delta_profile,
+    )
+    from options_replay.systems_charts import (
+        fig_hotkey_heatmap, fig_price_otm_grid, fig_hotkey_comparison_table,
+        fig_delta_distribution, fig_return_distribution_by_hotkey,
+        fig_price_vs_return_scatter,
+    )
+
+    df = load_batch_results()
+    if df is None:
+        return _error_card("No batch results found. Run a batch analysis first."), "No data"
+
+    sys_df = prepare_systems_data(df)
+    if sys_df.empty:
+        return _error_card("No OTM/ATM contracts found in batch results."), "No data"
+
+    grid_df = compute_hotkey_grid(sys_df)
+    price_otm = compute_price_otm_grid(sys_df)
+    recs = recommend_hotkeys(grid_df)
+
+    # Build recommendation cards
+    rec_cards = []
+    for rec in recs:
+        label = rec.get("label", "")
+        label_color = C["loss"] if label == "AGGRESSIVE" else C["steel"] if label == "CONSERVATIVE" else C["gold"]
+        profile = compute_delta_profile(sys_df, rec["max_price"], rec["max_otm"])
+        delta_range = f"{profile.get('delta_q25', 0):.2f}–{profile.get('delta_q75', 0):.2f}"
+
+        rec_cards.append(html.Div([
+            html.Div(label, style={
+                **_mono("10px", "700", label_color),
+                "letterSpacing": "1.5px",
+                "marginBottom": "6px",
+            }),
+            html.Div(f"<${rec['max_price']:.2f}  &  <{rec['max_otm']:.0f}% OTM",
+                      style=_mono("14px", "700", C["text"])),
+            html.Div([
+                _stat_pill("Count", str(int(rec["count"]))),
+                _stat_pill("Avg Return", f"{rec['avg_return']:.0%}",
+                           color=C["profit"] if rec["avg_return"] > 0 else C["loss"]),
+                _stat_pill("Win Rate", f"{rec['win_rate']:.0%}",
+                           color=C["profit"] if rec["win_rate"] > 0.7 else C["text"]),
+                _stat_pill("Edge", f"{rec['edge']:.1f}"),
+                _stat_pill("Spread Cost", f"{rec['avg_spread_cost']:.0%}", color=C["loss"]),
+                _stat_pill("Delta Range", delta_range),
+            ], style={"display": "flex", "gap": "8px", "flexWrap": "wrap", "marginTop": "8px"}),
+            html.P(rec.get("rationale", ""), style={
+                **_mono("10px", "400", C["text3"]),
+                "margin": "6px 0 0 0",
+            }),
+        ], style={
+            **_card(),
+            "flex": "1",
+            "borderLeft": f"3px solid {label_color}",
+        }))
+
+    children = [
+        # Recommended hotkeys header
+        html.Div("RECOMMENDED HOTKEYS", style={**_label(), "marginBottom": "10px"}),
+
+        # Hotkey cards row
+        html.Div(rec_cards, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}),
+
+        # Row 1: Heatmaps
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_hotkey_heatmap(grid_df, "edge"))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_price_otm_grid(price_otm))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 2: Distributions
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_delta_distribution(sys_df, recs))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_return_distribution_by_hotkey(sys_df, recs))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 3: Price vs Return scatter (full width)
+        dcc.Graph(figure=fig_price_vs_return_scatter(sys_df)),
+
+        # Row 4: Comparison table (full width)
+        dcc.Graph(figure=fig_hotkey_comparison_table(recs)),
+    ]
+
+    status = f"{len(sys_df)} OTM/ATM contracts loaded ({len(df)} total in batch)"
+    return html.Div(children, className="anim-stagger"), status
 
 
 # ═══════════════════════════════════════════════════════════
