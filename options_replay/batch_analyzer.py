@@ -129,6 +129,8 @@ def analyze_single_trade(
     scored_df["side"] = side
     scored_df["net_pnl"] = trade.get("net_pnl", 0)
     scored_df["news_type"] = trade.get("news_type", "")
+    scored_df["tags"] = trade.get("tags", "")
+    scored_df["setup_type"] = trade.get("setup_type", "other")
     scored_df["underlying_price"] = underlying_price
     scored_df["hold_window"] = hold_minutes
 

@@ -22,13 +22,18 @@ MAX_PRICES = [0.50, 1.00, 1.50, 2.00, 3.00, 5.00]
 MAX_OTM_PCTS = [1, 2, 3, 5, 10]
 
 
-def prepare_systems_data(df: pd.DataFrame) -> pd.DataFrame:
+def prepare_systems_data(df: pd.DataFrame, setup_type: str = None) -> pd.DataFrame:
     """Filter and enrich batch results for systems analysis.
 
     Filters to hold_window=30, is_primary=True, OTM/ATM only.
+    Optionally filters by setup_type.
     Adds pct_otm, price_band, otm_band columns.
     """
     out = df.copy()
+
+    # Filter by setup type if specified
+    if setup_type and setup_type != "all" and "setup_type" in out.columns:
+        out = out[out["setup_type"] == setup_type].copy()
 
     # Filter to best hold window and primary direction
     if "hold_window" in out.columns:

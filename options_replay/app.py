@@ -504,6 +504,28 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
 # TAB 2: BATCH ANALYSIS
 # ═══════════════════════════════════════════════════════════
 
+def _batch_filter_options():
+    """Build batch filter dropdown options with counts."""
+    opts = [
+        {"label": f"All $10K+ trades ({len(TRADE_OPTIONS)})", "value": "all"},
+        {"label": "Long only", "value": "long"},
+        {"label": "Short only", "value": "short"},
+        {"label": "Top 50 by P&L", "value": "top50"},
+        {"label": "Top 100 by P&L", "value": "top100"},
+    ]
+    if not TRADES_DF.empty and "setup_type" in TRADES_DF.columns:
+        news = TRADES_DF[TRADES_DF["setup_type"] == "news"]
+        n5k = len(news[news["net_pnl"] >= 5000])
+        n1k = len(news[news["net_pnl"] >= 1000])
+        nall = len(news[news["net_pnl"] > 0])
+        opts.extend([
+            {"label": f"News Winners $5K+ ({n5k})", "value": "news_5k"},
+            {"label": f"News Winners $1K+ ({n1k})", "value": "news_1k"},
+            {"label": f"News Winners All ({nall})", "value": "news_all"},
+        ])
+    return opts
+
+
 def _batch_layout():
     return html.Div([
         # Controls
@@ -512,13 +534,7 @@ def _batch_layout():
                 html.Label("Trade Filter", style=_label()),
                 dcc.Dropdown(
                     id="batch-filter",
-                    options=[
-                        {"label": f"All $10K+ trades ({len(TRADE_OPTIONS)})", "value": "all"},
-                        {"label": "Long only", "value": "long"},
-                        {"label": "Short only", "value": "short"},
-                        {"label": "Top 50 by P&L", "value": "top50"},
-                        {"label": "Top 100 by P&L", "value": "top100"},
-                    ],
+                    options=_batch_filter_options(),
                     value="top50",
                     style={"fontSize": "12px"},
                 ),
@@ -613,7 +629,19 @@ def _get_trade_indices(filter_value: str) -> list:
         return []
 
     df = TRADES_DF.copy()
-    # get_trade_options already filters to $10K+, so we work from the same set
+
+    # News-specific filters (no $10K minimum)
+    if filter_value == "news_5k":
+        mask = (df["net_pnl"] >= 5000) & (df["setup_type"] == "news")
+        return df[mask].index.tolist()
+    elif filter_value == "news_1k":
+        mask = (df["net_pnl"] >= 1000) & (df["setup_type"] == "news")
+        return df[mask].index.tolist()
+    elif filter_value == "news_all":
+        mask = (df["net_pnl"] > 0) & (df["setup_type"] == "news")
+        return df[mask].index.tolist()
+
+    # Standard filters: start from $10K+ base
     mask = df["net_pnl"].abs() >= 10_000
 
     if filter_value == "long":
@@ -849,6 +877,21 @@ def _systems_layout():
         # Controls
         html.Div([
             html.Div([
+                html.Label("Setup Type", style=_label()),
+                dcc.Dropdown(
+                    id="systems-setup-filter",
+                    options=[
+                        {"label": "All Setups", "value": "all"},
+                        {"label": "News Only", "value": "news"},
+                        {"label": "Momentum", "value": "momo"},
+                        {"label": "Capitulation", "value": "capitulation"},
+                    ],
+                    value="all",
+                    style={"fontSize": "12px", "minWidth": "160px"},
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
                 html.Button("Load Batch Data", id="systems-load-btn", style={
                     "backgroundColor": C["gold"],
                     "color": C["bg"],
@@ -858,12 +901,16 @@ def _systems_layout():
                     "fontWeight": "700",
                     "fontSize": "12px",
                     "cursor": "pointer",
+                    "marginTop": "20px",
                 }),
                 html.Span(id="systems-status",
                           style={**_mono("12px", "400", C["text3"]), "marginLeft": "12px"}),
             ], style={"display": "flex", "alignItems": "center"}),
         ], style={
             **_card(),
+            "display": "flex",
+            "alignItems": "flex-start",
+            "gap": "20px",
             "margin": "16px 30px",
         }),
 
@@ -876,9 +923,10 @@ def _systems_layout():
     [Output("systems-results-container", "children"),
      Output("systems-status", "children")],
     Input("systems-load-btn", "n_clicks"),
+    State("systems-setup-filter", "value"),
     prevent_initial_call=True,
 )
-def load_systems_data(n_clicks):
+def load_systems_data(n_clicks, setup_filter):
     from options_replay.batch_analyzer import load_batch_results
     from options_replay.systems_analyzer import (
         prepare_systems_data, compute_hotkey_grid,
@@ -894,7 +942,8 @@ def load_systems_data(n_clicks):
     if df is None:
         return _error_card("No batch results found. Run a batch analysis first."), "No data"
 
-    sys_df = prepare_systems_data(df)
+    setup_type = setup_filter if setup_filter and setup_filter != "all" else None
+    sys_df = prepare_systems_data(df, setup_type=setup_type)
     if sys_df.empty:
         return _error_card("No OTM/ATM contracts found in batch results."), "No data"
 
@@ -964,7 +1013,8 @@ def load_systems_data(n_clicks):
         dcc.Graph(figure=fig_hotkey_comparison_table(recs)),
     ]
 
-    status = f"{len(sys_df)} OTM/ATM contracts loaded ({len(df)} total in batch)"
+    filter_label = f" [{setup_filter}]" if setup_type else ""
+    status = f"{len(sys_df)} OTM/ATM contracts loaded ({len(df)} total in batch){filter_label}"
     return html.Div(children, className="anim-stagger"), status
 
 

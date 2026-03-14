@@ -10,6 +10,22 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+SETUP_KEYWORDS = ["news", "momo", "capitulation", "3DGapFade", "ccall"]
+
+
+def parse_setup_type(tags: str) -> str:
+    """Extract primary setup type from tags string.
+
+    Returns: 'news', 'momo', 'capitulation', '3DGapFade', 'ccall', or 'other'
+    """
+    if not tags or not isinstance(tags, str):
+        return "other"
+    tags_lower = tags.lower()
+    for kw in SETUP_KEYWORDS:
+        if kw.lower() in tags_lower:
+            return kw
+    return "other"
+
 TRADE_CSV_PATHS = [
     Path(r"C:\Users\zmbur\PycharmProjects\ExitMonitor\data\trade_data.csv"),
     Path(r"C:\Users\zmbur\PycharmProjects\ExitMonitor\trade_data.csv"),
@@ -73,6 +89,7 @@ def load_trades() -> pd.DataFrame:
 
     # Metadata
     df["tags"] = raw.get("Tags", "").fillna("")
+    df["setup_type"] = df["tags"].apply(parse_setup_type)
     df["news_summary"] = raw.get("news_summary", "").fillna("")
     df["news_type"] = raw.get("news_type", "").fillna("")
     df["mkt_cap"] = pd.to_numeric(raw.get("mkt_cap", 0), errors="coerce").fillna(0)
@@ -127,6 +144,7 @@ def parse_manual_input(ticker: str, date_str: str, time_str: str, direction: str
         "avg_exit_price": 0,
         "max_size": 0,
         "tags": "",
+        "setup_type": "other",
         "news_summary": "",
         "news_type": "",
         "mkt_cap": 0,
