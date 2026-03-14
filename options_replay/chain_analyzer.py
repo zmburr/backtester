@@ -295,6 +295,126 @@ def _empty_return_row() -> dict:
     }
 
 
+def compute_option_returns_with_targets(
+    filtered_df: pd.DataFrame,
+    ohlc_dict: dict,
+    quotes_dict: dict,
+    snapshot_time: datetime,
+    hold_minutes: int = 120,
+    greeks_dict: dict = None,
+    target_levels: dict = None,
+    underlying_bars: pd.DataFrame = None,
+    side: int = 1,
+) -> pd.DataFrame:
+    """Compute option returns AND track when underlying crosses ATR target levels.
+
+    Extends compute_option_returns() with target-based exit tracking.
+
+    Args:
+        filtered_df, ohlc_dict, quotes_dict, snapshot_time, hold_minutes, greeks_dict:
+            Same as compute_option_returns().
+        target_levels: dict of {name: price} e.g. {"0.5x": 105.5, "1.0x": 108.0}
+        underlying_bars: DataFrame of underlying 1-min bars (index=timestamp, cols=open/high/low/close)
+        side: 1 for long (calls, targets above), -1 for short (puts, targets below)
+
+    Returns:
+        DataFrame with all columns from compute_option_returns() PLUS for each target:
+            target_{name}_hit (bool), target_{name}_time_min (float),
+            target_{name}_option_bid (float), target_{name}_option_return (float)
+    """
+    # First get all standard return columns
+    df = compute_option_returns(
+        filtered_df, ohlc_dict, quotes_dict, snapshot_time,
+        hold_minutes, greeks_dict,
+    )
+
+    if df.empty or not target_levels or underlying_bars is None or underlying_bars.empty:
+        # Add empty target columns
+        if target_levels:
+            for name in target_levels:
+                df[f"target_{name}_hit"] = False
+                df[f"target_{name}_time_min"] = np.nan
+                df[f"target_{name}_option_bid"] = np.nan
+                df[f"target_{name}_option_return"] = np.nan
+        return df
+
+    # Prepare underlying window
+    window_start = snapshot_time
+    window_end = snapshot_time + timedelta(minutes=hold_minutes)
+
+    if hasattr(underlying_bars.index, 'tz') and underlying_bars.index.tz is not None:
+        if window_start.tzinfo is None:
+            from pytz import timezone
+            window_start = timezone("US/Eastern").localize(window_start)
+            window_end = timezone("US/Eastern").localize(window_end)
+
+    ub = underlying_bars[(underlying_bars.index >= window_start) & (underlying_bars.index <= window_end)]
+
+    # Find when each target was hit (first crossing)
+    target_hits = {}  # {name: (timestamp, minutes_from_entry)}
+    for name, level in target_levels.items():
+        hit_ts = None
+        hit_min = np.nan
+        for ts, bar in ub.iterrows():
+            if side == 1 and bar.get("high", 0) >= level:
+                hit_ts = ts
+                hit_min = (ts - ub.index[0]).total_seconds() / 60
+                break
+            elif side == -1 and bar.get("low", float("inf")) <= level:
+                hit_ts = ts
+                hit_min = (ts - ub.index[0]).total_seconds() / 60
+                break
+        target_hits[name] = (hit_ts, hit_min)
+
+    # For each contract, look up option bid at each target hit timestamp
+    for name, (hit_ts, hit_min) in target_hits.items():
+        hit_col = f"target_{name}_hit"
+        time_col = f"target_{name}_time_min"
+        bid_col = f"target_{name}_option_bid"
+        ret_col = f"target_{name}_option_return"
+
+        df[hit_col] = hit_ts is not None
+        df[time_col] = hit_min
+
+        if hit_ts is None:
+            df[bid_col] = np.nan
+            df[ret_col] = np.nan
+            continue
+
+        # Look up each contract's bid at the target hit time
+        bids = []
+        returns = []
+        for idx, row in df.iterrows():
+            key = _contract_key(row)
+            quotes = quotes_dict.get(key, pd.DataFrame())
+            entry_ask = row.get("entry_ask", row.get("ask", 0))
+
+            if quotes.empty or entry_ask <= 0:
+                bids.append(np.nan)
+                returns.append(np.nan)
+                continue
+
+            # Find bid nearest to target hit timestamp
+            try:
+                qi = quotes.index.get_indexer([hit_ts], method="nearest")[0]
+                if qi >= 0:
+                    bid_at_target = float(quotes.iloc[qi].get("bid", 0))
+                    bids.append(bid_at_target)
+                    ret = (bid_at_target - entry_ask) / entry_ask if entry_ask > 0 else 0
+                    returns.append(ret)
+                else:
+                    bids.append(np.nan)
+                    returns.append(np.nan)
+            except Exception:
+                bids.append(np.nan)
+                returns.append(np.nan)
+
+        df[bid_col] = bids
+        df[ret_col] = returns
+
+    return df
+
+
 def score_options(returns_df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     """Score and rank options by liquidity-adjusted return.
 
