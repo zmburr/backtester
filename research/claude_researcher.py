@@ -235,7 +235,7 @@ Write in plain English for a trader. Focus on expectancy improvement.
 Return as plain text (not JSON)."""
 
         response = ask_claude(prompt, system=self.system_prompt, model=self.model,
-                              timeout=self.timeout)
+                              timeout=max(self.timeout, 1800))
         self.call_count += 1
 
         if not response:

@@ -50,7 +50,11 @@ class WalkForwardSensitivityExperiment(BaseExperiment):
             elif strategy == "bounce":
                 csv_path = str(config.bounce_csv)
 
-        # Lazy import to avoid circular deps
+        # Lazy import — ensure project root is on sys.path
+        import sys, os
+        project_root = str(config.project_root)
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
         from validation.walk_forward_engine import run_walk_forward
 
         split_results = []
