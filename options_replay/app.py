@@ -138,6 +138,8 @@ app.layout = html.Div([
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
         dcc.Tab(label="SYSTEMS", value="systems",
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
+        dcc.Tab(label="CAPITULATION", value="capitulation",
+                style=TAB_STYLE, selected_style=TAB_SELECTED),
     ], style={"margin": "0 30px"}),
 
     # Tab content
@@ -156,6 +158,8 @@ def render_tab(tab):
         return _batch_layout()
     if tab == "systems":
         return _systems_layout()
+    if tab == "capitulation":
+        return _cap_layout()
     return _single_trade_layout()
 
 
@@ -1015,6 +1019,199 @@ def load_systems_data(n_clicks, setup_filter):
 
     filter_label = f" [{setup_filter}]" if setup_type else ""
     status = f"{len(sys_df)} OTM/ATM contracts loaded ({len(df)} total in batch){filter_label}"
+    return html.Div(children, className="anim-stagger"), status
+
+
+# ═══════════════════════════════════════════════════════════
+# TAB 4: CAPITULATION
+# ═══════════════════════════════════════════════════════════
+
+def _cap_layout():
+    return html.Div([
+        # Controls
+        html.Div([
+            html.Div([
+                html.Label("Trade Type", style=_label()),
+                dcc.Dropdown(
+                    id="cap-type-filter",
+                    options=[
+                        {"label": "All", "value": "all"},
+                        {"label": "Bounce (Longs)", "value": "bounce"},
+                        {"label": "Reversal (Shorts)", "value": "reversal"},
+                    ],
+                    value="all",
+                    style={"fontSize": "12px", "minWidth": "150px"},
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Label("Entry Offset", style=_label()),
+                dcc.Dropdown(
+                    id="cap-offset-filter",
+                    options=[
+                        {"label": "All Offsets", "value": "all"},
+                        {"label": "Low+0 (at low)", "value": "low+0"},
+                        {"label": "Low+2", "value": "low+2"},
+                        {"label": "Low+5", "value": "low+5"},
+                        {"label": "High+0 (at high)", "value": "high+0"},
+                        {"label": "Open+0", "value": "open+0"},
+                        {"label": "Open+15", "value": "open+15"},
+                    ],
+                    value="all",
+                    style={"fontSize": "12px", "minWidth": "140px"},
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Button("Load Cap Data", id="cap-load-btn", style={
+                    "backgroundColor": C["gold"],
+                    "color": C["bg"],
+                    "border": "none",
+                    "borderRadius": "3px",
+                    "padding": "10px 20px",
+                    "fontWeight": "700",
+                    "fontSize": "12px",
+                    "cursor": "pointer",
+                    "marginTop": "20px",
+                }),
+                html.Span(id="cap-status",
+                          style={**_mono("12px", "400", C["text3"]), "marginLeft": "12px"}),
+            ], style={"display": "flex", "alignItems": "center"}),
+        ], style={
+            **_card(),
+            "display": "flex",
+            "alignItems": "flex-start",
+            "gap": "20px",
+            "margin": "16px 30px",
+        }),
+
+        # Results
+        html.Div(id="cap-results-container", style={"padding": "0 30px 30px 30px"}),
+    ], style={"padding": "0"})
+
+
+@app.callback(
+    [Output("cap-results-container", "children"),
+     Output("cap-status", "children")],
+    Input("cap-load-btn", "n_clicks"),
+    [State("cap-type-filter", "value"),
+     State("cap-offset-filter", "value")],
+    prevent_initial_call=True,
+)
+def load_cap_data(n_clicks, type_filter, offset_filter):
+    from options_replay.cap_batch_analyzer import load_cap_results
+    from options_replay.cap_systems_analyzer import (
+        prepare_cap_data, compute_target_hit_rates,
+        compute_entry_offset_comparison, compute_cap_hotkey_grid,
+        recommend_cap_hotkeys, compute_iv_analysis, compute_cap_summary,
+    )
+    from options_replay.cap_charts import (
+        fig_target_hit_heatmap, fig_entry_offset_comparison,
+        fig_time_to_target, fig_cap_hotkey_heatmap,
+        fig_iv_analysis, fig_bounce_vs_reversal,
+    )
+
+    df = load_cap_results()
+    if df is None:
+        return _error_card("No cap batch results found. Run a capitulation batch first."), "No data"
+
+    trade_type = type_filter if type_filter and type_filter != "all" else None
+    entry_offset = offset_filter if offset_filter and offset_filter != "all" else None
+
+    cap_df = prepare_cap_data(df, trade_type=trade_type, entry_offset=entry_offset)
+    if cap_df.empty:
+        return _error_card("No OTM/ATM contracts found in cap batch results."), "No data"
+
+    summary = compute_cap_summary(cap_df)
+    target_rates = compute_target_hit_rates(cap_df)
+    offset_comp = compute_entry_offset_comparison(df)  # use full df for offset comparison
+    grid_df = compute_cap_hotkey_grid(cap_df)
+    recs = recommend_cap_hotkeys(grid_df)
+    iv_data = compute_iv_analysis(cap_df)
+
+    # Summary cards
+    summary_items = [
+        _stat_pill("Contracts", str(summary.get("total_contracts", 0))),
+        _stat_pill("Trades", str(summary.get("unique_trades", 0))),
+        _stat_pill("Symbols", str(summary.get("unique_symbols", 0))),
+        _stat_pill("Win Rate", f"{summary.get('win_rate', 0):.0%}",
+                   color=C["profit"] if summary.get("win_rate", 0) > 0.5 else C["loss"]),
+        _stat_pill("Avg Return", f"{summary.get('avg_return', 0):.0%}",
+                   color=C["profit"] if summary.get("avg_return", 0) > 0 else C["loss"]),
+    ]
+    # Add target hit rates
+    for target in ["0.5x", "1.0x", "1.5x"]:
+        hr = summary.get(f"target_{target}_hit_rate")
+        if hr is not None:
+            summary_items.append(_stat_pill(f"{target} ATR Hit", f"{hr:.0%}",
+                                           color=C["profit"] if hr > 0.5 else C["text2"]))
+
+    # Recommendation cards
+    rec_cards = []
+    for rec in recs:
+        label = rec.get("label", "")
+        label_color = C["loss"] if label == "AGGRESSIVE" else C["steel"] if label == "BALANCED" else C["gold"]
+        rec_cards.append(html.Div([
+            html.Div(label, style={
+                **_mono("10px", "700", label_color),
+                "letterSpacing": "1.5px",
+                "marginBottom": "6px",
+            }),
+            html.Div(f"<${rec['max_price']:.2f}  &  <{rec['max_otm']:.0f}% OTM",
+                      style=_mono("14px", "700", C["text"])),
+            html.Div([
+                _stat_pill("Count", str(int(rec["count"]))),
+                _stat_pill("Avg Return", f"{rec['avg_return']:.0%}",
+                           color=C["profit"] if rec["avg_return"] > 0 else C["loss"]),
+                _stat_pill("Win Rate", f"{rec['win_rate']:.0%}",
+                           color=C["profit"] if rec["win_rate"] > 0.5 else C["text"]),
+                _stat_pill("Edge", f"{rec['edge']:.2f}"),
+            ], style={"display": "flex", "gap": "8px", "flexWrap": "wrap", "marginTop": "8px"}),
+            html.P(rec.get("rationale", ""), style={
+                **_mono("10px", "400", C["text3"]),
+                "margin": "6px 0 0 0",
+            }),
+        ], style={
+            **_card(),
+            "flex": "1",
+            "borderLeft": f"3px solid {label_color}",
+        }))
+
+    children = [
+        # Summary
+        html.Div("CAPITULATION OVERVIEW", style={**_label(), "marginBottom": "10px"}),
+        html.Div(summary_items, style={"display": "flex", "gap": "8px", "flexWrap": "wrap", "marginBottom": "16px"}),
+
+        # Hotkey recommendations
+        html.Div("RECOMMENDED HOTKEYS", style={**_label(), "marginBottom": "10px"}),
+        html.Div(rec_cards, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}),
+
+        # Row 1: Target heatmap + hotkey heatmap
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_target_hit_heatmap(target_rates))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_cap_hotkey_heatmap(grid_df))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 2: Entry offset comparison + time to target
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_entry_offset_comparison(offset_comp))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_time_to_target(target_rates))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+
+        # Row 3: IV analysis + bounce vs reversal
+        html.Div([
+            html.Div([dcc.Graph(figure=fig_iv_analysis(iv_data))], style={"flex": "1"}),
+            html.Div([dcc.Graph(figure=fig_bounce_vs_reversal(cap_df))], style={"flex": "1"}),
+        ], style={"display": "flex", "gap": "12px"}),
+    ]
+
+    filter_parts = []
+    if trade_type:
+        filter_parts.append(trade_type)
+    if entry_offset:
+        filter_parts.append(entry_offset)
+    filter_label = f" [{', '.join(filter_parts)}]" if filter_parts else ""
+    status = f"{len(cap_df)} OTM/ATM contracts loaded ({len(df)} total){filter_label}"
     return html.Div(children, className="anim-stagger"), status
 
 
