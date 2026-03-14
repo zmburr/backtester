@@ -28,6 +28,7 @@ from options_replay.chain_analyzer import (
     filter_chain, compute_option_returns, score_options,
     compute_ideal_play_summary, contract_key, contract_label,
 )
+from options_replay.contract_picker import pick_contracts, PickerResult
 from options_replay.charts import (
     fig_underlying_candlestick, fig_chain_heatmap, fig_top_options_table,
     fig_option_price_grid, fig_return_comparison, fig_liquidity_comparison,
@@ -225,6 +226,29 @@ def _single_trade_layout():
             "padding": "12px 20px",
         }),
 
+        # Risk budget
+        html.Div([
+            html.Label("Risk Budget", style=_label()),
+            html.Div([
+                html.Span("$", style=_mono("14px", "600", C["text3"])),
+                dcc.Input(
+                    id="risk-budget-input",
+                    type="number",
+                    value=500,
+                    min=100,
+                    max=10000,
+                    step=100,
+                    style={**_input_style(), "width": "100px"},
+                ),
+                html.Span("max premium at risk per trade",
+                           style=_mono("11px", "400", C["text3"])),
+            ], style={"display": "flex", "gap": "8px", "alignItems": "center"}),
+        ], style={
+            **_card(),
+            "margin": "0 30px 16px 30px",
+            "padding": "12px 20px",
+        }),
+
         # Results
         dcc.Loading(
             id="loading-results",
@@ -244,11 +268,12 @@ def _single_trade_layout():
      State("manual-date", "value"),
      State("manual-time", "value"),
      State("manual-direction", "value"),
-     State("window-slider", "value")],
+     State("window-slider", "value"),
+     State("risk-budget-input", "value")],
     prevent_initial_call=True,
 )
 def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
-                  manual_time, manual_direction, hold_minutes):
+                  manual_time, manual_direction, hold_minutes, risk_budget):
     """Main analysis callback — triggered by trade selection or manual entry."""
     ctx = callback_context
     if not ctx.triggered:
@@ -366,6 +391,10 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
     if scored_df.empty:
         return _error_card("Scoring produced no results. The contracts may have had no price movement.")
 
+    # Contract picker
+    risk_budget = risk_budget or 500
+    picker_result = pick_contracts(scored_df, risk_budget=risk_budget)
+
     # Ideal play
     underlying_max = underlying_price
     if not underlying_df.empty:
@@ -433,44 +462,8 @@ def analyze_trade(dropdown_value, n_clicks, manual_ticker, manual_date,
         # Underlying chart
         dcc.Graph(figure=fig_underlying, style={"height": "450px"}),
 
-        # Ideal play card
-        html.Div([
-            html.Div("IDEAL PLAY", style=_label()),
-            html.Div([
-                html.Span(f"{ideal['label']}", style=_mono("18px", "700", C["gold"])),
-            ], style={"marginBottom": "8px"}),
-            html.Div([
-                _stat_pill("Entry (Ask)", f"${ideal.get('entry_ask', ideal['entry_mid']):.2f}"),
-                _stat_pill("Max (Bid)", f"${ideal.get('max_bid', ideal['max_mid']):.2f}"),
-                _stat_pill("Realistic", f"{ideal['return_pct']:.0%}",
-                          color=C["profit"] if ideal["return_pct"] > 0 else C["loss"]),
-                _stat_pill("Raw", f"{ideal.get('raw_return_pct', ideal['return_pct']):.0%}",
-                          color=C["text3"]),
-                _stat_pill("Spread Cost", f"{ideal.get('spread_cost_pct', 0):.0%}",
-                          color=C["loss"]),
-                _stat_pill("$/Contract", f"${ideal['return_per_contract']:.0f}"),
-                _stat_pill("Volume", f"{ideal['volume']:,}"),
-                _stat_pill("Leverage", f"{ideal['leverage']:.0f}x"),
-                _stat_pill("DTE", str(ideal.get("dte", "?"))),
-                _stat_pill("Fillability", ideal["fillability"],
-                          color=C["profit"] if ideal["fillability"] == "High"
-                          else C["gold"] if ideal["fillability"] == "Medium"
-                          else C["loss"]),
-            ], style={"display": "flex", "gap": "12px", "flexWrap": "wrap", "marginBottom": "10px"}),
-            # Greeks row
-            html.Div([
-                _stat_pill("Delta", f"{ideal['delta']:.2f}" if ideal.get("delta") is not None else "—"),
-                _stat_pill("Theta", f"{ideal['theta']:.3f}" if ideal.get("theta") is not None else "—"),
-                _stat_pill("Vega", f"{ideal['vega']:.3f}" if ideal.get("vega") is not None else "—"),
-                _stat_pill("Rho", f"{ideal['rho']:.3f}" if ideal.get("rho") is not None else "—"),
-                _stat_pill("IV", f"{ideal['implied_vol']:.0%}" if ideal.get("implied_vol") is not None else "—"),
-            ], style={"display": "flex", "gap": "12px", "flexWrap": "wrap", "marginBottom": "10px"}),
-            html.P(ideal["verdict"], style={
-                **_mono("11px", "400", C["text2"]),
-                "margin": "0",
-                "lineHeight": "1.5",
-            }),
-        ], style=_card(accent_left=C["profit"] if ideal["return_pct"] > 0 else C["loss"])),
+        # Contract Picker card
+        _contract_picker_card(picker_result),
 
         # Ranked table
         dcc.Graph(figure=fig_table, style={"height": f"{max(200, 50 + len(scored_df) * 32)}px"}),
@@ -846,6 +839,146 @@ def _render_batch_results_from_df(df: pd.DataFrame):
 # ═══════════════════════════════════════════════════════════
 # SHARED HELPERS
 # ═══════════════════════════════════════════════════════════
+
+def _badge(text: str) -> html.Span:
+    """Small inline badge for contract attributes."""
+    return html.Span(text, style={
+        "backgroundColor": C["elevated"],
+        "color": C["text2"],
+        "borderRadius": "3px",
+        "padding": "2px 6px",
+        "fontSize": "10px",
+        "fontFamily": "'JetBrains Mono', monospace",
+        "fontWeight": "500",
+        "border": f"1px solid {C['border']}",
+    })
+
+
+def _contract_picker_card(picker: PickerResult) -> html.Div:
+    """Build the Contract Picker card with top pick, alternatives, and sizing."""
+    children = []
+
+    children.append(html.Div("CONTRACT PICKER", style=_label()))
+
+    if picker.top_pick is None:
+        children.append(html.P(
+            f"No contracts passed quality filters ({picker.total_candidates} candidates evaluated).",
+            style=_mono("12px", "400", C["loss"])
+        ))
+        return html.Div(children, style=_card(accent_left=C["loss"]))
+
+    top = picker.top_pick
+
+    # TOP PICK header
+    children.append(html.Div("TOP PICK", style={
+        **_mono("9px", "700", C["gold"]),
+        "letterSpacing": "1.5px",
+        "marginBottom": "4px",
+    }))
+
+    # Contract name + badges
+    badges = []
+    if top.delta is not None:
+        badges.append(_badge(f"{abs(top.delta):.2f} delta"))
+    badges.append(_badge(top.moneyness_label))
+    badges.append(_badge(f"{top.dte} DTE"))
+
+    children.append(html.Div([
+        html.Span(top.label, style=_mono("18px", "700", C["gold"])),
+        *badges,
+    ], style={"marginBottom": "8px", "display": "flex", "gap": "8px", "alignItems": "center"}))
+
+    # Metrics row 1: pricing and return
+    children.append(html.Div([
+        _stat_pill("Entry (Ask)", f"${top.entry_ask:.2f}"),
+        _stat_pill("Max (Bid)", f"${top.max_bid:.2f}"),
+        _stat_pill("Realistic", f"{top.realistic_return_pct:.0%}",
+                   color=C["profit"] if top.realistic_return_pct > 0 else C["loss"]),
+        _stat_pill("Spread Cost", f"{top.spread_cost_pct:.0%}", color=C["loss"]),
+        _stat_pill("Score", f"{top.composite_score:.1f}"),
+    ], style={"display": "flex", "gap": "10px", "flexWrap": "wrap", "marginBottom": "8px"}))
+
+    # Metrics row 2: position sizing + historical context
+    children.append(html.Div([
+        _stat_pill("Contracts", str(top.contracts)),
+        _stat_pill("Total Risk", f"${top.total_risk:,.0f}"),
+        _stat_pill("Hist WR",
+                   f"{top.hist_win_rate:.0%}" if top.hist_win_rate is not None else "—",
+                   color=C["profit"] if (top.hist_win_rate or 0) > 0.7 else C["text"]),
+        _stat_pill("Hist Avg",
+                   f"{top.hist_avg_return:.0%}" if top.hist_avg_return is not None else "—",
+                   color=C["profit"] if (top.hist_avg_return or 0) > 0 else C["text"]),
+        _stat_pill("Sample",
+                   str(top.hist_sample_count) if top.hist_sample_count else "—"),
+    ], style={"display": "flex", "gap": "10px", "flexWrap": "wrap", "marginBottom": "8px"}))
+
+    # Greeks row
+    children.append(html.Div([
+        _stat_pill("Delta", f"{top.delta:.2f}" if top.delta is not None else "—"),
+        _stat_pill("IV", f"{top.implied_vol:.0%}" if top.implied_vol is not None else "—"),
+    ], style={"display": "flex", "gap": "10px", "flexWrap": "wrap", "marginBottom": "8px"}))
+
+    # Rationale
+    children.append(html.P(top.rationale, style={
+        **_mono("11px", "400", C["text2"]),
+        "margin": "0 0 12px 0",
+        "lineHeight": "1.5",
+    }))
+
+    # Divider + Alternatives
+    for alt in [picker.conservative_pick, picker.aggressive_pick]:
+        if alt is not None:
+            type_label = "CONSERVATIVE" if alt.pick_type == "conservative" else "AGGRESSIVE"
+            type_color = C["steel"] if alt.pick_type == "conservative" else C["loss"]
+
+            children.append(html.Hr(style={
+                "border": "none",
+                "borderTop": f"1px solid {C['border']}",
+                "margin": "6px 0",
+            }))
+            children.append(html.Div([
+                html.Span(type_label, style={
+                    **_mono("9px", "700", type_color),
+                    "letterSpacing": "1px",
+                    "minWidth": "110px",
+                }),
+                html.Span(alt.label, style=_mono("12px", "600", C["text"])),
+                html.Span(f"Δ{abs(alt.delta):.2f}" if alt.delta else "",
+                          style=_mono("11px", "400", C["text2"])),
+                html.Span(f"{alt.contracts} ct", style=_mono("11px", "400", C["text2"])),
+                html.Span(f"${alt.total_risk:,.0f} risk", style=_mono("11px", "400", C["text2"])),
+                html.Span(f"{alt.realistic_return_pct:.0%}",
+                          style=_mono("11px", "600",
+                                      C["profit"] if alt.realistic_return_pct > 0 else C["loss"])),
+                html.Span(f"— {alt.rationale}", style=_mono("10px", "400", C["text3"])),
+            ], style={
+                "display": "flex",
+                "gap": "12px",
+                "alignItems": "center",
+                "padding": "4px 0",
+                "flexWrap": "wrap",
+            }))
+
+    # Risk guidance
+    rg = picker.risk_guidance
+    if rg and rg.get("summary"):
+        children.append(html.Hr(style={
+            "border": "none",
+            "borderTop": f"1px solid {C['border']}",
+            "margin": "6px 0",
+        }))
+        children.append(html.Div([
+            html.Span("RISK", style={
+                **_mono("9px", "700", C["text3"]),
+                "letterSpacing": "1px",
+                "minWidth": "40px",
+            }),
+            html.Span(rg["summary"], style=_mono("10px", "400", C["text3"])),
+        ], style={"display": "flex", "gap": "12px", "alignItems": "center"}))
+
+    accent = C["profit"] if top.realistic_return_pct > 0 else C["gold"]
+    return html.Div(children, style=_card(accent_left=accent))
+
 
 def _stat_pill(label: str, value: str, color: str = None) -> html.Div:
     """Small stat display: label on top, value below."""
