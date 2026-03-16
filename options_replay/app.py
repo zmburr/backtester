@@ -1105,15 +1105,14 @@ def _cap_layout():
 def load_cap_data(n_clicks, type_filter, offset_filter):
     from options_replay.cap_batch_analyzer import load_cap_results
     from options_replay.cap_systems_analyzer import (
-        prepare_cap_data, compute_target_hit_rates,
-        compute_entry_offset_comparison, compute_cap_hotkey_grid,
-        recommend_cap_hotkeys, compute_iv_analysis, compute_cap_summary,
+        prepare_cap_data, compute_entry_offset_comparison,
+        compute_cap_hotkey_grid, recommend_cap_hotkeys,
+        compute_iv_analysis, compute_cap_summary,
         build_batch_delta_curve, compute_batch_iv_summary,
         compute_liquidity_summary,
     )
     from options_replay.cap_charts import (
-        fig_target_hit_heatmap, fig_entry_offset_comparison,
-        fig_time_to_target, fig_cap_hotkey_heatmap,
+        fig_entry_offset_comparison, fig_cap_hotkey_heatmap,
         fig_iv_analysis, fig_bounce_vs_reversal,
         fig_batch_delta_curve, fig_batch_iv_summary,
         fig_liquidity_grade_comparison,
@@ -1131,7 +1130,6 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
         return _error_card("No OTM/ATM contracts found in cap batch results."), "No data"
 
     summary = compute_cap_summary(cap_df)
-    target_rates = compute_target_hit_rates(cap_df)
     offset_comp = compute_entry_offset_comparison(df)  # use full df for offset comparison
     grid_df = compute_cap_hotkey_grid(cap_df)
     recs = recommend_cap_hotkeys(grid_df)
@@ -1194,43 +1192,36 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
         html.Div("RECOMMENDED HOTKEYS", style={**_label(), "marginBottom": "10px"}),
         html.Div(rec_cards, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}),
 
-        # Row 1: Target heatmap + hotkey heatmap
-        html.Div([
-            html.Div([dcc.Graph(figure=fig_target_hit_heatmap(target_rates))], style={"flex": "1"}),
-            html.Div([dcc.Graph(figure=fig_cap_hotkey_heatmap(grid_df))], style={"flex": "1"}),
-        ], style={"display": "flex", "gap": "12px"}),
-
-        # Row 2: Entry offset comparison + time to target
-        html.Div([
-            html.Div([dcc.Graph(figure=fig_entry_offset_comparison(offset_comp))], style={"flex": "1"}),
-            html.Div([dcc.Graph(figure=fig_time_to_target(target_rates))], style={"flex": "1"}),
-        ], style={"display": "flex", "gap": "12px"}),
-
-        # Row 3: IV analysis + bounce vs reversal
-        html.Div([
-            html.Div([dcc.Graph(figure=fig_iv_analysis(iv_data))], style={"flex": "1"}),
-            html.Div([dcc.Graph(figure=fig_bounce_vs_reversal(cap_df))], style={"flex": "1"}),
-        ], style={"display": "flex", "gap": "12px"}),
     ]
 
-    # New analytics (backported from deep dive)
+    # Contract selection analytics (backported from deep dive)
     delta_curve = build_batch_delta_curve(df)
     iv_summary = compute_batch_iv_summary(cap_df)
     liq_summary = compute_liquidity_summary(cap_df)
 
-    # Row 4: Batch delta return curve (full width)
+    # Row 1: Delta return curve (full width — the key chart for contract selection)
     if not delta_curve.empty:
-        children.append(html.Div("DELTA RETURN CURVE (BATCH)", style={**_label(), "marginTop": "16px", "marginBottom": "6px"}))
+        children.append(html.Div("DELTA RETURN CURVE", style={**_label(), "marginBottom": "6px"}))
         children.append(dcc.Graph(figure=fig_batch_delta_curve(delta_curve)))
 
-    # Row 5: IV decomposition summary + liquidity grade comparison
-    row5 = []
-    if not iv_summary.empty:
-        row5.append(html.Div([dcc.Graph(figure=fig_batch_iv_summary(iv_summary))], style={"flex": "1"}))
+    # Row 2: Hotkey grid + liquidity grade comparison
+    row2 = [html.Div([dcc.Graph(figure=fig_cap_hotkey_heatmap(grid_df))], style={"flex": "1"})]
     if not liq_summary.empty:
-        row5.append(html.Div([dcc.Graph(figure=fig_liquidity_grade_comparison(liq_summary))], style={"flex": "1"}))
-    if row5:
-        children.append(html.Div(row5, style={"display": "flex", "gap": "12px"}))
+        row2.append(html.Div([dcc.Graph(figure=fig_liquidity_grade_comparison(liq_summary))], style={"flex": "1"}))
+    children.append(html.Div(row2, style={"display": "flex", "gap": "12px"}))
+
+    # Row 3: IV decomposition + IV at entry analysis
+    row3 = []
+    if not iv_summary.empty:
+        row3.append(html.Div([dcc.Graph(figure=fig_batch_iv_summary(iv_summary))], style={"flex": "1"}))
+    row3.append(html.Div([dcc.Graph(figure=fig_iv_analysis(iv_data))], style={"flex": "1"}))
+    children.append(html.Div(row3, style={"display": "flex", "gap": "12px"}))
+
+    # Row 4: Entry offset + bounce vs reversal
+    children.append(html.Div([
+        html.Div([dcc.Graph(figure=fig_entry_offset_comparison(offset_comp))], style={"flex": "1"}),
+        html.Div([dcc.Graph(figure=fig_bounce_vs_reversal(cap_df))], style={"flex": "1"}),
+    ], style={"display": "flex", "gap": "12px"}))
 
     filter_parts = []
     if trade_type:
