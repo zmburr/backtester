@@ -22,6 +22,13 @@ MAX_OTM_PCTS = [1, 2, 3, 5, 10]
 DELTA_BINS = [0, 0.10, 0.20, 0.30, 0.40, 0.50, 1.0]
 DELTA_LABELS = ["0-0.10", "0.10-0.20", "0.20-0.30", "0.30-0.40", "0.40-0.50", "0.50+"]
 
+# Fine-grained delta buckets (matching deep dive)
+DELTA_FINE_EDGES = [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, 0.60, 1.0]
+DELTA_FINE_LABELS = [
+    "0-0.05", "0.05-0.10", "0.10-0.15", "0.15-0.20", "0.20-0.25",
+    "0.25-0.30", "0.30-0.35", "0.35-0.40", "0.40-0.50", "0.50-0.60", "0.60+",
+]
+
 
 def prepare_cap_data(
     df: pd.DataFrame,
@@ -337,3 +344,117 @@ def compute_cap_summary(df: pd.DataFrame) -> dict:
             summary[f"target_{target}_hit_rate"] = float(df[hit_col].mean())
 
     return summary
+
+
+def build_batch_delta_curve(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate batch results into a delta return curve across hold windows.
+
+    Uses fine-grained 0.05-wide delta buckets. Groups by delta × hold_window.
+    Returns: delta_bucket, delta_mid, hold_window, realistic_return,
+             spread_cost, count, avg_entry_ask
+    """
+    if df.empty or "delta" not in df.columns:
+        return pd.DataFrame()
+
+    out = df.copy()
+    if "is_primary" in out.columns:
+        out = out[out["is_primary"] == True].copy()
+
+    out["abs_delta"] = out["delta"].abs()
+    out["delta_bucket_fine"] = pd.cut(
+        out["abs_delta"], bins=DELTA_FINE_EDGES,
+        labels=DELTA_FINE_LABELS, right=False,
+    )
+
+    rows = []
+    hold_windows = sorted(out["hold_window"].unique()) if "hold_window" in out.columns else [0]
+
+    for hw in hold_windows:
+        hw_df = out[out["hold_window"] == hw] if "hold_window" in out.columns else out
+
+        for i, bucket in enumerate(DELTA_FINE_LABELS):
+            sub = hw_df[hw_df["delta_bucket_fine"] == bucket]
+            if sub.empty:
+                continue
+
+            delta_mid = (DELTA_FINE_EDGES[i] + DELTA_FINE_EDGES[i + 1]) / 2
+            rows.append({
+                "delta_bucket": bucket,
+                "delta_mid": delta_mid,
+                "hold_window": hw,
+                "realistic_return": sub["realistic_return_pct"].mean(),
+                "raw_return": sub["raw_return_pct"].mean() if "raw_return_pct" in sub.columns else 0,
+                "spread_cost": sub["spread_cost_pct"].mean() if "spread_cost_pct" in sub.columns else 0,
+                "count": len(sub),
+                "avg_entry_ask": sub["entry_ask"].mean() if "entry_ask" in sub.columns else 0,
+            })
+
+    return pd.DataFrame(rows)
+
+
+def compute_batch_iv_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate IV decomposition across all batch trades by delta bucket.
+
+    Returns: delta_bucket, avg_delta_pct, avg_vega_pct, avg_theta_pct,
+             avg_residual_pct, avg_iv_change, count
+    """
+    if df.empty or "delta_pct" not in df.columns:
+        return pd.DataFrame()
+
+    out = df.copy()
+    if "is_primary" in out.columns:
+        out = out[out["is_primary"] == True].copy()
+
+    if "delta_bucket" not in out.columns and "delta" in out.columns:
+        out["abs_delta"] = out["delta"].abs()
+        out["delta_bucket"] = pd.cut(
+            out["abs_delta"], bins=DELTA_BINS,
+            labels=DELTA_LABELS, right=False,
+        )
+
+    results = []
+    for bucket in DELTA_LABELS:
+        sub = out[out["delta_bucket"] == bucket]
+        if sub.empty:
+            continue
+
+        results.append({
+            "delta_bucket": bucket,
+            "avg_delta_pct": sub["delta_pct"].mean(),
+            "avg_vega_pct": sub["vega_pct"].mean(),
+            "avg_theta_pct": sub["theta_pct"].mean(),
+            "avg_residual_pct": sub["residual_pct"].mean(),
+            "avg_iv_change": sub["iv_change"].mean() if "iv_change" in sub.columns else 0,
+            "count": len(sub),
+        })
+
+    return pd.DataFrame(results)
+
+
+def compute_liquidity_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Summarize performance by liquidity grade (A/B/C).
+
+    Returns: grade, count, avg_return, win_rate, avg_spread_cost
+    """
+    if df.empty or "liquidity_grade" not in df.columns:
+        return pd.DataFrame()
+
+    out = df.copy()
+    if "is_primary" in out.columns:
+        out = out[out["is_primary"] == True].copy()
+
+    results = []
+    for grade in ["A", "B", "C"]:
+        sub = out[out["liquidity_grade"] == grade]
+        if sub.empty:
+            continue
+
+        results.append({
+            "grade": grade,
+            "count": len(sub),
+            "avg_return": sub["realistic_return_pct"].mean(),
+            "win_rate": (sub["realistic_return_pct"] > 0).mean(),
+            "avg_spread_cost": sub["spread_cost_pct"].mean() if "spread_cost_pct" in sub.columns else 0,
+        })
+
+    return pd.DataFrame(results)

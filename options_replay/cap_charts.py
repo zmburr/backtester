@@ -243,3 +243,114 @@ def fig_bounce_vs_reversal(df: pd.DataFrame) -> go.Figure:
         yaxis_tickformat=".0%",
     )
     return _apply_dark_theme(fig)
+
+
+def fig_batch_delta_curve(delta_curve_df: pd.DataFrame) -> go.Figure:
+    """Batch delta return curve — same style as deep dive but aggregated."""
+    fig = go.Figure()
+    if delta_curve_df.empty:
+        return _apply_dark_theme(fig)
+
+    colors = {30: C["steel"], 60: C["gold"], 120: C["profit"]}
+    dashes = {30: "dot", 60: "solid", 120: "solid"}
+    widths = {30: 1.5, 60: 2.5, 120: 2}
+
+    for hw in sorted(delta_curve_df["hold_window"].unique()):
+        sub = delta_curve_df[delta_curve_df["hold_window"] == hw].sort_values("delta_mid")
+        if sub.empty:
+            continue
+
+        color = colors.get(int(hw), C["text2"])
+        fig.add_trace(go.Scatter(
+            x=sub["delta_mid"], y=sub["realistic_return"],
+            mode="lines+markers",
+            name=f"{int(hw)}min hold",
+            line=dict(color=color, dash=dashes.get(int(hw), "solid"),
+                      width=widths.get(int(hw), 2)),
+            marker=dict(size=6),
+            text=[f"n={int(n)}" for n in sub["count"]],
+            hovertemplate="Delta: %{x:.2f}<br>Return: %{y:.0%}<br>%{text}<extra></extra>",
+        ))
+
+        # Annotate peak
+        peak = sub.sort_values("realistic_return", ascending=False).iloc[0]
+        fig.add_annotation(
+            x=peak["delta_mid"], y=peak["realistic_return"],
+            text=f"<b>{peak['realistic_return']:.0%}</b>",
+            showarrow=True, arrowhead=2, arrowcolor=color,
+            font=dict(size=10, color=color),
+            bgcolor=C["surface"], bordercolor=color, borderwidth=1,
+        )
+
+    # Sweet spot shading
+    fig.add_vrect(x0=0.15, x1=0.30, fillcolor=C["gold"], opacity=0.06, line_width=0,
+                  annotation_text="sweet spot", annotation_position="top left",
+                  annotation_font_size=9, annotation_font_color=C["text3"])
+
+    fig.update_layout(
+        title="Batch Delta Return Curve - Avg Return by Delta Across All Trades",
+        xaxis_title="Delta (absolute)", yaxis_title="Avg Realistic Return %",
+        yaxis_tickformat=".0%", hovermode="x unified",
+    )
+    return _apply_dark_theme(fig)
+
+
+def fig_batch_iv_summary(iv_summary_df: pd.DataFrame) -> go.Figure:
+    """Stacked bar showing P&L attribution by delta bucket."""
+    fig = go.Figure()
+    if iv_summary_df.empty:
+        return _apply_dark_theme(fig)
+
+    labels = iv_summary_df["delta_bucket"].tolist()
+
+    fig.add_trace(go.Bar(name="Delta %", x=labels, y=iv_summary_df["avg_delta_pct"],
+                         marker_color=C["profit"],
+                         hovertemplate="Delta: %{y:.0%}<extra></extra>"))
+    fig.add_trace(go.Bar(name="Vega %", x=labels, y=iv_summary_df["avg_vega_pct"],
+                         marker_color=C["steel"],
+                         hovertemplate="Vega: %{y:.0%}<extra></extra>"))
+    fig.add_trace(go.Bar(name="Theta %", x=labels, y=iv_summary_df["avg_theta_pct"],
+                         marker_color=C["loss"],
+                         hovertemplate="Theta: %{y:.0%}<extra></extra>"))
+    fig.add_trace(go.Bar(name="Residual %", x=labels, y=iv_summary_df["avg_residual_pct"],
+                         marker_color=C["text3"],
+                         hovertemplate="Residual: %{y:.0%}<extra></extra>"))
+
+    fig.update_layout(
+        title="P&L Attribution by Delta Bucket (Batch Average)",
+        xaxis_title="Delta Bucket", yaxis_title="Avg % of P&L",
+        yaxis_tickformat=".0%", barmode="relative",
+    )
+    return _apply_dark_theme(fig)
+
+
+def fig_liquidity_grade_comparison(liq_summary_df: pd.DataFrame) -> go.Figure:
+    """Grouped bar: grade A/B/C performance comparison."""
+    fig = go.Figure()
+    if liq_summary_df.empty:
+        return _apply_dark_theme(fig)
+
+    grades = liq_summary_df["grade"].tolist()
+    grade_colors = {"A": C["profit"], "B": C["gold"], "C": C["loss"]}
+    colors = [grade_colors.get(g, C["text3"]) for g in grades]
+
+    fig.add_trace(go.Bar(
+        name="Avg Return", x=grades, y=liq_summary_df["avg_return"],
+        marker_color=[grade_colors.get(g, C["text3"]) for g in grades],
+        text=[f"{r:.0%}\nn={int(n)}" for r, n in
+              zip(liq_summary_df["avg_return"], liq_summary_df["count"])],
+        textposition="outside", textfont_size=10,
+    ))
+    fig.add_trace(go.Bar(
+        name="Avg Spread Cost", x=grades, y=liq_summary_df["avg_spread_cost"],
+        marker_color=[C["text3"]] * len(grades),
+        text=[f"{s:.1%}" for s in liq_summary_df["avg_spread_cost"]],
+        textposition="outside", textfont_size=10,
+    ))
+
+    fig.update_layout(
+        title="Return & Spread by Liquidity Grade",
+        xaxis_title="Liquidity Grade", yaxis_title="Value",
+        yaxis_tickformat=".0%", barmode="group",
+    )
+    return _apply_dark_theme(fig)

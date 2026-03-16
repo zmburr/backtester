@@ -1108,11 +1108,15 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
         prepare_cap_data, compute_target_hit_rates,
         compute_entry_offset_comparison, compute_cap_hotkey_grid,
         recommend_cap_hotkeys, compute_iv_analysis, compute_cap_summary,
+        build_batch_delta_curve, compute_batch_iv_summary,
+        compute_liquidity_summary,
     )
     from options_replay.cap_charts import (
         fig_target_hit_heatmap, fig_entry_offset_comparison,
         fig_time_to_target, fig_cap_hotkey_heatmap,
         fig_iv_analysis, fig_bounce_vs_reversal,
+        fig_batch_delta_curve, fig_batch_iv_summary,
+        fig_liquidity_grade_comparison,
     )
 
     df = load_cap_results()
@@ -1208,6 +1212,25 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
             html.Div([dcc.Graph(figure=fig_bounce_vs_reversal(cap_df))], style={"flex": "1"}),
         ], style={"display": "flex", "gap": "12px"}),
     ]
+
+    # New analytics (backported from deep dive)
+    delta_curve = build_batch_delta_curve(df)
+    iv_summary = compute_batch_iv_summary(cap_df)
+    liq_summary = compute_liquidity_summary(cap_df)
+
+    # Row 4: Batch delta return curve (full width)
+    if not delta_curve.empty:
+        children.append(html.Div("DELTA RETURN CURVE (BATCH)", style={**_label(), "marginTop": "16px", "marginBottom": "6px"}))
+        children.append(dcc.Graph(figure=fig_batch_delta_curve(delta_curve)))
+
+    # Row 5: IV decomposition summary + liquidity grade comparison
+    row5 = []
+    if not iv_summary.empty:
+        row5.append(html.Div([dcc.Graph(figure=fig_batch_iv_summary(iv_summary))], style={"flex": "1"}))
+    if not liq_summary.empty:
+        row5.append(html.Div([dcc.Graph(figure=fig_liquidity_grade_comparison(liq_summary))], style={"flex": "1"}))
+    if row5:
+        children.append(html.Div(row5, style={"display": "flex", "gap": "12px"}))
 
     filter_parts = []
     if trade_type:

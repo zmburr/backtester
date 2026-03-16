@@ -18,8 +18,11 @@ from options_replay.theta_client import (
     get_option_quotes, get_option_greeks, ThetaTerminalOfflineError,
 )
 from options_replay.chain_analyzer import (
-    filter_chain, compute_option_returns_with_targets, score_options,
+    compute_option_returns_with_targets, score_options,
     contract_key,
+)
+from options_replay.cap_deep_analyzer import (
+    filter_chain_wide, compute_iv_decomposition,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,9 +134,10 @@ def analyze_cap_trade(
     # Fetch underlying bars for target tracking
     underlying_bars = _fetch_underlying_bars(symbol, date_str)
 
-    # Chain snapshot
+    # Chain snapshot (wider for cap trades: 3 expirations, ±6% strikes)
     try:
-        chain_df = get_chain_snapshot(symbol, date_str, time_of_day)
+        chain_df = get_chain_snapshot(symbol, date_str, time_of_day,
+                                      max_dte=30, n_expirations=3)
     except Exception as e:
         logger.warning("Chain snapshot failed for %s on %s: %s", symbol, date_str, e)
         return None
@@ -141,8 +145,9 @@ def analyze_cap_trade(
     if chain_df.empty:
         return None
 
-    # Filter
-    filtered = filter_chain(chain_df, underlying_price, side, date_str)
+    # Filter (wide: 3 expirations, ±6% strikes)
+    filtered = filter_chain_wide(chain_df, underlying_price, side, date_str,
+                                  max_expirations=3, strike_range_pct=0.06)
     if filtered.empty:
         return None
 
@@ -188,6 +193,33 @@ def analyze_cap_trade(
     scored_df = score_options(returns_df)
     if scored_df.empty:
         return None
+
+    # IV decomposition — attribute P&L to delta/vega/theta/residual
+    try:
+        iv_decomp = compute_iv_decomposition(
+            scored_df, greeks_dict, quotes_dict, entry_dt, hold_minutes,
+        )
+        if not iv_decomp.empty and len(iv_decomp) == len(scored_df):
+            for col in ["delta_pnl", "vega_pnl", "theta_pnl", "residual_pnl",
+                         "iv_change", "delta_pct", "vega_pct", "theta_pct", "residual_pct"]:
+                if col in iv_decomp.columns:
+                    scored_df[col] = iv_decomp[col].values
+    except Exception as e:
+        logger.debug("IV decomposition failed for %s: %s", symbol, e)
+
+    # Liquidity grading (A/B/C)
+    vol = scored_df.get("volume_during_window", pd.Series(0, index=scored_df.index)).fillna(0)
+    oi = scored_df.get("open_interest", pd.Series(0, index=scored_df.index)).fillna(0)
+    spread = scored_df.get("avg_spread_pct_window", pd.Series(1, index=scored_df.index)).fillna(1)
+
+    def _grade(v, o, s):
+        if v >= 500 and (v + o) >= 1000 and s < 0.05:
+            return "A"
+        elif v >= 50 and (v + o) >= 200 and s < 0.15:
+            return "B"
+        return "C"
+
+    scored_df["liquidity_grade"] = [_grade(v, o, s) for v, o, s in zip(vol, oi, spread)]
 
     # Add trade metadata
     scored_df["symbol"] = symbol
