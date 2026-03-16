@@ -335,40 +335,33 @@ def fig_underlying_with_targets(underlying_bars: pd.DataFrame,
         name="Price",
     ))
 
-    # Entry line
-    fig.add_vline(
-        x=entry_time, line_color=C["gold"],
-        line_dash="dash", line_width=1,
-        annotation_text="Entry",
-        annotation_font_color=C["gold"],
-    )
-
-    # Hold window end
+    # Entry line + hold window end (use add_shape to avoid Plotly datetime annotation bug)
     from datetime import timedelta
     exit_time = entry_time + timedelta(minutes=hold_minutes)
-    fig.add_vline(
-        x=exit_time, line_color=C["text3"],
-        line_dash="dot", line_width=1,
-    )
+
+    fig.add_shape(type="line", x0=entry_time, x1=entry_time, y0=0, y1=1,
+                  yref="paper", line=dict(color=C["gold"], dash="dash", width=1))
+    fig.add_annotation(x=entry_time, y=1.02, yref="paper", text="Entry",
+                       showarrow=False, font=dict(size=10, color=C["gold"]))
+
+    fig.add_shape(type="line", x0=exit_time, x1=exit_time, y0=0, y1=1,
+                  yref="paper", line=dict(color=C["text3"], dash="dot", width=1))
 
     # Shade hold window
-    fig.add_vrect(
-        x0=entry_time, x1=exit_time,
-        fillcolor=C["gold"], opacity=0.04,
-        line_width=0,
-    )
+    fig.add_shape(type="rect", x0=entry_time, x1=exit_time, y0=0, y1=1,
+                  yref="paper", fillcolor=C["gold"], opacity=0.04, line_width=0)
 
     # Target levels
     target_colors = [C["profit"], C["steel"], C["gold"], C["loss"]]
     for i, (name, level) in enumerate(target_levels.items()):
         color = target_colors[i % len(target_colors)]
-        fig.add_hline(
-            y=level, line_color=color,
-            line_dash="dash", line_width=1,
-            annotation_text=f"{name} ATR (${level:.2f})",
-            annotation_font_color=color,
-            annotation_font_size=9,
-        )
+        fig.add_shape(type="line", x0=0, x1=1, xref="paper",
+                      y0=level, y1=level,
+                      line=dict(color=color, dash="dash", width=1))
+        fig.add_annotation(x=1.01, xref="paper", y=level,
+                           text=f"{name} ATR (${level:.2f})",
+                           showarrow=False, font=dict(size=9, color=color),
+                           xanchor="left")
 
     fig.update_layout(
         title="Underlying Price Action with ATR Targets",

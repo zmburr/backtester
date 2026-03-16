@@ -1223,18 +1223,6 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
 # TAB 5: DEEP DIVE
 # ═══════════════════════════════════════════════════════════
 
-# Deep dive state (shared with background thread)
-_deep_state = {
-    "running": False,
-    "completed": False,
-    "error": None,
-    "result": None,
-    "step": 0,
-    "total": 6,
-    "message": "",
-}
-
-
 def _deep_dive_layout():
     return html.Div([
         # Controls row
@@ -1242,19 +1230,12 @@ def _deep_dive_layout():
             html.Div([
                 html.Label("Ticker", style=_label()),
                 dcc.Input(
-                    id="deep-ticker",
-                    type="text",
-                    value="GLD",
-                    placeholder="GLD",
+                    id="deep-ticker", type="text", value="GLD", placeholder="GLD",
                     style={
-                        "backgroundColor": C["elevated"],
-                        "color": C["text"],
-                        "border": f"1px solid {C['border']}",
-                        "borderRadius": "3px",
-                        "padding": "8px 12px",
-                        "fontSize": "13px",
-                        "fontFamily": "'JetBrains Mono', monospace",
-                        "width": "80px",
+                        "backgroundColor": C["elevated"], "color": C["text"],
+                        "border": f"1px solid {C['border']}", "borderRadius": "3px",
+                        "padding": "8px 12px", "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace", "width": "80px",
                     },
                 ),
             ], style={"flex": "0 0 auto"}),
@@ -1262,19 +1243,12 @@ def _deep_dive_layout():
             html.Div([
                 html.Label("Date", style=_label()),
                 dcc.Input(
-                    id="deep-date",
-                    type="text",
-                    value="2026-01-29",
-                    placeholder="YYYY-MM-DD",
+                    id="deep-date", type="text", value="2026-01-29", placeholder="YYYY-MM-DD",
                     style={
-                        "backgroundColor": C["elevated"],
-                        "color": C["text"],
-                        "border": f"1px solid {C['border']}",
-                        "borderRadius": "3px",
-                        "padding": "8px 12px",
-                        "fontSize": "13px",
-                        "fontFamily": "'JetBrains Mono', monospace",
-                        "width": "120px",
+                        "backgroundColor": C["elevated"], "color": C["text"],
+                        "border": f"1px solid {C['border']}", "borderRadius": "3px",
+                        "padding": "8px 12px", "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace", "width": "120px",
                     },
                 ),
             ], style={"flex": "0 0 auto"}),
@@ -1282,19 +1256,12 @@ def _deep_dive_layout():
             html.Div([
                 html.Label("Entry Time", style=_label()),
                 dcc.Input(
-                    id="deep-time",
-                    type="text",
-                    value="09:31",
-                    placeholder="HH:MM",
+                    id="deep-time", type="text", value="09:31", placeholder="HH:MM",
                     style={
-                        "backgroundColor": C["elevated"],
-                        "color": C["text"],
-                        "border": f"1px solid {C['border']}",
-                        "borderRadius": "3px",
-                        "padding": "8px 12px",
-                        "fontSize": "13px",
-                        "fontFamily": "'JetBrains Mono', monospace",
-                        "width": "70px",
+                        "backgroundColor": C["elevated"], "color": C["text"],
+                        "border": f"1px solid {C['border']}", "borderRadius": "3px",
+                        "padding": "8px 12px", "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace", "width": "70px",
                     },
                 ),
             ], style={"flex": "0 0 auto"}),
@@ -1315,98 +1282,37 @@ def _deep_dive_layout():
             html.Div([
                 html.Label("ATR %", style=_label()),
                 dcc.Input(
-                    id="deep-atr",
-                    type="text",
-                    value="0.0148",
-                    placeholder="0.0148",
+                    id="deep-atr", type="text", value="0.0148", placeholder="0.0148",
                     style={
-                        "backgroundColor": C["elevated"],
-                        "color": C["text"],
-                        "border": f"1px solid {C['border']}",
-                        "borderRadius": "3px",
-                        "padding": "8px 12px",
-                        "fontSize": "13px",
-                        "fontFamily": "'JetBrains Mono', monospace",
-                        "width": "80px",
+                        "backgroundColor": C["elevated"], "color": C["text"],
+                        "border": f"1px solid {C['border']}", "borderRadius": "3px",
+                        "padding": "8px 12px", "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace", "width": "80px",
                     },
                 ),
             ], style={"flex": "0 0 auto"}),
 
             html.Div([
                 html.Button("Analyze", id="deep-go-btn", style={
-                    "backgroundColor": C["gold"],
-                    "color": C["bg"],
-                    "border": "none",
-                    "borderRadius": "3px",
-                    "padding": "10px 24px",
-                    "fontWeight": "700",
-                    "fontSize": "12px",
-                    "cursor": "pointer",
-                    "marginTop": "20px",
+                    "backgroundColor": C["gold"], "color": C["bg"],
+                    "border": "none", "borderRadius": "3px",
+                    "padding": "10px 24px", "fontWeight": "700",
+                    "fontSize": "12px", "cursor": "pointer", "marginTop": "20px",
                 }),
             ], style={"flex": "0 0 auto"}),
         ], style={
             **_card(),
-            "display": "flex",
-            "alignItems": "flex-start",
-            "gap": "16px",
-            "margin": "16px 30px",
+            "display": "flex", "alignItems": "flex-start",
+            "gap": "16px", "margin": "16px 30px",
         }),
-
-        # Progress bar
-        html.Div(id="deep-progress-container", style={
-            "margin": "0 30px",
-            "display": "none",
-        }, children=[
-            html.Div(id="deep-progress-bar", style={
-                "height": "4px",
-                "backgroundColor": C["gold"],
-                "borderRadius": "2px",
-                "width": "0%",
-                "transition": "width 0.3s ease",
-            }),
-            html.Div(id="deep-progress-text", style={
-                **_mono("11px", "400", C["text3"]),
-                "marginTop": "4px",
-            }),
-        ]),
-
-        # Polling interval (disabled by default)
-        dcc.Interval(id="deep-poll", interval=1000, disabled=True),
 
         # Results
         html.Div(id="deep-results-container", style={"padding": "0 30px 30px 30px"}),
     ], style={"padding": "0"})
 
 
-def _deep_progress_callback(step, total, message):
-    _deep_state["step"] = step
-    _deep_state["total"] = total
-    _deep_state["message"] = message
-
-
-def _run_deep_analysis(symbol, date, time, side, atr):
-    """Background thread for deep analysis."""
-    try:
-        from options_replay.cap_deep_analyzer import analyze_single_cap_trade
-        result = analyze_single_cap_trade(
-            symbol, date, time, side, atr,
-            hold_windows=[30, 60, 120],
-            progress_callback=_deep_progress_callback,
-        )
-        _deep_state["result"] = result
-        _deep_state["completed"] = True
-    except Exception as e:
-        _deep_state["error"] = str(e)
-        _deep_state["completed"] = True
-    finally:
-        _deep_state["running"] = False
-
-
 @app.callback(
-    [Output("deep-poll", "disabled"),
-     Output("deep-progress-container", "style"),
-     Output("deep-results-container", "children", allow_duplicate=True)],
+    Output("deep-results-container", "children"),
     Input("deep-go-btn", "n_clicks"),
     [State("deep-ticker", "value"),
      State("deep-date", "value"),
@@ -1415,80 +1321,19 @@ def _run_deep_analysis(symbol, date, time, side, atr):
      State("deep-atr", "value")],
     prevent_initial_call=True,
 )
-def start_deep_analysis(n_clicks, ticker, date, time_str, side, atr_str):
-    if _deep_state["running"]:
-        return no_update, no_update, no_update
+def run_deep_analysis(n_clicks, ticker, date, time_str, side, atr_str):
+    from options_replay.cap_deep_analyzer import analyze_single_cap_trade
 
-    # Reset state
-    _deep_state.update({
-        "running": True, "completed": False, "error": None,
-        "result": None, "step": 0, "total": 6, "message": "Starting...",
-    })
-
-    atr = float(atr_str) if atr_str else 0.0
-
-    thread = threading.Thread(
-        target=_run_deep_analysis,
-        args=(ticker.strip().upper(), date.strip(), time_str.strip(), side, atr),
-        daemon=True,
-    )
-    thread.start()
-
-    return (
-        False,  # enable polling
-        {"margin": "0 30px", "display": "block"},
-        html.Div("Analyzing...", style=_mono("12px", "400", C["text3"])),
-    )
-
-
-@app.callback(
-    [Output("deep-progress-bar", "style"),
-     Output("deep-progress-text", "children"),
-     Output("deep-results-container", "children"),
-     Output("deep-poll", "disabled", allow_duplicate=True),
-     Output("deep-progress-container", "style", allow_duplicate=True)],
-    Input("deep-poll", "n_intervals"),
-    prevent_initial_call=True,
-)
-def poll_deep_analysis(n_intervals):
-    step = _deep_state["step"]
-    total = _deep_state["total"]
-    msg = _deep_state["message"]
-    pct = (step / total * 100) if total > 0 else 0
-
-    bar_style = {
-        "height": "4px",
-        "backgroundColor": C["gold"],
-        "borderRadius": "2px",
-        "width": f"{pct:.0f}%",
-        "transition": "width 0.3s ease",
-    }
-
-    if not _deep_state["completed"]:
-        return bar_style, f"[{step}/{total}] {msg}", no_update, False, no_update
-
-    # Done — render results
-    if _deep_state["error"]:
-        return (
-            bar_style,
-            "Error",
-            _error_card(f"Analysis failed: {_deep_state['error']}"),
-            True,
-            {"margin": "0 30px", "display": "none"},
+    try:
+        atr = float(atr_str) if atr_str else 0.0
+        result = analyze_single_cap_trade(
+            ticker.strip().upper(), date.strip(), time_str.strip(), side, atr,
+            hold_windows=[30, 60, 120],
         )
-
-    result = _deep_state["result"]
-    if result is None:
-        return bar_style, "Done", _error_card("No result"), True, {"margin": "0 30px", "display": "none"}
-
-    children = _render_deep_results(result)
-    return (
-        bar_style,
-        "Complete",
-        html.Div(children, className="anim-stagger"),
-        True,
-        {"margin": "0 30px", "display": "none"},
-    )
+        return html.Div(_render_deep_results(result), className="anim-stagger")
+    except Exception as e:
+        logger.exception("Deep analysis failed")
+        return _error_card(f"Analysis failed: {e}")
 
 
 def _render_deep_results(result):
@@ -1776,4 +1621,4 @@ def _error_card(message: str):
 if __name__ == "__main__":
     port = int(os.environ.get("OPTIONS_REPLAY_PORT", 8060))
     logger.info("Starting Options Replay on port %d", port)
-    app.run(debug=True, port=port)
+    app.run(debug=False, port=port)
