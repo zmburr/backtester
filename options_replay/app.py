@@ -140,6 +140,8 @@ app.layout = html.Div([
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
         dcc.Tab(label="CAPITULATION", value="capitulation",
                 style=TAB_STYLE, selected_style=TAB_SELECTED),
+        dcc.Tab(label="DEEP DIVE", value="deep",
+                style=TAB_STYLE, selected_style=TAB_SELECTED),
     ], style={"margin": "0 30px"}),
 
     # Tab content
@@ -160,6 +162,8 @@ def render_tab(tab):
         return _systems_layout()
     if tab == "capitulation":
         return _cap_layout()
+    if tab == "deep":
+        return _deep_dive_layout()
     return _single_trade_layout()
 
 
@@ -1213,6 +1217,389 @@ def load_cap_data(n_clicks, type_filter, offset_filter):
     filter_label = f" [{', '.join(filter_parts)}]" if filter_parts else ""
     status = f"{len(cap_df)} OTM/ATM contracts loaded ({len(df)} total){filter_label}"
     return html.Div(children, className="anim-stagger"), status
+
+
+# ═══════════════════════════════════════════════════════════
+# TAB 5: DEEP DIVE
+# ═══════════════════════════════════════════════════════════
+
+# Deep dive state (shared with background thread)
+_deep_state = {
+    "running": False,
+    "completed": False,
+    "error": None,
+    "result": None,
+    "step": 0,
+    "total": 6,
+    "message": "",
+}
+
+
+def _deep_dive_layout():
+    return html.Div([
+        # Controls row
+        html.Div([
+            html.Div([
+                html.Label("Ticker", style=_label()),
+                dcc.Input(
+                    id="deep-ticker",
+                    type="text",
+                    value="GLD",
+                    placeholder="GLD",
+                    style={
+                        "backgroundColor": C["elevated"],
+                        "color": C["text"],
+                        "border": f"1px solid {C['border']}",
+                        "borderRadius": "3px",
+                        "padding": "8px 12px",
+                        "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace",
+                        "width": "80px",
+                    },
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Label("Date", style=_label()),
+                dcc.Input(
+                    id="deep-date",
+                    type="text",
+                    value="2026-01-29",
+                    placeholder="YYYY-MM-DD",
+                    style={
+                        "backgroundColor": C["elevated"],
+                        "color": C["text"],
+                        "border": f"1px solid {C['border']}",
+                        "borderRadius": "3px",
+                        "padding": "8px 12px",
+                        "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace",
+                        "width": "120px",
+                    },
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Label("Entry Time", style=_label()),
+                dcc.Input(
+                    id="deep-time",
+                    type="text",
+                    value="09:31",
+                    placeholder="HH:MM",
+                    style={
+                        "backgroundColor": C["elevated"],
+                        "color": C["text"],
+                        "border": f"1px solid {C['border']}",
+                        "borderRadius": "3px",
+                        "padding": "8px 12px",
+                        "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace",
+                        "width": "70px",
+                    },
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Label("Side", style=_label()),
+                dcc.Dropdown(
+                    id="deep-side",
+                    options=[
+                        {"label": "Short (Puts)", "value": "short"},
+                        {"label": "Long (Calls)", "value": "long"},
+                    ],
+                    value="short",
+                    style={"fontSize": "12px", "minWidth": "140px"},
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Label("ATR %", style=_label()),
+                dcc.Input(
+                    id="deep-atr",
+                    type="text",
+                    value="0.0148",
+                    placeholder="0.0148",
+                    style={
+                        "backgroundColor": C["elevated"],
+                        "color": C["text"],
+                        "border": f"1px solid {C['border']}",
+                        "borderRadius": "3px",
+                        "padding": "8px 12px",
+                        "fontSize": "13px",
+                        "fontFamily": "'JetBrains Mono', monospace",
+                        "width": "80px",
+                    },
+                ),
+            ], style={"flex": "0 0 auto"}),
+
+            html.Div([
+                html.Button("Analyze", id="deep-go-btn", style={
+                    "backgroundColor": C["gold"],
+                    "color": C["bg"],
+                    "border": "none",
+                    "borderRadius": "3px",
+                    "padding": "10px 24px",
+                    "fontWeight": "700",
+                    "fontSize": "12px",
+                    "cursor": "pointer",
+                    "marginTop": "20px",
+                }),
+            ], style={"flex": "0 0 auto"}),
+        ], style={
+            **_card(),
+            "display": "flex",
+            "alignItems": "flex-start",
+            "gap": "16px",
+            "margin": "16px 30px",
+        }),
+
+        # Progress bar
+        html.Div(id="deep-progress-container", style={
+            "margin": "0 30px",
+            "display": "none",
+        }, children=[
+            html.Div(id="deep-progress-bar", style={
+                "height": "4px",
+                "backgroundColor": C["gold"],
+                "borderRadius": "2px",
+                "width": "0%",
+                "transition": "width 0.3s ease",
+            }),
+            html.Div(id="deep-progress-text", style={
+                **_mono("11px", "400", C["text3"]),
+                "marginTop": "4px",
+            }),
+        ]),
+
+        # Polling interval (disabled by default)
+        dcc.Interval(id="deep-poll", interval=1000, disabled=True),
+
+        # Results
+        html.Div(id="deep-results-container", style={"padding": "0 30px 30px 30px"}),
+    ], style={"padding": "0"})
+
+
+def _deep_progress_callback(step, total, message):
+    _deep_state["step"] = step
+    _deep_state["total"] = total
+    _deep_state["message"] = message
+
+
+def _run_deep_analysis(symbol, date, time, side, atr):
+    """Background thread for deep analysis."""
+    try:
+        from options_replay.cap_deep_analyzer import analyze_single_cap_trade
+        result = analyze_single_cap_trade(
+            symbol, date, time, side, atr,
+            hold_windows=[30, 60, 120],
+            progress_callback=_deep_progress_callback,
+        )
+        _deep_state["result"] = result
+        _deep_state["completed"] = True
+    except Exception as e:
+        _deep_state["error"] = str(e)
+        _deep_state["completed"] = True
+    finally:
+        _deep_state["running"] = False
+
+
+@app.callback(
+    [Output("deep-poll", "disabled"),
+     Output("deep-progress-container", "style"),
+     Output("deep-results-container", "children", allow_duplicate=True)],
+    Input("deep-go-btn", "n_clicks"),
+    [State("deep-ticker", "value"),
+     State("deep-date", "value"),
+     State("deep-time", "value"),
+     State("deep-side", "value"),
+     State("deep-atr", "value")],
+    prevent_initial_call=True,
+)
+def start_deep_analysis(n_clicks, ticker, date, time_str, side, atr_str):
+    if _deep_state["running"]:
+        return no_update, no_update, no_update
+
+    # Reset state
+    _deep_state.update({
+        "running": True, "completed": False, "error": None,
+        "result": None, "step": 0, "total": 6, "message": "Starting...",
+    })
+
+    atr = float(atr_str) if atr_str else 0.0
+
+    thread = threading.Thread(
+        target=_run_deep_analysis,
+        args=(ticker.strip().upper(), date.strip(), time_str.strip(), side, atr),
+        daemon=True,
+    )
+    thread.start()
+
+    return (
+        False,  # enable polling
+        {"margin": "0 30px", "display": "block"},
+        html.Div("Analyzing...", style=_mono("12px", "400", C["text3"])),
+    )
+
+
+@app.callback(
+    [Output("deep-progress-bar", "style"),
+     Output("deep-progress-text", "children"),
+     Output("deep-results-container", "children"),
+     Output("deep-poll", "disabled", allow_duplicate=True),
+     Output("deep-progress-container", "style", allow_duplicate=True)],
+    Input("deep-poll", "n_intervals"),
+    prevent_initial_call=True,
+)
+def poll_deep_analysis(n_intervals):
+    step = _deep_state["step"]
+    total = _deep_state["total"]
+    msg = _deep_state["message"]
+    pct = (step / total * 100) if total > 0 else 0
+
+    bar_style = {
+        "height": "4px",
+        "backgroundColor": C["gold"],
+        "borderRadius": "2px",
+        "width": f"{pct:.0f}%",
+        "transition": "width 0.3s ease",
+    }
+
+    if not _deep_state["completed"]:
+        return bar_style, f"[{step}/{total}] {msg}", no_update, False, no_update
+
+    # Done — render results
+    if _deep_state["error"]:
+        return (
+            bar_style,
+            "Error",
+            _error_card(f"Analysis failed: {_deep_state['error']}"),
+            True,
+            {"margin": "0 30px", "display": "none"},
+        )
+
+    result = _deep_state["result"]
+    if result is None:
+        return bar_style, "Done", _error_card("No result"), True, {"margin": "0 30px", "display": "none"}
+
+    children = _render_deep_results(result)
+    return (
+        bar_style,
+        "Complete",
+        html.Div(children, className="anim-stagger"),
+        True,
+        {"margin": "0 30px", "display": "none"},
+    )
+
+
+def _render_deep_results(result):
+    from options_replay.cap_deep_charts import (
+        fig_delta_return_curve, fig_dte_comparison,
+        fig_iv_decomposition, fig_liquidity_matrix,
+        fig_underlying_with_targets, fig_dollar_return_scatter,
+    )
+
+    children = []
+
+    # Header
+    side_label = "SHORT (puts)" if result.side == -1 else "LONG (calls)"
+    children.append(html.Div([
+        html.Div(f"{result.symbol}  |  {result.date}  |  {result.entry_time.strftime('%H:%M')}  |  "
+                 f"${result.underlying_price:.2f}  |  {side_label}  |  ATR {result.atr_pct:.2%}",
+                 style=_mono("14px", "600", C["text"])),
+        html.Div(f"{len(result.wide_chain)} contracts across "
+                 f"{result.wide_chain['dte'].nunique() if not result.wide_chain.empty else 0} expirations",
+                 style={**_mono("11px", "400", C["text3"]), "marginTop": "4px"}),
+    ], style={**_card(), "marginBottom": "12px"}))
+
+    # Recommendation cards
+    if result.recommendations:
+        rec_cards = []
+        label_colors = {"OPTIMAL": C["gold"], "AGGRESSIVE": C["loss"], "CONSERVATIVE": C["steel"]}
+        for rec in result.recommendations:
+            label = rec.get("label", "")
+            lc = label_colors.get(label, C["text2"])
+            pills = [
+                _stat_pill("Return", f"{rec['realistic_return_pct']:.0%}",
+                           color=C["profit"] if rec["realistic_return_pct"] > 0 else C["loss"]),
+                _stat_pill("$/Contract", f"${rec['dollar_return']:.0f}"),
+                _stat_pill("Spread", f"{rec['spread_cost_pct']:.1%}"),
+                _stat_pill("Volume", f"{rec.get('volume', 0):.0f}"),
+            ]
+            decomp_text = ""
+            if "delta_pnl_pct" in rec:
+                decomp_text = (f"P&L: delta={rec['delta_pnl_pct']:.0%}  "
+                               f"vega={rec['vega_pnl_pct']:.0%}  "
+                               f"theta={rec['theta_pnl_pct']:.0%}")
+
+            rec_cards.append(html.Div([
+                html.Div(label, style={
+                    **_mono("10px", "700", lc),
+                    "letterSpacing": "1.5px",
+                    "marginBottom": "6px",
+                }),
+                html.Div(rec["contract"], style=_mono("14px", "700", C["text"])),
+                html.Div(f"Entry: ${rec['entry_ask']:.2f}  |  "
+                         f"Delta: {rec['delta']:.3f}  |  "
+                         f"IV: {rec.get('implied_vol', 0):.1%}",
+                         style={**_mono("11px", "400", C["text2"]), "marginTop": "4px"}),
+                html.Div(pills, style={"display": "flex", "gap": "6px", "flexWrap": "wrap", "marginTop": "8px"}),
+                html.P(decomp_text, style={**_mono("10px", "400", C["text3"]), "margin": "4px 0 0 0"})
+                if decomp_text else None,
+                html.P(rec.get("rationale", ""), style={
+                    **_mono("10px", "400", C["text3"]),
+                    "margin": "4px 0 0 0",
+                }),
+            ], style={
+                **_card(),
+                "flex": "1",
+                "borderLeft": f"3px solid {lc}",
+            }))
+
+        children.append(html.Div("RECOMMENDATIONS", style={**_label(), "marginBottom": "10px"}))
+        children.append(html.Div(rec_cards, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}))
+
+    # Row 1: Delta return curve (full width — the hero chart)
+    if not result.delta_curve.empty:
+        children.append(html.Div("DELTA RETURN CURVE", style={**_label(), "marginBottom": "6px"}))
+        children.append(dcc.Graph(figure=fig_delta_return_curve(result.delta_curve),
+                                  style={"marginBottom": "16px"}))
+
+    # Row 2: Underlying + IV decomposition
+    row2 = []
+    if not result.underlying_bars.empty:
+        row2.append(html.Div([
+            dcc.Graph(figure=fig_underlying_with_targets(
+                result.underlying_bars, result.entry_time,
+                result.target_levels, result.side,
+            )),
+        ], style={"flex": "1"}))
+    if not result.iv_decomposition.empty:
+        row2.append(html.Div([
+            dcc.Graph(figure=fig_iv_decomposition(result.iv_decomposition)),
+        ], style={"flex": "1"}))
+    if row2:
+        children.append(html.Div(row2, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}))
+
+    # Row 3: Liquidity matrix + DTE comparison
+    row3 = []
+    if not result.liquidity_matrix.empty:
+        row3.append(html.Div([
+            dcc.Graph(figure=fig_liquidity_matrix(result.liquidity_matrix)),
+        ], style={"flex": "1"}))
+    if not result.dte_comparison.empty:
+        row3.append(html.Div([
+            dcc.Graph(figure=fig_dte_comparison(result.dte_comparison)),
+        ], style={"flex": "1"}))
+    if row3:
+        children.append(html.Div(row3, style={"display": "flex", "gap": "12px", "marginBottom": "16px"}))
+
+    # Row 4: Dollar return scatter (if we have data)
+    if not result.liquidity_matrix.empty:
+        children.append(html.Div([
+            dcc.Graph(figure=fig_dollar_return_scatter(result.liquidity_matrix)),
+        ], style={"marginBottom": "16px"}))
+
+    return children
 
 
 # ═══════════════════════════════════════════════════════════
