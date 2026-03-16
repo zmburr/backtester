@@ -1591,7 +1591,6 @@ def _save_report_pdf(html_report: str, output_dir: str = "reports") -> str | Non
     """
 
     if not _PDF_AVAILABLE and not _PDFKIT_AVAILABLE:
-        print("No PDF backend available (install `weasyprint` or `pdfkit` + wkhtmltopdf); skipping PDF export.")
         return None
 
     Path(output_dir).mkdir(exist_ok=True)
