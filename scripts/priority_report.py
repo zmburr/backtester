@@ -1272,6 +1272,9 @@ def generate_priority_report() -> str:
 
         timings["deep_analysis"] = time.time() - t0
 
+        # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
+        _save_signals_to_json(priority, go_ct, cau_ct)
+
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
         html_report = build_priority_report_html(priority, ticker_html_map)
@@ -1291,6 +1294,66 @@ def generate_priority_report() -> str:
     print("=" * 60)
 
     return html_report
+
+
+_SIGNAL_DIR = _DATA_DIR / "priority_signals"
+
+# Metrics to persist per bucket (safe subset of the full metrics dict)
+_REVERSAL_METRIC_KEYS = [
+    "pct_from_9ema", "pct_change_3", "gap_pct", "prior_day_range_atr",
+    "atr_pct", "prior_day_rvol", "premarket_rvol", "pct_from_50mav",
+]
+_BOUNCE_METRIC_KEYS = [
+    "selloff_total_pct", "pct_off_30d_high", "gap_pct", "pct_change_3",
+    "prior_day_range_atr", "pct_off_52wk_high", "atr_pct",
+]
+
+
+def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int):
+    """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard."""
+    try:
+        _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
+        now = datetime.datetime.now()
+        session = "morning" if now.hour < 12 else "evening"
+        date_str = now.strftime("%Y-%m-%d")
+
+        signals = []
+        for item in priority:
+            bucket = item["bucket"]
+            keys = _REVERSAL_METRIC_KEYS if bucket == "reversal" else _BOUNCE_METRIC_KEYS
+            raw = item.get("metrics", {})
+            metrics = {}
+            for k in keys:
+                v = raw.get(k)
+                if v is not None:
+                    try:
+                        metrics[k] = round(float(v), 6)
+                    except (TypeError, ValueError):
+                        metrics[k] = v
+
+            signals.append({
+                "ticker": item["ticker"],
+                "bucket": bucket,
+                "cap": item.get("cap", ""),
+                "recommendation": item["rec"],
+                "score": item.get("score_str", ""),
+                "metrics": metrics,
+            })
+
+        payload = {
+            "date": date_str,
+            "session": session,
+            "generated_at": now.isoformat(),
+            "go_count": go_count,
+            "caution_count": caution_count,
+            "signals": signals,
+        }
+
+        out_path = _SIGNAL_DIR / f"{date_str}_{session}.json"
+        out_path.write_text(json.dumps(payload, indent=2))
+        print(f"Signals saved: {out_path.name} ({len(signals)} signals)")
+    except Exception as e:
+        log.warning(f"Failed to save signals JSON (non-fatal): {e}")
 
 
 def _send_report(html: str, go_count: int, caution_count: int):
