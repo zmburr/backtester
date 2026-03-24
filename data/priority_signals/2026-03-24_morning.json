@@ -1,0 +1,24 @@
+{
+  "date": "2026-03-24",
+  "session": "morning",
+  "generated_at": "2026-03-24T05:46:31.608634",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "PL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.176896,
+        "pct_change_3": 0.36316,
+        "gap_pct": -0.005322,
+        "prior_day_range_atr": 1.283699,
+        "prior_day_rvol": 2.173979,
+        "premarket_rvol": 0.000766
+      }
+    }
+  ]
+}
