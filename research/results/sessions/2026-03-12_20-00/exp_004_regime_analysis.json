@@ -1,0 +1,107 @@
+{
+  "experiment_id": "afc97572",
+  "experiment_type": "regime_analysis",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "regime": "all",
+    "grade": null,
+    "cap": null
+  },
+  "metrics": {
+    "baseline_expectancy": 13.4,
+    "n_total": 112,
+    "regimes": {
+      "spy_trend": [
+        {
+          "label": "spy_down",
+          "n": 20,
+          "win_rate": 100.0,
+          "avg_pnl": 30.61,
+          "median_pnl": 27.02,
+          "pnl_ci_lower": 24.69,
+          "pnl_ci_upper": 37.76
+        },
+        {
+          "label": "spy_flat",
+          "n": 56,
+          "win_rate": 92.9,
+          "avg_pnl": 10.1,
+          "median_pnl": 7.8,
+          "pnl_ci_lower": 7.46,
+          "pnl_ci_upper": 13.25
+        },
+        {
+          "label": "spy_up",
+          "n": 36,
+          "win_rate": 88.9,
+          "avg_pnl": 8.7,
+          "median_pnl": 8.04,
+          "pnl_ci_lower": 6.64,
+          "pnl_ci_upper": 10.99
+        }
+      ],
+      "volatility": [
+        {
+          "label": "high_vol",
+          "n": 112,
+          "win_rate": 92.9,
+          "avg_pnl": 13.4,
+          "median_pnl": 9.95,
+          "pnl_ci_lower": 11.1,
+          "pnl_ci_upper": 16.11
+        }
+      ],
+      "spy_daily": [
+        {
+          "label": "spy_red",
+          "n": 21,
+          "win_rate": 90.5,
+          "avg_pnl": 23.5,
+          "median_pnl": 11.9,
+          "pnl_ci_lower": 16.32,
+          "pnl_ci_upper": 32.82
+        },
+        {
+          "label": "spy_neutral",
+          "n": 70,
+          "win_rate": 92.9,
+          "avg_pnl": 10.15,
+          "median_pnl": 7.66,
+          "pnl_ci_lower": 8.08,
+          "pnl_ci_upper": 12.55
+        },
+        {
+          "label": "spy_green",
+          "n": 21,
+          "win_rate": 95.2,
+          "avg_pnl": 15.11,
+          "median_pnl": 12.45,
+          "pnl_ci_lower": 9.7,
+          "pnl_ci_upper": 21.79
+        }
+      ]
+    },
+    "best_finding": {
+      "regime": "spy_trend",
+      "best_bucket": "spy_down",
+      "worst_bucket": "spy_up",
+      "improvement": 21.91,
+      "p_value": 0.2853
+    }
+  },
+  "summary": "Best regime split: spy_trend \u2014 spy_down outperforms spy_up by +21.91% avg P&L (p=0.2853).",
+  "statistical_tests": {
+    "regime": "spy_trend",
+    "best_bucket": "spy_down",
+    "worst_bucket": "spy_up",
+    "improvement": 21.91,
+    "p_value": 0.2853
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.9
+  },
+  "timestamp": "2026-03-12T20:01:31.170407",
+  "parent_id": "ab597ed6"
+}

@@ -1,0 +1,76 @@
+{
+  "experiment_id": "621df92d",
+  "experiment_type": "regime_analysis",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "regime": "all"
+  },
+  "metrics": {
+    "baseline_expectancy": 8.58,
+    "n_total": 95,
+    "regimes": {
+      "spy_trend": [
+        {
+          "label": "spy_down",
+          "n": 65,
+          "win_rate": 89.2,
+          "avg_pnl": 11.32,
+          "median_pnl": 9.77,
+          "pnl_ci_lower": 8.51,
+          "pnl_ci_upper": 16.2
+        },
+        {
+          "label": "spy_flat",
+          "n": 23,
+          "win_rate": 73.9,
+          "avg_pnl": 3.15,
+          "median_pnl": 7.09,
+          "pnl_ci_lower": -5.67,
+          "pnl_ci_upper": 8.01
+        },
+        {
+          "label": "spy_up",
+          "n": 7,
+          "win_rate": 57.1,
+          "avg_pnl": 0.95,
+          "median_pnl": 1.91,
+          "pnl_ci_lower": -3.07,
+          "pnl_ci_upper": 4.52
+        }
+      ],
+      "volatility": [
+        {
+          "label": "high_vol",
+          "n": 95,
+          "win_rate": 83.2,
+          "avg_pnl": 8.58,
+          "median_pnl": 8.07,
+          "pnl_ci_lower": 5.87,
+          "pnl_ci_upper": 12.07
+        }
+      ]
+    },
+    "best_finding": {
+      "regime": "spy_trend",
+      "best_bucket": "spy_down",
+      "worst_bucket": "spy_up",
+      "improvement": 10.37,
+      "p_value": 0.0512
+    }
+  },
+  "summary": "Best regime split: spy_trend \u2014 spy_down outperforms spy_up by +10.37% avg P&L (p=0.0512).",
+  "statistical_tests": {
+    "regime": "spy_trend",
+    "best_bucket": "spy_down",
+    "worst_bucket": "spy_up",
+    "improvement": 10.37,
+    "p_value": 0.0512
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.8
+  },
+  "timestamp": "2026-03-16T20:06:20.723151",
+  "parent_id": "5e7dfeb7"
+}

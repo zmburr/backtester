@@ -1,0 +1,69 @@
+{
+  "date": "2026-03-18",
+  "session": "evening",
+  "generated_at": "2026-03-18T15:16:01.919963",
+  "go_count": 2,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.10337,
+        "pct_change_3": 0.138991,
+        "gap_pct": 0.012476,
+        "prior_day_range_atr": 0.677978,
+        "prior_day_rvol": 1.339435,
+        "premarket_rvol": 0.098212
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.155098,
+        "pct_change_3": 0.163779,
+        "gap_pct": 0.047676,
+        "prior_day_range_atr": 0.544693,
+        "prior_day_rvol": 0.765368,
+        "premarket_rvol": 0.051971
+      }
+    },
+    {
+      "ticker": "LITE",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.096338,
+        "pct_change_3": 0.054326,
+        "gap_pct": 0.084627,
+        "prior_day_range_atr": 1.339855,
+        "prior_day_rvol": 1.571649,
+        "premarket_rvol": 0.187718
+      }
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.113585,
+        "pct_change_3": 0.201509,
+        "gap_pct": -0.010946,
+        "prior_day_range_atr": 1.589056,
+        "prior_day_rvol": 1.627118,
+        "premarket_rvol": 0.060428
+      }
+    }
+  ]
+}

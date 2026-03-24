@@ -1,0 +1,125 @@
+{
+  "experiment_id": "fad150f5",
+  "experiment_type": "entry_signal_comparison",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "signal_column": null,
+    "grade": null,
+    "cap": null
+  },
+  "metrics": {
+    "baseline_expectancy": 13.4,
+    "n_total": 112,
+    "signal_results": [
+      {
+        "signal": "GapDownTrendBreak",
+        "n": 15,
+        "win_rate": 100.0,
+        "avg_pnl": 19.02,
+        "median_pnl": 16.86,
+        "vs_baseline": 5.62,
+        "pnl_ci_lower": 13.29,
+        "pnl_ci_upper": 28.22,
+        "wr_ci_lower": 100.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "3DGapFade",
+        "n": 33,
+        "win_rate": 90.9,
+        "avg_pnl": 14.84,
+        "median_pnl": 8.17,
+        "vs_baseline": 1.44,
+        "pnl_ci_lower": 9.55,
+        "pnl_ci_upper": 21.15,
+        "wr_ci_lower": 75.8,
+        "wr_ci_upper": 97.0
+      },
+      {
+        "signal": "2DGapFade",
+        "n": 18,
+        "win_rate": 100.0,
+        "avg_pnl": 14.79,
+        "median_pnl": 10.22,
+        "vs_baseline": 1.39,
+        "pnl_ci_lower": 9.58,
+        "pnl_ci_upper": 23.65,
+        "wr_ci_lower": 100.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "2DBreakoutIB",
+        "n": 23,
+        "win_rate": 91.3,
+        "avg_pnl": 10.56,
+        "median_pnl": 11.64,
+        "vs_baseline": -2.84,
+        "pnl_ci_lower": 7.5,
+        "pnl_ci_upper": 13.94,
+        "wr_ci_lower": 73.9,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "ConsolidationBreakdown",
+        "n": 4,
+        "win_rate": 100.0,
+        "avg_pnl": 9.16,
+        "median_pnl": 8.25,
+        "vs_baseline": -4.24,
+        "pnl_ci_lower": 3.5,
+        "pnl_ci_upper": 14.81,
+        "wr_ci_lower": 100.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "PriorDayLowBreak",
+        "n": 5,
+        "win_rate": 100.0,
+        "avg_pnl": 9.14,
+        "median_pnl": 6.52,
+        "vs_baseline": -4.26,
+        "pnl_ci_lower": 5.39,
+        "pnl_ci_upper": 14.62,
+        "wr_ci_lower": 100.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "1DBreakoutIB",
+        "n": 6,
+        "win_rate": 100.0,
+        "avg_pnl": 7.87,
+        "median_pnl": 8.11,
+        "vs_baseline": -5.53,
+        "pnl_ci_lower": 5.03,
+        "pnl_ci_upper": 10.63,
+        "wr_ci_lower": 100.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "RightSidePopFade",
+        "n": 4,
+        "win_rate": 75.0,
+        "avg_pnl": 7.66,
+        "median_pnl": 9.73,
+        "vs_baseline": -5.74,
+        "pnl_ci_lower": -0.67,
+        "pnl_ci_upper": 13.93,
+        "wr_ci_lower": 25.0,
+        "wr_ci_upper": 100.0
+      }
+    ],
+    "n_signal_types": 8
+  },
+  "summary": "Best signal: GapDownTrendBreak (N=15, WR=100.0%, Avg P&L=+19.02%). 8 signal types compared.",
+  "statistical_tests": {
+    "pairwise_tests": []
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 3.7,
+    "signal_column_used": "setup"
+  },
+  "timestamp": "2026-03-18T20:01:17.993456",
+  "parent_id": "b05628f8"
+}

@@ -1,0 +1,50 @@
+{
+  "session_id": "2026-03-20_20-00",
+  "started_at": "2026-03-20T20:00:06.374535",
+  "experiments": [
+    {
+      "index": 0,
+      "filename": "exp_000_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "210a746b",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": null
+    },
+    {
+      "index": 1,
+      "filename": "exp_001_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "c142f18b",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "210a746b"
+    },
+    {
+      "index": 2,
+      "filename": "exp_002_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "9ed3743c",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "c142f18b"
+    }
+  ],
+  "status": "completed",
+  "completed_at": "2026-03-20T20:00:14.741599",
+  "session_stats": {
+    "total_experiments": 3,
+    "significant_findings": 0,
+    "runtime_seconds": 8.4,
+    "claude_calls": 2,
+    "strategies_tested": [
+      "bounce",
+      "reversal"
+    ],
+    "experiment_types_used": [
+      "feature_importance",
+      "filter_sweep"
+    ],
+    "statistical_guard_summary": "No tests registered yet."
+  }
+}

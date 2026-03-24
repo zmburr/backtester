@@ -1,0 +1,192 @@
+{
+  "experiment_id": "8cc3b7bc",
+  "experiment_type": "feature_importance",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "target": "pnl",
+    "cap": "Medium"
+  },
+  "metrics": {
+    "n_trades": 65,
+    "n_features_analyzed": 29,
+    "top_features": [
+      {
+        "feature": "percent_of_premarket_vol",
+        "spearman_rho": 0.4506,
+        "spearman_rank": 1,
+        "spearman_p": 0.0002,
+        "direction": "higher=better",
+        "composite_rank": 15.0
+      },
+      {
+        "feature": "vol_ratio_5min_to_pm",
+        "spearman_rho": -0.4363,
+        "spearman_rank": 2,
+        "spearman_p": 0.0003,
+        "direction": "lower=better",
+        "composite_rank": 15.5
+      },
+      {
+        "feature": "rvol_score",
+        "spearman_rho": 0.3516,
+        "spearman_rank": 3,
+        "spearman_p": 0.0041,
+        "direction": "higher=better",
+        "composite_rank": 16.0
+      },
+      {
+        "feature": "gap_from_pm_high",
+        "spearman_rho": -0.3242,
+        "spearman_rank": 4,
+        "spearman_p": 0.0084,
+        "direction": "lower=better",
+        "composite_rank": 16.5
+      },
+      {
+        "feature": "pct_change_3",
+        "spearman_rho": 0.3183,
+        "spearman_rank": 5,
+        "spearman_p": 0.0098,
+        "direction": "higher=better",
+        "composite_rank": 17.0
+      },
+      {
+        "feature": "pct_from_9ema",
+        "spearman_rho": 0.3036,
+        "spearman_rank": 6,
+        "spearman_p": 0.014,
+        "direction": "higher=better",
+        "composite_rank": 17.5
+      },
+      {
+        "feature": "percent_of_vol_in_first_10_min",
+        "spearman_rho": 0.2821,
+        "spearman_rank": 7,
+        "spearman_p": 0.0228,
+        "direction": "higher=better",
+        "composite_rank": 18.0
+      },
+      {
+        "feature": "percent_of_vol_in_first_15_min",
+        "spearman_rho": 0.2784,
+        "spearman_rank": 8,
+        "spearman_p": 0.0247,
+        "direction": "higher=better",
+        "composite_rank": 18.5
+      },
+      {
+        "feature": "percent_of_vol_in_first_5_min",
+        "spearman_rho": 0.2701,
+        "spearman_rank": 9,
+        "spearman_p": 0.0296,
+        "direction": "higher=better",
+        "composite_rank": 19.0
+      },
+      {
+        "feature": "uvxy_close",
+        "spearman_rho": 0.2674,
+        "spearman_rank": 10,
+        "spearman_p": 0.0313,
+        "direction": "higher=better",
+        "composite_rank": 19.5
+      }
+    ],
+    "top_spearman": [
+      {
+        "feature": "percent_of_premarket_vol",
+        "spearman_rho": 0.4506,
+        "p_value": 0.0002,
+        "abs_rho": 0.4506,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "vol_ratio_5min_to_pm",
+        "spearman_rho": -0.4363,
+        "p_value": 0.0003,
+        "abs_rho": 0.4363,
+        "direction": "lower=better",
+        "n": 65
+      },
+      {
+        "feature": "rvol_score",
+        "spearman_rho": 0.3516,
+        "p_value": 0.0041,
+        "abs_rho": 0.3516,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "gap_from_pm_high",
+        "spearman_rho": -0.3242,
+        "p_value": 0.0084,
+        "abs_rho": 0.3242,
+        "direction": "lower=better",
+        "n": 65
+      },
+      {
+        "feature": "pct_change_3",
+        "spearman_rho": 0.3183,
+        "p_value": 0.0098,
+        "abs_rho": 0.3183,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "pct_from_9ema",
+        "spearman_rho": 0.3036,
+        "p_value": 0.014,
+        "abs_rho": 0.3036,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "percent_of_vol_in_first_10_min",
+        "spearman_rho": 0.2821,
+        "p_value": 0.0228,
+        "abs_rho": 0.2821,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "percent_of_vol_in_first_15_min",
+        "spearman_rho": 0.2784,
+        "p_value": 0.0247,
+        "abs_rho": 0.2784,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "percent_of_vol_in_first_5_min",
+        "spearman_rho": 0.2701,
+        "p_value": 0.0296,
+        "abs_rho": 0.2701,
+        "direction": "higher=better",
+        "n": 65
+      },
+      {
+        "feature": "uvxy_close",
+        "spearman_rho": 0.2674,
+        "p_value": 0.0313,
+        "abs_rho": 0.2674,
+        "direction": "higher=better",
+        "n": 65
+      }
+    ],
+    "top_rf": []
+  },
+  "summary": "Top 5 predictors of reversal P&L: percent_of_premarket_vol, vol_ratio_5min_to_pm, rvol_score, gap_from_pm_high, pct_change_3. Analyzed 29 features across 65 trades.",
+  "statistical_tests": {
+    "method": "spearman + random_forest",
+    "n_significant_spearman": 14
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.1,
+    "missing_features": [],
+    "target_mode": "pnl"
+  },
+  "timestamp": "2026-03-16T20:04:19.208208",
+  "parent_id": "a9700faa"
+}

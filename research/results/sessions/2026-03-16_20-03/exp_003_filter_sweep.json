@@ -1,0 +1,130 @@
+{
+  "experiment_id": "5ba20228",
+  "experiment_type": "filter_sweep",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "cap": "Medium",
+    "columns_to_sweep": [
+      "percent_of_premarket_vol",
+      "rvol_score",
+      "gap_from_pm_high",
+      "pct_change_3",
+      "pct_from_9ema",
+      "uvxy_close"
+    ],
+    "min_sample": 10,
+    "max_combo_size": 2,
+    "top_n_filters": 8
+  },
+  "metrics": {
+    "baseline": {
+      "count": 65,
+      "win_rate": 93.8,
+      "avg_pnl": 11.27,
+      "median_pnl": 10.1,
+      "total_pnl": 732.4,
+      "max_win": 39.57,
+      "max_loss": -10.48,
+      "profit_factor": 42.68,
+      "avg_winner": 12.29,
+      "avg_loser": -4.39
+    },
+    "top_single_filters": [
+      {
+        "filter": "gap_pct >= 0.2",
+        "count": 10,
+        "win_rate": 100.0,
+        "avg_pnl": 20.51,
+        "improvement": 9.24
+      },
+      {
+        "filter": "spy_5day_return <= -0.02",
+        "count": 7,
+        "win_rate": 100.0,
+        "avg_pnl": 19.74,
+        "improvement": 8.47
+      },
+      {
+        "filter": "pct_from_9ema >= 1.0",
+        "count": 7,
+        "win_rate": 100.0,
+        "avg_pnl": 19.61,
+        "improvement": 8.34
+      }
+    ],
+    "top_combinations": [
+      {
+        "filters": "gap_pct >= 0.2 + gap_pct >= 0.15",
+        "count": 10,
+        "win_rate": 100.0,
+        "avg_pnl": 20.51,
+        "improvement": 9.24
+      },
+      {
+        "filters": "percent_of_premarket_vol >= 0.4 + gap_pct >= 0.15",
+        "count": 10,
+        "win_rate": 100.0,
+        "avg_pnl": 19.78,
+        "improvement": 8.51
+      },
+      {
+        "filters": "gap_pct >= 0.15 + percent_of_premarket_vol >= 0.3",
+        "count": 10,
+        "win_rate": 100.0,
+        "avg_pnl": 19.78,
+        "improvement": 8.51
+      }
+    ],
+    "top_correlations": [
+      {
+        "indicator": "vol_ratio_5min_to_pm",
+        "correlation": -0.403,
+        "abs_corr": 0.403,
+        "direction": "lower=better"
+      },
+      {
+        "indicator": "percent_of_vol_in_first_5_min",
+        "correlation": 0.394,
+        "abs_corr": 0.394,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "rvol_score",
+        "correlation": 0.394,
+        "abs_corr": 0.394,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "gap_from_pm_high",
+        "correlation": -0.361,
+        "abs_corr": 0.361,
+        "direction": "lower=better"
+      },
+      {
+        "indicator": "percent_of_premarket_vol",
+        "correlation": 0.342,
+        "abs_corr": 0.342,
+        "direction": "higher=better"
+      }
+    ],
+    "n_single_filters_tested": 97,
+    "n_combinations_tested": 5
+  },
+  "summary": "Best finding: gap_pct >= 0.2 + gap_pct >= 0.15 improves avg P&L by +9.24% (N=10, WR=100.0%).",
+  "statistical_tests": {
+    "improvement_pct": 9.24,
+    "p_value": 1.0,
+    "n_filtered": 10,
+    "n_baseline": 65,
+    "best_win_rate": 100.0,
+    "baseline_win_rate": 93.8
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.4,
+    "n_total_trades": 65
+  },
+  "timestamp": "2026-03-16T20:05:00.611810",
+  "parent_id": "8cc3b7bc"
+}

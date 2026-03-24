@@ -1,0 +1,107 @@
+{
+  "experiment_id": "98507745",
+  "experiment_type": "regime_analysis",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "regime": "all",
+    "grade": null,
+    "cap": null
+  },
+  "metrics": {
+    "baseline_expectancy": 8.58,
+    "n_total": 95,
+    "regimes": {
+      "spy_trend": [
+        {
+          "label": "spy_down",
+          "n": 65,
+          "win_rate": 89.2,
+          "avg_pnl": 11.32,
+          "median_pnl": 9.77,
+          "pnl_ci_lower": 8.51,
+          "pnl_ci_upper": 16.2
+        },
+        {
+          "label": "spy_flat",
+          "n": 23,
+          "win_rate": 73.9,
+          "avg_pnl": 3.15,
+          "median_pnl": 7.09,
+          "pnl_ci_lower": -5.67,
+          "pnl_ci_upper": 8.01
+        },
+        {
+          "label": "spy_up",
+          "n": 7,
+          "win_rate": 57.1,
+          "avg_pnl": 0.95,
+          "median_pnl": 1.91,
+          "pnl_ci_lower": -3.07,
+          "pnl_ci_upper": 4.52
+        }
+      ],
+      "volatility": [
+        {
+          "label": "high_vol",
+          "n": 95,
+          "win_rate": 83.2,
+          "avg_pnl": 8.58,
+          "median_pnl": 8.07,
+          "pnl_ci_lower": 5.87,
+          "pnl_ci_upper": 12.07
+        }
+      ],
+      "spy_daily": [
+        {
+          "label": "spy_red",
+          "n": 15,
+          "win_rate": 60.0,
+          "avg_pnl": 6.69,
+          "median_pnl": 1.52,
+          "pnl_ci_lower": 2.38,
+          "pnl_ci_upper": 13.25
+        },
+        {
+          "label": "spy_neutral",
+          "n": 13,
+          "win_rate": 69.2,
+          "avg_pnl": -3.99,
+          "median_pnl": 3.26,
+          "pnl_ci_lower": -17.2,
+          "pnl_ci_upper": 3.48
+        },
+        {
+          "label": "spy_green",
+          "n": 67,
+          "win_rate": 91.0,
+          "avg_pnl": 11.44,
+          "median_pnl": 9.94,
+          "pnl_ci_lower": 8.95,
+          "pnl_ci_upper": 16.43
+        }
+      ]
+    },
+    "best_finding": {
+      "regime": "spy_daily",
+      "best_bucket": "spy_green",
+      "worst_bucket": "spy_neutral",
+      "improvement": 15.43,
+      "p_value": 0.0517
+    }
+  },
+  "summary": "Best regime split: spy_daily \u2014 spy_green outperforms spy_neutral by +15.43% avg P&L (p=0.0517).",
+  "statistical_tests": {
+    "regime": "spy_daily",
+    "best_bucket": "spy_green",
+    "worst_bucket": "spy_neutral",
+    "improvement": 15.43,
+    "p_value": 0.0517
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 1.1
+  },
+  "timestamp": "2026-03-12T20:02:22.829472",
+  "parent_id": "afc97572"
+}

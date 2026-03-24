@@ -1,0 +1,125 @@
+{
+  "experiment_id": "e13814ab",
+  "experiment_type": "filter_sweep",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "columns_to_sweep": [
+      "pct_change_3",
+      "upper_band_distance",
+      "pct_change_15",
+      "atr_pct",
+      "pct_change_90",
+      "selloff_total_pct",
+      "gap_pct",
+      "bounce_intensity"
+    ],
+    "min_sample": 10,
+    "max_combo_size": 2,
+    "top_n_filters": 8
+  },
+  "metrics": {
+    "baseline": {
+      "count": 95,
+      "win_rate": 83.2,
+      "avg_pnl": 8.58,
+      "median_pnl": 8.07
+    },
+    "top_single_filters": [
+      {
+        "filter": "spy_5day_return >= 0",
+        "count": 18,
+        "win_rate": 38.9,
+        "avg_pnl": 1.09,
+        "improvement": 9.67
+      },
+      {
+        "filter": "day_of_range_pct >= 3.5",
+        "count": 11,
+        "win_rate": 72.7,
+        "avg_pnl": 0.12,
+        "improvement": 8.7
+      },
+      {
+        "filter": "day_of_range_pct >= 4.0",
+        "count": 8,
+        "win_rate": 75.0,
+        "avg_pnl": -0.42,
+        "improvement": 8.16
+      }
+    ],
+    "top_combinations": [
+      {
+        "filters": "day_of_range_pct >= 2.5 + vol_ratio_5min_to_pm >= 1.0",
+        "count": 14,
+        "win_rate": 64.3,
+        "avg_pnl": 4.56,
+        "improvement": 13.14
+      },
+      {
+        "filters": "spy_5day_return >= 0 + vol_ratio_5min_to_pm >= 1.0",
+        "count": 14,
+        "win_rate": 50.0,
+        "avg_pnl": 3.83,
+        "improvement": 12.41
+      },
+      {
+        "filters": "day_of_range_pct >= 2.0 + vol_ratio_5min_to_pm >= 1.0",
+        "count": 24,
+        "win_rate": 41.7,
+        "avg_pnl": 1.39,
+        "improvement": 9.97
+      }
+    ],
+    "top_correlations": [
+      {
+        "indicator": "upper_band_distance",
+        "correlation": 0.421,
+        "abs_corr": 0.421,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "pct_change_3",
+        "correlation": 0.327,
+        "abs_corr": 0.327,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "pct_from_9ema",
+        "correlation": 0.314,
+        "abs_corr": 0.314,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "percent_of_premarket_vol",
+        "correlation": -0.306,
+        "abs_corr": 0.306,
+        "direction": "lower=better"
+      },
+      {
+        "indicator": "pct_from_10mav",
+        "correlation": 0.294,
+        "abs_corr": 0.294,
+        "direction": "higher=better"
+      }
+    ],
+    "n_single_filters_tested": 56,
+    "n_combinations_tested": 9
+  },
+  "summary": "Best finding: day_of_range_pct >= 2.5 + vol_ratio_5min_to_pm >= 1.0 improves avg P&L by +13.14% (N=14, WR=64.3%).",
+  "statistical_tests": {
+    "improvement_pct": 13.14,
+    "p_value": 0.1398,
+    "n_filtered": 14,
+    "n_baseline": 95,
+    "best_win_rate": 64.3,
+    "baseline_win_rate": 83.2
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.5,
+    "n_total_trades": 95
+  },
+  "timestamp": "2026-03-12T20:00:48.952861",
+  "parent_id": "675353f0"
+}

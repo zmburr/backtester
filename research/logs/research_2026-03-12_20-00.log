@@ -1,0 +1,116 @@
+2026-03-12 20:00:06,334 [INFO] __main__: Log file: /Users/zacharyburr/.openclaw/workspace/backtester/research/logs/research_2026-03-12_20-00.log
+2026-03-12 20:00:06,353 [INFO] research.memory.memory_store: Memory loaded: 1 prior sessions tracked
+2026-03-12 20:00:06,353 [INFO] research.memory.memory_store: Memory loaded: 1 prior sessions tracked
+2026-03-12 20:00:06,385 [INFO] research.orchestrator: Memory loaded: Memory: 1 sessions, 20 features tracked, 1 findings, 0 failed experiments
+2026-03-12 20:00:06,386 [INFO] research.orchestrator: ============================================================
+2026-03-12 20:00:06,386 [INFO] research.orchestrator: OVERNIGHT RESEARCH SESSION STARTING
+2026-03-12 20:00:06,386 [INFO] research.orchestrator: Strategies: ['reversal', 'bounce']
+2026-03-12 20:00:06,386 [INFO] research.orchestrator: Budget: 15 iterations, 7200s
+2026-03-12 20:00:06,386 [INFO] research.orchestrator: ============================================================
+2026-03-12 20:00:06,454 [INFO] research.orchestrator: Asking Claude for initial experiment proposals...
+2026-03-12 20:00:47,935 [INFO] research.orchestrator: 
+--- Iteration 1 ---
+2026-03-12 20:00:47,936 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-12 20:00:47,936 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'columns_to_sweep': ['day_of_range_pct', 'pct_from_9ema', 'pct_change_3', 'pct_from_10mav', 'pct_change_15', 'atr_pct', 'gap_pct'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 8}
+2026-03-12 20:00:47,936 [INFO] research.orchestrator: Rationale: Prior session identified the top 5 reversal predictors (all measuring 'extension') but never converted those correlations into actionable thresholds. With N=112 this has enough power for single filters and 2-way combos. This directly answers: 'What minimum extension level should I require before taking a reversal trade?' — the highest-leverage question for improving expectancy.
+2026-03-12 20:00:47,961 [INFO] root: Baseline (112 trades): Win Rate=92.9%, Avg P&L=13.4%
+2026-03-12 20:00:48,485 [INFO] research.result_store: Saved experiment #0: filter_sweep -> exp_000_filter_sweep.json
+2026-03-12 20:00:48,488 [INFO] research.orchestrator: Result: not significant
+2026-03-12 20:00:48,488 [INFO] research.orchestrator: Summary: Best finding: spy_5day_return <= -0.02 + gap_pct >= 0.2 improves avg P&L by +25.86% (N=11, WR=100.0%).
+2026-03-12 20:00:48,488 [INFO] research.orchestrator: 
+--- Iteration 2 ---
+2026-03-12 20:00:48,488 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-12 20:00:48,489 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'columns_to_sweep': ['pct_change_3', 'upper_band_distance', 'pct_change_15', 'atr_pct', 'pct_change_90', 'selloff_total_pct', 'gap_pct', 'bounce_intensity'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 8}
+2026-03-12 20:00:48,489 [INFO] research.orchestrator: Rationale: Same logic as reversal — convert the known top bounce predictors (all measuring 'selloff severity') into minimum thresholds. N=95 is borderline for combos but sufficient for single filters. This also tests bounce_intensity (the composite score) as a potential single-number filter, which would be operationally simpler than multi-factor thresholds.
+2026-03-12 20:00:48,501 [INFO] root: Baseline (95 trades): Win Rate=16.8%, Avg P&L=-8.58%
+2026-03-12 20:00:48,955 [INFO] research.result_store: Saved experiment #1: filter_sweep -> exp_001_filter_sweep.json
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: Result: not significant
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: Summary: Best finding: day_of_range_pct >= 2.5 + vol_ratio_5min_to_pm >= 1.0 improves avg P&L by +13.14% (N=14, WR=64.3%).
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: 
+--- Iteration 3 ---
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: Experiment: entry_signal_comparison
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'grade': None, 'cap': None}
+2026-03-12 20:00:48,958 [INFO] research.orchestrator: Rationale: Cap stratification was the #1 recommended follow-up from prior session but bounce caps are underpowered (Small=8, ETF=16). Entry signal comparison (GapFade_weakstock vs GapFade_strongstock) is a better first cut — CLAUDE.md reports a massive gap (+13.3% vs +2.7% avg P&L) but on older/smaller data. Validating this on current N=95 dataset determines whether setup type is a stronger filter than cap size, and whether we should treat these as two separate strategies with different thresholds.
+2026-03-12 20:00:51,105 [INFO] research.result_store: Saved experiment #2: entry_signal_comparison -> exp_002_entry_signal_comparison.json
+2026-03-12 20:00:51,108 [INFO] research.orchestrator: Result: SIGNIFICANT
+2026-03-12 20:00:51,108 [INFO] research.orchestrator: Summary: Best signal: 3DGapFade_weakstock (N=15, WR=80.0%, Avg P&L=+14.34%). 6 signal types compared.
+2026-03-12 20:01:29,629 [INFO] research.orchestrator: 
+--- Iteration 4 ---
+2026-03-12 20:01:29,630 [INFO] research.orchestrator: Experiment: entry_signal_comparison
+2026-03-12 20:01:29,630 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'grade': None, 'cap': None}
+2026-03-12 20:01:29,630 [INFO] research.orchestrator: Rationale: The entry_signal_comparison was the ONLY significant experiment across both strategies this session (p=0.0066 for bounce). Applying the same methodology cross-strategy to reversal is the highest-value next step. Reversal has intraday_setup types (e.g., 3DGapFade) that likely show similar performance dispersion. With N=112 reversal trades, we have enough power to detect meaningful differences. This also addresses the prior lesson about cap stratification indirectly — setup types often correlate with cap dynamics.
+2026-03-12 20:01:30,268 [INFO] research.result_store: Saved experiment #3: entry_signal_comparison -> exp_003_entry_signal_comparison.json
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: Result: not significant
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: Summary: Best signal: OpeningDrive (N=6, WR=83.3%, Avg P&L=+10.14%). 1 signal types compared.
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: 
+--- Iteration 5 ---
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: Experiment: regime_analysis
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'regime': 'all', 'grade': None, 'cap': None}
+2026-03-12 20:01:30,270 [INFO] research.orchestrator: Rationale: The filter sweep revealed spy_5day_return <= -0.02 as the single most powerful predictor for reversal P&L — boosting avg from 13.4% to 31.93% (N=18, 100% WR). This 2.4x improvement dwarfs every other finding. Regime analysis will formalize this with proper statistical testing (Fisher exact) across spy_trend, spy_daily, and volatility buckets. It also addresses the prior lesson that spy_green vs spy_neutral was a confirmed finding for bounce (p=0.0517) — we need to know if SPY regime matters even MORE for reversals, which the filter sweep strongly suggests.
+2026-03-12 20:01:31,173 [INFO] research.result_store: Saved experiment #4: regime_analysis -> exp_004_regime_analysis.json
+2026-03-12 20:01:31,176 [INFO] research.orchestrator: Result: not significant
+2026-03-12 20:01:31,176 [INFO] research.orchestrator: Summary: Best regime split: spy_trend — spy_down outperforms spy_up by +21.91% avg P&L (p=0.2853).
+2026-03-12 20:02:21,775 [INFO] research.orchestrator: 
+--- Iteration 6 ---
+2026-03-12 20:02:21,777 [INFO] research.orchestrator: Experiment: regime_analysis
+2026-03-12 20:02:21,777 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'regime': 'all', 'grade': None, 'cap': None}
+2026-03-12 20:02:21,777 [INFO] research.orchestrator: Rationale: Prior session confirmed spy_green vs spy_neutral for bounce (p=0.0517) — this is our only CONFIRMED FINDING and we need to validate it on current data. Additionally, reversal regime analysis showed spy_down trend = +30.61% avg (N=20, 100% WR) vs spy_up = +8.7%. Testing whether bounce shows the OPPOSITE pattern (bounces work better when SPY is beaten down = buying the dip) would give us a cross-strategy regime framework: short reversals in SPY downtrends, buy bounces in SPY downtrends — or discover they require different regimes.
+2026-03-12 20:02:22,832 [INFO] research.result_store: Saved experiment #5: regime_analysis -> exp_005_regime_analysis.json
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: Result: not significant
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: Summary: Best regime split: spy_daily — spy_green outperforms spy_neutral by +15.43% avg P&L (p=0.0517).
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: 
+--- Iteration 7 ---
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: Experiment: walk_forward_sensitivity
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: Params: {'strategy': 'reversal'}
+2026-03-12 20:02:22,834 [INFO] research.orchestrator: Rationale: The filter sweep found strong in-sample signals: extension metrics (pct_change_3 rho=0.611, pct_from_10mav rho=0.611) and SPY regime (spy_5day_return <= -0.02 → +31.93% avg, 100% WR). Before acting on these, we must test temporal stability. If the edge degrades significantly in later periods, these are overfit artifacts. If it holds, we have a validated sizing/selection rule: increase position size when SPY is weak AND the stock is extremely extended.
+2026-03-12 20:02:22,835 [ERROR] research.orchestrator: Experiment walk_forward_sensitivity failed: No module named 'validation'
+2026-03-12 20:02:22,838 [ERROR] research.orchestrator: Traceback (most recent call last):
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 199, in _run_experiment
+    result = experiment.run(params, self.config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/experiments/walk_forward_sensitivity.py", line 49, in run
+    from validation.walk_forward_engine import run_walk_forward
+ModuleNotFoundError: No module named 'validation'
+
+2026-03-12 20:02:22,839 [ERROR] research.orchestrator: Session failed: '_MISSING_TYPE' object is not callable
+2026-03-12 20:02:22,839 [ERROR] research.orchestrator: Traceback (most recent call last):
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 199, in _run_experiment
+    result = experiment.run(params, self.config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/experiments/walk_forward_sensitivity.py", line 49, in run
+    from validation.walk_forward_engine import run_walk_forward
+ModuleNotFoundError: No module named 'validation'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 100, in run
+    result = self._run_experiment(exp_type, params, iteration)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 212, in _run_experiment
+    experiment_id=ExperimentResult.__dataclass_fields__["experiment_id"].default_factory()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: '_MISSING_TYPE' object is not callable
+
+2026-03-12 20:02:22,840 [ERROR] __main__: Fatal error: '_MISSING_TYPE' object is not callable
+Traceback (most recent call last):
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 199, in _run_experiment
+    result = experiment.run(params, self.config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/experiments/walk_forward_sensitivity.py", line 49, in run
+    from validation.walk_forward_engine import run_walk_forward
+ModuleNotFoundError: No module named 'validation'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/scripts/run_overnight_research.py", line 93, in main
+    results = orchestrator.run()
+              ^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 100, in run
+    result = self._run_experiment(exp_type, params, iteration)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zacharyburr/.openclaw/workspace/backtester/research/orchestrator.py", line 212, in _run_experiment
+    experiment_id=ExperimentResult.__dataclass_fields__["experiment_id"].default_factory()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: '_MISSING_TYPE' object is not callable

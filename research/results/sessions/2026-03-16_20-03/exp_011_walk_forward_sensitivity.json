@@ -1,0 +1,92 @@
+{
+  "experiment_id": "54a7dc35",
+  "experiment_type": "walk_forward_sensitivity",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce"
+  },
+  "metrics": {
+    "split_results": [
+      {
+        "label": "mid-2023 split",
+        "train_end": "2023-06-30",
+        "validate_end": "2024-06-30",
+        "train_n": 50,
+        "train_wr": 74.0,
+        "train_avg_pnl": 8.44,
+        "validate_n": 6,
+        "validate_wr": 83.3,
+        "validate_avg_pnl": -2.49,
+        "wr_change_pp": 9.3,
+        "pnl_change_pct": -129.5,
+        "verdict": "collapsed",
+        "fisher_p": 1.0,
+        "go_edge_retained": -29.5,
+        "test_n": 39,
+        "test_wr": 94.9,
+        "test_avg_pnl": 10.46
+      },
+      {
+        "label": "year-end 2023 split",
+        "train_end": "2023-12-31",
+        "validate_end": "2024-12-31",
+        "train_n": 50,
+        "train_wr": 74.0,
+        "train_avg_pnl": 8.44,
+        "validate_n": 21,
+        "validate_wr": 90.5,
+        "validate_avg_pnl": 10.24,
+        "wr_change_pp": 16.5,
+        "pnl_change_pct": 21.3,
+        "verdict": "collapsed",
+        "fisher_p": 0.2019,
+        "go_edge_retained": 121.3,
+        "test_n": 24,
+        "test_wr": 95.8,
+        "test_avg_pnl": 7.42
+      },
+      {
+        "label": "mid-2024 split",
+        "train_end": "2024-06-30",
+        "validate_end": "2025-06-30",
+        "train_n": 56,
+        "train_wr": 75.0,
+        "train_avg_pnl": 7.26,
+        "validate_n": 35,
+        "validate_wr": 97.1,
+        "validate_avg_pnl": 10.91,
+        "wr_change_pp": 22.1,
+        "pnl_change_pct": 50.3,
+        "verdict": "collapsed",
+        "fisher_p": 0.0073,
+        "go_edge_retained": 150.3,
+        "test_n": 4,
+        "test_wr": 75.0,
+        "test_avg_pnl": 6.49
+      }
+    ],
+    "stability": "NO_EDGE",
+    "n_splits_tested": 3,
+    "n_held": 0,
+    "n_degraded": 0,
+    "n_collapsed": 3,
+    "avg_validate_wr": 90.3,
+    "avg_validate_avg_pnl": 6.22
+  },
+  "summary": "Walk-forward sensitivity: NO_EDGE. 0 held, 0 degraded, 3 collapsed across 3 splits. Avg OOS: WR=90.3%, Avg P&L=+6.22%.",
+  "statistical_tests": {
+    "stability_verdict": "NO_EDGE",
+    "verdicts": [
+      "collapsed",
+      "collapsed",
+      "collapsed"
+    ]
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.1,
+    "errors": []
+  },
+  "timestamp": "2026-03-16T20:25:53.774887",
+  "parent_id": "88fa6719"
+}

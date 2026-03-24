@@ -1,0 +1,15 @@
+{
+  "experiment_id": "0fda0b20",
+  "experiment_type": "backscanner_validation",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce"
+  },
+  "metrics": {},
+  "summary": "No backscanner CSVs found matching bounce_backscanner_*.csv.",
+  "statistical_tests": {},
+  "is_significant": false,
+  "metadata": {},
+  "timestamp": "2026-03-13T20:07:10.133297",
+  "parent_id": "43d8dc6f"
+}

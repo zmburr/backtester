@@ -1,0 +1,196 @@
+{
+  "experiment_id": "00e641fb",
+  "experiment_type": "feature_importance",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "target": "pnl"
+  },
+  "metrics": {
+    "n_trades": 95,
+    "n_features_analyzed": 28,
+    "top_features": [
+      {
+        "feature": "pct_change_3",
+        "spearman_rho": -0.6754,
+        "spearman_rank": 1,
+        "spearman_p": 0.0,
+        "direction": "lower=better",
+        "composite_rank": 14.5
+      },
+      {
+        "feature": "upper_band_distance",
+        "spearman_rho": -0.5032,
+        "spearman_rank": 2,
+        "spearman_p": 0.0,
+        "direction": "lower=better",
+        "composite_rank": 15.0
+      },
+      {
+        "feature": "pct_change_15",
+        "spearman_rho": -0.4241,
+        "spearman_rank": 3,
+        "spearman_p": 0.0,
+        "direction": "lower=better",
+        "composite_rank": 15.5
+      },
+      {
+        "feature": "atr_pct",
+        "spearman_rho": 0.3778,
+        "spearman_rank": 4,
+        "spearman_p": 0.0002,
+        "direction": "higher=better",
+        "composite_rank": 16.0
+      },
+      {
+        "feature": "pct_change_90",
+        "spearman_rho": -0.342,
+        "spearman_rank": 5,
+        "spearman_p": 0.0007,
+        "direction": "lower=better",
+        "composite_rank": 16.5
+      },
+      {
+        "feature": "vol_ratio_5min_to_pm",
+        "spearman_rho": -0.337,
+        "spearman_rank": 6,
+        "spearman_p": 0.001,
+        "direction": "lower=better",
+        "composite_rank": 17.0
+      },
+      {
+        "feature": "pct_change_120",
+        "spearman_rho": -0.3256,
+        "spearman_rank": 7,
+        "spearman_p": 0.0013,
+        "direction": "lower=better",
+        "composite_rank": 17.5
+      },
+      {
+        "feature": "gap_pct",
+        "spearman_rho": -0.322,
+        "spearman_rank": 8,
+        "spearman_p": 0.0015,
+        "direction": "lower=better",
+        "composite_rank": 18.0
+      },
+      {
+        "feature": "pct_change_30",
+        "spearman_rho": -0.3177,
+        "spearman_rank": 9,
+        "spearman_p": 0.0017,
+        "direction": "lower=better",
+        "composite_rank": 18.5
+      },
+      {
+        "feature": "pct_from_200mav",
+        "spearman_rho": -0.3004,
+        "spearman_rank": 10,
+        "spearman_p": 0.004,
+        "direction": "lower=better",
+        "composite_rank": 19.0
+      }
+    ],
+    "top_spearman": [
+      {
+        "feature": "pct_change_3",
+        "spearman_rho": -0.6754,
+        "p_value": 0.0,
+        "abs_rho": 0.6754,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "upper_band_distance",
+        "spearman_rho": -0.5032,
+        "p_value": 0.0,
+        "abs_rho": 0.5032,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "pct_change_15",
+        "spearman_rho": -0.4241,
+        "p_value": 0.0,
+        "abs_rho": 0.4241,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "atr_pct",
+        "spearman_rho": 0.3778,
+        "p_value": 0.0002,
+        "abs_rho": 0.3778,
+        "direction": "higher=better",
+        "n": 95
+      },
+      {
+        "feature": "pct_change_90",
+        "spearman_rho": -0.342,
+        "p_value": 0.0007,
+        "abs_rho": 0.342,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "vol_ratio_5min_to_pm",
+        "spearman_rho": -0.337,
+        "p_value": 0.001,
+        "abs_rho": 0.337,
+        "direction": "lower=better",
+        "n": 93
+      },
+      {
+        "feature": "pct_change_120",
+        "spearman_rho": -0.3256,
+        "p_value": 0.0013,
+        "abs_rho": 0.3256,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "gap_pct",
+        "spearman_rho": -0.322,
+        "p_value": 0.0015,
+        "abs_rho": 0.322,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "pct_change_30",
+        "spearman_rho": -0.3177,
+        "p_value": 0.0017,
+        "abs_rho": 0.3177,
+        "direction": "lower=better",
+        "n": 95
+      },
+      {
+        "feature": "pct_from_200mav",
+        "spearman_rho": -0.3004,
+        "p_value": 0.004,
+        "abs_rho": 0.3004,
+        "direction": "lower=better",
+        "n": 90
+      }
+    ],
+    "top_rf": []
+  },
+  "summary": "Top 5 predictors of bounce P&L: pct_change_3, upper_band_distance, pct_change_15, atr_pct, pct_change_90. Analyzed 28 features across 95 trades.",
+  "statistical_tests": {
+    "method": "spearman + random_forest",
+    "n_significant_spearman": 17
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.0,
+    "missing_features": [
+      "prior_day_close_vs_high_pct",
+      "consecutive_up_days",
+      "prior_day_range_atr",
+      "gap_from_pm_high"
+    ],
+    "target_mode": "pnl"
+  },
+  "timestamp": "2026-03-12T18:06:53.645708",
+  "parent_id": "1593a958"
+}

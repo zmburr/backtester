@@ -1,0 +1,46 @@
+2026-03-12 18:06:22,931 [INFO] __main__: Log file: /Users/zacharyburr/.openclaw/workspace/backtester/research/logs/research_2026-03-12_18-06.log
+2026-03-12 18:06:22,947 [INFO] research.memory.memory_store: No prior memory found, starting fresh
+2026-03-12 18:06:22,947 [INFO] research.memory.memory_store: No prior memory found, starting fresh
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: Memory loaded: Memory: 0 sessions, 0 features tracked, 0 findings, 0 failed experiments
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: ============================================================
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: OVERNIGHT RESEARCH SESSION STARTING
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: Strategies: ['reversal', 'bounce']
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: Budget: 3 iterations, 300s
+2026-03-12 18:06:22,956 [INFO] research.orchestrator: ============================================================
+2026-03-12 18:06:22,972 [INFO] research.orchestrator: Asking Claude for initial experiment proposals...
+2026-03-12 18:06:53,567 [INFO] research.orchestrator: 
+--- Iteration 1 ---
+2026-03-12 18:06:53,568 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-12 18:06:53,568 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'target': 'pnl'}
+2026-03-12 18:06:53,568 [INFO] research.orchestrator: Rationale: Reversal has the most trades (112) and 55 numeric features. With 92.9% WR already, the key question isn't win/loss but what separates huge winners (Micro +41%) from modest ones (ETF +2.5%). Identifying top PnL predictors first gives us a roadmap for targeted filter_sweep in round 2 rather than blindly sweeping 55 columns.
+2026-03-12 18:06:53,622 [INFO] research.result_store: Saved experiment #0: feature_importance -> exp_000_feature_importance.json
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: Result: not significant
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: Summary: Top 5 predictors of reversal P&L: day_of_range_pct, pct_from_9ema, pct_change_3, pct_from_10mav, pct_change_15. Analyzed 32 features across 112 trades.
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: 
+--- Iteration 2 ---
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'target': 'pnl'}
+2026-03-12 18:06:53,622 [INFO] research.orchestrator: Rationale: Bounce has 95 trades, 74 numeric features, and more room to improve (83.2% WR, ~16 losers). Running feature_importance on both strategies in parallel gives us the full predictive landscape before committing to filter thresholds. With 74 columns, blind sweeping would be wasteful — we need to know which 10-15 features actually matter.
+2026-03-12 18:06:53,646 [INFO] research.result_store: Saved experiment #1: feature_importance -> exp_001_feature_importance.json
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: Result: not significant
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: Summary: Top 5 predictors of bounce P&L: pct_change_3, upper_band_distance, pct_change_15, atr_pct, pct_change_90. Analyzed 28 features across 95 trades.
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: 
+--- Iteration 3 ---
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: Experiment: regime_analysis
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'regime': 'all'}
+2026-03-12 18:06:53,646 [INFO] research.orchestrator: Rationale: Bounce trades are capitulation longs — highly sensitive to market regime. If losers cluster in specific SPY trend or volatility environments, that's an immediately actionable filter (don't take bounces when SPY is in X regime). This is orthogonal to feature_importance and covers the macro dimension those single-stock features miss. Bounce over reversal because its 83.2% WR has more room to improve by avoiding bad regimes.
+2026-03-12 18:06:53,886 [INFO] research.result_store: Saved experiment #2: regime_analysis -> exp_002_regime_analysis.json
+2026-03-12 18:06:53,886 [INFO] research.orchestrator: Result: not significant
+2026-03-12 18:06:53,886 [INFO] research.orchestrator: Summary: Best regime split: spy_daily — spy_green outperforms spy_neutral by +15.43% avg P&L (p=0.0517).
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: Hit iteration limit (3)
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: 
+============================================================
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: SESSION COMPLETE
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: Total experiments: 3
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: Significant findings: 0
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: Runtime: 31s
+2026-03-12 18:06:53,887 [INFO] research.orchestrator: Claude calls: 1
+2026-03-12 18:06:53,887 [INFO] __main__: Generating synthesis...
+2026-03-12 18:08:14,719 [INFO] research.memory.memory_store: Lessons updated for session 2026-03-12_18-06
+2026-03-12 18:08:14,721 [INFO] research.orchestrator: Saved 2034 chars of lessons to memory
+2026-03-12 18:08:14,723 [INFO] __main__: Report saved to /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-12_18-08.md (email skipped)

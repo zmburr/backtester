@@ -1,0 +1,145 @@
+{
+  "session_id": "2026-03-16_20-03",
+  "started_at": "2026-03-16T20:03:24.627865",
+  "experiments": [
+    {
+      "index": 0,
+      "filename": "exp_000_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "d310aeef",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": null
+    },
+    {
+      "index": 1,
+      "filename": "exp_001_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "a9700faa",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "d310aeef"
+    },
+    {
+      "index": 2,
+      "filename": "exp_002_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "8cc3b7bc",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "a9700faa"
+    },
+    {
+      "index": 3,
+      "filename": "exp_003_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "5ba20228",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "8cc3b7bc"
+    },
+    {
+      "index": 4,
+      "filename": "exp_004_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "5e7dfeb7",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "5ba20228"
+    },
+    {
+      "index": 5,
+      "filename": "exp_005_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "621df92d",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "5e7dfeb7"
+    },
+    {
+      "index": 6,
+      "filename": "exp_006_exit_optimization.json",
+      "experiment_type": "exit_optimization",
+      "experiment_id": "52fd0612",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "621df92d"
+    },
+    {
+      "index": 7,
+      "filename": "exp_007_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "07b76ece",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "52fd0612"
+    },
+    {
+      "index": 8,
+      "filename": "exp_008_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "2a7cd3ea",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "07b76ece"
+    },
+    {
+      "index": 9,
+      "filename": "exp_009_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "d29e8a71",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "2a7cd3ea"
+    },
+    {
+      "index": 10,
+      "filename": "exp_010_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "88fa6719",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "d29e8a71"
+    },
+    {
+      "index": 11,
+      "filename": "exp_011_walk_forward_sensitivity.json",
+      "experiment_type": "walk_forward_sensitivity",
+      "experiment_id": "54a7dc35",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "88fa6719"
+    },
+    {
+      "index": 12,
+      "filename": "exp_012_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "30497a5b",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "54a7dc35"
+    }
+  ],
+  "status": "completed",
+  "completed_at": "2026-03-16T20:37:31.393813",
+  "session_stats": {
+    "total_experiments": 13,
+    "significant_findings": 2,
+    "runtime_seconds": 2046.8,
+    "claude_calls": 7,
+    "strategies_tested": [
+      "bounce",
+      "reversal"
+    ],
+    "experiment_types_used": [
+      "risk_metrics",
+      "entry_signal_comparison",
+      "regime_analysis",
+      "feature_importance",
+      "exit_optimization",
+      "filter_sweep",
+      "walk_forward_sensitivity"
+    ],
+    "statistical_guard_summary": "No tests registered yet."
+  }
+}

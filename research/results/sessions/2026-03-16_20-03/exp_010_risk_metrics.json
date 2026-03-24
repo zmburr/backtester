@@ -1,0 +1,45 @@
+{
+  "experiment_id": "88fa6719",
+  "experiment_type": "risk_metrics",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "initial_capital": 100000,
+    "position_size_pct": 10,
+    "n_simulations": 10000,
+    "n_trades_per_sim": 200
+  },
+  "metrics": {
+    "n_trades": 95,
+    "win_rate": 83.2,
+    "avg_pnl": 8.58,
+    "std_pnl": 15.19,
+    "avg_winner": 12.3,
+    "avg_loser": 9.79,
+    "kelly_fraction": 25.0,
+    "sharpe_ratio": 0.565,
+    "monte_carlo": {
+      "ruin_probability": 0.0,
+      "median_max_drawdown": 5.4,
+      "p95_max_drawdown": 9.8,
+      "p99_max_drawdown": 11.8,
+      "median_final_capital": 536976.0,
+      "p10_final_capital": 415418.0,
+      "p90_final_capital": 707569.0,
+      "median_max_consecutive_losses": 3,
+      "p95_max_consecutive_losses": 4
+    }
+  },
+  "summary": "Risk analysis (bounce): Kelly=25.0%, Ruin prob=0.0%, Median max DD=5.4%, P95 max DD=9.8%. Sharpe-like ratio=0.565.",
+  "statistical_tests": {
+    "kelly_criterion": 25.0,
+    "ruin_probability": 0.0
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 2.7,
+    "n_simulations": 10000
+  },
+  "timestamp": "2026-03-16T20:24:58.779144",
+  "parent_id": "d29e8a71"
+}

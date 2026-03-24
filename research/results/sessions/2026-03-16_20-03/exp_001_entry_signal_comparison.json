@@ -1,0 +1,104 @@
+{
+  "experiment_id": "a9700faa",
+  "experiment_type": "entry_signal_comparison",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce"
+  },
+  "metrics": {
+    "baseline_expectancy": 8.58,
+    "n_total": 95,
+    "signal_results": [
+      {
+        "signal": "3DGapFade_weakstock",
+        "n": 15,
+        "win_rate": 80.0,
+        "avg_pnl": 14.34,
+        "median_pnl": 8.55,
+        "vs_baseline": 5.77,
+        "pnl_ci_lower": 4.41,
+        "pnl_ci_upper": 35.07,
+        "wr_ci_lower": 53.3,
+        "wr_ci_upper": 93.3
+      },
+      {
+        "signal": "GapFade_strongstock",
+        "n": 18,
+        "win_rate": 94.4,
+        "avg_pnl": 11.95,
+        "median_pnl": 8.59,
+        "vs_baseline": 3.38,
+        "pnl_ci_lower": 8.6,
+        "pnl_ci_upper": 17.05,
+        "wr_ci_lower": 72.2,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "GapFade_weakstock",
+        "n": 24,
+        "win_rate": 95.8,
+        "avg_pnl": 11.11,
+        "median_pnl": 10.83,
+        "vs_baseline": 2.54,
+        "pnl_ci_lower": 8.6,
+        "pnl_ci_upper": 13.92,
+        "wr_ci_lower": 79.2,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "3DGapFade_strongstock",
+        "n": 23,
+        "win_rate": 95.7,
+        "avg_pnl": 8.27,
+        "median_pnl": 9.4,
+        "vs_baseline": -0.31,
+        "pnl_ci_lower": 5.71,
+        "pnl_ci_upper": 10.97,
+        "wr_ci_lower": 77.5,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "2DGapFade_strongstock",
+        "n": 3,
+        "win_rate": 33.3,
+        "avg_pnl": -4.78,
+        "median_pnl": -1.64,
+        "vs_baseline": -13.36,
+        "pnl_ci_lower": -15.97,
+        "pnl_ci_upper": 3.26,
+        "wr_ci_lower": 0.0,
+        "wr_ci_upper": 100.0
+      },
+      {
+        "signal": "IntradayCapitch_strongstock",
+        "n": 7,
+        "win_rate": 14.3,
+        "avg_pnl": -11.71,
+        "median_pnl": -3.4,
+        "vs_baseline": -20.28,
+        "pnl_ci_lower": -26.76,
+        "pnl_ci_upper": 0.03,
+        "wr_ci_lower": 0.0,
+        "wr_ci_upper": 42.9
+      }
+    ],
+    "n_signal_types": 6
+  },
+  "summary": "Best signal: 3DGapFade_weakstock (N=15, WR=80.0%, Avg P&L=+14.34%). 6 signal types compared.",
+  "statistical_tests": {
+    "pairwise_tests": [
+      {
+        "comparison": "3DGapFade_weakstock vs IntradayCapitch_strongstock",
+        "p_value": 0.0066,
+        "improvement": 26.05
+      }
+    ]
+  },
+  "is_significant": true,
+  "metadata": {
+    "runtime_seconds": 2.1,
+    "signal_column_used": "Setup"
+  },
+  "timestamp": "2026-03-16T20:04:19.115231",
+  "parent_id": "d310aeef"
+}

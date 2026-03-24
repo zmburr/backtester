@@ -1,0 +1,39 @@
+{
+  "date": "2026-03-19",
+  "session": "morning",
+  "generated_at": "2026-03-19T05:46:25.422192",
+  "go_count": 0,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.043234,
+        "pct_change_3": 0.119762,
+        "gap_pct": -0.028436,
+        "prior_day_range_atr": 1.005969,
+        "prior_day_rvol": 1.354605,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.061943,
+        "pct_change_3": 0.139158,
+        "gap_pct": -0.051334,
+        "prior_day_range_atr": 0.964708,
+        "prior_day_rvol": 1.082064,
+        "premarket_rvol": 0.0
+      }
+    }
+  ]
+}

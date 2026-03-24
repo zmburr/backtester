@@ -1,0 +1,38 @@
+{
+  "experiment_id": "7761aacb",
+  "experiment_type": "entry_signal_comparison",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal"
+  },
+  "metrics": {
+    "baseline_expectancy": 13.4,
+    "n_total": 112,
+    "signal_results": [
+      {
+        "signal": "OpeningDrive",
+        "n": 6,
+        "win_rate": 83.3,
+        "avg_pnl": 10.14,
+        "median_pnl": 12.19,
+        "vs_baseline": -3.26,
+        "pnl_ci_lower": 3.91,
+        "pnl_ci_upper": 14.32,
+        "wr_ci_lower": 50.0,
+        "wr_ci_upper": 100.0
+      }
+    ],
+    "n_signal_types": 1
+  },
+  "summary": "Best signal: OpeningDrive (N=6, WR=83.3%, Avg P&L=+10.14%). 1 signal types compared.",
+  "statistical_tests": {
+    "pairwise_tests": []
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.6,
+    "signal_column_used": "intraday_setup"
+  },
+  "timestamp": "2026-03-13T20:01:00.710288",
+  "parent_id": "d8b1763c"
+}

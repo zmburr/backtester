@@ -1,0 +1,49 @@
+2026-03-18 20:00:05,957 [INFO] __main__: Log file: /Users/zacharyburr/.openclaw/workspace/backtester/research/logs/research_2026-03-18_20-00.log
+2026-03-18 20:00:05,973 [INFO] research.memory.memory_store: Memory loaded: 3 prior sessions tracked
+2026-03-18 20:00:05,974 [INFO] research.memory.memory_store: Memory loaded: 3 prior sessions tracked
+2026-03-18 20:00:06,013 [INFO] research.orchestrator: Memory loaded: Memory: 3 sessions, 25 features tracked, 19 findings, 0 failed experiments
+2026-03-18 20:00:06,014 [INFO] research.orchestrator: ============================================================
+2026-03-18 20:00:06,014 [INFO] research.orchestrator: OVERNIGHT RESEARCH SESSION STARTING
+2026-03-18 20:00:06,014 [INFO] research.orchestrator: Strategies: ['reversal', 'bounce']
+2026-03-18 20:00:06,014 [INFO] research.orchestrator: Budget: 15 iterations, 7200s
+2026-03-18 20:00:06,015 [INFO] research.orchestrator: ============================================================
+2026-03-18 20:00:06,081 [INFO] research.orchestrator: Asking Claude for initial experiment proposals...
+2026-03-18 20:01:14,138 [INFO] research.orchestrator: 
+--- Iteration 1 ---
+2026-03-18 20:01:14,139 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-18 20:01:14,139 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'target': 'pnl', 'cap': 'Medium', 'grade': None}
+2026-03-18 20:01:14,139 [INFO] research.orchestrator: Rationale: Cap-stratified feature importance was done for reversal Medium (prior session found volume metrics rose to the top, changing the all-cap story). But it was NEVER done for bounce. Medium is 55% of bounce data (N=52) — the only cap with enough sample. Prior lessons explicitly flag cap stratification as a priority gap. This tells us whether the all-cap top predictors (pct_change_3, upper_band_distance) hold within Medium or whether secondary factors emerge.
+2026-03-18 20:01:14,221 [INFO] research.result_store: Saved experiment #0: feature_importance -> exp_000_feature_importance.json
+2026-03-18 20:01:14,225 [INFO] research.orchestrator: Result: not significant
+2026-03-18 20:01:14,225 [INFO] research.orchestrator: Summary: Top 5 predictors of bounce P&L: pct_change_3, pct_change_90, pct_change_120, pct_from_200mav, pct_change_15. Analyzed 25 features across 52 trades.
+2026-03-18 20:01:14,225 [INFO] research.orchestrator: 
+--- Iteration 2 ---
+2026-03-18 20:01:14,226 [INFO] research.orchestrator: Experiment: exit_optimization
+2026-03-18 20:01:14,226 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'cap': None, 'analysis_type': 'all', 'trailing_percentages': [0.15, 0.25, 0.5, 0.75, 1.0]}
+2026-03-18 20:01:14,226 [INFO] research.orchestrator: Rationale: Prior lessons explicitly state: '67.5% of available profit is being left behind' and 'a 25% trailing stop alone would boost reversal expectancy from +13.5% to +17.3%.' Exit optimization was partially explored but never with the full analysis suite (ATR targets + time exits + MFE/MAE + trailing stops together). Adding a tighter 15% trail tests whether we can capture even more. With 3 sessions of entry filter refinement, exits are now the higher-leverage optimization axis.
+2026-03-18 20:01:14,258 [INFO] research.result_store: Saved experiment #1: exit_optimization -> exp_001_exit_optimization.json
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: Result: not significant
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: Summary: Exit analysis: 1x ATR hit rate: ?%. Capture efficiency: 32.5%. 50% trailing stop would capture +14.17%.
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: 
+--- Iteration 3 ---
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: Experiment: entry_signal_comparison
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'signal_column': None, 'grade': None, 'cap': None}
+2026-03-18 20:01:14,261 [INFO] research.orchestrator: Rationale: Prior lesson: 'Setup type classification is a powerful edge for bounces — we should run the equivalent for reversals.' For bounce, this was 'the most impactful experiment' — IntradayCapitch_strongstock had 14% WR vs GapFade_weakstock at 96% WR. The reversal equivalent (grouping by intraday_setup) has never been tested. If certain reversal setup types are dramatically better/worse, that's an immediately actionable pre-trade filter worth more than marginal threshold tuning.
+2026-03-18 20:01:17,995 [INFO] research.result_store: Saved experiment #2: entry_signal_comparison -> exp_002_entry_signal_comparison.json
+2026-03-18 20:01:17,998 [INFO] research.orchestrator: Result: not significant
+2026-03-18 20:01:17,998 [INFO] research.orchestrator: Summary: Best signal: GapDownTrendBreak (N=15, WR=100.0%, Avg P&L=+19.02%). 8 signal types compared.
+2026-03-18 20:01:35,280 [ERROR] research.claude_researcher: Claude CLI error: 
+2026-03-18 20:01:35,282 [WARNING] research.claude_researcher: Failed to parse JSON from Claude response: 
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: No more experiments proposed. Ending session.
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: 
+============================================================
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: SESSION COMPLETE
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: Total experiments: 3
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: Significant findings: 0
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: Runtime: 89s
+2026-03-18 20:01:35,282 [INFO] research.orchestrator: Claude calls: 2
+2026-03-18 20:01:35,286 [INFO] __main__: Generating synthesis...
+2026-03-18 20:02:10,321 [ERROR] research.claude_researcher: Claude CLI error: 
+2026-03-18 20:02:10,324 [INFO] research.report_generator: Report saved to /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-18_20-02.md
+2026-03-18 20:02:13,953 [INFO] research.report_generator: Email sent to zmburr@gmail.com
+2026-03-18 20:02:13,953 [INFO] __main__: Report saved and emailed: /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-18_20-02.md

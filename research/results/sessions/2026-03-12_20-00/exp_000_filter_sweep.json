@@ -1,0 +1,130 @@
+{
+  "experiment_id": "675353f0",
+  "experiment_type": "filter_sweep",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "columns_to_sweep": [
+      "day_of_range_pct",
+      "pct_from_9ema",
+      "pct_change_3",
+      "pct_from_10mav",
+      "pct_change_15",
+      "atr_pct",
+      "gap_pct"
+    ],
+    "min_sample": 10,
+    "max_combo_size": 2,
+    "top_n_filters": 8
+  },
+  "metrics": {
+    "baseline": {
+      "count": 112,
+      "win_rate": 92.9,
+      "avg_pnl": 13.4,
+      "median_pnl": 9.95,
+      "total_pnl": 1474.0,
+      "max_win": 58.06,
+      "max_loss": -15.47,
+      "profit_factor": 43.63,
+      "avg_winner": 14.51,
+      "avg_loser": -5.76
+    },
+    "top_single_filters": [
+      {
+        "filter": "spy_5day_return <= -0.02",
+        "count": 18,
+        "win_rate": 100.0,
+        "avg_pnl": 31.93,
+        "improvement": 18.53
+      },
+      {
+        "filter": "spy_5day_return <= -0.01",
+        "count": 20,
+        "win_rate": 100.0,
+        "avg_pnl": 30.61,
+        "improvement": 17.21
+      },
+      {
+        "filter": "pct_from_9ema >= 1.0",
+        "count": 21,
+        "win_rate": 95.2,
+        "avg_pnl": 29.63,
+        "improvement": 16.23
+      }
+    ],
+    "top_combinations": [
+      {
+        "filters": "spy_5day_return <= -0.02 + gap_pct >= 0.2",
+        "count": 11,
+        "win_rate": 100.0,
+        "avg_pnl": 39.26,
+        "improvement": 25.86
+      },
+      {
+        "filters": "spy_5day_return <= -0.01 + gap_pct >= 0.2",
+        "count": 11,
+        "win_rate": 100.0,
+        "avg_pnl": 39.26,
+        "improvement": 25.86
+      },
+      {
+        "filters": "spy_5day_return <= -0.02 + pct_change_15 >= 2.0",
+        "count": 12,
+        "win_rate": 100.0,
+        "avg_pnl": 38.97,
+        "improvement": 25.57
+      }
+    ],
+    "top_correlations": [
+      {
+        "indicator": "pct_change_3",
+        "correlation": 0.611,
+        "abs_corr": 0.611,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "pct_from_10mav",
+        "correlation": 0.611,
+        "abs_corr": 0.611,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "bollinger_width",
+        "correlation": 0.61,
+        "abs_corr": 0.61,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "pct_change_15",
+        "correlation": 0.597,
+        "abs_corr": 0.597,
+        "direction": "higher=better"
+      },
+      {
+        "indicator": "pct_change_30",
+        "correlation": 0.548,
+        "abs_corr": 0.548,
+        "direction": "higher=better"
+      }
+    ],
+    "n_single_filters_tested": 106,
+    "n_combinations_tested": 26
+  },
+  "summary": "Best finding: spy_5day_return <= -0.02 + gap_pct >= 0.2 improves avg P&L by +25.86% (N=11, WR=100.0%).",
+  "statistical_tests": {
+    "improvement_pct": 25.86,
+    "p_value": 1.0,
+    "n_filtered": 11,
+    "n_baseline": 112,
+    "best_win_rate": 100.0,
+    "baseline_win_rate": 92.9
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.5,
+    "n_total_trades": 112
+  },
+  "timestamp": "2026-03-12T20:00:48.483677",
+  "parent_id": null
+}

@@ -1,0 +1,159 @@
+2026-03-13 20:00:05,985 [INFO] __main__: Log file: /Users/zacharyburr/.openclaw/workspace/backtester/research/logs/research_2026-03-13_20-00.log
+2026-03-13 20:00:06,041 [INFO] research.memory.memory_store: Memory loaded: 1 prior sessions tracked
+2026-03-13 20:00:06,042 [INFO] research.memory.memory_store: Memory loaded: 1 prior sessions tracked
+2026-03-13 20:00:06,074 [INFO] research.orchestrator: Memory loaded: Memory: 1 sessions, 20 features tracked, 12 findings, 0 failed experiments
+2026-03-13 20:00:06,075 [INFO] research.orchestrator: ============================================================
+2026-03-13 20:00:06,076 [INFO] research.orchestrator: OVERNIGHT RESEARCH SESSION STARTING
+2026-03-13 20:00:06,076 [INFO] research.orchestrator: Strategies: ['reversal', 'bounce']
+2026-03-13 20:00:06,076 [INFO] research.orchestrator: Budget: 15 iterations, 7200s
+2026-03-13 20:00:06,076 [INFO] research.orchestrator: ============================================================
+2026-03-13 20:00:06,148 [INFO] research.orchestrator: Asking Claude for initial experiment proposals...
+2026-03-13 20:00:58,708 [INFO] research.orchestrator: 
+--- Iteration 1 ---
+2026-03-13 20:00:58,709 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-13 20:00:58,709 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'columns_to_sweep': ['pct_from_9ema', 'pct_change_3', 'pct_from_10mav', 'pct_change_15', 'gap_pct', 'spy_5day_return', 'atr_pct', 'consecutive_up_days', 'avg_daily_vol', 'bollinger_width'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 10}
+2026-03-13 20:00:58,709 [INFO] research.orchestrator: Rationale: Session 1 identified the top predictors (extension metrics) but never systematically optimized thresholds. The confirmed findings (pct_from_9ema >= 1.0 → +16.2%, spy_5day_return <= -0.02 + gap_pct >= 0.2 → +25.9%) were likely manual. A full sweep across the top 10 features will find optimal single thresholds AND 2-way combos, potentially uncovering secondary modulating factors (volume, bollinger_width) that the prior session's lesson #3 flagged as the next research frontier.
+2026-03-13 20:00:58,724 [INFO] root: Baseline (112 trades): Win Rate=92.9%, Avg P&L=13.4%
+2026-03-13 20:00:59,373 [INFO] research.result_store: Saved experiment #0: filter_sweep -> exp_000_filter_sweep.json
+2026-03-13 20:00:59,376 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:00:59,376 [INFO] research.orchestrator: Summary: Best finding: spy_5day_return <= -0.02 + gap_pct >= 0.2 improves avg P&L by +25.86% (N=11, WR=100.0%).
+2026-03-13 20:00:59,376 [INFO] research.orchestrator: 
+--- Iteration 2 ---
+2026-03-13 20:00:59,377 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-13 20:00:59,377 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'columns_to_sweep': ['pct_change_3', 'upper_band_distance', 'pct_change_15', 'atr_pct', 'pct_change_90', 'selloff_total_pct', 'pct_off_30d_high', 'gap_pct', 'consecutive_down_days', 'spy_5day_return'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 10}
+2026-03-13 20:00:59,377 [INFO] research.orchestrator: Rationale: Mirrors the reversal sweep but for bounces. Session 1 found selloff severity is the dominant predictor (pct_change_3 rho=-0.68). The confirmed bounce findings (spy_5day_return >= 0 → +9.7%, vol_ratio combos → +12-13%) need systematic validation. With N=95, min_sample=10 keeps us honest. This will reveal whether selloff depth thresholds (pct_change_3, pct_off_30d_high) combine productively with regime (spy_5day_return) or volatility (atr_pct) filters.
+2026-03-13 20:00:59,400 [INFO] root: Baseline (95 trades): Win Rate=16.8%, Avg P&L=-8.58%
+2026-03-13 20:01:00,067 [INFO] research.result_store: Saved experiment #1: filter_sweep -> exp_001_filter_sweep.json
+2026-03-13 20:01:00,070 [INFO] research.orchestrator: Result: SIGNIFICANT
+2026-03-13 20:01:00,070 [INFO] research.orchestrator: Summary: Best finding: spy_5day_return >= 0 + vol_ratio_5min_to_pm >= 1.0 improves avg P&L by +12.41% (N=14, WR=50.0%).
+2026-03-13 20:01:00,070 [INFO] research.orchestrator: 
+--- Iteration 3 ---
+2026-03-13 20:01:00,071 [INFO] research.orchestrator: Experiment: entry_signal_comparison
+2026-03-13 20:01:00,071 [INFO] research.orchestrator: Params: {'strategy': 'reversal'}
+2026-03-13 20:01:00,071 [INFO] research.orchestrator: Rationale: Completely unexplored axis. The reversal data has intraday_setup and setup columns classifying trade entry types (PriorBarBreak variants, etc.). If certain entry signals have systematically higher expectancy, that's actionable intelligence independent of the pre-trade feature filters — it tells the trader WHICH signal to act on during the trade day. This also indirectly tests cap dynamics since setup types may cluster by cap size. For bounce, we already know the setup split (GapFade_weakstock: +13.3% vs GapFade_strongstock: +2.7%), but reversal setup types are untested.
+2026-03-13 20:01:00,712 [INFO] research.result_store: Saved experiment #2: entry_signal_comparison -> exp_002_entry_signal_comparison.json
+2026-03-13 20:01:00,714 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:01:00,714 [INFO] research.orchestrator: Summary: Best signal: OpeningDrive (N=6, WR=83.3%, Avg P&L=+10.14%). 1 signal types compared.
+2026-03-13 20:02:06,262 [INFO] research.orchestrator: 
+--- Iteration 4 ---
+2026-03-13 20:02:06,262 [INFO] research.orchestrator: Experiment: walk_forward_sensitivity
+2026-03-13 20:02:06,263 [INFO] research.orchestrator: Params: {'strategy': 'bounce'}
+2026-03-13 20:02:06,263 [INFO] research.orchestrator: Rationale: The bounce filter_sweep produced the only SIGNIFICANT result this session (spy_5day_return >= 0 + vol_ratio_5min_to_pm >= 1.0, p=0.0098, +12.41% improvement). Walk-forward validation is the critical next step to determine whether this edge persists out-of-sample or is an in-sample artifact. If the edge degrades substantially across temporal splits, the filter is overfit and shouldn't be traded. If it holds, it becomes a high-confidence actionable rule.
+2026-03-13 20:02:06,292 [INFO] validation.walk_forward_engine: Loaded 95 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/bounce_data.csv
+2026-03-13 20:02:06,379 [INFO] validation.walk_forward_engine: Split: train=50, validate=6, test=39
+2026-03-13 20:02:06,389 [INFO] validation.walk_forward_engine: Loaded 95 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/bounce_data.csv
+2026-03-13 20:02:06,401 [INFO] validation.walk_forward_engine: Split: train=50, validate=21, test=24
+2026-03-13 20:02:06,413 [INFO] validation.walk_forward_engine: Loaded 95 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/bounce_data.csv
+2026-03-13 20:02:06,424 [INFO] validation.walk_forward_engine: Split: train=56, validate=35, test=4
+2026-03-13 20:02:06,430 [INFO] research.result_store: Saved experiment #3: walk_forward_sensitivity -> exp_003_walk_forward_sensitivity.json
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: Summary: Walk-forward sensitivity: NO_EDGE. 0 held, 0 degraded, 3 collapsed across 3 splits. Avg OOS: WR=90.3%, Avg P&L=+6.22%.
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: 
+--- Iteration 5 ---
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'columns_to_sweep': ['rvol_score', 'percent_of_premarket_vol', 'premarket_vol', 'prior_day_range_atr', 'prior_day_close_vs_high_pct', 'prior_day_close_vs_low_pct', 'pct_off_30d_high', 'pct_off_52wk_high', 'upper_band_distance', 'lower_band_distance'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 10}
+2026-03-13 20:02:06,432 [INFO] research.orchestrator: Rationale: Prior lessons concluded that the top reversal predictors all cluster around one concept (extension/mean-reversion magnitude) and recommended focusing on SECONDARY factors that modulate the primary driver. The first filter_sweep tested the top-10 extension-related features. This sweep targets a complementary set: volume signals (rvol_score, premarket_vol, percent_of_premarket_vol), prior-day context (range vs ATR, close position), and broader drawdown context (pct_off_30d/52wk_high). These are the 'regime/volume/context' modulators the prior lessons explicitly flagged as the next research frontier.
+2026-03-13 20:02:06,442 [INFO] root: Baseline (112 trades): Win Rate=92.9%, Avg P&L=13.4%
+2026-03-13 20:02:06,980 [INFO] research.result_store: Saved experiment #4: filter_sweep -> exp_004_filter_sweep.json
+2026-03-13 20:02:06,982 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:02:06,982 [INFO] research.orchestrator: Summary: Best finding: spy_5day_return <= -0.02 + gap_pct >= 0.2 improves avg P&L by +25.86% (N=11, WR=100.0%).
+2026-03-13 20:02:44,661 [INFO] research.orchestrator: 
+--- Iteration 6 ---
+2026-03-13 20:02:44,662 [INFO] research.orchestrator: Experiment: entry_signal_comparison
+2026-03-13 20:02:44,662 [INFO] research.orchestrator: Params: {'strategy': 'bounce'}
+2026-03-13 20:02:44,663 [INFO] research.orchestrator: Rationale: Cap stratification was the #1 untested priority from prior lessons. Bounce setup types (GapFade_weakstock vs GapFade_strongstock) are defined by position relative to 50MA + 30d momentum — effectively a stock-character split that proxies for cap dynamics. Historical notes show 75% WR / +13.3% avg for weakstock vs 71% WR / +2.7% for strongstock (A-grades). Validating this split statistically with bootstrap CIs and Fisher tests will tell us whether to size/filter differently by setup type, and whether the significant spy_5day_return + vol_ratio filter found in the bounce sweep behaves differently across these subgroups.
+2026-03-13 20:02:46,756 [INFO] research.result_store: Saved experiment #5: entry_signal_comparison -> exp_005_entry_signal_comparison.json
+2026-03-13 20:02:46,759 [INFO] research.orchestrator: Result: SIGNIFICANT
+2026-03-13 20:02:46,759 [INFO] research.orchestrator: Summary: Best signal: 3DGapFade_weakstock (N=15, WR=80.0%, Avg P&L=+14.34%). 6 signal types compared.
+2026-03-13 20:02:46,759 [INFO] research.orchestrator: 
+--- Iteration 7 ---
+2026-03-13 20:02:46,759 [INFO] research.orchestrator: Experiment: walk_forward_sensitivity
+2026-03-13 20:02:46,760 [INFO] research.orchestrator: Params: {'strategy': 'reversal'}
+2026-03-13 20:02:46,760 [INFO] research.orchestrator: Rationale: Walk-forward was run for bounce (verdict: NO_EDGE, though misleadingly labeled per prior lessons) but never for reversal. The reversal strategy shows strong in-sample correlations (pct_change_3 rho=0.61, bollinger_width rho=0.61) and promising filters (spy_5day_return <= -0.02 + gap_pct >= 0.2: +25.86% improvement). Before trusting these findings for live trading, we need to verify temporal stability — do the extension-based predictors hold across different market periods, or are they driven by a few regime-specific outliers? This is the critical in-sample vs out-of-sample validation step.
+2026-03-13 20:02:46,769 [INFO] validation.walk_forward_engine: Loaded 112 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/reversal_data.csv
+2026-03-13 20:02:46,783 [INFO] validation.walk_forward_engine: Split: train=62, validate=24, test=26
+2026-03-13 20:02:46,796 [INFO] validation.walk_forward_engine: Loaded 112 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/reversal_data.csv
+2026-03-13 20:02:46,808 [INFO] validation.walk_forward_engine: Split: train=72, validate=28, test=12
+2026-03-13 20:02:46,821 [INFO] validation.walk_forward_engine: Loaded 112 trades from /Users/zacharyburr/.openclaw/workspace/backtester/data/reversal_data.csv
+2026-03-13 20:02:46,834 [INFO] validation.walk_forward_engine: Split: train=86, validate=18, test=8
+2026-03-13 20:02:46,840 [INFO] research.result_store: Saved experiment #6: walk_forward_sensitivity -> exp_006_walk_forward_sensitivity.json
+2026-03-13 20:02:46,842 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:02:46,842 [INFO] research.orchestrator: Summary: Walk-forward sensitivity: NO_EDGE. 0 held, 1 degraded, 2 collapsed across 3 splits. Avg OOS: WR=86.9%, Avg P&L=+8.09%.
+2026-03-13 20:03:43,421 [INFO] research.orchestrator: 
+--- Iteration 8 ---
+2026-03-13 20:03:43,423 [INFO] research.orchestrator: Experiment: exit_optimization
+2026-03-13 20:03:43,423 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'analysis_type': 'all'}
+2026-03-13 20:03:43,423 [INFO] research.orchestrator: Rationale: Walk-forward shows reversal edge degrades from ~17% in-sample to ~8% OOS — still profitable but leaking alpha. We've exhausted entry filter exploration (2 sweeps, feature importance) but haven't touched the exit side at all. Exit optimization tests a completely different lever: can we capture more of the MFE or cut MAE faster to improve expectancy? ATR-based targets, trailing stops, and time exits are all untested. This is the highest-impact unexplored dimension.
+2026-03-13 20:03:43,461 [INFO] research.result_store: Saved experiment #7: exit_optimization -> exp_007_exit_optimization.json
+2026-03-13 20:03:43,463 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:03:43,463 [INFO] research.orchestrator: Summary: Exit analysis: 1x ATR hit rate: ?%. Capture efficiency: 32.5%. 50% trailing stop would capture +14.17%.
+2026-03-13 20:03:43,463 [INFO] research.orchestrator: 
+--- Iteration 9 ---
+2026-03-13 20:03:43,463 [INFO] research.orchestrator: Experiment: regime_analysis
+2026-03-13 20:03:43,464 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'regime': 'all'}
+2026-03-13 20:03:43,464 [INFO] research.orchestrator: Rationale: The filter sweep found spy_5day_return <= -0.02 as the #1 single filter (+18.5%, N=18, 100% WR). Regime analysis validates this via a different analytical method — bucketing by SPY trend and volatility regime rather than threshold sweeping. If the regime analysis confirms that weak-SPY environments produce dramatically better reversal outcomes, it becomes a high-conviction actionable rule (skip/size down reversals in strong SPY). Also tests volatility regime (uvxy_close) which hasn't been examined at all.
+2026-03-13 20:03:43,936 [INFO] research.result_store: Saved experiment #8: regime_analysis -> exp_008_regime_analysis.json
+2026-03-13 20:03:43,939 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:03:43,939 [INFO] research.orchestrator: Summary: Best regime split: spy_trend — spy_down outperforms spy_up by +21.91% avg P&L (p=0.2853).
+2026-03-13 20:04:32,061 [INFO] research.orchestrator: 
+--- Iteration 10 ---
+2026-03-13 20:04:32,063 [INFO] research.orchestrator: Experiment: regime_analysis
+2026-03-13 20:04:32,063 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'regime': 'all'}
+2026-03-13 20:04:32,063 [INFO] research.orchestrator: Rationale: Regime analysis was run for reversal but NOT for bounce — a direct gap. The 2x-confirmed finding that spy_green bounces outperform (p=0.0517) needs validation via the formal regime_analysis framework, which will add confidence intervals and test spy_trend + volatility buckets. With N=95 bounces this has adequate power for binary/ternary splits.
+2026-03-13 20:04:32,716 [INFO] research.result_store: Saved experiment #9: regime_analysis -> exp_009_regime_analysis.json
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: Summary: Best regime split: spy_trend — spy_down outperforms spy_up by +10.37% avg P&L (p=0.0512).
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: 
+--- Iteration 11 ---
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: Experiment: risk_metrics
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'initial_capital': 100000, 'position_size_pct': 10, 'n_simulations': 10000, 'n_trades_per_sim': 200}
+2026-03-13 20:04:32,718 [INFO] research.orchestrator: Rationale: We've exhausted edge-discovery for reversals (filter sweeps, regime, exit optimization, walk-forward) but have zero risk assessment. With 92.9% WR and +13.4% avg P&L, the edge looks strong — but the walk-forward showed OOS degradation to ~8% avg P&L with 87% WR. Risk metrics (risk of ruin, max drawdown, Kelly) will reveal whether the strategy is safely sizeable or if the fat left tail (max loss -15.47%) and OOS degradation make it fragile. This shifts from 'is there an edge?' to 'how much capital to allocate?'
+2026-03-13 20:04:35,430 [INFO] research.result_store: Saved experiment #10: risk_metrics -> exp_010_risk_metrics.json
+2026-03-13 20:04:35,432 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:04:35,433 [INFO] research.orchestrator: Summary: Risk analysis (reversal): Kelly=25.0%, Ruin prob=0.0%, Median max DD=1.5%, P95 max DD=2.6%. Sharpe-like ratio=1.002.
+2026-03-13 20:05:36,662 [INFO] research.orchestrator: 
+--- Iteration 12 ---
+2026-03-13 20:05:36,664 [INFO] research.orchestrator: Experiment: risk_metrics
+2026-03-13 20:05:36,664 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'initial_capital': 100000, 'position_size_pct': 10, 'n_simulations': 10000, 'n_trades_per_sim': 200}
+2026-03-13 20:05:36,664 [INFO] research.orchestrator: Rationale: Reversal risk metrics are complete (Kelly=25%, ruin=0%, P95 DD=2.6%) but bounce risk profile is untested. With lower WR (83.2%) and lower avg P&L (+8.58%), bounce may have materially different ruin probability and drawdown characteristics. Need to complete the risk picture for both strategies before acting on any filter findings.
+2026-03-13 20:05:39,387 [INFO] research.result_store: Saved experiment #11: risk_metrics -> exp_011_risk_metrics.json
+2026-03-13 20:05:39,389 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:05:39,390 [INFO] research.orchestrator: Summary: Risk analysis (bounce): Kelly=25.0%, Ruin prob=0.0%, Median max DD=5.4%, P95 max DD=9.8%. Sharpe-like ratio=0.565.
+2026-03-13 20:05:39,390 [INFO] research.orchestrator: 
+--- Iteration 13 ---
+2026-03-13 20:05:39,390 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-13 20:05:39,390 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'columns_to_sweep': ['rvol_score', 'percent_of_premarket_vol', 'premarket_vol', 'prior_day_range_atr', 'prior_day_close_vs_high_pct', 'prior_day_close_vs_low_pct', 'pct_off_52wk_high', 'near_52wk_low', 'lower_band_distance', 'bollinger_width'], 'min_sample': 10, 'max_combo_size': 2, 'top_n_filters': 10}
+2026-03-13 20:05:39,390 [INFO] research.orchestrator: Rationale: Prior lesson says to focus on secondary modulators (volume, regime, cap) since primary drivers are known (selloff severity). The first bounce filter_sweep tested primary selloff features — this sweep tests volume signals (rvol_score, premarket_vol, percent_of_premarket_vol), prior-day structure (range_atr, close_vs_high/low), and technical extremes (pct_off_52wk_high, near_52wk_low, lower_band_distance, bollinger_width). These are the secondary factors that may modulate the primary selloff-severity driver.
+2026-03-13 20:05:39,402 [INFO] root: Baseline (95 trades): Win Rate=16.8%, Avg P&L=-8.58%
+2026-03-13 20:05:39,893 [INFO] research.result_store: Saved experiment #12: filter_sweep -> exp_012_filter_sweep.json
+2026-03-13 20:05:39,895 [INFO] research.orchestrator: Result: SIGNIFICANT
+2026-03-13 20:05:39,895 [INFO] research.orchestrator: Summary: Best finding: spy_5day_return >= 0 + vol_ratio_5min_to_pm >= 1.0 improves avg P&L by +12.41% (N=14, WR=50.0%).
+2026-03-13 20:07:10,114 [INFO] research.orchestrator: 
+--- Iteration 14 ---
+2026-03-13 20:07:10,115 [INFO] research.orchestrator: Experiment: backscanner_validation
+2026-03-13 20:07:10,116 [INFO] research.orchestrator: Params: {'strategy': 'bounce'}
+2026-03-13 20:07:10,116 [INFO] research.orchestrator: Rationale: Completely untested experiment type. The bounce entry_signal_comparison revealed massive setup type dispersion: 3DGapFade_weakstock (+14.34%) vs IntradayCapitch_strongstock (-11.71%), p=0.0066. Scanner accuracy is now critical — we need to know whether the backscanner is (a) catching the high-value 3DGapFade_weakstock setups and (b) filtering out the toxic IntradayCapitch_strongstock ones. If the scanner assigns higher scores to winning setup types, it validates the existing scoring system. If not, the scoring criteria need recalibration.
+2026-03-13 20:07:10,135 [INFO] research.result_store: Saved experiment #13: backscanner_validation -> exp_013_backscanner_validation.json
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: Summary: No backscanner CSVs found matching bounce_backscanner_*.csv.
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: 
+--- Iteration 15 ---
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'target': 'binary_win'}
+2026-03-13 20:07:10,137 [INFO] research.orchestrator: Rationale: Prior session established top P&L predictors (pct_change_3 rho=-0.68, upper_band_distance rho=-0.50), but these measure P&L magnitude in winners. With 16.8% loss rate (16 losers), the more actionable question is: which pre-trade features predict WIN vs LOSS? The features that predict P&L magnitude may differ from those that predict binary outcome — a large selloff might predict bigger bounces when they work but not predict WHETHER they work. This directly addresses the cap stratification priority from prior lessons: if binary_win predictors differ from P&L predictors, it suggests the strategy needs a two-stage filter (first: will it work? then: how big?).
+2026-03-13 20:07:10,220 [INFO] research.result_store: Saved experiment #14: feature_importance -> exp_014_feature_importance.json
+2026-03-13 20:07:10,222 [INFO] research.orchestrator: Result: not significant
+2026-03-13 20:07:10,222 [INFO] research.orchestrator: Summary: Top 5 predictors of bounce P&L: pct_change_3, upper_band_distance, pct_change_15, atr_pct, pct_change_90. Analyzed 25 features across 95 trades.
+2026-03-13 20:07:10,222 [INFO] research.orchestrator: Hit iteration limit (15)
+2026-03-13 20:07:10,222 [INFO] research.orchestrator: 
+============================================================
+2026-03-13 20:07:10,223 [INFO] research.orchestrator: SESSION COMPLETE
+2026-03-13 20:07:10,223 [INFO] research.orchestrator: Total experiments: 15
+2026-03-13 20:07:10,223 [INFO] research.orchestrator: Significant findings: 3
+2026-03-13 20:07:10,223 [INFO] research.orchestrator: Runtime: 424s
+2026-03-13 20:07:10,223 [INFO] research.orchestrator: Claude calls: 7
+2026-03-13 20:07:10,227 [INFO] __main__: Generating synthesis...
+2026-03-13 20:09:10,261 [ERROR] research.claude_researcher: Claude CLI timed out after 120s
+2026-03-13 20:09:10,265 [INFO] research.report_generator: Report saved to /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-13_20-09.md
+2026-03-13 20:09:12,748 [INFO] research.report_generator: Email sent to zmburr@gmail.com
+2026-03-13 20:09:12,749 [INFO] __main__: Report saved and emailed: /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-13_20-09.md

@@ -1,0 +1,164 @@
+{
+  "session_id": "2026-03-13_20-00",
+  "started_at": "2026-03-13T20:00:06.075501",
+  "experiments": [
+    {
+      "index": 0,
+      "filename": "exp_000_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "8fe034cb",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": null
+    },
+    {
+      "index": 1,
+      "filename": "exp_001_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "d8b1763c",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "8fe034cb"
+    },
+    {
+      "index": 2,
+      "filename": "exp_002_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "7761aacb",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "d8b1763c"
+    },
+    {
+      "index": 3,
+      "filename": "exp_003_walk_forward_sensitivity.json",
+      "experiment_type": "walk_forward_sensitivity",
+      "experiment_id": "a391f922",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "7761aacb"
+    },
+    {
+      "index": 4,
+      "filename": "exp_004_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "9b1a21ed",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "a391f922"
+    },
+    {
+      "index": 5,
+      "filename": "exp_005_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "b15f8dad",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "9b1a21ed"
+    },
+    {
+      "index": 6,
+      "filename": "exp_006_walk_forward_sensitivity.json",
+      "experiment_type": "walk_forward_sensitivity",
+      "experiment_id": "b9066aa0",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "b15f8dad"
+    },
+    {
+      "index": 7,
+      "filename": "exp_007_exit_optimization.json",
+      "experiment_type": "exit_optimization",
+      "experiment_id": "ba9f5446",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "b9066aa0"
+    },
+    {
+      "index": 8,
+      "filename": "exp_008_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "2df09b39",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "ba9f5446"
+    },
+    {
+      "index": 9,
+      "filename": "exp_009_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "4472d01d",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "2df09b39"
+    },
+    {
+      "index": 10,
+      "filename": "exp_010_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "b131c51b",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "4472d01d"
+    },
+    {
+      "index": 11,
+      "filename": "exp_011_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "0248a7bf",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "b131c51b"
+    },
+    {
+      "index": 12,
+      "filename": "exp_012_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "43d8dc6f",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "0248a7bf"
+    },
+    {
+      "index": 13,
+      "filename": "exp_013_backscanner_validation.json",
+      "experiment_type": "backscanner_validation",
+      "experiment_id": "0fda0b20",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "43d8dc6f"
+    },
+    {
+      "index": 14,
+      "filename": "exp_014_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "e18a94ad",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "0fda0b20"
+    }
+  ],
+  "status": "completed",
+  "completed_at": "2026-03-13T20:07:10.223514",
+  "session_stats": {
+    "total_experiments": 15,
+    "significant_findings": 3,
+    "runtime_seconds": 424.1,
+    "claude_calls": 7,
+    "strategies_tested": [
+      "reversal",
+      "bounce"
+    ],
+    "experiment_types_used": [
+      "exit_optimization",
+      "backscanner_validation",
+      "entry_signal_comparison",
+      "walk_forward_sensitivity",
+      "filter_sweep",
+      "risk_metrics",
+      "feature_importance",
+      "regime_analysis"
+    ],
+    "statistical_guard_summary": "No tests registered yet."
+  }
+}

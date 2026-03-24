@@ -1,0 +1,53 @@
+2026-03-20 20:00:06,311 [INFO] __main__: Log file: /Users/zacharyburr/.openclaw/workspace/backtester/research/logs/research_2026-03-20_20-00.log
+2026-03-20 20:00:06,328 [INFO] research.memory.memory_store: Memory loaded: 5 prior sessions tracked
+2026-03-20 20:00:06,328 [INFO] research.memory.memory_store: Memory loaded: 5 prior sessions tracked
+2026-03-20 20:00:06,373 [INFO] research.orchestrator: Memory loaded: Memory: 5 sessions, 28 features tracked, 21 findings, 0 failed experiments
+2026-03-20 20:00:06,375 [INFO] research.orchestrator: ============================================================
+2026-03-20 20:00:06,375 [INFO] research.orchestrator: OVERNIGHT RESEARCH SESSION STARTING
+2026-03-20 20:00:06,375 [INFO] research.orchestrator: Strategies: ['reversal', 'bounce']
+2026-03-20 20:00:06,375 [INFO] research.orchestrator: Budget: 15 iterations, 7200s
+2026-03-20 20:00:06,375 [INFO] research.orchestrator: ============================================================
+2026-03-20 20:00:06,437 [INFO] research.orchestrator: Asking Claude for initial experiment proposals...
+2026-03-20 20:00:10,975 [ERROR] research.claude_researcher: Claude CLI error: 
+2026-03-20 20:00:10,976 [WARNING] research.claude_researcher: Failed to parse JSON from Claude response: 
+2026-03-20 20:00:10,976 [WARNING] research.claude_researcher: Claude failed to return valid proposals, using defaults
+2026-03-20 20:00:10,976 [INFO] research.orchestrator: 
+--- Iteration 1 ---
+2026-03-20 20:00:10,976 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-20 20:00:10,976 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'target': 'pnl'}
+2026-03-20 20:00:10,976 [INFO] research.orchestrator: Rationale: Identify which features best predict reversal P&L
+2026-03-20 20:00:11,071 [INFO] research.result_store: Saved experiment #0: feature_importance -> exp_000_feature_importance.json
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: Result: not significant
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: Summary: Top 5 predictors of reversal P&L: pct_from_9ema, pct_change_3, pct_from_10mav, pct_change_15, percent_of_premarket_vol. Analyzed 29 features across 112 trades.
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: 
+--- Iteration 2 ---
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: Experiment: filter_sweep
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: Params: {'strategy': 'reversal', 'grade': 'A'}
+2026-03-20 20:00:11,075 [INFO] research.orchestrator: Rationale: Find filter thresholds that improve Grade A reversal expectancy
+2026-03-20 20:00:11,093 [INFO] root: Baseline (51 trades): Win Rate=90.2%, Avg P&L=13.92%
+2026-03-20 20:00:11,479 [INFO] research.result_store: Saved experiment #1: filter_sweep -> exp_001_filter_sweep.json
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: Result: not significant
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: Summary: Best finding: pct_change_30 >= 2.0 + gap_pct >= 0.15 improves avg P&L by +13.72% (N=10, WR=90.0%).
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: 
+--- Iteration 3 ---
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: Experiment: feature_importance
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: Params: {'strategy': 'bounce', 'target': 'pnl'}
+2026-03-20 20:00:11,482 [INFO] research.orchestrator: Rationale: Identify which features best predict bounce P&L
+2026-03-20 20:00:11,548 [INFO] research.result_store: Saved experiment #2: feature_importance -> exp_002_feature_importance.json
+2026-03-20 20:00:11,551 [INFO] research.orchestrator: Result: not significant
+2026-03-20 20:00:11,551 [INFO] research.orchestrator: Summary: Top 5 predictors of bounce P&L: pct_change_3, upper_band_distance, pct_change_15, atr_pct, pct_change_90. Analyzed 25 features across 95 trades.
+2026-03-20 20:00:14,740 [ERROR] research.claude_researcher: Claude CLI error: 
+2026-03-20 20:00:14,740 [WARNING] research.claude_researcher: Failed to parse JSON from Claude response: 
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: No more experiments proposed. Ending session.
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: 
+============================================================
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: SESSION COMPLETE
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: Total experiments: 3
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: Significant findings: 0
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: Runtime: 8s
+2026-03-20 20:00:14,741 [INFO] research.orchestrator: Claude calls: 2
+2026-03-20 20:00:14,745 [INFO] __main__: Generating synthesis...
+2026-03-20 20:00:18,184 [ERROR] research.claude_researcher: Claude CLI error: 
+2026-03-20 20:00:18,187 [INFO] research.report_generator: Report saved to /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-20_20-00.md
+2026-03-20 20:00:20,979 [INFO] research.report_generator: Email sent to zmburr@gmail.com
+2026-03-20 20:00:20,980 [INFO] __main__: Report saved and emailed: /Users/zacharyburr/.openclaw/workspace/backtester/research/reports/report_2026-03-20_20-00.md

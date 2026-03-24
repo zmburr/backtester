@@ -1,0 +1,45 @@
+{
+  "experiment_id": "b131c51b",
+  "experiment_type": "risk_metrics",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "initial_capital": 100000,
+    "position_size_pct": 10,
+    "n_simulations": 10000,
+    "n_trades_per_sim": 200
+  },
+  "metrics": {
+    "n_trades": 110,
+    "win_rate": 94.5,
+    "avg_pnl": 13.4,
+    "std_pnl": 13.37,
+    "avg_winner": 14.51,
+    "avg_loser": 5.76,
+    "kelly_fraction": 25.0,
+    "sharpe_ratio": 1.002,
+    "monte_carlo": {
+      "ruin_probability": 0.0,
+      "median_max_drawdown": 1.5,
+      "p95_max_drawdown": 2.6,
+      "p99_max_drawdown": 3.1,
+      "median_final_capital": 1407832.0,
+      "p10_final_capital": 1113608.0,
+      "p90_final_capital": 1794735.0,
+      "median_max_consecutive_losses": 1,
+      "p95_max_consecutive_losses": 2
+    }
+  },
+  "summary": "Risk analysis (reversal): Kelly=25.0%, Ruin prob=0.0%, Median max DD=1.5%, P95 max DD=2.6%. Sharpe-like ratio=1.002.",
+  "statistical_tests": {
+    "kelly_criterion": 25.0,
+    "ruin_probability": 0.0
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 2.7,
+    "n_simulations": 10000
+  },
+  "timestamp": "2026-03-13T20:04:35.427757",
+  "parent_id": "4472d01d"
+}
