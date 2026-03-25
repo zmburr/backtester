@@ -1,0 +1,57 @@
+{
+  "date": "2026-03-25",
+  "session": "evening",
+  "generated_at": "2026-03-25T13:37:38.042485",
+  "go_count": 1,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "PL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.213529,
+        "pct_change_3": 0.180638,
+        "gap_pct": 0.114515,
+        "prior_day_range_atr": 1.624667,
+        "atr_pct": 0.086406,
+        "prior_day_rvol": 1.594065,
+        "premarket_rvol": 0.03133
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.095656,
+        "pct_change_3": 0.000487,
+        "gap_pct": 0.07553,
+        "prior_day_range_atr": 0.796037,
+        "atr_pct": 0.03583,
+        "prior_day_rvol": 0.764544,
+        "premarket_rvol": 0.054785
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.205823,
+        "pct_change_3": 0.178172,
+        "gap_pct": -0.024985,
+        "prior_day_range_atr": 0.959345,
+        "atr_pct": 0.112158,
+        "prior_day_rvol": 1.252394,
+        "premarket_rvol": 0.065022
+      }
+    }
+  ]
+}
