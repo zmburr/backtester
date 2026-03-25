@@ -486,6 +486,8 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
             atr = _pq_module.get_atr(ticker, date)
             if atr and atr > 0:
                 metrics['prior_day_range_atr'] = prior_range / atr
+                if reference_price and reference_price > 0:
+                    metrics['atr_pct'] = atr / reference_price
 
             # 4. 3-day momentum run-up (V2: replaces consecutive_up_days)
             if len(df) >= 4:

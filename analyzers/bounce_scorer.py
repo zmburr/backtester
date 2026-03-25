@@ -876,6 +876,8 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
                 metrics['day_of_range_pct'] = today_range / atr if atr > 0 else 0
                 # Prior day range as multiple of ATR (for range expansion criterion)
                 metrics['prior_day_range_atr'] = prior_range / atr if atr > 0 else 0
+                if current_close and current_close > 0:
+                    metrics['atr_pct'] = atr / current_close
 
     # Volume metrics — prior day RVOL + premarket RVOL (either can satisfy criterion)
     vol_data = fetch_and_calculate_volumes(ticker, date)
