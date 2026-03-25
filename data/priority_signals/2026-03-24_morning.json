@@ -17,7 +17,8 @@
         "gap_pct": -0.005322,
         "prior_day_range_atr": 1.283699,
         "prior_day_rvol": 2.173979,
-        "premarket_rvol": 0.000766
+        "premarket_rvol": 0.000766,
+        "atr_pct": 0.0963
       }
     }
   ]

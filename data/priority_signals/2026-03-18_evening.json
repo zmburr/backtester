@@ -17,7 +17,8 @@
         "gap_pct": 0.012476,
         "prior_day_range_atr": 0.677978,
         "prior_day_rvol": 1.339435,
-        "premarket_rvol": 0.098212
+        "premarket_rvol": 0.098212,
+        "atr_pct": 0.053251
       }
     },
     {
@@ -32,7 +33,8 @@
         "gap_pct": 0.047676,
         "prior_day_range_atr": 0.544693,
         "prior_day_rvol": 0.765368,
-        "premarket_rvol": 0.051971
+        "premarket_rvol": 0.051971,
+        "atr_pct": 0.063293
       }
     },
     {
@@ -47,7 +49,8 @@
         "gap_pct": 0.084627,
         "prior_day_range_atr": 1.339855,
         "prior_day_rvol": 1.571649,
-        "premarket_rvol": 0.187718
+        "premarket_rvol": 0.187718,
+        "atr_pct": 0.105283
       }
     },
     {
@@ -62,7 +65,8 @@
         "gap_pct": -0.010946,
         "prior_day_range_atr": 1.589056,
         "prior_day_rvol": 1.627118,
-        "premarket_rvol": 0.060428
+        "premarket_rvol": 0.060428,
+        "atr_pct": 0.062011
       }
     }
   ]
