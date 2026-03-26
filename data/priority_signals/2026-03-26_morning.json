@@ -1,0 +1,25 @@
+{
+  "date": "2026-03-26",
+  "session": "morning",
+  "generated_at": "2026-03-26T05:46:03.980331",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.05439,
+        "pct_change_3": 0.094074,
+        "gap_pct": -0.017115,
+        "prior_day_range_atr": 1.167173,
+        "atr_pct": 0.038881,
+        "prior_day_rvol": 1.474065,
+        "premarket_rvol": 0.002884
+      }
+    }
+  ]
+}
