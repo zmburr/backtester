@@ -621,6 +621,16 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     else:
         recommendation = 'NO-GO'
 
+    # --- Range expansion gate ---
+    # A parabolic reversal without range expansion isn't a real setup.
+    # MU 3/18 (0.68x ATR) and SNDK 3/18 (0.54x ATR) scored GO but produced
+    # only 0.3 ATR MFE. Require range expansion to pass for GO signals.
+    range_atr = metrics.get('prior_day_range_atr')
+    range_threshold = thresholds.prior_day_range_atr
+    range_passed = range_atr is not None and not pd.isna(range_atr) and range_atr >= range_threshold
+    if not range_passed and recommendation == 'GO':
+        recommendation = 'CAUTION'
+
     # --- Momentum percentile gate ---
     # Filters near-zero momentum trades that pass binary criteria but lack
     # sufficient run-up fuel (e.g. AVGO 6/20/2024 at 2nd pctile).
@@ -635,6 +645,7 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
         'max_score': 5,
         'recommendation': recommendation,
         'criteria': criteria,
+        'range_gate_passed': range_passed,
         'momentum_pctile_passed': mom_passed,
         'momentum_pctile_3': mom_pctile,
     }
