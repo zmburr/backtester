@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 from email import encoders
 # dotenv loading from project root
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -19,7 +20,8 @@ GROQ_API_KEY     = os.getenv("GROQ_API_KEY")
 PPLX_API_KEY     = os.getenv("PPLX_API_KEY")
 
 def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
-               from_email='zmburr@gmail.com', password=os.getenv('GMAIL_PASSWORD')):
+               from_email='zmburr@gmail.com', password=os.getenv('GMAIL_PASSWORD'),
+               inline_images=None):
 
     # Email server settings for Gmail
     smtp_server = "smtp.gmail.com"
@@ -27,8 +29,8 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
 
     server = None  # Ensure variable is defined for use in finally block
 
-    # Create message
-    msg = MIMEMultipart()
+    # Create message — use 'related' when we have inline images so CID refs work
+    msg = MIMEMultipart('related' if inline_images else 'mixed')
     msg['From'] = from_email
     msg['To'] = to_email
     msg['Subject'] = subject
@@ -36,6 +38,17 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
     # Add body to email
     subtype = 'html' if is_html else 'plain'
     msg.attach(MIMEText(body, _subtype=subtype))
+
+    # Embed inline images (referenced via <img src="cid:content_id"> in HTML)
+    for cid, img_path in (inline_images or {}).items():
+        try:
+            with open(img_path, 'rb') as f:
+                img = MIMEImage(f.read())
+            img.add_header('Content-ID', f'<{cid}>')
+            img.add_header('Content-Disposition', 'inline', filename=os.path.basename(img_path))
+            msg.attach(img)
+        except Exception as e:
+            print(f"Failed to embed inline image {img_path}: {e}")
 
     # Attach any files
     attachments = attachments or []

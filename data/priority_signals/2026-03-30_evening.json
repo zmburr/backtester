@@ -1,0 +1,57 @@
+{
+  "date": "2026-03-30",
+  "session": "evening",
+  "generated_at": "2026-03-30T14:40:29.337839",
+  "go_count": 1,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.190421,
+        "pct_off_30d_high": -0.339358,
+        "gap_pct": 0.000638,
+        "pct_change_3": -0.204433,
+        "prior_day_range_atr": 1.511802,
+        "pct_off_52wk_high": -0.339358,
+        "atr_pct": 0.111913
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.210576,
+        "pct_off_30d_high": -0.302646,
+        "gap_pct": 0.014085,
+        "pct_change_3": -0.198366,
+        "prior_day_range_atr": 0.631533,
+        "pct_off_52wk_high": -0.346137,
+        "atr_pct": 0.102806
+      }
+    },
+    {
+      "ticker": "FIG",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.255814,
+        "pct_off_30d_high": -0.382589,
+        "gap_pct": 0.000991,
+        "pct_change_3": -0.044097,
+        "prior_day_range_atr": 1.012636,
+        "pct_off_52wk_high": -0.858942,
+        "atr_pct": 0.088661
+      }
+    }
+  ]
+}

@@ -1181,6 +1181,7 @@ def generate_priority_report() -> str:
         # 4d) Build score HTML, exit targets, charts
         print("Phase 4d: Building HTML sections + charts...")
         ticker_html_map: Dict[str, str] = {}
+        chart_images: Dict[str, str] = {}  # cid -> file path
 
         for item in priority:
             ticker = item["ticker"]
@@ -1250,9 +1251,11 @@ def generate_priority_report() -> str:
                 if pc and pc < op:
                     chart_hlines.append((pc, "green", f"Prior Close ${pc:.2f}"))
 
+            chart_cid = f"chart_{ticker}"
             try:
                 chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
-                chart_data_uri = gr._png_to_data_uri(chart_path)
+                chart_images[chart_cid] = str(chart_path)
+                chart_data_uri = f"cid:{chart_cid}"
             except Exception as e:
                 log.warning(f"Chart failed for {ticker}: {e}")
 
@@ -1278,7 +1281,7 @@ def generate_priority_report() -> str:
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
         html_report = build_priority_report_html(priority, ticker_html_map)
-        _send_report(html_report, go_ct, cau_ct)
+        _send_report(html_report, go_ct, cau_ct, inline_images=chart_images)
         timings["email"] = time.time() - t0
 
     finally:
@@ -1356,7 +1359,7 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
         log.warning(f"Failed to save signals JSON (non-fatal): {e}")
 
 
-def _send_report(html: str, go_count: int, caution_count: int):
+def _send_report(html: str, go_count: int, caution_count: int, inline_images=None):
     """Send the priority report email."""
     date_str = datetime.datetime.now().strftime("%m/%d/%Y")
     subject = f"Priority Report — {go_count} GO, {caution_count} CAUTION | {date_str}"
@@ -1366,6 +1369,7 @@ def _send_report(html: str, go_count: int, caution_count: int):
             subject=subject,
             body=html,
             is_html=True,
+            inline_images=inline_images,
         )
         print(f"Email sent: {subject}")
     except Exception as e:
