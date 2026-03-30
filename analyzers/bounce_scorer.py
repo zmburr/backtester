@@ -957,11 +957,14 @@ def scan_watchlist(tickers: List[str], date: Optional[str] = None):
     print(f"BOUNCE WATCHLIST SCAN - {date}")
     print("=" * 70)
 
+    from scanners.bounce_trader import get_ticker_cap
+
     for ticker in tickers:
         try:
             logging.info(f"Fetching metrics for {ticker}...")
+            cap = get_ticker_cap(ticker)
             metrics = fetch_bounce_metrics(ticker, date)
-            result = checker.validate(ticker, metrics)
+            result = checker.validate(ticker, metrics, cap=cap)
             checker.print_checklist(result)
         except Exception as e:
             print(f"\n  ERROR scanning {ticker}: {e}")
