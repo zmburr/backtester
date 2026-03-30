@@ -805,7 +805,11 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         # Definition: consecutive *down closes* (close < prior day's close),
         # not "red candles" (close < open). This better captures multi-day
         # selloffs where gap-down + green-close days are still down vs prior close.
+        # Tolerates up to 1 minor up-close day within the selloff streak so that
+        # a single marginal green day doesn't reset the counter.
         consecutive_down = 0
+        up_tolerance = 1
+        up_days_used = 0
         start_idx = len(hist_levels) - 1
         for i in range(start_idx, 0, -1):
             cur_close = hist_levels.iloc[i]['close']
@@ -813,6 +817,9 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
             if pd.isna(cur_close) or pd.isna(prev_close):
                 break
             if cur_close < prev_close:
+                consecutive_down += 1
+            elif up_days_used < up_tolerance:
+                up_days_used += 1
                 consecutive_down += 1
             else:
                 break
