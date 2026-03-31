@@ -106,8 +106,9 @@ def _compute_pct_data(
 ) -> Dict:
     """Replaces ``get_ticker_pct_move`` (5 API calls → 0).
 
-    Uses *calendar-day* lookback to match the original
-    ``adjust_date_to_market(date, N)`` behaviour.
+    Counts *trading days* back by indexing N bars from the reference date.
+    Daily bars from Polygon only contain trading sessions, so bar indexing
+    is equivalent to NYSE trading-day counting.
     """
     result: Dict[str, Optional[float]] = {}
 
@@ -118,7 +119,7 @@ def _compute_pct_data(
         (15, 'pct_change_15'),
         (3, 'pct_change_3'),
     ]:
-        old_close = _close_n_calendar_days_ago(daily_bars, date, days)
+        old_close = _close_n_trading_days_ago(daily_bars, date, days)
         if old_close is not None and old_close != 0:
             result[key] = (current_price - old_close) / old_close
         else:
@@ -127,20 +128,27 @@ def _compute_pct_data(
     return result
 
 
-def _close_n_calendar_days_ago(
-    daily_bars: pd.DataFrame, date: str, days: int,
+def _close_n_trading_days_ago(
+    daily_bars: pd.DataFrame, date: str, trading_days: int,
 ) -> Optional[float]:
-    """Find the close price of the bar closest to *date - days* calendar days.
+    """Find the close price N trading days before *date*.
 
-    Mirrors ``adjust_date_to_market(date, days)`` + ``get_daily().close``.
+    Matches ``polygon_queries.get_price_with_fallback`` semantics:
+    excludes *date* itself, then counts N trading days back.
+    Since daily_bars only contains trading-day bars (no weekends/holidays),
+    bar indexing is equivalent to NYSE trading-day counting.
     """
-    target_date = (pd.to_datetime(date) - pd.Timedelta(days=days)).date()
-    bar_dates = daily_bars.index.date  # numpy array of datetime.date
-    mask = bar_dates >= target_date
+    ref_date = pd.to_datetime(date).date()
+    bar_dates = daily_bars.index.date
+    # Find the last bar strictly before ref_date (exclude ref_date itself)
+    mask = bar_dates < ref_date
     if not mask.any():
         return None
-    first_idx = np.argmax(mask)
-    return float(daily_bars.iloc[first_idx]['close'])
+    ref_idx = len(mask) - 1 - np.argmax(mask[::-1])
+    target_idx = ref_idx - (trading_days - 1)
+    if target_idx < 0:
+        return None
+    return float(daily_bars.iloc[target_idx]['close'])
 
 
 def _compute_mav_data(hist: pd.DataFrame, reference_price: float) -> Dict:
