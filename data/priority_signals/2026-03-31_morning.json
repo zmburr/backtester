@@ -1,0 +1,39 @@
+{
+  "date": "2026-03-31",
+  "session": "morning",
+  "generated_at": "2026-03-31T05:46:05.858042",
+  "go_count": 0,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.190421,
+        "pct_off_30d_high": -0.339358,
+        "pct_change_3": -0.104928,
+        "prior_day_range_atr": 1.235041,
+        "pct_off_52wk_high": -0.339358,
+        "atr_pct": 0.116904
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.210576,
+        "pct_off_30d_high": -0.302646,
+        "pct_change_3": -0.129376,
+        "prior_day_range_atr": 1.24176,
+        "pct_off_52wk_high": -0.346137,
+        "atr_pct": 0.109872
+      }
+    }
+  ]
+}
