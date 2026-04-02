@@ -1,0 +1,89 @@
+{
+  "date": "2026-04-02",
+  "session": "evening",
+  "generated_at": "2026-04-02T15:16:18.429596",
+  "go_count": 0,
+  "caution_count": 5,
+  "signals": [
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.050272,
+        "pct_change_3": 0.109467,
+        "gap_pct": -0.000552,
+        "prior_day_range_atr": 1.67177,
+        "atr_pct": 0.047219,
+        "prior_day_rvol": 1.126969,
+        "premarket_rvol": 0.027027
+      }
+    },
+    {
+      "ticker": "LITE",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.121232,
+        "pct_change_3": 0.262817,
+        "gap_pct": 0.000738,
+        "prior_day_range_atr": 1.483202,
+        "atr_pct": 0.097549,
+        "prior_day_rvol": 1.052316,
+        "premarket_rvol": 0.064957
+      }
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.035055,
+        "pct_change_3": 0.172051,
+        "gap_pct": -0.001317,
+        "prior_day_range_atr": 0.816411,
+        "atr_pct": 0.083798,
+        "prior_day_rvol": 0.86852,
+        "premarket_rvol": 0.051471
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.056969,
+        "pct_change_3": 0.225485,
+        "gap_pct": -0.000983,
+        "prior_day_range_atr": 1.064039,
+        "atr_pct": 0.088913,
+        "prior_day_rvol": 0.91204,
+        "premarket_rvol": 0.063158
+      }
+    },
+    {
+      "ticker": "PL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.161763,
+        "pct_change_3": 0.286483,
+        "gap_pct": 0.008919,
+        "prior_day_range_atr": 1.59553,
+        "atr_pct": 0.11427,
+        "prior_day_rvol": 1.440506,
+        "premarket_rvol": 0.045969
+      }
+    }
+  ]
+}
