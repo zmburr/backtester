@@ -1,0 +1,41 @@
+{
+  "date": "2026-04-03",
+  "session": "evening",
+  "generated_at": "2026-04-03T15:16:02.294844",
+  "go_count": 0,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.050852,
+        "pct_change_3": 0.109467,
+        "gap_pct": 0.0,
+        "prior_day_range_atr": 1.67177,
+        "atr_pct": 0.047193,
+        "prior_day_rvol": 1.126969,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "PL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.151493,
+        "pct_change_3": 0.286483,
+        "gap_pct": 0.0,
+        "prior_day_range_atr": 1.59553,
+        "atr_pct": 0.115289,
+        "prior_day_rvol": 1.440506,
+        "premarket_rvol": 0.0
+      }
+    }
+  ]
+}
