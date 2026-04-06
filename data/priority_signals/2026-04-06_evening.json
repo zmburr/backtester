@@ -1,0 +1,25 @@
+{
+  "date": "2026-04-06",
+  "session": "evening",
+  "generated_at": "2026-04-06T15:16:56.153266",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "6/6",
+      "metrics": {
+        "selloff_total_pct": -0.285884,
+        "pct_off_30d_high": -0.412644,
+        "gap_pct": -0.065765,
+        "pct_change_3": -0.263075,
+        "prior_day_range_atr": 1.119345,
+        "pct_off_52wk_high": -0.412644,
+        "atr_pct": 0.231908
+      }
+    }
+  ]
+}
