@@ -1,0 +1,57 @@
+{
+  "date": "2026-04-07",
+  "session": "evening",
+  "generated_at": "2026-04-07T15:16:21.988122",
+  "go_count": 1,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "CAR",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.424008,
+        "pct_change_3": 0.500265,
+        "gap_pct": 0.001724,
+        "prior_day_range_atr": 2.670074,
+        "atr_pct": 0.069442,
+        "prior_day_rvol": 4.666539,
+        "premarket_rvol": 0.143357
+      }
+    },
+    {
+      "ticker": "AVGO",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.061049,
+        "pct_change_3": 0.065329,
+        "gap_pct": 0.005929,
+        "prior_day_range_atr": 1.039641,
+        "atr_pct": 0.03536,
+        "prior_day_rvol": 1.246852,
+        "premarket_rvol": 0.078276
+      }
+    },
+    {
+      "ticker": "STX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.107309,
+        "pct_change_3": 0.107771,
+        "gap_pct": 0.003776,
+        "prior_day_range_atr": 0.741256,
+        "atr_pct": 0.068383,
+        "prior_day_rvol": 1.050004,
+        "premarket_rvol": 0.108294
+      }
+    }
+  ]
+}
