@@ -1,0 +1,137 @@
+{
+  "date": "2026-04-20",
+  "session": "evening",
+  "generated_at": "2026-04-20T15:16:25.118414",
+  "go_count": 2,
+  "caution_count": 6,
+  "signals": [
+    {
+      "ticker": "IONQ",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.289501,
+        "pct_change_3": 0.28887,
+        "gap_pct": 0.048818,
+        "prior_day_range_atr": 1.001307,
+        "atr_pct": 0.062186,
+        "prior_day_rvol": 1.824725,
+        "premarket_rvol": 0.080696
+      }
+    },
+    {
+      "ticker": "CAR",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.574526,
+        "pct_change_3": 0.199971,
+        "gap_pct": 0.17999,
+        "prior_day_range_atr": 1.534834,
+        "atr_pct": 0.088973,
+        "prior_day_rvol": 1.43706,
+        "premarket_rvol": 0.031701
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.091164,
+        "pct_change_3": 0.091426,
+        "gap_pct": -0.00704,
+        "prior_day_range_atr": 0.654807,
+        "atr_pct": 0.038175,
+        "prior_day_rvol": 0.996656,
+        "premarket_rvol": 0.05432
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.041168,
+        "pct_change_3": 0.044044,
+        "gap_pct": 0.010362,
+        "prior_day_range_atr": 0.882644,
+        "atr_pct": 0.023155,
+        "prior_day_rvol": 1.432698,
+        "premarket_rvol": 0.029791
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.191766,
+        "pct_change_3": 0.17419,
+        "gap_pct": 0.051126,
+        "prior_day_range_atr": 0.630863,
+        "atr_pct": 0.060286,
+        "prior_day_rvol": 1.020442,
+        "premarket_rvol": 0.043166
+      }
+    },
+    {
+      "ticker": "CRML",
+      "bucket": "reversal",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.258241,
+        "pct_change_3": 0.428896,
+        "gap_pct": -0.047373,
+        "prior_day_range_atr": 2.216836,
+        "atr_pct": 0.098023,
+        "prior_day_rvol": 9.632639,
+        "premarket_rvol": 0.317857
+      }
+    },
+    {
+      "ticker": "CRDO",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.207896,
+        "pct_change_3": 0.007335,
+        "gap_pct": 0.063538,
+        "prior_day_range_atr": 1.167969,
+        "atr_pct": 0.064677,
+        "prior_day_rvol": 1.012458,
+        "premarket_rvol": 0.045837
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.045366,
+        "pct_change_3": 0.1,
+        "gap_pct": -0.02108,
+        "prior_day_range_atr": 1.04878,
+        "atr_pct": 0.042864,
+        "prior_day_rvol": 1.31968,
+        "premarket_rvol": 0.035828
+      }
+    }
+  ]
+}
