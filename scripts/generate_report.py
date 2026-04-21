@@ -66,7 +66,7 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
-from analyzers.reversal_scorer import ReversalScorer
+from analyzers.reversal_scorer import ReversalScorer, check_archetype
 from data_queries.ticker_cache import TickerCache, is_today_finalized
 
 # ---------------------------------------------------------------------------
@@ -424,8 +424,8 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
     """
     metrics = {}
     try:
-        # Get historical data (35 days for calculations)
-        df = _pq_module.get_levels_data(ticker, date, 35, 1, 'day')
+        # Get historical data (252 days — enough for 200-day SMA and 52-week high)
+        df = _pq_module.get_levels_data(ticker, date, 252, 1, 'day')
         if df is None or len(df) < 5:
             return metrics
 
@@ -501,6 +501,38 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
                 if close_3ago and close_3ago > 0:
                     metrics['pct_change_3'] = (close_now - close_3ago) / close_3ago
                 metrics['close_3_ago'] = close_3ago
+
+            # 4b. Archetype metrics (for the "parabolic-at-highs" gate)
+            # Need the same "use completed bars only" logic as pct_change_3.
+            last_completed_idx = -1 if use_last_bar else -2
+
+            # 30-day momentum: close_now vs close 30 trading days ago
+            need_30 = abs(last_completed_idx) + 30
+            if len(df) >= need_30:
+                close_now_30 = df['close'].iloc[last_completed_idx]
+                close_30ago = df['close'].iloc[last_completed_idx - 30]
+                if close_30ago and close_30ago > 0:
+                    metrics['pct_change_30'] = (close_now_30 - close_30ago) / close_30ago
+
+            # Position vs 200-day SMA (uses reference/live price vs historical SMA)
+            need_200 = abs(last_completed_idx) + 199  # SMA window covers completed bars only
+            if len(df) >= need_200 and reference_price and reference_price > 0:
+                # Trailing 200 closes ending at the last completed bar
+                sma_slice = df['close'].iloc[last_completed_idx - 199 : last_completed_idx + 1] \
+                    if last_completed_idx != -1 else df['close'].iloc[-200:]
+                sma_200 = sma_slice.mean()
+                if sma_200 and sma_200 > 0:
+                    metrics['pct_from_200mav'] = (reference_price - sma_200) / sma_200
+
+            # Breaks 52-week high — today's high (or live price) >= prior 252-day high
+            # Look back across completed bars only, using the 252-bar high as the
+            # reference. When today's bar is partial we exclude it from the history.
+            if reference_price and reference_price > 0:
+                hist_highs = df['high'].iloc[:last_completed_idx + 1] \
+                    if last_completed_idx != -1 else df['high']
+                if len(hist_highs) >= 1:
+                    prior_252_high = hist_highs.iloc[-252:].max() if len(hist_highs) >= 252 else hist_highs.max()
+                    metrics['breaks_fifty_two_wk'] = bool(reference_price >= prior_252_high)
 
             # Reference prices for upgrade analysis (priority_report.py)
             metrics['prior_close'] = prior_close
@@ -638,6 +670,15 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     if not mom_passed and recommendation == 'GO':
         recommendation = 'NO-GO'
 
+    # --- Archetype gate (soft downgrade) ---
+    # Stocks bouncing off a low base rarely match the parabolic-short archetype
+    # in reversal_data.csv. Soft-downgrade GO -> CAUTION when the setup doesn't
+    # look like "parabolic at highs"; leave CAUTION alone but tag it so the flag
+    # surfaces in the HTML and scorecard.
+    archetype_passed, archetype_detail = check_archetype(metrics)
+    if not archetype_passed and recommendation == 'GO':
+        recommendation = 'CAUTION'
+
     return {
         'ticker': ticker,
         'cap': cap,
@@ -648,6 +689,8 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
         'range_gate_passed': range_passed,
         'momentum_pctile_passed': mom_passed,
         'momentum_pctile_3': mom_pctile,
+        'archetype_passed': archetype_passed,
+        'archetype_detail': archetype_detail,
     }
 
 
@@ -853,6 +896,25 @@ def format_pretrade_score_html(score_result: Dict) -> str:
             f'<div style="margin-top: 6px; padding: 4px 8px; border-left: 3px solid #f85149; '
             f'font-size: 0.85em; color: #f85149;">'
             f'Momentum gate: pct_change_3 at {pctile_str} pctile (min 15th) — downgraded to NO-GO'
+            f'</div>'
+        )
+
+    # Archetype gate — flag when the setup doesn't match "parabolic at highs"
+    archetype_passed = score_result.get('archetype_passed')
+    archetype_detail = score_result.get('archetype_detail') or {}
+    if archetype_passed is False:
+        p200 = archetype_detail.get('pct_from_200mav')
+        p30 = archetype_detail.get('pct_change_30')
+        brk = archetype_detail.get('breaks_fifty_two_wk')
+        p200_str = f"{p200*100:+.0f}%" if p200 is not None and not pd.isna(p200) else "N/A"
+        p30_str = f"{p30*100:+.0f}%" if p30 is not None and not pd.isna(p30) else "N/A"
+        brk_str = "Yes" if brk else "No"
+        lines.append(
+            f'<div style="margin-top: 6px; padding: 4px 8px; border-left: 3px solid #e3b341; '
+            f'font-size: 0.85em; color: #e3b341;">'
+            f'⚠ OFF_ARCHETYPE — not near highs '
+            f'(200MA: {p200_str}, 30d: {p30_str}, 52wk high: {brk_str}). '
+            f'Historical winning reversals are parabolic/extended; this looks like a bounce off a low base.'
             f'</div>'
         )
 

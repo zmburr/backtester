@@ -868,10 +868,16 @@ def build_priority_ticker_html(item: Dict) -> str:
     bucket_colors = {"reversal": "#58a6ff", "bounce": "#3fb950"}
     bucket_color = bucket_colors.get(bucket, "#8b949e")
 
+    # Off-archetype glyph (reversals only — flag is set by score_pretrade_setup)
+    archetype_glyph = ""
+    sr = item.get("score_result")
+    if bucket == "reversal" and isinstance(sr, dict) and sr.get("archetype_passed") is False:
+        archetype_glyph = ' <span title="Off archetype: not near highs" style="color: #e3b341; font-size: 0.75em;">⚠ OFF_ARCHETYPE</span>'
+
     lines = [
         f'<div style="border-top: 3px solid {rec_color}; margin-top: 28px; padding-top: 10px;">',
         f'<h2 style="margin: 0 0 4px 0; color: #f0f6fc;">{ticker} '
-        f'<span style="color: {rec_color}; font-size: 0.8em;">{rec}</span> '
+        f'<span style="color: {rec_color}; font-size: 0.8em;">{rec}</span>{archetype_glyph} '
         f'<span style="color: {bucket_color}; font-size: 0.65em; font-weight: normal;">{bucket.upper()}</span></h2>',
         f'</div>',
     ]
@@ -1334,14 +1340,24 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                     except (TypeError, ValueError):
                         metrics[k] = v
 
-            signals.append({
+            signal_entry = {
                 "ticker": item["ticker"],
                 "bucket": bucket,
                 "cap": item.get("cap", ""),
                 "recommendation": item["rec"],
                 "score": item.get("score_str", ""),
                 "metrics": metrics,
-            })
+            }
+
+            # Carry the archetype flag through for scorecard feedback-loop analysis.
+            # Only reversals populate this; bounces leave it out.
+            if bucket == "reversal":
+                sr = item.get("score_result")
+                if isinstance(sr, dict):
+                    signal_entry["archetype_passed"] = sr.get("archetype_passed")
+                    signal_entry["archetype_detail"] = sr.get("archetype_detail")
+
+            signals.append(signal_entry)
 
         payload = {
             "date": date_str,

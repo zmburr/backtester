@@ -266,6 +266,54 @@ READINESS_THRESHOLDS = {
 MOMENTUM_PCTILE_MIN = 15.0
 
 
+# ---------------------------------------------------------------------------
+# Archetype gate — "is this the parabolic-at-highs profile?"
+# Derived from reversal_data.csv (112 rows). 50/51 A-grade reversals and
+# 42/46 B-grade reversals satisfy at least one of these three conditions.
+# When none hold, the stock is typically bouncing off a low base rather than
+# distributing at highs (e.g. IONQ 4/20/2025) — the historically wrong profile
+# for this scoring system. Applied as a soft downgrade (GO -> CAUTION), never
+# a suppression, so the signal still surfaces and the flag is informational.
+# ---------------------------------------------------------------------------
+ARCHETYPE_PCT_FROM_200MAV = 0.50   # >= 50% above 200-day MA
+ARCHETYPE_PCT_CHANGE_30   = 0.30   # >= 30% 30-day run
+
+
+def check_archetype(metrics: Dict) -> Tuple[bool, Dict]:
+    """Test whether a setup matches the parabolic-at-highs reversal archetype.
+
+    Passes if ANY of:
+      - breaks_fifty_two_wk is True
+      - pct_from_200mav > ARCHETYPE_PCT_FROM_200MAV (0.50)
+      - pct_change_30    > ARCHETYPE_PCT_CHANGE_30  (0.30)
+
+    Returns (passed, detail) where detail captures the raw values and which
+    sub-rule(s) tripped for display/scorecard use. Missing metrics are treated
+    as not-satisfying-that-rule (so a completely empty metrics dict fails the
+    gate, which is the safe default).
+    """
+    breaks_52wk = bool(metrics.get('breaks_fifty_two_wk'))
+    pct_200 = metrics.get('pct_from_200mav')
+    pct_30 = metrics.get('pct_change_30')
+
+    by_200mav = pct_200 is not None and not pd.isna(pct_200) and pct_200 > ARCHETYPE_PCT_FROM_200MAV
+    by_30d = pct_30 is not None and not pd.isna(pct_30) and pct_30 > ARCHETYPE_PCT_CHANGE_30
+
+    passed = breaks_52wk or by_200mav or by_30d
+
+    detail = {
+        'breaks_fifty_two_wk': breaks_52wk,
+        'pct_from_200mav': pct_200,
+        'pct_change_30': pct_30,
+        'passed_by_52wk': breaks_52wk,
+        'passed_by_200mav': by_200mav,
+        'passed_by_30d': by_30d,
+        'threshold_200mav': ARCHETYPE_PCT_FROM_200MAV,
+        'threshold_30d': ARCHETYPE_PCT_CHANGE_30,
+    }
+    return passed, detail
+
+
 class ReversalScorer:
     """Scores reversal setups based on 6 cap-adjusted criteria."""
 
