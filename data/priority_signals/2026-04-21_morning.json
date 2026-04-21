@@ -1,0 +1,89 @@
+{
+  "date": "2026-04-21",
+  "session": "morning",
+  "generated_at": "2026-04-21T05:46:06.741374",
+  "go_count": 2,
+  "caution_count": 3,
+  "signals": [
+    {
+      "ticker": "IONQ",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.218039,
+        "pct_change_3": 0.117225,
+        "gap_pct": -0.000414,
+        "prior_day_range_atr": 1.114887,
+        "atr_pct": 0.063975,
+        "prior_day_rvol": 1.683549,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "CAR",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.62743,
+        "pct_change_3": 0.538267,
+        "gap_pct": 0.116984,
+        "prior_day_range_atr": 2.262597,
+        "atr_pct": 0.088768,
+        "prior_day_rvol": 1.613536,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "EWY",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.060165,
+        "pct_change_3": 0.035675,
+        "gap_pct": 0.017123,
+        "prior_day_range_atr": 0.372799,
+        "atr_pct": 0.039184,
+        "prior_day_rvol": 0.54533,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "MP",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.116757,
+        "pct_change_3": 0.112735,
+        "gap_pct": -0.000906,
+        "prior_day_range_atr": 1.319356,
+        "atr_pct": 0.050457,
+        "prior_day_rvol": 1.621727,
+        "premarket_rvol": 0.0
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.165758,
+        "pct_change_3": 0.215489,
+        "gap_pct": 0.012855,
+        "prior_day_range_atr": 1.066616,
+        "atr_pct": 0.059495,
+        "prior_day_rvol": 1.133817,
+        "premarket_rvol": 0.0
+      }
+    }
+  ]
+}
