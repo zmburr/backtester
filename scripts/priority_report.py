@@ -895,7 +895,7 @@ def build_priority_ticker_html(item: Dict) -> str:
     if score_html:
         lines.append(score_html)
 
-    # Intensity (bounce only)
+    # Intensity (bounce + reversal)
     if intensity_html:
         lines.append(intensity_html)
 
@@ -1201,6 +1201,19 @@ def generate_priority_report() -> str:
             intensity_html = ""
             if bucket == "reversal" and score_result:
                 score_html = gr.format_pretrade_score_html(score_result)
+                # Reversal intensity (cap-stratified percentile vs grade-A reference)
+                rev_mav = all_data.get(ticker, {}).get("mav_data", {}) or {}
+                rev_intensity_metrics = {
+                    'atr_pct':             metrics.get('atr_pct'),
+                    'pct_from_9ema':       metrics.get('pct_from_9ema'),
+                    'pct_change_3':        metrics.get('pct_change_3'),
+                    'gap_pct':             metrics.get('gap_pct'),
+                    'prior_day_range_atr': metrics.get('prior_day_range_atr'),
+                    'rvol_score':          metrics.get('prior_day_rvol'),
+                    'pct_from_50mav':      rev_mav.get('pct_from_50mav'),
+                }
+                rev_intensity = gr.compute_reversal_intensity(rev_intensity_metrics, cap=cap)
+                intensity_html = gr.format_reversal_intensity_html(rev_intensity)
             elif bucket == "bounce" and score_result:
                 score_html = gr.format_bounce_score_html(score_result, bounce_metrics=metrics)
                 # Bounce intensity

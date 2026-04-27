@@ -66,7 +66,7 @@ from analyzers.bounce_scorer import (
     classify_from_setup_column,
     classify_stock,
 )
-from analyzers.reversal_scorer import ReversalScorer, check_archetype
+from analyzers.reversal_scorer import ReversalScorer, check_archetype, compute_reversal_intensity
 from data_queries.ticker_cache import TickerCache, is_today_finalized
 
 # ---------------------------------------------------------------------------
@@ -330,6 +330,63 @@ def format_bounce_intensity_html(intensity: Dict) -> str:
             f'<td>{weight*100:.0f}%</td></tr>'
         )
 
+    lines.append('</table></div>')
+    return '\n'.join(lines)
+
+
+# Validated against reversal_data.csv (n=110, A median 55.0 vs B 25.5):
+# >=70 = top quartile, mostly grade-A; >=50 = above-A-median; <25 = weak
+_REVERSAL_INTENSITY_LABELS = {
+    'ema9_atr':            '9EMA ext (ATR)',
+    'mom3_atr':            '3-day mom (ATR)',
+    'pct_from_50mav':      '50MA extension',
+    'prior_day_range_atr': 'Prior range (ATR)',
+    'gap_atr':             'Gap (ATR)',
+    'rvol_score':          'Relative volume',
+}
+
+
+def format_reversal_intensity_html(intensity: Dict) -> str:
+    """Format reversal intensity score as compact HTML, mirrors the bounce formatter."""
+    score = intensity.get('composite')
+    if score is None:
+        return (
+            '<div style="margin: 6px 0; color: #8b949e; font-size: 0.9em;">'
+            '<strong>Reversal Intensity:</strong> N/A (missing inputs)'
+            '</div>'
+        )
+
+    if score >= 70:
+        color = '#3fb950'   # green — top quartile of A-grade reference
+        context = 'top quartile (mostly grade-A historically)'
+    elif score >= 50:
+        color = '#3fb950'   # green — above A-median
+        context = 'above A-median'
+    elif score >= 25:
+        color = '#e3b341'   # yellow — overlap zone with B
+        context = 'borderline (A/B overlap zone)'
+    else:
+        color = '#f85149'   # red — bottom quartile, mostly B/C historically
+        context = 'weak setup (mostly B/C historically)'
+
+    lines = [
+        '<div style="margin: 6px 0;">',
+        f'<strong>Reversal Intensity: <span style="color: {color}; font-size: 1.1em;">{score:.0f}/100</span></strong>',
+        f'<span style="font-size: 0.85em; color: #8b949e;"> ({context})</span>',
+        '<table style="font-size: 0.85em; margin-top: 4px; color: #c9d1d9;">',
+        '<tr style="color: #6e7681;"><td style="padding-right: 10px;">Metric</td>'
+        '<td style="padding-right: 10px;">Percentile</td><td>Weight</td></tr>',
+    ]
+    for col, d in intensity.get('details', {}).items():
+        label = _REVERSAL_INTENSITY_LABELS.get(col, col)
+        pctile = d.get('pctile')
+        weight = d.get('weight', 0)
+        pctile_str = f'{pctile:.0f}' if pctile is not None else 'N/A'
+        lines.append(
+            f'<tr><td style="padding-right: 10px;">{label}</td>'
+            f'<td style="padding-right: 10px;">{pctile_str}</td>'
+            f'<td>{weight*100:.0f}%</td></tr>'
+        )
     lines.append('</table></div>')
     return '\n'.join(lines)
 
@@ -1472,6 +1529,21 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             cap = score_result.get('cap')
             lines.append("<strong>Reversal Setup Score:</strong>")
             lines.append(format_pretrade_score_html(score_result))
+
+            # Reversal intensity ranking score (cap-stratified, percentile vs grade-A reference).
+            # Parallel to bounce_intensity. Validated on reversal_data.csv: A-grade
+            # median 55.0 vs B 25.5 (n=110), Spearman rho +0.343 vs P&L (p=0.0002).
+            intensity_metrics = {
+                'atr_pct':             pretrade_metrics.get('atr_pct'),
+                'pct_from_9ema':       pretrade_metrics.get('pct_from_9ema'),
+                'pct_change_3':        pretrade_metrics.get('pct_change_3'),
+                'gap_pct':             pretrade_metrics.get('gap_pct'),
+                'prior_day_range_atr': pretrade_metrics.get('prior_day_range_atr'),
+                'rvol_score':          pretrade_metrics.get('prior_day_rvol'),
+                'pct_from_50mav':      mav_data.get('pct_from_50mav') if mav_data else None,
+            }
+            intensity = compute_reversal_intensity(intensity_metrics, cap=cap)
+            lines.append(format_reversal_intensity_html(intensity))
 
         # Add data-informed exit target LEVELS (measured from last close)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
