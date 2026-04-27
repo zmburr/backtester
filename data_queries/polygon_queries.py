@@ -290,6 +290,31 @@ def get_daily(ticker, date):
         return None
 
 
+_ipo_date_cache: dict = {}
+
+
+@_polygon_retry
+def get_ipo_date(ticker):
+    """Return IPO/listing date as 'YYYY-MM-DD' string, or None if unavailable.
+
+    Uses Polygon's ticker_details endpoint (list_date field). Cached per-process
+    since IPO date is static per ticker.
+    """
+    if ticker in _ipo_date_cache:
+        return _ipo_date_cache[ticker]
+    try:
+        details = poly_client.get_ticker_details(ticker)
+        list_date = getattr(details, 'list_date', None)
+        _ipo_date_cache[ticker] = list_date
+        return list_date
+    except _RETRYABLE_EXCEPTIONS:
+        raise
+    except Exception as e:
+        print(f"get_ipo_date error for {ticker}: {e}")
+        _ipo_date_cache[ticker] = None
+        return None
+
+
 @_polygon_retry
 def get_intraday(ticker, date, multiplier, timespan):
     """

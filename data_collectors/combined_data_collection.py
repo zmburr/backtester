@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from data_queries.polygon_queries import get_daily, adjust_date_forward, get_levels_data, get_price_with_fallback, \
-    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data
+    adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data, get_ipo_date, get_atr
 import pandas as pd
 import logging
 from tabulate import tabulate
@@ -42,14 +42,25 @@ def find_time_of_high_price(data):
         time_of_high_price = data.index[idx_high_price + 1]
     return time_of_high_price
 
-def fill_function_time_of_high_price(row):
+def _fill_time_of_high(row, output_column):
     ticker = row['ticker']
     date = parse_row_date(row)
-    logging.info(f'Running fill_function_time_of_high_price for {ticker} on {date}')
+    logging.info(f'Running time-of-high fill for {ticker} on {date}')
     data = get_intraday(ticker, date, multiplier=1, timespan='minute')
+    if data is None or data.empty:
+        row[output_column] = None
+        return row
     time_of_high_price = find_time_of_high_price(data)
-    row['time_of_high_price'] = time_of_high_price
+    row[output_column] = time_of_high_price
     return row
+
+
+def fill_function_time_of_high_price(row):
+    return _fill_time_of_high(row, 'time_of_high_price')
+
+
+def fill_function_time_of_high(row):
+    return _fill_time_of_high(row, 'time_of_high')
 
 def find_time_of_low_price(data):
     time_of_low_price = data['low'].idxmin()
@@ -175,6 +186,11 @@ def get_spy(row):
     logging.info(f'Running get_spy for {row_ticker} on {date}')
 
     daily_data = get_daily(ticker, date)
+    if daily_data is None:
+        row['spy_open_close_pct'] = None
+        row['move_together'] = None
+        return row
+
     open_price = daily_data.open
     close = daily_data.close
 
@@ -530,7 +546,604 @@ def get_market_context(row, analysis_type):
     return row
 
 
+def _trading_days_between(start_date_str, end_date_str):
+    """Approximate trading days between two YYYY-MM-DD dates using NYSE calendar.
+    Returns None on failure."""
+    try:
+        import pandas_market_calendars as mcal
+        nyse = mcal.get_calendar('NYSE')
+        days = nyse.valid_days(start_date=start_date_str, end_date=end_date_str)
+        return len(days)
+    except Exception:
+        return None
+
+
+def _resolve_pivot(setup_type_str, ticker, date):
+    """
+    Resolve the breakout pivot price for outcome measurement based on setup_type.
+
+    Returns: (pivot_price, source_label) or (None, None) on failure.
+
+    Priority order from setup_type tags:
+      ATH_breakout      → max high in 1200d window before trade date
+      52wk_breakout     → max high in last 252 trading days before trade date
+      IPO_high_breakout → max high since IPO date
+      news_day2         → prior trading day's high
+      news_day1         → prior trading day's close
+      other             → prior trading day's close (fallback)
+
+    Sanity check: if a high-water pivot ends up >25% above prior close, the
+    flag is stale/incorrect (volatile names can legitimately gap 10-20% on news
+    to break a level just above them, so 25% is the conservative threshold).
+    Fall back to prior close and log a warning so outcome metrics stay sane.
+    """
+    if not setup_type_str:
+        return None, None
+
+    tags = [t.strip() for t in str(setup_type_str).split(',')]
+    primary = tags[0] if tags else None
+
+    try:
+        prior_date = adjust_date_to_market(date, 1)
+        prior_daily = get_daily(ticker, prior_date)
+        prior_close = float(prior_daily.close) if prior_daily is not None else None
+
+        def _high_water_pivot(window_days, source_label):
+            hist = get_levels_data(ticker, prior_date, window_days, 1, 'day')
+            if hist is None or hist.empty:
+                return None, None
+            pivot = float(hist['high'].max())
+            if prior_close is not None and pivot > prior_close * 1.25:
+                logging.warning(
+                    f'{ticker} on {date}: setup={primary} resolves pivot={pivot:.2f} '
+                    f'but prior_close={prior_close:.2f} — flag likely stale. '
+                    f'Falling back to prior_close.'
+                )
+                return prior_close, f'prior_close_fallback_from_{source_label}'
+            return pivot, source_label
+
+        if primary == 'ATH_breakout':
+            return _high_water_pivot(1200, 'ath')
+
+        if primary == '52wk_breakout':
+            return _high_water_pivot(252, '52wk_high')
+
+        if primary == 'IPO_high_breakout':
+            ipo_str = get_ipo_date(ticker)
+            if not ipo_str:
+                return (prior_close, 'prior_close') if prior_close is not None else (None, None)
+            window_days = max(1, _trading_days_between(ipo_str, csv_date_to_iso(prior_date)) or 30)
+            return _high_water_pivot(window_days, 'ipo_high')
+
+        if primary == 'news_day2':
+            d1 = get_daily(ticker, prior_date)
+            if d1 is None:
+                return None, None
+            return float(d1.high), 'd1_high'
+
+        # news_day1 and other → prior day close
+        if prior_close is not None:
+            return prior_close, 'prior_close'
+        return None, None
+
+    except Exception as e:
+        logging.error(f'_resolve_pivot error for {ticker} on {date}: {e}')
+        return None, None
+
+
+def get_breakout_outcome(row, analysis_type):
+    """
+    Outcome labels (Y) — measures whether the breakout worked.
+
+    Computes:
+      - pivot_to_high_pct        : (day_high - pivot) / pivot
+      - pivot_to_close_pct       : (close - pivot) / pivot
+      - atr_max_extension        : (day_high - pivot) / atr_dollars
+      - atr_at_close             : (close - pivot) / atr_dollars
+      - held_above_pivot_at_close: bool — close > pivot
+      - pulled_back_to_pivot_intraday: bool — touched pivot from above after breaking
+      - pivot_source             : label describing which pivot was used
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running get_breakout_outcome for {ticker} on {date}')
+
+    try:
+        setup_type = row.get('setup_type')
+        pivot, source = _resolve_pivot(setup_type, ticker, date)
+        if pivot is None or pivot <= 0:
+            return row
+
+        daily = get_daily(ticker, date)
+        if daily is None:
+            return row
+        day_high = float(daily.high)
+        day_close = float(daily.close)
+
+        atr_dollars = get_atr(ticker, date)
+
+        row['pivot_to_high_pct'] = (day_high - pivot) / pivot
+        row['pivot_to_close_pct'] = (day_close - pivot) / pivot
+        row['held_above_pivot_at_close'] = day_close > pivot
+        row['pivot_source'] = source
+
+        if atr_dollars and atr_dollars > 0:
+            row['atr_max_extension'] = (day_high - pivot) / atr_dollars
+            row['atr_at_close'] = (day_close - pivot) / atr_dollars
+
+        # Pullback to pivot: did intraday low (after first cross above pivot) revisit the pivot?
+        try:
+            intraday = get_intraday(ticker, date, multiplier=1, timespan='minute')
+            if intraday is not None and not intraday.empty:
+                regular = intraday.between_time(MARKET_OPEN, MARKET_CLOSE)
+                above = regular[regular['high'] >= pivot]
+                if not above.empty:
+                    first_break_idx = above.index[0]
+                    after_break = regular.loc[first_break_idx:]
+                    row['pulled_back_to_pivot_intraday'] = bool((after_break['low'] <= pivot).any())
+                else:
+                    row['pulled_back_to_pivot_intraday'] = False
+        except Exception as e:
+            logging.warning(f'pulled_back check failed for {ticker} on {date}: {e}')
+
+    except Exception as e:
+        logging.error(f'Error in get_breakout_outcome for {ticker} on {date}: {e}')
+
+    return row
+
+
+def get_consolidation_quality(row, analysis_type):
+    """
+    Forward-looking base/squeeze metrics, all measured at PRIOR close.
+
+      - consolidation_days        : trading days the stock has held within 10% of its 52wk high
+      - range_contraction_atr     : last-5d avg TR / last-30d avg TR (<1 = contraction)
+      - bb_width_percentile_6mo   : percentile of prior-day BB width over last 126 days (low = tight squeeze)
+      - vol_dry_up_ratio          : last-5d avg vol / last-20d avg vol (low = dry-up)
+      - up_down_vol_ratio_30d     : vol on green-close days / vol on red-close days, last 30d
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running get_consolidation_quality for {ticker} on {date}')
+
+    try:
+        prior_date = adjust_date_to_market(date, 1)
+        # 380 calendar days ≈ 270 trading days — gives us full 252d (52wk) coverage
+        hist = get_levels_data(ticker, prior_date, 380, 1, 'day')
+        if hist is None or len(hist) < 30:
+            return row
+
+        # Compute true range
+        hist = hist.sort_index().copy()
+        hist['prev_close'] = hist['close'].shift(1)
+        hist['tr'] = hist[['high', 'low', 'prev_close']].apply(
+            lambda x: max(
+                x['high'] - x['low'],
+                abs(x['high'] - x['prev_close']) if pd.notna(x['prev_close']) else x['high'] - x['low'],
+                abs(x['low'] - x['prev_close']) if pd.notna(x['prev_close']) else x['high'] - x['low'],
+            ), axis=1
+        )
+
+        # consolidation_days: count trailing days where close >= 0.90 * 52wk high
+        wk52_high = hist['high'].max()
+        if wk52_high > 0:
+            threshold = 0.90 * wk52_high
+            cd = 0
+            for i in range(len(hist) - 1, -1, -1):
+                if hist['close'].iloc[i] >= threshold:
+                    cd += 1
+                else:
+                    break
+            row['consolidation_days'] = cd
+
+        # range_contraction_atr: 5d / 30d TR
+        if len(hist) >= 30:
+            tr_5 = hist['tr'].tail(5).mean()
+            tr_30 = hist['tr'].tail(30).mean()
+            if tr_30 > 0:
+                row['range_contraction_atr'] = tr_5 / tr_30
+
+        # bb_width_percentile_6mo: prior-day BB width vs distribution over last 126 days
+        if len(hist) >= 126:
+            sma20 = hist['close'].rolling(window=20).mean()
+            std20 = hist['close'].rolling(window=20).std()
+            bb_w = ((sma20 + 2 * std20) - (sma20 - 2 * std20)) / sma20
+            recent = bb_w.tail(126).dropna()
+            current = bb_w.iloc[-1]
+            if pd.notna(current) and len(recent) > 10:
+                row['bb_width_percentile_6mo'] = (recent <= current).sum() / len(recent)
+
+        # vol_dry_up_ratio: 5d / 20d
+        if len(hist) >= 20:
+            v5 = hist['volume'].tail(5).mean()
+            v20 = hist['volume'].tail(20).mean()
+            if v20 > 0:
+                row['vol_dry_up_ratio'] = v5 / v20
+
+        # up_down_vol_ratio_30d
+        recent_30 = hist.tail(30)
+        up_vol = recent_30.loc[recent_30['close'] > recent_30['prev_close'], 'volume'].sum()
+        dn_vol = recent_30.loc[recent_30['close'] < recent_30['prev_close'], 'volume'].sum()
+        if dn_vol > 0:
+            row['up_down_vol_ratio_30d'] = up_vol / dn_vol
+
+    except Exception as e:
+        logging.error(f'Error in get_consolidation_quality for {ticker} on {date}: {e}')
+
+    return row
+
+
+@lru_cache(maxsize=64)
+def _benchmark_history(symbol, prior_date, window):
+    """Cached fetch of benchmark daily history (SPY/QQQ) for RS calculations."""
+    return get_levels_data(symbol, prior_date, window, 1, 'day')
+
+
+def get_relative_strength(row, analysis_type):
+    """
+    Relative strength vs SPY and QQQ over multiple lookbacks (forward-looking — uses prior close).
+
+      - rs_vs_spy_30d, rs_vs_spy_90d, rs_vs_spy_252d
+      - rs_vs_qqq_30d, rs_vs_qqq_90d
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running get_relative_strength for {ticker} on {date}')
+
+    try:
+        prior_date = adjust_date_to_market(date, 1)
+        # 380 calendar days ≈ 270 trading days for full 252d (12mo) RS calculation
+        hist = get_levels_data(ticker, prior_date, 380, 1, 'day')
+        if hist is None or len(hist) < 30:
+            return row
+        hist = hist.sort_index()
+
+        spy_hist = _benchmark_history('SPY', prior_date, 380)
+        qqq_hist = _benchmark_history('QQQ', prior_date, 380)
+
+        def _ret(df, n):
+            if df is None or len(df) <= n:
+                return None
+            df = df.sort_index()
+            return (df['close'].iloc[-1] - df['close'].iloc[-1 - n]) / df['close'].iloc[-1 - n]
+
+        for n, key_spy, key_qqq in [(30, 'rs_vs_spy_30d', 'rs_vs_qqq_30d'),
+                                    (90, 'rs_vs_spy_90d', 'rs_vs_qqq_90d')]:
+            stk = _ret(hist, n)
+            spy = _ret(spy_hist, n)
+            qqq = _ret(qqq_hist, n)
+            if stk is not None and spy is not None:
+                row[key_spy] = stk - spy
+            if stk is not None and qqq is not None:
+                row[key_qqq] = stk - qqq
+
+        # 252-day vs SPY only (12mo IBD-style relative return)
+        stk_252 = _ret(hist, 251) if len(hist) >= 252 else None
+        spy_252 = _ret(spy_hist, 251) if spy_hist is not None and len(spy_hist) >= 252 else None
+        if stk_252 is not None and spy_252 is not None:
+            row['rs_vs_spy_252d'] = stk_252 - spy_252
+
+    except Exception as e:
+        logging.error(f'Error in get_relative_strength for {ticker} on {date}: {e}')
+
+    return row
+
+
+def get_trend_structure(row, analysis_type):
+    """
+    Trend health metrics at PRIOR close.
+
+      - ma_stack_aligned          : bool — 10 SMA > 20 SMA > 50 SMA > 200 SMA
+      - ma_50_slope_5d            : (50ma_t - 50ma_t-5) / 50ma_t-5
+      - consecutive_days_above_50ma: count of consecutive days at end with close > 50ma
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running get_trend_structure for {ticker} on {date}')
+
+    try:
+        prior_date = adjust_date_to_market(date, 1)
+        # 290 calendar days ≈ 205 trading days — needed for full 200MA
+        hist = get_levels_data(ticker, prior_date, 290, 1, 'day')
+        if hist is None or len(hist) < 50:
+            return row
+        hist = hist.sort_index()
+        closes = hist['close']
+
+        sma_10 = closes.rolling(10).mean()
+        sma_20 = closes.rolling(20).mean()
+        sma_50 = closes.rolling(50).mean()
+        sma_200 = closes.rolling(200).mean() if len(closes) >= 200 else None
+
+        last10 = sma_10.iloc[-1]
+        last20 = sma_20.iloc[-1]
+        last50 = sma_50.iloc[-1]
+        last200 = sma_200.iloc[-1] if sma_200 is not None else None
+
+        # ma_stack_aligned
+        if all(pd.notna(v) for v in [last10, last20, last50] + ([last200] if last200 is not None else [])):
+            stack_ok = last10 > last20 > last50
+            if last200 is not None:
+                stack_ok = stack_ok and last50 > last200
+            row['ma_stack_aligned'] = bool(stack_ok)
+
+        # ma_50_slope_5d
+        if len(sma_50.dropna()) >= 6:
+            sma50_now = sma_50.iloc[-1]
+            sma50_then = sma_50.iloc[-6]
+            if pd.notna(sma50_now) and pd.notna(sma50_then) and sma50_then > 0:
+                row['ma_50_slope_5d'] = (sma50_now - sma50_then) / sma50_then
+
+        # consecutive_days_above_50ma
+        cdays = 0
+        for i in range(len(closes) - 1, -1, -1):
+            sma_val = sma_50.iloc[i]
+            if pd.isna(sma_val):
+                break
+            if closes.iloc[i] > sma_val:
+                cdays += 1
+            else:
+                break
+        row['consecutive_days_above_50ma'] = cdays
+
+    except Exception as e:
+        logging.error(f'Error in get_trend_structure for {ticker} on {date}: {e}')
+
+    return row
+
+
+def get_d2_continuation_features(row, analysis_type):
+    """
+    Day-2 continuation features. Only computes when row['t'] == 1.
+
+      - d1_close_at_high_pct       : (D1 close - D1 low) / (D1 high - D1 low) — 1 = closed at HOD
+      - d1_rvol                    : D1 volume / 20d avg vol
+      - d1_range_atr               : D1 range as multiple of ATR (>2 = wide thrust, exhaustion risk)
+      - d1_thrust_atr              : (D1 close - D1 open) / ATR (positive = up-day, magnitude = strength)
+      - overnight_gap_d1_to_d2_pct : (D2 open - D1 close) / D1 close
+      - pm_d2_holds_above_d1_high  : bool — premarket price held above D1 high
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+
+    t_val = row.get('t')
+    try:
+        t_int = int(t_val) if pd.notna(t_val) else None
+    except (ValueError, TypeError):
+        t_int = None
+    if t_int != 1:
+        return row
+
+    logging.info(f'Running get_d2_continuation_features for {ticker} on {date}')
+
+    try:
+        d1_date = adjust_date_to_market(date, 1)
+        d1 = get_daily(ticker, d1_date)
+        if d1 is None:
+            return row
+
+        d1_high = float(d1.high)
+        d1_low = float(d1.low)
+        d1_open = float(d1.open)
+        d1_close = float(d1.close)
+
+        rng = d1_high - d1_low
+        if rng > 0:
+            row['d1_close_at_high_pct'] = (d1_close - d1_low) / rng
+
+        # ATR (in dollars) computed at the trade date — use it consistently
+        atr_dollars = get_atr(ticker, date)
+        if atr_dollars and atr_dollars > 0:
+            row['d1_range_atr'] = rng / atr_dollars
+            row['d1_thrust_atr'] = (d1_close - d1_open) / atr_dollars
+
+        # D1 RVOL: D1 volume / 20-day average volume excluding D1
+        # NOTE: get_levels_data window is in CALENDAR days (~0.71x trading days),
+        # so 40 calendar days ≈ 28 trading days, giving us 21+ days reliably.
+        hist = get_levels_data(ticker, d1_date, 40, 1, 'day')
+        if hist is not None and len(hist) >= 21:
+            d1_vol = hist['volume'].iloc[-1]
+            avg20 = hist['volume'].iloc[-21:-1].mean()
+            if avg20 > 0:
+                row['d1_rvol'] = d1_vol / avg20
+
+        # Overnight gap D1 → D2
+        d2 = get_daily(ticker, date)
+        if d2 is not None:
+            d2_open = float(d2.open)
+            row['overnight_gap_d1_to_d2_pct'] = (d2_open - d1_close) / d1_close
+
+        # Premarket of D2: did price hold above D1 high
+        intraday = get_intraday(ticker, date, multiplier=1, timespan='minute')
+        if intraday is not None and not intraday.empty:
+            pm = intraday.between_time(PREMARKET_START, PREMARKET_END)
+            if not pm.empty:
+                pm_low_after_first_break = None
+                # First time PM crosses above D1 high
+                above = pm[pm['high'] > d1_high]
+                if not above.empty:
+                    first_idx = above.index[0]
+                    pm_after = pm.loc[first_idx:]
+                    pm_low_after_first_break = pm_after['low'].min()
+                    row['pm_d2_holds_above_d1_high'] = bool(pm_low_after_first_break >= d1_high)
+                else:
+                    row['pm_d2_holds_above_d1_high'] = False
+
+    except Exception as e:
+        logging.error(f'Error in get_d2_continuation_features for {ticker} on {date}: {e}')
+
+    return row
+
+
+def get_ipo_features(row, analysis_type):
+    """
+    IPO-specific features. Only computes when days_since_ipo < 365.
+
+      - days_since_ipo
+      - pct_to_ipo_high  : (prior close - max high since IPO) / max high since IPO
+      - pct_off_ipo_low  : (prior close - min low since IPO) / min low since IPO
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+
+    try:
+        ipo_str = get_ipo_date(ticker)
+        if not ipo_str:
+            return row
+
+        date_iso = csv_date_to_iso(date)
+        days_since = _trading_days_between(ipo_str, date_iso)
+        if days_since is None or days_since >= 365:
+            return row
+
+        row['days_since_ipo'] = days_since
+
+        prior_date = adjust_date_to_market(date, 1)
+        # Pull all history since IPO (cap at days_since trading days)
+        window = max(5, days_since + 5)
+        hist = get_levels_data(ticker, prior_date, window, 1, 'day')
+        if hist is None or hist.empty:
+            return row
+
+        prior_close = float(hist['close'].iloc[-1])
+        ipo_high = float(hist['high'].max())
+        ipo_low = float(hist['low'].min())
+
+        if ipo_high > 0:
+            row['pct_to_ipo_high'] = (prior_close - ipo_high) / ipo_high
+        if ipo_low > 0:
+            row['pct_off_ipo_low'] = (prior_close - ipo_low) / ipo_low
+
+        logging.info(f'Running get_ipo_features for {ticker} on {date} (days_since_ipo={days_since})')
+
+    except Exception as e:
+        logging.error(f'Error in get_ipo_features for {ticker} on {date}: {e}')
+
+    return row
+
+
+def derive_setup_type(row, analysis_type):
+    """
+    Multi-label setup classification (comma-joined when multiple apply).
+
+    Tags:
+      - ATH_breakout       : breaks_ath True AND t in {0, 1}
+      - 52wk_breakout      : breaks_fifty_two_wk True (and not ATH) AND t in {0, 1}
+      - IPO_high_breakout  : days_since_ipo < 365 AND breaks_fifty_two_wk True
+      - news_day1          : t == 0
+      - news_day2          : t == 1
+      - other              : fallback if no tags applied
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running derive_setup_type for {ticker} on {date}')
+
+    tags = []
+
+    # Read news-day indicator
+    t_val = row.get('t')
+    try:
+        t_int = int(t_val) if pd.notna(t_val) else None
+    except (ValueError, TypeError):
+        t_int = None
+
+    # Pull conditionals already set by get_conditionals
+    breaks_ath = row.get('breaks_ath')
+    breaks_52wk = row.get('breaks_fifty_two_wk')
+
+    def _is_true(v):
+        if pd.isna(v):
+            return False
+        if isinstance(v, str):
+            return v.strip().lower() in ('true', '1', 'yes')
+        return bool(v)
+
+    is_ath = _is_true(breaks_ath)
+    is_52wk = _is_true(breaks_52wk)
+
+    # Breakout-level tags (only meaningful on news days {0, 1})
+    if t_int in (0, 1):
+        if is_ath:
+            tags.append('ATH_breakout')
+        elif is_52wk:
+            tags.append('52wk_breakout')
+
+    # IPO breakout — independent dimension, can co-occur
+    try:
+        ipo_date_str = get_ipo_date(ticker)
+        if ipo_date_str:
+            days_since = _trading_days_between(ipo_date_str, csv_date_to_iso(date))
+            if days_since is not None and days_since < 365 and is_52wk:
+                tags.append('IPO_high_breakout')
+    except Exception as e:
+        logging.warning(f'IPO check failed for {ticker} on {date}: {e}')
+
+    # News-day tags (always applied if t is set)
+    if t_int == 0:
+        tags.append('news_day1')
+    elif t_int == 1:
+        tags.append('news_day2')
+
+    if not tags:
+        tags.append('other')
+
+    row['setup_type'] = ','.join(tags)
+    return row
+
+
+def get_breakout_proximity(row, analysis_type):
+    """
+    Distance to key levels at PRIOR close (forward-looking — measured before the trade day).
+    For breakouts: small/zero values indicate the stock is near a trigger level.
+
+    Computes:
+      - pct_to_52wk_high, pct_to_ath
+      - pct_to_30d_high, pct_to_60d_high, pct_to_90d_high
+      - days_since_52wk_high, days_since_ath
+    """
+    ticker = row['ticker']
+    date = parse_row_date(row)
+    logging.info(f'Running get_breakout_proximity for {ticker} on {date}')
+
+    try:
+        # Pull 1200 trading days ending at PRIOR close (so we exclude the trade day's high)
+        prior_date = adjust_date_to_market(date, 1)
+        hist = get_levels_data(ticker, prior_date, 1200, 1, 'day')
+        if hist is None or hist.empty:
+            return row
+
+        prior_close = hist['close'].iloc[-1]
+
+        # All-time high in the available window
+        ath = hist['high'].max()
+        if ath > 0:
+            row['pct_to_ath'] = (prior_close - ath) / ath
+            ath_idx = hist['high'].idxmax()
+            row['days_since_ath'] = len(hist.loc[ath_idx:]) - 1
+
+        # 52-week high (last ~252 trading days)
+        recent_252 = hist.tail(252) if len(hist) >= 252 else hist
+        wk52_high = recent_252['high'].max()
+        if wk52_high > 0:
+            row['pct_to_52wk_high'] = (prior_close - wk52_high) / wk52_high
+            wk52_idx = recent_252['high'].idxmax()
+            row['days_since_52wk_high'] = len(recent_252.loc[wk52_idx:]) - 1
+
+        # 30 / 60 / 90 day highs
+        for window, key in [(30, 'pct_to_30d_high'), (60, 'pct_to_60d_high'), (90, 'pct_to_90d_high')]:
+            window_df = hist.tail(window) if len(hist) >= window else hist
+            window_high = window_df['high'].max()
+            if window_high > 0:
+                row[key] = (prior_close - window_high) / window_high
+
+    except Exception as e:
+        logging.error(f'Error in get_breakout_proximity for {ticker} on {date}: {e}')
+
+    return row
+
+
 fill_functions_momentum = {
+    # Volume (extended to include prior 3 days)
     'avg_daily_vol': get_volume,
     'vol_on_breakout_day': get_volume,
     'premarket_vol': get_volume,
@@ -538,38 +1151,138 @@ fill_functions_momentum = {
     'vol_in_first_5_min': get_volume,
     'vol_in_first_10_min': get_volume,
     'vol_in_first_30_min': get_volume,
+    'vol_one_day_before': get_volume,
+    'vol_two_day_before': get_volume,
+    'vol_three_day_before': get_volume,
     'percent_of_premarket_vol': get_pct_volume,
     'percent_of_vol_in_first_5_min': get_pct_volume,
     'percent_of_vol_in_first_10_min': get_pct_volume,
     'percent_of_vol_in_first_15_min': get_pct_volume,
     'percent_of_vol_in_first_30_min': get_pct_volume,
+    'percent_of_vol_on_breakout_day': get_pct_volume,
 
+    # Range expansion / contraction (used inverted for breakouts: contraction is bullish)
+    'percent_of_vol_one_day_before': get_range_vol_expansion,
+    'percent_of_vol_two_day_before': get_range_vol_expansion,
+    'percent_of_vol_three_day_before': get_range_vol_expansion,
+    'day_of_range_pct': get_range_vol_expansion,
+    'one_day_before_range_pct': get_range_vol_expansion,
+    'two_day_before_range_pct': get_range_vol_expansion,
+    'three_day_before_range_pct': get_range_vol_expansion,
+
+    # Pct changes
     'pct_change_120': check_pct_move,
     'pct_change_90': check_pct_move,
     'pct_change_30': check_pct_move,
     'pct_change_15': check_pct_move,
     'pct_change_3': check_pct_move,
 
+    # Moving averages (ported from reversal — uses high-of-day as reference)
+    'pct_from_9ema': get_pct_from_mavs,
+    'pct_from_10mav': get_pct_from_mavs,
+    'pct_from_20mav': get_pct_from_mavs,
+    'pct_from_50mav': get_pct_from_mavs,
+    'pct_from_200mav': get_pct_from_mavs,
+    'atr_distance_from_50mav': get_pct_from_mavs,
+
+    # Breakout day stats
     'breakout_open_high_pct': check_breakout_stats,
     'breakout_open_close_pct': check_breakout_stats,
     'breakout_open_post_high_pct': check_breakout_stats,
     'breakout_open_to_day_after_open_pct': check_breakout_stats,
     'gap_pct': check_breakout_stats,
 
+    # SPY
     'spy_open_close_pct': get_spy,
     'move_together': get_spy,
 
+    # Breakout duration
     'breakout_duration': get_duration,
     'time_of_breakout': get_duration,
+    'time_of_high': fill_function_time_of_high,
 
-    # For conditional data
+    # Conditionals
     'breaks_fifty_two_wk': get_conditionals,
     'breaks_ath': get_conditionals,
     'close_at_highs': get_conditionals,
 
-    # For ATR related data
+    # ATR
     'atr_pct': calculate_atr,
-    'atr_pct_move': calculate_atr
+    'atr_pct_move': calculate_atr,
+
+    # Bollinger bands (upper-only for breakouts; squeeze metric is bollinger_width)
+    'upper_band_distance': get_bollinger_bands,
+    'bollinger_width': get_bollinger_bands,
+
+    # Volume profile
+    'vol_ratio_5min_to_pm': get_volume_profile,
+    'rvol_score': get_volume_profile,
+
+    # Prior day context (consecutive_up_days + closing strength + range vs ATR)
+    'prior_day_close_vs_high_pct': get_prior_day_context,
+    'consecutive_up_days': get_prior_day_context,
+    'prior_day_range_atr': get_prior_day_context,
+
+    # Intraday timing
+    'time_of_high_bucket': get_intraday_timing,
+    'gap_from_pm_high': get_intraday_timing,
+
+    # Market context
+    'spy_5day_return': get_market_context,
+    'uvxy_close': get_market_context,
+
+    # Consolidation / squeeze
+    'consolidation_days': get_consolidation_quality,
+    'range_contraction_atr': get_consolidation_quality,
+    'bb_width_percentile_6mo': get_consolidation_quality,
+    'vol_dry_up_ratio': get_consolidation_quality,
+    'up_down_vol_ratio_30d': get_consolidation_quality,
+
+    # Relative strength
+    'rs_vs_spy_30d': get_relative_strength,
+    'rs_vs_spy_90d': get_relative_strength,
+    'rs_vs_spy_252d': get_relative_strength,
+    'rs_vs_qqq_30d': get_relative_strength,
+    'rs_vs_qqq_90d': get_relative_strength,
+
+    # Trend structure
+    'ma_stack_aligned': get_trend_structure,
+    'ma_50_slope_5d': get_trend_structure,
+    'consecutive_days_above_50ma': get_trend_structure,
+
+    # Day-2 continuation (only fills when t == 1)
+    'd1_close_at_high_pct': get_d2_continuation_features,
+    'd1_rvol': get_d2_continuation_features,
+    'd1_range_atr': get_d2_continuation_features,
+    'd1_thrust_atr': get_d2_continuation_features,
+    'overnight_gap_d1_to_d2_pct': get_d2_continuation_features,
+    'pm_d2_holds_above_d1_high': get_d2_continuation_features,
+
+    # IPO features (only fills when days_since_ipo < 365)
+    'days_since_ipo': get_ipo_features,
+    'pct_to_ipo_high': get_ipo_features,
+    'pct_off_ipo_low': get_ipo_features,
+
+    # Proximity to key levels (forward-looking — distance at prior close)
+    'pct_to_52wk_high': get_breakout_proximity,
+    'pct_to_ath': get_breakout_proximity,
+    'pct_to_30d_high': get_breakout_proximity,
+    'pct_to_60d_high': get_breakout_proximity,
+    'pct_to_90d_high': get_breakout_proximity,
+    'days_since_52wk_high': get_breakout_proximity,
+    'days_since_ath': get_breakout_proximity,
+
+    # Setup type — must come AFTER breaks_ath/breaks_fifty_two_wk so they're populated first
+    'setup_type': derive_setup_type,
+
+    # Outcome labels (Y) — must come AFTER setup_type so the pivot can be resolved
+    'pivot_to_high_pct': get_breakout_outcome,
+    'pivot_to_close_pct': get_breakout_outcome,
+    'atr_max_extension': get_breakout_outcome,
+    'atr_at_close': get_breakout_outcome,
+    'held_above_pivot_at_close': get_breakout_outcome,
+    'pulled_back_to_pivot_intraday': get_breakout_outcome,
+    'pivot_source': get_breakout_outcome,
 }
 
 fill_functions_reversal = {
@@ -719,15 +1432,70 @@ REVERSAL_COLUMN_ORDER = [
 ]
 
 BREAKOUT_COLUMN_ORDER = [
-    'date', 't', 'ticker', 'trade_grade', 'news_type', 'size', 'bp', 'npl', 'atr_pct', 'atr_pct_move',
-    'avg_daily_vol', 'breakout_duration', 'breakout_open_close_pct', 'breakout_open_high_pct',
-    'breakout_open_post_high_pct', 'breakout_open_to_day_after_open_pct', 'breaks_ath', 'breaks_fifty_two_wk',
-    'close_at_highs', 'gap_pct', 'move_together', 'pct_change_120', 'pct_change_15', 'pct_change_3',
-    'pct_change_30', 'pct_change_90', 'percent_of_premarket_vol', 'percent_of_vol_in_first_10_min',
-    'percent_of_vol_in_first_15_min', 'percent_of_vol_in_first_30_min', 'percent_of_vol_in_first_5_min',
-    'percent_of_vol_on_breakout_day', 'premarket_vol', 'spy_open_close_pct', 'time_of_breakout',
-    'time_of_high', 'vol_in_first_10_min', 'vol_in_first_15_min', 'vol_in_first_30_min', 'vol_in_first_5_min',
-    'vol_on_breakout_day', 'vol_one_day_before', 'vol_three_day_before', 'vol_two_day_before'
+    # Identification
+    'date', 't', 'ticker', 'trade_grade', 'news_type', 'setup_type', 'cap', 'size', 'bp', 'npl',
+
+    # Setup quality (forward-looking X) — proximity / consolidation
+    'pct_to_52wk_high', 'pct_to_ath', 'pct_to_30d_high', 'pct_to_60d_high', 'pct_to_90d_high',
+    'days_since_52wk_high', 'days_since_ath',
+    'consolidation_days', 'range_contraction_atr', 'bb_width_percentile_6mo',
+    'bollinger_width', 'upper_band_distance',
+    'vol_dry_up_ratio', 'up_down_vol_ratio_30d',
+    'prior_day_range_atr', 'prior_day_close_vs_high_pct', 'consecutive_up_days',
+
+    # Trend (forward-looking X)
+    'pct_from_9ema', 'pct_from_10mav', 'pct_from_20mav', 'pct_from_50mav', 'pct_from_200mav',
+    'atr_distance_from_50mav',
+    'ma_stack_aligned', 'ma_50_slope_5d', 'consecutive_days_above_50ma',
+
+    # Relative strength (forward-looking X)
+    'rs_vs_spy_30d', 'rs_vs_spy_90d', 'rs_vs_spy_252d',
+    'rs_vs_qqq_30d', 'rs_vs_qqq_90d',
+
+    # Day-2 / IPO (conditional X)
+    'd1_close_at_high_pct', 'd1_rvol', 'd1_range_atr', 'd1_thrust_atr',
+    'overnight_gap_d1_to_d2_pct', 'pm_d2_holds_above_d1_high',
+    'days_since_ipo', 'pct_to_ipo_high', 'pct_off_ipo_low',
+
+    # Volume (X)
+    'avg_daily_vol', 'premarket_vol',
+    'vol_in_first_5_min', 'vol_in_first_10_min', 'vol_in_first_15_min', 'vol_in_first_30_min',
+    'vol_on_breakout_day',
+    'vol_one_day_before', 'vol_two_day_before', 'vol_three_day_before',
+    'percent_of_premarket_vol',
+    'percent_of_vol_in_first_5_min', 'percent_of_vol_in_first_10_min',
+    'percent_of_vol_in_first_15_min', 'percent_of_vol_in_first_30_min',
+    'percent_of_vol_on_breakout_day',
+    'percent_of_vol_one_day_before', 'percent_of_vol_two_day_before', 'percent_of_vol_three_day_before',
+    'vol_ratio_5min_to_pm', 'rvol_score',
+
+    # Range expansion (X — same window as reversal but used inverted for breakouts)
+    'day_of_range_pct', 'one_day_before_range_pct', 'two_day_before_range_pct', 'three_day_before_range_pct',
+
+    # Premarket / intraday (X)
+    'gap_pct', 'gap_from_pm_high', 'time_of_high_bucket',
+
+    # ATR (X)
+    'atr_pct',
+
+    # Pct change (X)
+    'pct_change_3', 'pct_change_15', 'pct_change_30', 'pct_change_90', 'pct_change_120',
+
+    # Market context (X)
+    'spy_open_close_pct', 'move_together', 'spy_5day_return', 'uvxy_close',
+
+    # Float / SI (X — populated separately by breakout_bloomberg.py)
+    'float_shares', 'short_interest_pct', 'days_to_cover',
+
+    # Outcome labels (Y)
+    'breakout_duration', 'breakout_open_high_pct', 'breakout_open_close_pct',
+    'breakout_open_post_high_pct', 'breakout_open_to_day_after_open_pct',
+    'breaks_fifty_two_wk', 'breaks_ath', 'close_at_highs',
+    'pivot_to_high_pct', 'pivot_to_close_pct',
+    'atr_max_extension', 'atr_at_close',
+    'held_above_pivot_at_close', 'pulled_back_to_pivot_intraday', 'pivot_source',
+    'time_of_breakout', 'time_of_high',
+    'atr_pct_move',
 ]
 
 if __name__ == '__main__':
