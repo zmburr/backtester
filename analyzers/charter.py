@@ -210,7 +210,8 @@ def cleanup_charts(output_dir: str = "charts") -> None:
 create_chart = create_trade_chart  # noqa: E305
 
 
-def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: list = None) -> str:
+def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: list = None,
+                       end_date: str = None, label: str = "1y_daily") -> str:
     """Create a 1-year daily candlestick chart for *ticker* and save it.
 
     Parameters
@@ -222,6 +223,13 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     extra_hlines : list of tuple, optional
         Additional (y, color, label) horizontal lines to draw on the chart
         (e.g., ATR target levels for reversal setups).
+    end_date : str, optional
+        End date for the 1-year window in 'YYYY-MM-DD' format. Defaults to
+        today. Use to render historical comp charts (e.g., the year leading
+        up to a past trade date).
+    label : str, optional
+        Filename suffix to disambiguate when generating multiple charts for
+        the same ticker (e.g., today's chart + multiple historical comps).
 
     Returns
     -------
@@ -232,8 +240,9 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     from datetime import datetime, timedelta
     from data_queries.polygon_queries import get_levels_data
 
-    # Determine date range: today (or last trading day) back 365 calendar days
-    end_date = datetime.today().strftime("%Y-%m-%d")
+    # Determine date range: end_date (or today) back ~1 year of trading days
+    if end_date is None:
+        end_date = datetime.today().strftime("%Y-%m-%d")
     start_window = 205  # days back
 
     # Fetch last year's daily data (trading days only handled by get_levels_data)
@@ -250,7 +259,7 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
         df,
         ticker=ticker,
         output_dir=output_dir,
-        label="1y_daily",
+        label=label,
         sma_windows=(200, 100, 50, 10),
         ema_windows=(9,),
         hlines=hlines,

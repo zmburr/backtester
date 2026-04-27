@@ -400,6 +400,51 @@ def _execute_narrative_tool(tool_name: str, tool_input: dict) -> str:
 # 1. Historical Comps
 # ---------------------------------------------------------------------------
 
+def _compute_comp_intensity(row: pd.Series, bucket: str, cap: str) -> Optional[float]:
+    """Score a single historical comp row 0-100 using the same intensity function
+    that's applied to live tickers. Returns None if metrics are insufficient."""
+    try:
+        if bucket == "reversal":
+            metrics = {
+                'atr_pct':             row.get('atr_pct'),
+                'pct_from_9ema':       row.get('pct_from_9ema'),
+                'pct_change_3':        row.get('pct_change_3'),
+                'gap_pct':             row.get('gap_pct'),
+                'prior_day_range_atr': row.get('prior_day_range_atr'),
+                'rvol_score':          row.get('rvol_score'),
+                'pct_from_50mav':      row.get('pct_from_50mav'),
+            }
+            if pd.isna(metrics.get('atr_pct')) or metrics.get('atr_pct') in (None, 0):
+                return None
+            result = gr.compute_reversal_intensity(metrics, cap=cap or row.get('cap'))
+            return result.get('composite')
+        elif bucket == "bounce":
+            row_dict = row.to_dict()
+            try:
+                setup_type, _ = classify_stock(row_dict)
+            except Exception:
+                setup_type = 'GapFade_strongstock'
+            ref = gr.BOUNCE_DF_WEAK if setup_type == 'GapFade_weakstock' else gr.BOUNCE_DF_STRONG
+            result = gr.compute_bounce_intensity(row_dict, ref_df=ref)
+            return result.get('composite')
+    except Exception as e:
+        log.debug(f"Comp intensity compute failed: {e}")
+    return None
+
+
+def _coerce_comp_date(raw_date) -> Optional[str]:
+    """Normalize a CSV date (e.g. '4/22/2026' or '2024-03-15') to 'YYYY-MM-DD'."""
+    if raw_date is None or (isinstance(raw_date, float) and pd.isna(raw_date)):
+        return None
+    s = str(raw_date).strip()
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y"):
+        try:
+            return datetime.datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
 def find_historical_comps(
     metrics: Dict,
     ref_df: pd.DataFrame,
@@ -796,6 +841,8 @@ def _build_comps_table_html(comps: pd.DataFrame, bucket: str) -> str:
     display_cols = ["ticker", "date", "cap"]
     if "trade_grade" in comps.columns:
         display_cols.append("trade_grade")
+    if "_intensity" in comps.columns:
+        display_cols.append("_intensity")
     if outcome_col in comps.columns:
         display_cols.append(outcome_col)
     display_cols.append("_distance")
@@ -832,6 +879,13 @@ def _build_comps_table_html(comps: pd.DataFrame, bucket: str) -> str:
                     val = f"{float(val):.2f}"
                 except (TypeError, ValueError):
                     pass
+            elif c == "_intensity":
+                try:
+                    s = float(val)
+                    color = "#3fb950" if s >= 50 else ("#e3b341" if s >= 25 else "#f85149")
+                    val = f'<span style="color: {color}; font-weight: bold;">{s:.0f}</span>'
+                except (TypeError, ValueError):
+                    val = '<span style="color: #6e7681;">—</span>'
             elif c == "trade_grade":
                 color = "#3fb950" if val == "A" else ("#e3b341" if val == "B" else "#f85149")
                 val = f'<span style="color: {color}; font-weight: bold;">{val}</span>'
@@ -846,6 +900,132 @@ def _build_comps_table_html(comps: pd.DataFrame, bucket: str) -> str:
         f'<tr style="background-color: #21262d;">{header}</tr>'
         + "\n".join(rows)
         + '</table></div>'
+    )
+
+
+def _build_comparables_addendum_html(
+    priority_list: List[Dict],
+    comps_map: Dict[str, pd.DataFrame],
+    comp_chart_cids: Dict[str, str],
+    n_per_ticker: int = 3,
+) -> str:
+    """Render the bottom-of-report addendum: top comps for each priority ticker
+    with their intensity score and a 1-year chart ending on the comp's date.
+
+    `comp_chart_cids` is keyed by `(comp_ticker, comp_date_iso)` -> cid string.
+    """
+    if not priority_list:
+        return ""
+
+    blocks = []
+    for item in priority_list:
+        ticker = item["ticker"]
+        bucket = item["bucket"]
+        rec = item["rec"]
+        comps = comps_map.get(ticker, pd.DataFrame())
+        if comps is None or comps.empty:
+            continue
+
+        # Top N comps by similarity (smallest distance)
+        if "_distance" in comps.columns:
+            top = comps.nsmallest(n_per_ticker, "_distance")
+        else:
+            top = comps.head(n_per_ticker)
+        if top.empty:
+            continue
+
+        outcome_col = "bounce_open_high_pct" if bucket == "bounce" else "reversal_open_low_pct"
+        rec_color = {"GO": "#3fb950", "CAUTION": "#e3b341"}.get(rec, "#8b949e")
+
+        cards = []
+        for _, row in top.iterrows():
+            comp_ticker = str(row.get("ticker", "?")).upper()
+            comp_date_raw = row.get("date", "")
+            comp_date_iso = _coerce_comp_date(comp_date_raw)
+            grade = row.get("trade_grade", "")
+            grade_color = "#3fb950" if grade == "A" else ("#e3b341" if grade == "B" else "#f85149")
+            cap_str = row.get("cap", "")
+            intensity = row.get("_intensity")
+            outcome = row.get(outcome_col)
+
+            # Intensity bar: filled width proportional to score
+            if pd.notna(intensity):
+                ipct = max(0, min(100, float(intensity)))
+                ibar_color = "#3fb950" if ipct >= 50 else ("#e3b341" if ipct >= 25 else "#f85149")
+                intensity_bar = (
+                    f'<div style="display:inline-block; width:120px; height:8px; background:#21262d; '
+                    f'border-radius:4px; vertical-align:middle; margin-left:6px;">'
+                    f'<div style="width:{ipct:.0f}%; height:100%; background:{ibar_color}; border-radius:4px;"></div>'
+                    f'</div>'
+                    f'<span style="margin-left:6px; color:{ibar_color}; font-weight:bold;">{ipct:.0f}/100</span>'
+                )
+            else:
+                intensity_bar = '<span style="color:#6e7681;">— intensity unavailable —</span>'
+
+            outcome_str = ""
+            if pd.notna(outcome):
+                try:
+                    outcome_str = f' <span style="color:#8b949e;">| outcome:</span> <strong>{float(outcome)*100:+.1f}%</strong>'
+                except (TypeError, ValueError):
+                    pass
+
+            cid_key = f"{comp_ticker}_{comp_date_iso}" if comp_date_iso else f"{comp_ticker}_unknown"
+            cid = comp_chart_cids.get(cid_key)
+            chart_block = (
+                f'<img src="cid:{cid}" alt="{comp_ticker} {comp_date_iso}" '
+                f'style="max-width:760px; display:block; margin-top:6px; border-radius:4px;">'
+                if cid else
+                '<div style="color:#6e7681; font-size:0.85em; padding:6px 0;">[chart unavailable]</div>'
+            )
+
+            cards.append(
+                '<div style="border-left: 3px solid #30363d; padding: 6px 12px; margin: 10px 0;">'
+                f'<div style="font-size:0.95em;">'
+                f'<strong style="color:#f0f6fc;">{comp_ticker}</strong> '
+                f'<span style="color:#8b949e;">{comp_date_raw}</span> '
+                f'<span style="color:#8b949e;">({cap_str})</span> '
+                f'<span style="color:{grade_color}; font-weight:bold;">grade {grade}</span>'
+                f'{outcome_str}'
+                f'</div>'
+                f'<div style="margin-top:4px; font-size:0.9em;"><span style="color:#8b949e;">Intensity:</span> {intensity_bar}</div>'
+                f'{chart_block}'
+                '</div>'
+            )
+
+        # Live ticker's own intensity for visual comparison vs comps
+        live_intensity = item.get("live_intensity")
+        if pd.notna(live_intensity) and live_intensity is not None:
+            lpct = max(0, min(100, float(live_intensity)))
+            lcolor = "#3fb950" if lpct >= 50 else ("#e3b341" if lpct >= 25 else "#f85149")
+            live_intensity_str = f'<span style="color:{lcolor}; font-weight:bold;">{lpct:.0f}/100</span>'
+        else:
+            live_intensity_str = '<span style="color:#6e7681;">N/A</span>'
+
+        blocks.append(
+            f'<div style="margin: 24px 0; border-top: 1px solid #30363d; padding-top: 12px;">'
+            f'<h3 style="margin: 0 0 4px 0; color:#f0f6fc;">'
+            f'{ticker} <span style="color:{rec_color}; font-size:0.8em;">{rec}</span> '
+            f'<span style="color:#8b949e; font-size:0.75em; font-weight:normal;">'
+            f'— live intensity {live_intensity_str}, top {len(cards)} comps below'
+            f'</span></h3>'
+            + "".join(cards)
+            + '</div>'
+        )
+
+    if not blocks:
+        return ""
+
+    return (
+        '<div style="margin-top: 40px; padding-top: 16px; border-top: 3px solid #30363d;">'
+        '<h2 style="color:#f0f6fc; margin:0 0 6px 0;">Comparables Addendum</h2>'
+        '<p style="color:#8b949e; font-size:0.9em; margin: 0 0 16px 0;">'
+        'Top similar historical trades for each priority ticker, with that comp\'s '
+        'intensity score and a 1-year daily chart ending on the trade date. Use this '
+        'to calibrate trust in the live intensity score against trades whose outcome '
+        'is already known.'
+        '</p>'
+        + "\n".join(blocks)
+        + '</div>'
     )
 
 
@@ -954,7 +1134,8 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
     )
 
 
-def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[str, str]) -> str:
+def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[str, str],
+                               addendum_html: str = "") -> str:
     """Assemble the full priority report HTML."""
     now = datetime.datetime.now()
     go_count = sum(1 for p in priority_list if p["rec"] == "GO")
@@ -980,7 +1161,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         if html:
             sections.append(html)
 
-    body = header + summary + "\n".join(sections)
+    body = header + summary + "\n".join(sections) + (addendum_html or "")
 
     return (
         '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
@@ -1136,6 +1317,13 @@ def generate_priority_report() -> str:
                 comps = find_historical_comps(metrics, _BOUNCE_DF, BOUNCE_COMP_COLUMNS, cap)
             else:
                 comps = find_historical_comps(metrics, _REVERSAL_DF, REVERSAL_COMP_COLUMNS, cap)
+            # Score each comp with the same intensity function applied to live tickers,
+            # so the comps table + addendum can show calibration vs realized P&L.
+            if comps is not None and not comps.empty:
+                comps = comps.copy()
+                comps["_intensity"] = comps.apply(
+                    lambda r: _compute_comp_intensity(r, bucket, cap), axis=1
+                )
             comps_map[ticker] = comps
 
         # 4b) Upgrade analysis (CAUTION only)
@@ -1214,6 +1402,7 @@ def generate_priority_report() -> str:
                 }
                 rev_intensity = gr.compute_reversal_intensity(rev_intensity_metrics, cap=cap)
                 intensity_html = gr.format_reversal_intensity_html(rev_intensity)
+                item["live_intensity"] = rev_intensity.get("composite")
             elif bucket == "bounce" and score_result:
                 score_html = gr.format_bounce_score_html(score_result, bounce_metrics=metrics)
                 # Bounce intensity
@@ -1221,6 +1410,7 @@ def generate_priority_report() -> str:
                 ref = gr.BOUNCE_DF_WEAK if setup_type == "GapFade_weakstock" else gr.BOUNCE_DF_STRONG
                 intensity = gr.compute_bounce_intensity(metrics, ref_df=ref)
                 intensity_html = gr.format_bounce_intensity_html(intensity)
+                item["live_intensity"] = intensity.get("composite")
 
             # Exit targets
             exit_html = ""
@@ -1297,9 +1487,45 @@ def generate_priority_report() -> str:
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
         _save_signals_to_json(priority, go_ct, cau_ct)
 
+        # === Phase 4.75: Render top-3 comp charts for the addendum ===
+        # 1-year daily chart ending on each comp's trade date. Deduped across
+        # priority tickers when the same comp shows up twice.
+        t0 = time.time()
+        comp_chart_cids: Dict[str, str] = {}
+        for item in priority:
+            ticker = item["ticker"]
+            comps = comps_map.get(ticker, pd.DataFrame())
+            if comps is None or comps.empty:
+                continue
+            top = comps.nsmallest(3, "_distance") if "_distance" in comps.columns else comps.head(3)
+            for _, row in top.iterrows():
+                comp_ticker = str(row.get("ticker", "")).upper()
+                comp_date_iso = _coerce_comp_date(row.get("date"))
+                if not comp_ticker or not comp_date_iso:
+                    continue
+                key = f"{comp_ticker}_{comp_date_iso}"
+                if key in comp_chart_cids:
+                    continue  # already rendered
+                cid = f"compchart_{comp_ticker}_{comp_date_iso.replace('-', '')}"
+                try:
+                    chart_path = create_daily_chart(
+                        comp_ticker,
+                        output_dir=charts_dir,
+                        end_date=comp_date_iso,
+                        label=f"comp_{comp_date_iso}",
+                    )
+                    chart_images[cid] = str(chart_path)
+                    comp_chart_cids[key] = cid
+                except Exception as e:
+                    log.warning(f"Comp chart failed for {comp_ticker} {comp_date_iso}: {e}")
+        timings["addendum_charts"] = time.time() - t0
+        print(f"Phase 4.75: Rendered {len(comp_chart_cids)} comp charts in {timings['addendum_charts']:.1f}s")
+
+        addendum_html = _build_comparables_addendum_html(priority, comps_map, comp_chart_cids)
+
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
-        html_report = build_priority_report_html(priority, ticker_html_map)
+        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html)
         _send_report(html_report, go_ct, cau_ct, inline_images=chart_images)
         timings["email"] = time.time() - t0
 
