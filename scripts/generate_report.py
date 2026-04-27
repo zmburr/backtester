@@ -1418,12 +1418,13 @@ def route_playbook(pct_data_in: Dict, mav_data_in: Dict) -> Tuple[str, str]:
     return "bounce", "MA data incomplete (default bounce)"
 
 
-def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, bounce_metrics: dict = None, bucket_override: str = None) -> Tuple[str, list]:
+def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, bounce_metrics: dict = None, bucket_override: str = None, bucket_reason_override: str = None) -> Tuple[str, list]:
     """Build HTML content for one ticker (everything except chart generation).
 
     Returns (html_string, chart_hlines) so chart rendering can happen separately.
     If *bucket_override* is provided (e.g. "bounce" or "reversal"), it takes
-    precedence over the automatic route_playbook() routing.
+    precedence over the automatic route_playbook() routing. *bucket_reason_override*
+    customizes the displayed reason text (defaults to "manual override").
     """
 
     pct_data = data.get("pct_data", {})
@@ -1445,7 +1446,7 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
 
     if bucket_override:
         bucket = bucket_override
-        bucket_reason = "manual override"
+        bucket_reason = bucket_reason_override or "manual override"
     else:
         bucket, bucket_reason = route_playbook(pct_data, mav_data)
     is_reversal = bucket == "reversal"
