@@ -1,8 +1,9 @@
-"""Priority Report — surfaces only GO & CAUTION trades with deeper analysis.
+"""Priority Report — surfaces tickers with an OPEN window of opportunity.
 
-Filters the full watchlist down to high-conviction setups, then adds:
+Filters the full watchlist down to tradeable setups (GO + CAUTION internally,
+both surfaced as OPEN with the underlying score for nuance), then adds:
   1. Historical comps (z-score Euclidean distance)
-  2. Upgrade threshold analysis (CAUTION → what flips to GO)
+  2. Setup-strengthening analysis (what would tighten the score)
   3. Charts + exit targets
 
 Sent via email to zmburr@gmail.com morning + evening.
@@ -254,7 +255,7 @@ def compute_upgrade_thresholds(
 # ---------------------------------------------------------------------------
 
 def _build_upgrade_table_html(upgrades: List[Dict]) -> str:
-    """Build 'What Would Flip to GO?' table for CAUTION tickers."""
+    """Build 'What Would Strengthen the Setup?' table for sub-max scores."""
     if not upgrades:
         return ""
     rows = []
@@ -297,7 +298,7 @@ def _build_upgrade_table_html(upgrades: List[Dict]) -> str:
 
     return (
         '<div style="margin: 12px 0;">'
-        '<h4 style="color: #e3b341; margin: 0 0 6px 0;">What Would Flip to GO?</h4>'
+        '<h4 style="color: #e3b341; margin: 0 0 6px 0;">What Would Strengthen the Setup?</h4>'
         '<table style="border-collapse: collapse; font-size: 0.9em; color: #c9d1d9; width: 100%;">'
         '<tr style="background-color: #21262d;">'
         '<th style="padding: 4px 8px; border: 1px solid #30363d; text-align: left;">Criterion</th>'
@@ -414,7 +415,7 @@ def _build_comparables_addendum_html(
             continue
 
         outcome_col = "bounce_open_high_pct" if bucket == "bounce" else "reversal_open_low_pct"
-        rec_color = {"GO": "#3fb950", "CAUTION": "#e3b341"}.get(rec, "#8b949e")
+        _, rec_color = gr.format_window_label(rec)
 
         cards = []
         for _, row in top.iterrows():
@@ -480,10 +481,11 @@ def _build_comparables_addendum_html(
         else:
             live_intensity_str = '<span style="color:#6e7681;">N/A</span>'
 
+        rec_label, _ = gr.format_window_label(rec)
         blocks.append(
             f'<div style="margin: 24px 0; border-top: 1px solid #30363d; padding-top: 12px;">'
             f'<h3 style="margin: 0 0 4px 0; color:#f0f6fc;">'
-            f'{ticker} <span style="color:{rec_color}; font-size:0.8em;">{rec}</span> '
+            f'{ticker} <span style="color:{rec_color}; font-size:0.8em;">{rec_label}</span> '
             f'<span style="color:#8b949e; font-size:0.75em; font-weight:normal;">'
             f'— live intensity {live_intensity_str}, top {len(cards)} comps below'
             f'</span></h3>'
@@ -520,9 +522,9 @@ def build_priority_ticker_html(item: Dict) -> str:
     intensity_html = item.get("intensity_html", "")
     chart_data_uri = item.get("chart_data_uri", "")
 
-    # Rec color
-    rec_colors = {"GO": "#3fb950", "CAUTION": "#e3b341", "NO-GO": "#f85149"}
-    rec_color = rec_colors.get(rec, "#8b949e")
+    # Window label + color
+    rec_label, rec_color = gr.format_window_label(rec)
+    score_str = item.get("score_str", "")
     bucket_colors = {"reversal": "#58a6ff", "bounce": "#3fb950"}
     bucket_color = bucket_colors.get(bucket, "#8b949e")
 
@@ -532,10 +534,15 @@ def build_priority_ticker_html(item: Dict) -> str:
     if bucket == "reversal" and isinstance(sr, dict) and sr.get("archetype_passed") is False:
         archetype_glyph = ' <span title="Off archetype: not near highs" style="color: #e3b341; font-size: 0.75em;">⚠ OFF_ARCHETYPE</span>'
 
+    score_chip = (
+        f' <span style="color:#8b949e; font-size:0.7em; font-weight:normal;">({score_str})</span>'
+        if score_str else ''
+    )
+
     lines = [
         f'<div style="border-top: 3px solid {rec_color}; margin-top: 28px; padding-top: 10px;">',
         f'<h2 style="margin: 0 0 4px 0; color: #f0f6fc;">{ticker} '
-        f'<span style="color: {rec_color}; font-size: 0.8em;">{rec}</span>{archetype_glyph} '
+        f'<span style="color: {rec_color}; font-size: 0.8em;">Window: {rec_label}</span>{score_chip}{archetype_glyph} '
         f'<span style="color: {bucket_color}; font-size: 0.65em; font-weight: normal;">{bucket.upper()}</span></h2>',
         f'</div>',
     ]
@@ -578,13 +585,13 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
     rows = []
     for item in priority_list:
         rec = item["rec"]
-        color = {"GO": "#3fb950", "CAUTION": "#e3b341"}.get(rec, "#8b949e")
+        rec_label, color = gr.format_window_label(rec)
         bucket = item["bucket"].upper()
         score_str = item.get("score_str", "")
         rows.append(
             f'<tr>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d; font-weight: bold;">{item["ticker"]}</td>'
-            f'<td style="padding: 4px 10px; border: 1px solid #30363d; color: {color}; font-weight: bold;">{rec}</td>'
+            f'<td style="padding: 4px 10px; border: 1px solid #30363d; color: {color}; font-weight: bold;">{rec_label}</td>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d;">{bucket}</td>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d;">{score_str}</td>'
             f'</tr>'
@@ -594,7 +601,7 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
         '<table style="border-collapse: collapse; font-size: 0.9em; color: #c9d1d9; margin: 10px 0;">'
         '<tr style="background-color: #21262d;">'
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Ticker</th>'
-        '<th style="padding: 4px 10px; border: 1px solid #30363d;">Rec</th>'
+        '<th style="padding: 4px 10px; border: 1px solid #30363d;">Window</th>'
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Bucket</th>'
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Score</th>'
         '</tr>'
@@ -607,8 +614,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
                                addendum_html: str = "") -> str:
     """Assemble the full priority report HTML."""
     now = datetime.datetime.now()
-    go_count = sum(1 for p in priority_list if p["rec"] == "GO")
-    caution_count = sum(1 for p in priority_list if p["rec"] == "CAUTION")
+    open_count = len(priority_list)
 
     header = (
         f'<div style="background-color: #21262d; color: #ffffff; padding: 12px 16px; '
@@ -616,14 +622,13 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         f'<h1 style="margin: 0; font-size: 1.4em;">Priority Report</h1>'
         f'<div style="font-size: 0.9em; color: #8b949e; margin-top: 4px;">'
         f'{now.strftime("%A, %B %d %Y  %I:%M %p")} ET &nbsp;|&nbsp; '
-        f'<span style="color: #3fb950; font-weight: bold;">{go_count} GO</span>, '
-        f'<span style="color: #e3b341; font-weight: bold;">{caution_count} CAUTION</span>'
+        f'<span style="color: #3fb950; font-weight: bold;">{open_count} Window{"s" if open_count != 1 else ""} Open</span>'
         f'</div></div>'
     )
 
     summary = _build_summary_table(priority_list)
 
-    # Ticker sections in priority order (GO first, then CAUTION; within each by score desc)
+    # Ticker sections in priority order (highest-score first within OPEN)
     sections = []
     for item in priority_list:
         html = ticker_html_map.get(item["ticker"], "")
@@ -833,7 +838,7 @@ def generate_priority_report() -> str:
 
         timings["routing_scoring"] = time.time() - t0
 
-        # === Phase 3: Filter → keep only GO + CAUTION (excluding breakout bucket) ===
+        # === Phase 3: Filter → keep tradeable tiers (GO + CAUTION = "OPEN"), excluding breakout bucket ===
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] != "breakout"]
         # Sort: GO first, then CAUTION; within each group by score descending
         priority.sort(key=_priority_sort_key)
@@ -841,11 +846,11 @@ def generate_priority_report() -> str:
         excluded_breakouts = sum(1 for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] == "breakout")
         go_ct = sum(1 for p in priority if p["rec"] == "GO")
         cau_ct = sum(1 for p in priority if p["rec"] == "CAUTION")
-        print(f"Phase 3: {len(priority)} priority tickers ({go_ct} GO, {cau_ct} CAUTION) from {len(scored)} total"
+        print(f"Phase 3: {len(priority)} OPEN windows from {len(scored)} total"
               f"{f' [{excluded_breakouts} breakout tickers excluded]' if excluded_breakouts else ''}")
 
         if not priority:
-            print("No GO or CAUTION tickers found. Sending empty report.")
+            print("No OPEN windows found. Sending empty report.")
             html = build_priority_report_html([], {})
             _send_report(html, 0, 0)
             return html
@@ -1130,9 +1135,14 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
 
 
 def _send_report(html: str, go_count: int, caution_count: int, inline_images=None):
-    """Send the priority report email."""
+    """Send the priority report email.
+
+    go_count + caution_count are the underlying tier counts (kept for backward
+    compatibility with callers); the subject surfaces the unified OPEN total.
+    """
     date_str = datetime.datetime.now().strftime("%m/%d/%Y")
-    subject = f"Priority Report — {go_count} GO, {caution_count} CAUTION | {date_str}"
+    open_total = go_count + caution_count
+    subject = f"Priority Report — {open_total} Window{'s' if open_total != 1 else ''} Open | {date_str}"
     try:
         send_email(
             to_email="zmburr@gmail.com",

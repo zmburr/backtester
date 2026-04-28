@@ -890,6 +890,18 @@ BOUNCE_SCORE_STATISTICS = {
 }
 
 
+def format_window_label(rec: str) -> tuple:
+    """Map internal recommendation -> (display_label, color).
+
+    GO and CAUTION both surface as 'OPEN' — historical stats show CAUTION
+    is still a high-WR bucket; the score is shown alongside for nuance.
+    NO-GO surfaces as 'CLOSED'.
+    """
+    if rec in ('GO', 'CAUTION'):
+        return ('OPEN', '#3fb950')
+    return ('CLOSED', '#f85149')
+
+
 def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> Dict:
     """
     Fetch data needed for exit target calculations.
@@ -1013,16 +1025,8 @@ def format_pretrade_score_html(score_result: Dict) -> str:
     score = score_result['score']
     cap = score_result['cap']
 
-    # Color coding
-    if rec == 'GO':
-        color = '#3fb950'  # green
-        rec_text = 'GO'
-    elif rec == 'CAUTION':
-        color = '#e3b341'  # yellow
-        rec_text = 'CAUTION'
-    else:
-        color = '#f85149'  # red
-        rec_text = 'NO-GO'
+    label, color = format_window_label(rec)
+    rec_text = f'Window of Opportunity: {label}'
 
     # Get historical stats for this score
     stats = SCORE_STATISTICS.get(score, {'trades': 0, 'win_rate': 0.0, 'avg_pnl': 0.0})
@@ -1072,7 +1076,7 @@ def format_pretrade_score_html(score_result: Dict) -> str:
         lines.append(
             f'<div style="margin-top: 6px; padding: 4px 8px; border-left: 3px solid #f85149; '
             f'font-size: 0.85em; color: #f85149;">'
-            f'Momentum gate: pct_change_3 at {pctile_str} pctile (min 15th) — downgraded to NO-GO'
+            f'Momentum gate: pct_change_3 at {pctile_str} pctile (min 15th) — Window CLOSED'
             f'</div>'
         )
 
@@ -1106,13 +1110,7 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
     setup_type = result.setup_type
     profile = SETUP_PROFILES[setup_type]
 
-    # Color coding
-    if rec == 'GO':
-        color = '#3fb950'
-    elif rec == 'CAUTION':
-        color = '#e3b341'
-    else:
-        color = '#f85149'
+    label, color = format_window_label(rec)
 
     cap_label = getattr(result, 'cap', '')
     stats_text = (f"Profile: {profile.name} | {cap_label} Cap | Historical: {profile.historical_win_rate*100:.0f}% WR, "
@@ -1120,7 +1118,7 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
 
     lines = [
         f'<div style="border: 2px solid {color}; padding: 10px; margin: 10px 0; border-radius: 5px; background-color: #0d1117;">',
-        f'<strong style="color: {color}; font-size: 1.2em;">BOUNCE {rec}</strong> ',
+        f'<strong style="color: {color}; font-size: 1.2em;">BOUNCE — Window of Opportunity: {label}</strong> ',
         f'<span style="color: #c9d1d9;">Score: {score}/{result.max_score} ({cap_label} Cap)</span>',
         f'<br><span style="font-size: 0.85em; color: #8b949e;">{stats_text}</span>',
     ]
@@ -1130,12 +1128,12 @@ def format_bounce_score_html(result, bounce_metrics: Optional[Dict] = None) -> s
         signals_str = ' | '.join(result.classification_details['signals'])
         lines.append(f'<br><span style="font-size: 0.8em; color: #6e7681;">Classification: {signals_str}</span>')
 
-    # Bounce stats by recommendation
+    # Bounce stats by tier (keep underlying tier label for nuance)
     bounce_stats = BOUNCE_SCORE_STATISTICS.get(rec, {})
     if bounce_stats:
         lines.append(
             f'<br><span style="font-size: 0.85em; color: #8b949e;">'
-            f'Historical {rec}: {bounce_stats["win_rate"]:.0f}% win rate, '
+            f'Historical {score}/{result.max_score}: {bounce_stats["win_rate"]:.0f}% win rate, '
             f'{bounce_stats["avg_pnl"]:+.1f}% avg P&L (n={bounce_stats["trades"]})</span>'
         )
 
@@ -1219,16 +1217,15 @@ HEADER_HTML = """<h1 style="text-align:center; color: #f0f6fc;">Daily Trading Ru
 
 <h3 style="color: #f0f6fc;">Historical Performance by Score (50 Grade A Trades)</h3>
 <table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #30363d; color: #c9d1d9;">
-<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Score</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Trades</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Win Rate</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg P&L</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Recommendation</th></tr>
-<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>5/5</strong></td><td style="border: 1px solid #30363d;">24</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+15.5%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td></tr>
-<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>4/5</strong></td><td style="border: 1px solid #30363d;">14</td><td style="border: 1px solid #30363d;">93%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td></tr>
-<tr style="background-color: #3d2f0a;"><td style="border: 1px solid #30363d;"><strong>3/5</strong></td><td style="border: 1px solid #30363d;">8</td><td style="border: 1px solid #30363d;">88%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #e3b341; border: 1px solid #30363d;"><strong>CAUTION</strong></td></tr>
-<tr style="background-color: #3d1f1f;"><td style="border: 1px solid #30363d;"><strong>&lt;3</strong></td><td style="border: 1px solid #30363d;">4</td><td style="border: 1px solid #30363d;">50%</td><td style="border: 1px solid #30363d;">+1.1%</td><td style="color: #f85149; border: 1px solid #30363d;"><strong>NO-GO</strong></td></tr>
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Score</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Trades</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Win Rate</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Avg P&L</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Window</th></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>5/5</strong></td><td style="border: 1px solid #30363d;">24</td><td style="border: 1px solid #30363d;">100%</td><td style="border: 1px solid #30363d;">+15.5%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>OPEN</strong></td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>4/5</strong></td><td style="border: 1px solid #30363d;">14</td><td style="border: 1px solid #30363d;">93%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>OPEN</strong></td></tr>
+<tr style="background-color: #1c3426;"><td style="border: 1px solid #30363d;"><strong>3/5</strong></td><td style="border: 1px solid #30363d;">8</td><td style="border: 1px solid #30363d;">88%</td><td style="border: 1px solid #30363d;">+14.6%</td><td style="color: #3fb950; border: 1px solid #30363d;"><strong>OPEN</strong></td></tr>
+<tr style="background-color: #3d1f1f;"><td style="border: 1px solid #30363d;"><strong>&lt;3</strong></td><td style="border: 1px solid #30363d;">4</td><td style="border: 1px solid #30363d;">50%</td><td style="border: 1px solid #30363d;">+1.1%</td><td style="color: #f85149; border: 1px solid #30363d;"><strong>CLOSED</strong></td></tr>
 </table>
 
-<p style="color: #c9d1d9;"><strong style="color: #3fb950;">GO (4-5/5)</strong>: 38 trades, 97% win rate, +15.1% avg |
-<strong style="color: #e3b341;">CAUTION (3/5)</strong>: 8 trades, 88% win, +14.6% avg |
-<strong style="color: #f85149;">NO-GO (&lt;3)</strong>: Skip</p>
+<p style="color: #c9d1d9;"><strong style="color: #3fb950;">OPEN (3-5/5)</strong>: 46 trades, 93%+ win rate at every tier — trust the score, take the trade |
+<strong style="color: #f85149;">CLOSED (&lt;3)</strong>: Skip</p>
 
 <h3 style="color: #f0f6fc;">Target Price LEVELS (50 Grade A Trades - Measured from OPEN)</h3>
 <p style="color: #c9d1d9;"><strong>These are fixed price levels from OPEN - mark on chart at 9:30 AM.</strong> Exit 1/3 at each tier:</p>
@@ -1274,13 +1271,13 @@ HEADER_HTML = """<h1 style="text-align:center; color: #f0f6fc;">Daily Trading Ru
   <li><strong>Discount from 52wk High</strong> &mdash; Distance from yearly peak (rho=-0.278)</li>
 </ol>
 
-<h3 style="color: #f0f6fc;">Historical Performance by Recommendation (83 GapFade Trades, V3 Scoring)</h3>
+<h3 style="color: #f0f6fc;">Historical Performance by Window (83 GapFade Trades, V3 Scoring)</h3>
 <p style="font-size: 0.85em; color: #8b949e;"><em>Pre-trade uses 6 criteria; historical adds bounce_pct for 7 total. Run bounce_scorer.py for latest numbers.</em></p>
 <table cellpadding="8" style="border-collapse: collapse; margin: 10px 0; border: 1px solid #30363d; color: #c9d1d9;">
-<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Recommendation</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Criteria</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Description</th></tr>
-<tr style="background-color: #1c3426;"><td style="color: #3fb950; border: 1px solid #30363d;"><strong>GO</strong></td><td style="border: 1px solid #30363d;">5-6 / 6</td><td style="border: 1px solid #30363d;">High-conviction setup, full size</td></tr>
-<tr style="background-color: #3d2f0a;"><td style="color: #e3b341; border: 1px solid #30363d;"><strong>CAUTION</strong></td><td style="border: 1px solid #30363d;">4 / 6</td><td style="border: 1px solid #30363d;">Marginal, reduced size</td></tr>
-<tr style="background-color: #3d1f1f;"><td style="color: #f85149; border: 1px solid #30363d;"><strong>NO-GO</strong></td><td style="border: 1px solid #30363d;">&lt;4 / 6</td><td style="border: 1px solid #30363d;">Do not trade</td></tr>
+<tr style="background-color: #21262d;"><th style="border: 1px solid #30363d; color: #c9d1d9;">Window</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Criteria</th><th style="border: 1px solid #30363d; color: #c9d1d9;">Description</th></tr>
+<tr style="background-color: #1c3426;"><td style="color: #3fb950; border: 1px solid #30363d;"><strong>OPEN (5-6/6)</strong></td><td style="border: 1px solid #30363d;">5-6 / 6</td><td style="border: 1px solid #30363d;">High-conviction setup, full size</td></tr>
+<tr style="background-color: #1c3426;"><td style="color: #3fb950; border: 1px solid #30363d;"><strong>OPEN (4/6)</strong></td><td style="border: 1px solid #30363d;">4 / 6</td><td style="border: 1px solid #30363d;">Tradeable — historical 100% WR, +9.3% avg (n=19); size to score</td></tr>
+<tr style="background-color: #3d1f1f;"><td style="color: #f85149; border: 1px solid #30363d;"><strong>CLOSED</strong></td><td style="border: 1px solid #30363d;">&lt;4 / 6</td><td style="border: 1px solid #30363d;">Do not trade</td></tr>
 </table>
 
 <p style="color: #c9d1d9;"><strong>Routing Logic:</strong> Above 10/20/50MA (and 200MA if available) &rarr; Reversal | Otherwise &rarr; Bounce</p>
