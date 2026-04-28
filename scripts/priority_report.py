@@ -1172,6 +1172,40 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
     )
 
 
+def _numeric_score_parts(item: Dict) -> Tuple[float, float]:
+    """Return (score, max_score) for sorting; falls back to score_str."""
+    score_result = item.get("score_result")
+
+    if isinstance(score_result, dict):
+        try:
+            return float(score_result.get("score", -1)), float(score_result.get("max_score", 0))
+        except (TypeError, ValueError):
+            pass
+
+    if score_result is not None:
+        try:
+            return float(score_result.score), float(score_result.max_score)
+        except (AttributeError, TypeError, ValueError):
+            pass
+
+    score_str = str(item.get("score_str", ""))
+    if "/" in score_str:
+        raw_score, raw_max = score_str.split("/", 1)
+        try:
+            return float(raw_score), float(raw_max)
+        except ValueError:
+            pass
+
+    return -1.0, 0.0
+
+
+def _priority_sort_key(item: Dict) -> Tuple[int, float, float, str]:
+    score, max_score = _numeric_score_parts(item)
+    score_ratio = score / max_score if max_score else -1.0
+    rec_rank = 0 if item.get("rec") == "GO" else 1
+    return rec_rank, -score_ratio, -score, item.get("ticker", "")
+
+
 # ---------------------------------------------------------------------------
 # Main Pipeline
 # ---------------------------------------------------------------------------
@@ -1211,15 +1245,20 @@ def generate_priority_report() -> str:
                     log.warning(f"{tk}: pretrade metrics failed – {e}")
                     pretrade_metrics_all[tk] = {}
 
-        # Route tickers
+        # Route tickers — uses the new 4-branch route_playbook (bounce / breakout / reversal)
         bucket_map: Dict[str, str] = {}
+        ambiguous_map: Dict[str, bool] = {}
         for ticker in watchlist:
             td = all_data.get(ticker, {})
-            bucket, _ = gr.route_playbook(
+            bucket, _, is_ambig = gr.route_playbook(
                 td.get("pct_data", {}) or {},
                 td.get("mav_data", {}) or {},
+                ticker=ticker,
+                pretrade_metrics=pretrade_metrics_all.get(ticker, {}),
+                breakout_watchlist=getattr(gr, 'BREAKOUT_WATCHLIST', []),
             )
             bucket_map[ticker] = bucket
+            ambiguous_map[ticker] = is_ambig
 
         # Fetch bounce metrics for bounce tickers
         print("Fetching bounce metrics (parallel)...")
@@ -1284,12 +1323,51 @@ def generate_priority_report() -> str:
                         "score_str": "N/A",
                     })
 
+            elif bucket == "breakout":
+                # Breakout setup — score against intensity tier (FULL_SIZE / REDUCED_SIZE / AVOID).
+                # Map tiers to existing GO/CAUTION/NO-GO so the priority filter still works.
+                from analyzers.breakout_scorer import BreakoutPretrade
+                pm = pretrade_metrics_all.get(ticker, {})
+                td = all_data.get(ticker, {})
+                mav_data = td.get("mav_data", {}) or {}
+                bm = {
+                    't': 1,
+                    'pct_from_9ema':            pm.get('pct_from_9ema'),
+                    'pct_from_50mav':           mav_data.get('pct_from_50mav'),
+                    'pct_to_52wk_high':         pm.get('pct_to_52wk_high'),
+                    'atr_pct':                  pm.get('atr_pct'),
+                    'gap_pct':                  pm.get('gap_pct'),
+                    'percent_of_premarket_vol': pm.get('premarket_rvol'),
+                }
+                try:
+                    checker = BreakoutPretrade()
+                    br_result = checker.validate(ticker, bm)
+                    # Map intensity tier to GO/CAUTION/NO-GO so existing priority filter works:
+                    #   FULL_SIZE -> GO, REDUCED_SIZE -> CAUTION, else -> NO-GO
+                    rec_map = {'FULL_SIZE': 'GO', 'REDUCED_SIZE': 'CAUTION'}
+                    rec = rec_map.get(br_result.recommendation, 'NO-GO')
+                    scored.append({
+                        "ticker": ticker,
+                        "bucket": bucket,
+                        "cap": cap,
+                        "rec": rec,
+                        "score_result": br_result,
+                        "metrics": bm,
+                        "score_str": f"{br_result.score}/{br_result.max_score} [{br_result.recommendation}]",
+                    })
+                except Exception as e:
+                    log.warning(f"{ticker}: breakout scoring failed - {e}")
+                    scored.append({
+                        "ticker": ticker, "bucket": bucket, "cap": cap, "rec": "NO-GO",
+                        "score_result": None, "metrics": bm, "score_str": "N/A",
+                    })
+
         timings["routing_scoring"] = time.time() - t0
 
         # === Phase 3: Filter → keep only GO + CAUTION ===
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION")]
         # Sort: GO first, then CAUTION; within each group by score descending
-        priority.sort(key=lambda x: (0 if x["rec"] == "GO" else 1, x["score_str"]), reverse=False)
+        priority.sort(key=_priority_sort_key)
 
         go_ct = sum(1 for p in priority if p["rec"] == "GO")
         cau_ct = sum(1 for p in priority if p["rec"] == "CAUTION")
@@ -1315,6 +1393,10 @@ def generate_priority_report() -> str:
 
             if bucket == "bounce":
                 comps = find_historical_comps(metrics, _BOUNCE_DF, BOUNCE_COMP_COLUMNS, cap)
+            elif bucket == "breakout":
+                # For now, breakouts borrow the reversal universe (same "above MAs" geometry).
+                # When breakout_data accumulates more rows, swap to its own DF.
+                comps = find_historical_comps(metrics, _REVERSAL_DF, REVERSAL_COMP_COLUMNS, cap)
             else:
                 comps = find_historical_comps(metrics, _REVERSAL_DF, REVERSAL_COMP_COLUMNS, cap)
             # Score each comp with the same intensity function applied to live tickers,

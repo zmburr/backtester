@@ -67,6 +67,13 @@ from analyzers.bounce_scorer import (
     classify_stock,
 )
 from analyzers.reversal_scorer import ReversalScorer, check_archetype, compute_reversal_intensity
+from analyzers.breakout_scorer import (
+    BreakoutPretrade,
+    compute_breakout_intensity,
+    classify_breakout_setup,
+    SETUP_PROFILES as BREAKOUT_SETUP_PROFILES,
+    _INTENSITY_THRESHOLDS as BREAKOUT_INTENSITY_THRESHOLDS,
+)
 from data_queries.ticker_cache import TickerCache, is_today_finalized
 
 # ---------------------------------------------------------------------------
@@ -346,6 +353,114 @@ _REVERSAL_INTENSITY_LABELS = {
 }
 
 
+_BREAKOUT_INTENSITY_LABELS = {
+    'pct_from_9ema':              '9 EMA distance',
+    'pct_from_50mav':              '50 MA distance',
+    'range_contraction_atr':       'Range expansion',
+    'prior_day_close_vs_high_pct': 'Prior close strength',
+    'gap_from_pm_high':            'Gap vs PM high',
+    'pct_to_52wk_high':            'Distance to 52wk',
+    'atr_pct':                     'ATR %',
+    'gap_pct':                     'Overnight gap',
+    'percent_of_premarket_vol':    'Premarket vol',
+    'overnight_gap_d1_to_d2_pct':  'D1->D2 gap',
+}
+
+
+def format_breakout_intensity_html(intensity: Dict, setup_type: str = None) -> str:
+    """Format breakout intensity score as compact HTML.
+
+    Tiers come from the A+B reference distribution per profile (see
+    breakout_scorer._INTENSITY_THRESHOLDS): high_conviction_min = median A+B,
+    tradable_min = floor of historically-tradable A+B trades.
+    """
+    score = intensity.get('composite')
+    if score is None:
+        return (
+            '<div style="margin: 6px 0; color: #8b949e; font-size: 0.9em;">'
+            '<strong>Breakout Intensity:</strong> N/A (missing inputs)'
+            '</div>'
+        )
+
+    thresholds = BREAKOUT_INTENSITY_THRESHOLDS.get(setup_type or '', {})
+    high_min = thresholds.get('high_conviction_min', 50)
+    trad_min = thresholds.get('tradable_min', 30)
+
+    if score >= high_min:
+        color = '#3fb950'
+        tier = 'FULL_SIZE'
+        context = f'>= median A+B ({high_min:.0f}) - full size'
+    elif score >= trad_min:
+        color = '#e3b341'
+        tier = 'REDUCED_SIZE'
+        context = f'>= floor ({trad_min:.0f}) but < median - reduced size'
+    else:
+        color = '#f85149'
+        tier = 'AVOID'
+        context = f'< floor ({trad_min:.0f}) - no historical analog'
+
+    lines = [
+        '<div style="margin: 6px 0;">',
+        f'<strong>Breakout Intensity: <span style="color: {color}; font-size: 1.1em;">{score:.0f}/100</span></strong>',
+        f' <span style="color: {color}; font-size: 0.9em;">[{tier}]</span>',
+        f'<span style="font-size: 0.85em; color: #8b949e;"> ({context})</span>',
+        '<table style="font-size: 0.85em; margin-top: 4px; color: #c9d1d9;">',
+        '<tr style="color: #6e7681;"><td style="padding-right: 10px;">Metric</td>'
+        '<td style="padding-right: 10px;">Percentile</td><td>Weight</td></tr>',
+    ]
+    for col, d in intensity.get('details', {}).items():
+        label = _BREAKOUT_INTENSITY_LABELS.get(col, col)
+        pctile = d.get('pctile')
+        weight = d.get('weight', 0)
+        pctile_str = f'{pctile:.0f}' if pctile is not None else 'N/A'
+        lines.append(
+            f'<tr><td style="padding-right: 10px;">{label}</td>'
+            f'<td style="padding-right: 10px;">{pctile_str}</td>'
+            f'<td>{weight*100:.0f}%</td></tr>'
+        )
+    lines.append('</table></div>')
+    return '\n'.join(lines)
+
+
+def format_breakout_score_html(result) -> str:
+    """Format BreakoutPretrade ChecklistResult as HTML."""
+    rec = result.recommendation
+    color = {
+        'FULL_SIZE': '#3fb950',
+        'REDUCED_SIZE': '#e3b341',
+        'AVOID': '#f85149',
+        'UNRATED': '#8b949e',
+    }.get(rec, '#8b949e')
+
+    lines = [
+        '<div style="margin: 6px 0;">',
+        f'<strong>Breakout Setup ({result.setup_type}):</strong>',
+        f' <span style="color: {color}; font-weight: 600;">[{rec}]</span>',
+        f' <span style="font-size: 0.9em; color: #8b949e;">{result.score}/{result.max_score} criteria</span>',
+        f'<div style="font-size: 0.85em; color: #c9d1d9; margin-top: 2px;">{result.summary}</div>',
+        '<table style="font-size: 0.85em; margin-top: 4px; color: #c9d1d9;">',
+    ]
+    for item in result.items:
+        status = '[PASS]' if item.passed else '[FAIL]'
+        item_color = '#3fb950' if item.passed else '#f85149'
+        ref = f' ({item.reference})' if item.reference else ''
+        lines.append(
+            f'<tr><td style="padding-right: 8px; color: {item_color};">{status}</td>'
+            f'<td style="padding-right: 10px;">{item.description}</td>'
+            f'<td style="padding-right: 10px; color: #8b949e;">>= {item.threshold_display}</td>'
+            f'<td>{item.actual_display}{ref}</td></tr>'
+        )
+    lines.append('</table>')
+    if result.bonuses:
+        lines.append('<div style="margin-top: 4px; font-size: 0.85em; color: #3fb950;">[+] ' +
+                     '; '.join(result.bonuses) + '</div>')
+    if result.warnings:
+        lines.append('<div style="margin-top: 4px; font-size: 0.85em; color: #f85149;">[!] ' +
+                     '; '.join(result.warnings) + '</div>')
+    lines.append('</div>')
+    return '\n'.join(lines)
+
+
 def format_reversal_intensity_html(intensity: Dict) -> str:
     """Format reversal intensity score as compact HTML, mirrors the bounce formatter."""
     score = intensity.get('composite')
@@ -590,6 +705,11 @@ def get_pretrade_metrics(ticker: str, date: str) -> Dict:
                 if len(hist_highs) >= 1:
                     prior_252_high = hist_highs.iloc[-252:].max() if len(hist_highs) >= 252 else hist_highs.max()
                     metrics['breaks_fifty_two_wk'] = bool(reference_price >= prior_252_high)
+                    # Distance to 52wk high at PRIOR close (forward-looking).
+                    # Negative => below the high. Used by route_playbook to detect
+                    # breakout candidates near key levels.
+                    if prior_252_high and prior_252_high > 0:
+                        metrics['pct_to_52wk_high'] = (prior_close - prior_252_high) / prior_252_high
 
             # Reference prices for upgrade analysis (priority_report.py)
             metrics['prior_close'] = prior_close
@@ -1422,10 +1542,16 @@ def _format_bounce_price_targets_html(
 
 
 # -------------------------------------------------
-# Bucket routing: Bounce vs Reversal
+# Bucket routing: Bounce vs Reversal vs Breakout
 # -------------------------------------------------
 
 ROUTING_MA_KEYS = ("pct_from_10mav", "pct_from_20mav", "pct_from_50mav", "pct_from_200mav")
+
+# Manual override for tickers known to be breakout candidates (news catalyst,
+# at 52wk high, etc.). Anything in this list is forced to the breakout bucket
+# regardless of the proximity / reversal-pretrade heuristics.
+# Add tickers here when you want to track them as long breakouts.
+BREAKOUT_WATCHLIST: List[str] = []
 
 
 def _safe_num(x) -> Optional[float]:
@@ -1436,21 +1562,36 @@ def _safe_num(x) -> Optional[float]:
     return None if pd.isna(v) else v
 
 
-def route_playbook(pct_data_in: Dict, mav_data_in: Dict) -> Tuple[str, str]:
+def route_playbook(pct_data_in: Dict, mav_data_in: Dict,
+                   ticker: str = None,
+                   pretrade_metrics: Dict = None,
+                   breakout_watchlist=None) -> Tuple[str, str, bool]:
     """
-    Return (bucket, reason) where bucket is: 'reversal' | 'bounce'.
+    Return (bucket, reason, is_ambiguous) where bucket is:
+      'reversal' | 'bounce' | 'breakout'.
 
     Logic:
-      - If price is above all major moving averages (10/20/50 and 200 if available) -> reversal
-      - Otherwise -> bounce
+      1. Manual override: ticker in BREAKOUT_WATCHLIST -> breakout (always wins).
+      2. Below MAs -> bounce.
+      3. Above MAs + reversal pretrade is GO -> reversal (clean parabolic short).
+      4. Above MAs + reversal NOT GO -> breakout (extension exists but not enough
+         to short; route to long-side breakout thesis instead).
 
-    Notes:
-      - Requires 10/20/50 MA distances to be present to label a reversal.
-      - If MA data is incomplete (common for new IPOs), defaults to bounce.
+    Ambiguous flag: True when reversal is GO AND price is within 10% of 52wk
+    high. These are the dual-thesis cases (parabolic AT a key level — could
+    short the exhaustion or buy the continuation). The caller should display
+    both scores.
     """
     pct_data_in = pct_data_in or {}
     mav_data_in = mav_data_in or {}
+    pretrade_metrics = pretrade_metrics or {}
+    breakout_watchlist = breakout_watchlist or []
 
+    # 1. Manual override
+    if ticker and ticker in breakout_watchlist:
+        return "breakout", "explicit BREAKOUT_WATCHLIST entry", False
+
+    # Resolve MA position
     ma_vals: Dict[str, float] = {}
     for k in ROUTING_MA_KEYS:
         v = _safe_num(mav_data_in.get(k))
@@ -1458,30 +1599,65 @@ def route_playbook(pct_data_in: Dict, mav_data_in: Dict) -> Tuple[str, str]:
             ma_vals[k] = v
 
     required = ("pct_from_10mav", "pct_from_20mav", "pct_from_50mav")
-    if all(k in ma_vals for k in required):
-        keys_to_check = list(required)
-        if "pct_from_200mav" in ma_vals:
-            keys_to_check.append("pct_from_200mav")
+    if not all(k in ma_vals for k in required):
+        return "bounce", "MA data incomplete (default bounce)", False
 
-        above_all = all(ma_vals[k] > 0 for k in keys_to_check)
-        if above_all:
-            suffix = " (+200MA)" if "pct_from_200mav" in ma_vals else ""
-            return "reversal", f"Above 10/20/50MA{suffix}"
+    keys_to_check = list(required)
+    if "pct_from_200mav" in ma_vals:
+        keys_to_check.append("pct_from_200mav")
+    above_all = all(ma_vals[k] > 0 for k in keys_to_check)
 
+    # 2. Below MAs -> bounce
+    if not above_all:
         below = [k for k in keys_to_check if ma_vals.get(k, 0) <= 0]
         below_lbl = ", ".join([b.replace("pct_from_", "").replace("mav", "MA") for b in below]) or "N/A"
-        return "bounce", f"Not above all MAs (below: {below_lbl})"
+        return "bounce", f"Not above all MAs (below: {below_lbl})", False
 
-    return "bounce", "MA data incomplete (default bounce)"
+    suffix = " (+200MA)" if "pct_from_200mav" in ma_vals else ""
+
+    # 3. Above MAs: check whether reversal pretrade is GO
+    rev_is_go = False
+    rev_score_text = ""
+    if pretrade_metrics:
+        try:
+            cap_for_score = get_ticker_cap(ticker) if ticker else 'Medium'
+            rev_result = score_pretrade_setup(ticker or '', pretrade_metrics, cap=cap_for_score)
+            rev_score = rev_result.get('score', 0)
+            rev_rec = rev_result.get('recommendation', 'NO-GO')
+            rev_is_go = (rev_rec == 'GO')
+            rev_score_text = f"reversal {rev_score}/5 ({rev_rec})"
+        except Exception:
+            rev_score_text = "reversal scoring failed"
+
+    # Detect ambiguity (both theses valid): GO + at key level
+    pct_to_52wk = _safe_num(pretrade_metrics.get('pct_to_52wk_high'))
+    near_level = pct_to_52wk is not None and pct_to_52wk >= -0.10
+
+    if rev_is_go:
+        ambiguous = bool(near_level)
+        reason = f"Above 10/20/50MA{suffix} | {rev_score_text}"
+        if ambiguous:
+            reason += f" | near 52wk high ({pct_to_52wk*100:+.1f}%) — also breakout candidate"
+        return "reversal", reason, ambiguous
+
+    # 4. Above MAs but reversal not triggered -> breakout
+    reason = f"Above 10/20/50MA{suffix} | {rev_score_text} — extension below short threshold"
+    return "breakout", reason, False
 
 
-def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, bounce_metrics: dict = None, bucket_override: str = None, bucket_reason_override: str = None) -> Tuple[str, list]:
+def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
+                       bounce_metrics: dict = None,
+                       bucket_override: str = None,
+                       bucket_reason_override: str = None,
+                       is_ambiguous_override: bool = False) -> Tuple[str, list]:
     """Build HTML content for one ticker (everything except chart generation).
 
     Returns (html_string, chart_hlines) so chart rendering can happen separately.
-    If *bucket_override* is provided (e.g. "bounce" or "reversal"), it takes
-    precedence over the automatic route_playbook() routing. *bucket_reason_override*
-    customizes the displayed reason text (defaults to "manual override").
+
+    The pipeline pre-computes routing for the whole watchlist, then passes the
+    bucket / reason / ambiguous flag in via the *_override params. If
+    bucket_override is None, route_playbook() is called inline (for ad-hoc /
+    test usage).
     """
 
     pct_data = data.get("pct_data", {})
@@ -1503,15 +1679,25 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
 
     if bucket_override:
         bucket = bucket_override
+        # Use the reason and ambiguous flag computed in the upstream routing pass.
+        # Falls back to "manual override" only when the caller really did override
+        # (e.g. ad-hoc test where they didn't pass a reason).
         bucket_reason = bucket_reason_override or "manual override"
+        is_ambiguous = bool(is_ambiguous_override)
     else:
-        bucket, bucket_reason = route_playbook(pct_data, mav_data)
+        bucket, bucket_reason, is_ambiguous = route_playbook(
+            pct_data, mav_data,
+            ticker=ticker,
+            pretrade_metrics=pretrade_metrics,
+            breakout_watchlist=BREAKOUT_WATCHLIST,
+        )
     is_reversal = bucket == "reversal"
     is_bounce = bucket == "bounce"
+    is_breakout = bucket == "breakout"
 
     # Show routing decision near the top for quick scanning/debugging
-    bucket_color = {"reversal": "#58a6ff", "bounce": "#3fb950", "filtered": "#8b949e"}.get(bucket, "#8b949e")
-    bucket_bg = {"reversal": "#0c2d6b", "bounce": "#122117", "filtered": "#21262d"}.get(bucket, "#21262d")
+    bucket_color = {"reversal": "#58a6ff", "bounce": "#3fb950", "breakout": "#f0883e", "filtered": "#8b949e"}.get(bucket, "#8b949e")
+    bucket_bg = {"reversal": "#0c2d6b", "bounce": "#122117", "breakout": "#3d1f0a", "filtered": "#21262d"}.get(bucket, "#21262d")
     lines.append(
         f'<div style="margin: 6px 0 10px 0; padding: 8px 10px; border-radius: 6px; border: 1px solid {bucket_color}; background-color: {bucket_bg};">'
         f'<strong style="color: {bucket_color};">Bucket:</strong> <strong style="color: #f0f6fc;">{bucket.upper()}</strong>'
@@ -1522,6 +1708,49 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
     cap = None
     score_result = None
     exit_data = {}
+
+    def _build_breakout_metrics(pre_m, mav_d):
+        """Assemble metrics dict for BreakoutPretrade / compute_breakout_intensity from
+        the pretrade fetch. Some historical-only features (range_contraction_atr,
+        gap_from_pm_high, overnight_gap_d1_to_d2_pct) are unavailable live and
+        will be left None — those criteria will simply fail.
+
+        Defaults t=1 (D2_continuation) — the user's most common play. Manually
+        overriding to t=0 (D1_news_break) would require flagging via
+        BREAKOUT_WATCHLIST extension; defer that for now.
+        """
+        bm = {
+            't': 1,  # default D2_continuation
+            'pct_from_9ema':              pre_m.get('pct_from_9ema'),
+            'pct_from_50mav':             (mav_d or {}).get('pct_from_50mav'),
+            'pct_to_52wk_high':           pre_m.get('pct_to_52wk_high'),
+            'atr_pct':                    pre_m.get('atr_pct'),
+            'gap_pct':                    pre_m.get('gap_pct'),
+            'percent_of_premarket_vol':   pre_m.get('premarket_rvol'),  # same definition
+            'prior_day_range_atr':        pre_m.get('prior_day_range_atr'),
+            'breaks_fifty_two_wk':        pre_m.get('breaks_fifty_two_wk'),
+        }
+        # Derived: prior_day_close_vs_high_pct from raw prior bars (if available)
+        return bm
+
+    def _render_breakout_section(pre_m, mav_d, header_label="Breakout Setup Score"):
+        """Render breakout pretrade + intensity HTML (used by both is_breakout
+        and the ambiguous augmentation in is_reversal)."""
+        out = []
+        if not pre_m:
+            return out
+        bm = _build_breakout_metrics(pre_m, mav_d)
+        try:
+            checker = BreakoutPretrade()
+            br = checker.validate(ticker, bm)
+            out.append(f"<strong>{header_label}:</strong>")
+            out.append(format_breakout_score_html(br))
+            intensity_result = compute_breakout_intensity(bm, br.setup_type)
+            out.append(format_breakout_intensity_html(intensity_result, setup_type=br.setup_type))
+        except Exception as e:
+            out.append(f'<div style="color: #f85149;">Breakout scoring error: {e}</div>')
+        return out
+
     if is_reversal:
         # REVERSAL path (by MA routing): show reversal checklist + exit levels
         if pretrade_metrics:
@@ -1545,6 +1774,21 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             intensity = compute_reversal_intensity(intensity_metrics, cap=cap)
             lines.append(format_reversal_intensity_html(intensity))
 
+            # AMBIGUOUS — reversal is GO AND price is near 52wk high.
+            # Show breakout score alongside so the user can compare both theses.
+            if is_ambiguous:
+                lines.append(
+                    '<div style="margin: 10px 0 6px 0; padding: 6px 10px; '
+                    'border-left: 3px solid #f0883e; background-color: #1c1208;">'
+                    '<strong style="color: #f0883e;">AMBIGUOUS:</strong> '
+                    '<span style="color: #c9d1d9;">also a breakout candidate '
+                    '(near 52wk high). Use news context to pick thesis.</span>'
+                    '</div>'
+                )
+                for ln in _render_breakout_section(pretrade_metrics, mav_data,
+                                                    header_label="Breakout Setup Score (alt thesis)"):
+                    lines.append(ln)
+
         # Add data-informed exit target LEVELS (measured from last close)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
         exit_data = get_exit_target_data(ticker, today)
@@ -1561,6 +1805,29 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
             )
             lines.append("<strong>Target Price Levels (from Live Price):</strong>")
             lines.append(format_exit_targets_html(targets))
+
+    elif is_breakout:
+        # BREAKOUT path: above MAs but reversal pretrade not GO,
+        # OR explicitly in BREAKOUT_WATCHLIST. Long-side momentum continuation.
+        if cap is None:
+            cap = get_ticker_cap(ticker)
+        for ln in _render_breakout_section(pretrade_metrics, mav_data):
+            lines.append(ln)
+
+        # Use the long-side bounce exit targets framework (same direction)
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        exit_data = get_exit_target_data(ticker, today, prefer_open=True)
+        if exit_data.get('open_price') and exit_data.get('atr'):
+            bk_targets = calculate_bounce_exit_targets(
+                cap=cap,
+                entry_price=exit_data['open_price'],
+                atr=exit_data['atr'],
+                prior_close=exit_data.get('prior_close'),
+                prior_high=exit_data.get('prior_high'),
+            )
+            bk_targets['entry_price_source'] = exit_data.get('open_price_source')
+            lines.append("<strong>Breakout Target Levels:</strong>")
+            lines.append(format_bounce_exit_targets_html(bk_targets))
 
     elif is_bounce:
         # BOUNCE path (by MA routing): show bounce checklist (if available) + exit levels
@@ -1660,6 +1927,12 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None, b
         pcts = {k: round(100 - v, 1) for k, v in pcts.items()}
         setup_label = bounce_setup_type.replace('GapFade_', '')
         lines.append(f'<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Bounce Percentiles ({setup_label}, n={len(bounce_ref_df)})</h3>')
+    elif is_breakout:
+        # Breakout candidates share the "above MAs" universe with reversals, so
+        # reversal_df percentiles still give useful context (extension distribution).
+        # When breakout_data accumulates more rows, this can swap to its own ref.
+        pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
+        lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Extension Percentiles (vs reversal universe)</h3>')
     else:
         pcts = ss.calculate_percentiles(reversal_df, data, COLUMNS_TO_COMPARE)
         lines.append('<h3 style="margin: 10px 0 4px 0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; color: #8b949e;">Reversal Percentiles</h3>')
@@ -1816,20 +2089,30 @@ def generate_report() -> str:
                     pretrade_metrics_all[ticker] = {}
         timings['get_pretrade_metrics'] = time.time() - t0
 
-        # Route tickers into bounce vs reversal buckets (MA-based routing)
-        print("Routing tickers into bounce vs reversal buckets...")
+        # Route tickers into bounce vs reversal vs breakout buckets
+        # Reversal pretrade scoring drives the routing now — see route_playbook docstring.
+        print("Routing tickers into bounce vs reversal vs breakout buckets...")
         bucket_map: Dict[str, str] = {}
+        bucket_reason_map: Dict[str, str] = {}
+        ambiguous_map: Dict[str, bool] = {}
         for ticker in watchlist:
             ticker_data = all_data.get(ticker, {})
-            bucket, _reason = route_playbook(
+            bucket, reason, is_ambig = route_playbook(
                 ticker_data.get("pct_data", {}) or {},
                 ticker_data.get("mav_data", {}) or {},
+                ticker=ticker,
+                pretrade_metrics=pretrade_metrics_all.get(ticker, {}),
+                breakout_watchlist=BREAKOUT_WATCHLIST,
             )
             bucket_map[ticker] = bucket
+            bucket_reason_map[ticker] = reason
+            ambiguous_map[ticker] = is_ambig
 
         bounce_ct = sum(1 for b in bucket_map.values() if b == "bounce")
         rev_ct = sum(1 for b in bucket_map.values() if b == "reversal")
-        print(f"Bucket counts — bounce: {bounce_ct} | reversal: {rev_ct}")
+        brk_ct = sum(1 for b in bucket_map.values() if b == "breakout")
+        ambig_ct = sum(1 for v in ambiguous_map.values() if v)
+        print(f"Bucket counts - bounce: {bounce_ct} | reversal: {rev_ct} | breakout: {brk_ct} (ambiguous: {ambig_ct})")
 
         # --- Phase 3: Collect bounce pre-trade metrics (parallel) ---
         t0 = time.time()
@@ -1848,7 +2131,7 @@ def generate_report() -> str:
                     print(f"  {ticker}: Failed to get bounce metrics - {e}")
         timings['fetch_bounce_metrics'] = time.time() - t0
 
-        # ---- Split watchlist into bounce vs reversal/other, sort each independently ----
+        # ---- Split watchlist into bounce / breakout / reversal, sort each independently ----
         def _safe_float(x, default=float('-inf')):
             try:
                 return float(x)
@@ -1856,13 +2139,15 @@ def generate_report() -> str:
                 return default
 
         bounce_tickers = []
-        other_tickers = []
+        breakout_tickers = []
+        reversal_tickers = []
         _bounce_intensity_cache = {}
+        _breakout_intensity_cache = {}
 
         for ticker in watchlist:
-            if bucket_map.get(ticker) == "bounce":
+            b = bucket_map.get(ticker)
+            if b == "bounce":
                 if ticker in bounce_metrics_all:
-                    # Classify setup type to use setup-specific ref data for intensity
                     _st, _ = classify_stock(bounce_metrics_all[ticker])
                     _ref = BOUNCE_DF_WEAK if _st == 'GapFade_weakstock' else BOUNCE_DF_STRONG
                     intensity = compute_bounce_intensity(bounce_metrics_all[ticker], ref_df=_ref)
@@ -1870,29 +2155,48 @@ def generate_report() -> str:
                 else:
                     _bounce_intensity_cache[ticker] = 0
                 bounce_tickers.append(ticker)
+            elif b == "breakout":
+                # Compute breakout intensity for sorting
+                pre_m = pretrade_metrics_all.get(ticker, {})
+                mav_d = (all_data.get(ticker, {}) or {}).get("mav_data", {}) or {}
+                bm = {
+                    't': 1,
+                    'pct_from_9ema':            pre_m.get('pct_from_9ema'),
+                    'pct_from_50mav':           mav_d.get('pct_from_50mav'),
+                    'pct_to_52wk_high':         pre_m.get('pct_to_52wk_high'),
+                    'atr_pct':                  pre_m.get('atr_pct'),
+                    'gap_pct':                  pre_m.get('gap_pct'),
+                    'percent_of_premarket_vol': pre_m.get('premarket_rvol'),
+                }
+                try:
+                    setup_type, _ = classify_breakout_setup(bm)
+                    intensity = compute_breakout_intensity(bm, setup_type)
+                    _breakout_intensity_cache[ticker] = intensity['composite'] or 0
+                except Exception:
+                    _breakout_intensity_cache[ticker] = 0
+                breakout_tickers.append(ticker)
             else:
-                other_tickers.append(ticker)
+                reversal_tickers.append(ticker)
 
-        # Sort bounce candidates by intensity score (highest first)
+        # Sort each group by intensity / extension percentile
         bounce_tickers.sort(key=lambda t: _bounce_intensity_cache.get(t, 0), reverse=True)
+        breakout_tickers.sort(key=lambda t: _breakout_intensity_cache.get(t, 0), reverse=True)
 
-        # Sort reversal/other by pct_change_15 reversal percentile (descending)
         _rev_pcts_cache = {}
-        for ticker in other_tickers:
+        for ticker in reversal_tickers:
             try:
                 _rev_pcts_cache[ticker] = ss.calculate_percentiles(
                     reversal_df, all_data.get(ticker, {}), COLUMNS_TO_COMPARE
                 )
             except Exception:
                 _rev_pcts_cache[ticker] = {}
-
-        other_tickers.sort(
+        reversal_tickers.sort(
             key=lambda t: _safe_float(_rev_pcts_cache.get(t, {}).get("pct_change_15")),
             reverse=True
         )
 
-        # Bounce candidates first, then reversal/other
-        sorted_watchlist = bounce_tickers + other_tickers
+        # Order: bounce first, then breakout, then reversal
+        sorted_watchlist = bounce_tickers + breakout_tickers + reversal_tickers
         # -----------------------------------------------------------------------
 
         # --- Phase 4: Build ticker HTML sections (parallel) + charts (sequential) ---
@@ -1906,6 +2210,8 @@ def generate_report() -> str:
                     pretrade_metrics_all.get(ticker, {}),
                     bounce_metrics_all.get(ticker),
                     bucket_override=bucket_map.get(ticker),
+                    bucket_reason_override=bucket_reason_map.get(ticker),
+                    is_ambiguous_override=ambiguous_map.get(ticker, False),
                 ): ticker
                 for ticker in sorted_watchlist
             }
