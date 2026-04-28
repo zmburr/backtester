@@ -1022,21 +1022,98 @@ def get_ipo_features(row, analysis_type):
     return row
 
 
+# Tags this module knows how to auto-derive. When refreshing setup_type on
+# existing rows, anything OUTSIDE this set is treated as a hand-added tag and
+# preserved (e.g. user-curated pattern labels we don't auto-detect yet).
+KNOWN_SETUP_TAGS = {
+    'ATH_breakout', '52wk_breakout', 'IPO_high_breakout',
+    'news_day1', 'news_day2', 'news_day3', 'news_day4', 'other',
+    '1DBreakoutIB', '2DBreakoutIB',
+    'gap_n_go', 'consolidation_break',
+    '2DayContinuation',  # applied by post-processor, but recognized here
+}
+
+
+def _detect_inside_bar_pattern(ticker, date):
+    """Return '2DBreakoutIB', '1DBreakoutIB', or None.
+
+    1DBreakoutIB: prior day was an inside bar (high < D-2 high AND low > D-2 low)
+    2DBreakoutIB: prior 2 days were both inside bars
+    """
+    try:
+        prior_date = adjust_date_to_market(date, 1)
+        # Need ~5 calendar days for ~3 trading bars (D-1, D-2, D-3)
+        df = get_levels_data(ticker, prior_date, 7, 1, 'day')
+        if df is None or len(df) < 3:
+            return None
+        df = df.sort_index()
+        # Last 3 completed bars: [-3]=D-3, [-2]=D-2, [-1]=D-1
+        d3_h, d3_l = df['high'].iloc[-3], df['low'].iloc[-3]
+        d2_h, d2_l = df['high'].iloc[-2], df['low'].iloc[-2]
+        d1_h, d1_l = df['high'].iloc[-1], df['low'].iloc[-1]
+
+        d1_inside = (d1_h < d2_h) and (d1_l > d2_l)
+        d2_inside = (d2_h < d3_h) and (d2_l > d3_l)
+
+        if d1_inside and d2_inside:
+            return '2DBreakoutIB'
+        if d1_inside:
+            return '1DBreakoutIB'
+    except Exception as e:
+        logging.warning(f'inside-bar detection failed for {ticker} on {date}: {e}')
+    return None
+
+
+def _detect_gap_n_go(row):
+    """gap_pct >= 1x ATR AND closed at highs (didn't fill gap)."""
+    gap = row.get('gap_pct')
+    atr = row.get('atr_pct')
+    close_at_highs = row.get('close_at_highs')
+    if gap is None or atr is None or pd.isna(gap) or pd.isna(atr) or atr == 0:
+        return False
+    is_close_at_highs = (close_at_highs is True) or (str(close_at_highs).strip().lower() in ('true', '1'))
+    return gap >= atr and is_close_at_highs
+
+
+def _detect_consolidation_break(row):
+    """consolidation_days >= 10 AND range_contraction_atr < 0.85 (tight base)."""
+    cd = row.get('consolidation_days')
+    rc = row.get('range_contraction_atr')
+    if cd is None or rc is None or pd.isna(cd) or pd.isna(rc):
+        return False
+    return cd >= 10 and rc < 0.85
+
+
 def derive_setup_type(row, analysis_type):
     """
     Multi-label setup classification (comma-joined when multiple apply).
 
-    Tags:
-      - ATH_breakout       : breaks_ath True AND t in {0, 1}
-      - 52wk_breakout      : breaks_fifty_two_wk True (and not ATH) AND t in {0, 1}
-      - IPO_high_breakout  : days_since_ipo < 365 AND breaks_fifty_two_wk True
-      - news_day1          : t == 0
-      - news_day2          : t == 1
-      - other              : fallback if no tags applied
+    Auto-derived tags:
+      Level family       : ATH_breakout / 52wk_breakout / IPO_high_breakout
+      News timing family : news_day1 / news_day2
+      Pattern family     : 1DBreakoutIB / 2DBreakoutIB / gap_n_go / consolidation_break
+      (2DayContinuation is added by a separate post-processor that needs the full df.)
+
+    REFRESH BEHAVIOR: when called on an existing row whose setup_type is
+    already populated, any tags NOT in KNOWN_SETUP_TAGS are preserved (user
+    hand-additions). Known tags are recomputed fresh.
     """
     ticker = row['ticker']
     date = parse_row_date(row)
     logging.info(f'Running derive_setup_type for {ticker} on {date}')
+
+    # Capture tags from existing setup_type. Two preservation classes:
+    #   - unknown_preserved : tags outside KNOWN_SETUP_TAGS (future hand additions)
+    #   - pattern_preserved : pattern-family tags the user hand-curated
+    #                         (auto-detection is heuristic, hand call wins)
+    existing_raw = row.get('setup_type')
+    unknown_preserved = []
+    pattern_preserved = []
+    PATTERN_TAGS = {'1DBreakoutIB', '2DBreakoutIB', 'gap_n_go', 'consolidation_break'}
+    if existing_raw is not None and not (isinstance(existing_raw, float) and pd.isna(existing_raw)):
+        existing_tags = [t.strip() for t in str(existing_raw).split(',') if t.strip()]
+        unknown_preserved = [t for t in existing_tags if t not in KNOWN_SETUP_TAGS]
+        pattern_preserved = [t for t in existing_tags if t in PATTERN_TAGS]
 
     tags = []
 
@@ -1047,7 +1124,6 @@ def derive_setup_type(row, analysis_type):
     except (ValueError, TypeError):
         t_int = None
 
-    # Pull conditionals already set by get_conditionals
     breaks_ath = row.get('breaks_ath')
     breaks_52wk = row.get('breaks_fifty_two_wk')
 
@@ -1061,14 +1137,16 @@ def derive_setup_type(row, analysis_type):
     is_ath = _is_true(breaks_ath)
     is_52wk = _is_true(breaks_52wk)
 
-    # Breakout-level tags (only meaningful on news days {0, 1})
-    if t_int in (0, 1):
-        if is_ath:
-            tags.append('ATH_breakout')
-        elif is_52wk:
-            tags.append('52wk_breakout')
+    # --- Level family ---
+    # Apply whenever the level break is true. Previously this was gated on
+    # t in {0, 1} but that loses the tag for trades where news context isn't
+    # tracked (e.g., pure pattern setups, IPO breakouts without news_type).
+    if is_ath:
+        tags.append('ATH_breakout')
+    elif is_52wk:
+        tags.append('52wk_breakout')
 
-    # IPO breakout — independent dimension, can co-occur
+    # --- IPO independent dimension ---
     try:
         ipo_date_str = get_ipo_date(ticker)
         if ipo_date_str:
@@ -1078,17 +1156,87 @@ def derive_setup_type(row, analysis_type):
     except Exception as e:
         logging.warning(f'IPO check failed for {ticker} on {date}: {e}')
 
-    # News-day tags (always applied if t is set)
+    # --- Pattern family ---
+    # Auto-detection is heuristic. Combine with user's hand-curated pattern
+    # tags so we ADD what we find but never STRIP what the trader observed.
+    auto_pattern_tags = []
+    inside_bar = _detect_inside_bar_pattern(ticker, date)
+    if inside_bar:
+        auto_pattern_tags.append(inside_bar)
+    if _detect_gap_n_go(row):
+        auto_pattern_tags.append('gap_n_go')
+    if _detect_consolidation_break(row):
+        auto_pattern_tags.append('consolidation_break')
+    # If user hand-tagged 2DBreakoutIB and our auto says 1DBreakoutIB,
+    # keep the user's stricter call (drop the weaker auto tag).
+    if '2DBreakoutIB' in pattern_preserved and '1DBreakoutIB' in auto_pattern_tags:
+        auto_pattern_tags = [t for t in auto_pattern_tags if t != '1DBreakoutIB']
+    tags.extend(list(dict.fromkeys(pattern_preserved + auto_pattern_tags)))
+
+    # --- News timing ---
+    # t=0 = trade on news day, t=1 = T+1, t=2 = T+2, t=3 = T+3.
+    # Rows with no news catalyst leave t as NaN — no news tag is applied.
     if t_int == 0:
         tags.append('news_day1')
     elif t_int == 1:
         tags.append('news_day2')
+    elif t_int == 2:
+        tags.append('news_day3')
+    elif t_int == 3:
+        tags.append('news_day4')
 
-    if not tags:
-        tags.append('other')
+    # Merge: auto tags + preserved unknown tags (dedup, preserve order)
+    final = list(dict.fromkeys(tags + unknown_preserved))
+    if not final:
+        final = ['other']
 
-    row['setup_type'] = ','.join(tags)
+    row['setup_type'] = ','.join(final)
     return row
+
+
+def apply_2day_continuation_tags(df):
+    """Post-processor: scan the dataframe for same-ticker trades on consecutive
+    or near-consecutive days (within 3 calendar days) and tag both legs as
+    `2DayContinuation`.
+
+    Mutates df in place. Skips rows where setup_type is missing.
+    """
+    if 'date' not in df.columns or 'ticker' not in df.columns:
+        return df
+    if 'setup_type' not in df.columns:
+        df['setup_type'] = pd.NA
+
+    parsed = pd.to_datetime(df['date'], errors='coerce')
+    work = df.assign(_d=parsed).reset_index().rename(columns={'index': '_orig_idx'})
+    pairs_added = 0
+    for ticker, grp in work.groupby('ticker'):
+        grp = grp.sort_values('_d').reset_index(drop=True)
+        for i in range(len(grp) - 1):
+            d1 = grp.iloc[i]
+            d2 = grp.iloc[i + 1]
+            if pd.isna(d1['_d']) or pd.isna(d2['_d']):
+                continue
+            days_apart = (d2['_d'] - d1['_d']).days
+            # 1-3 calendar days catches Mon-Tue (1d), Fri-Mon (3d), Fri-Tue (4d skipped)
+            if 1 <= days_apart <= 3:
+                for orig_idx in (d1['_orig_idx'], d2['_orig_idx']):
+                    cur = df.at[orig_idx, 'setup_type']
+                    cur_str = str(cur) if cur is not None and not (isinstance(cur, float) and pd.isna(cur)) else ''
+                    cur_tags = [t.strip() for t in cur_str.split(',') if t.strip()]
+                    if '2DayContinuation' not in cur_tags:
+                        cur_tags.append('2DayContinuation')
+                        df.at[orig_idx, 'setup_type'] = ','.join(cur_tags)
+                pairs_added += 1
+    logging.info(f'2DayContinuation: tagged {pairs_added} D1+D2 pairs')
+    return df
+
+
+def refresh_setup_types(df, analysis_type='momentum'):
+    """Force-re-run derive_setup_type on every row (preserving hand-added tags
+    via KNOWN_SETUP_TAGS allowlist), then apply the 2DayContinuation post-pass."""
+    df = df.apply(lambda row: derive_setup_type(row, analysis_type), axis=1)
+    df = apply_2day_continuation_tags(df)
+    return df
 
 
 def get_breakout_proximity(row, analysis_type):
@@ -1501,6 +1649,10 @@ BREAKOUT_COLUMN_ORDER = [
 if __name__ == '__main__':
     # Process breakout data
     df_momentum = fill_data(_load_momentum_df(), 'momentum', fill_functions_momentum)
+    # Refresh setup_type on every row (picks up new pattern tags on existing data,
+    # while preserving any unknown hand-added tags via KNOWN_SETUP_TAGS allowlist).
+    # Then apply 2DayContinuation post-processor.
+    df_momentum = refresh_setup_types(df_momentum, 'momentum')
     # Reorder columns to match expected format, keeping any extra columns at the end
     existing_cols = [col for col in BREAKOUT_COLUMN_ORDER if col in df_momentum.columns]
     extra_cols = [col for col in df_momentum.columns if col not in BREAKOUT_COLUMN_ORDER]
