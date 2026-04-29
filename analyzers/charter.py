@@ -210,6 +210,42 @@ def cleanup_charts(output_dir: str = "charts") -> None:
 create_chart = create_trade_chart  # noqa: E305
 
 
+def _build_today_intraday_bar(ticker: str):
+    """Roll today's minute aggs into a single daily-style OHLCV row.
+
+    Returns a one-row DataFrame indexed by today (US/Eastern midnight), or None
+    if no intraday data is available yet (pre-premarket, weekend, holiday).
+    Includes premarket/afterhours since Polygon minute aggs span all sessions.
+    """
+    import pandas as pd
+    from datetime import datetime
+    from pytz import timezone as _tz
+    from data_queries.polygon_queries import get_intraday
+
+    today_str = datetime.now(_tz('US/Eastern')).strftime('%Y-%m-%d')
+    minute_df = get_intraday(ticker, today_str, 1, 'minute')
+    if minute_df is None or minute_df.empty:
+        return None
+
+    # Match the rest of the chart's daily bars (regular session OHLC).
+    # If we're before 9:30 ET (regular session empty), fall back to whatever's
+    # available so the chart still reflects today's premarket print.
+    regular = minute_df.between_time('09:30', '15:59')
+    session_df = regular if not regular.empty else minute_df
+
+    bar = pd.DataFrame(
+        {
+            'open':   [float(session_df['open'].iloc[0])],
+            'high':   [float(session_df['high'].max())],
+            'low':    [float(session_df['low'].min())],
+            'close':  [float(session_df['close'].iloc[-1])],
+            'volume': [float(session_df['volume'].sum())],
+        },
+        index=[pd.Timestamp(today_str, tz='US/Eastern')],
+    )
+    return bar
+
+
 def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: list = None,
                        end_date: str = None, label: str = "1y_daily") -> str:
     """Create a 1-year daily candlestick chart for *ticker* and save it.
@@ -238,9 +274,11 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     """
 
     from datetime import datetime, timedelta
+    import pandas as pd
     from data_queries.polygon_queries import get_levels_data
 
     # Determine date range: end_date (or today) back ~1 year of trading days
+    is_live = end_date is None
     if end_date is None:
         end_date = datetime.today().strftime("%Y-%m-%d")
     start_window = 205  # days back
@@ -249,6 +287,23 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     df = get_levels_data(ticker, end_date, window=start_window, multiplier=1, timespan="day")
     if df is None or df.empty:
         raise ValueError(f"No data returned for {ticker}")
+
+    # For live charts, splice today's intraday OHLC onto the daily series so the
+    # chart, MAs, and 1Y-high hline reflect price action through *now*, not the
+    # last fully-closed daily bar (which Polygon may not finalize until after-hours).
+    if is_live:
+        try:
+            today_bar = _build_today_intraday_bar(ticker)
+        except Exception as e:
+            logging.warning(f"create_daily_chart: today bar fetch failed for {ticker}: {e}")
+            today_bar = None
+        if today_bar is not None and not today_bar.empty:
+            today_date = today_bar.index[0].date()
+            mask_today = df.index.map(lambda ts: ts.date() == today_date)
+            if mask_today.any():
+                # Polygon already returned a (possibly stale) bar for today — overwrite it
+                df = df.loc[~mask_today]
+            df = pd.concat([df, today_bar]).sort_index()
 
     # Save PNG and return path using mplfinance backend with MAs
     hlines = [(df['high'].max(), 'grey', '1Y High')]
