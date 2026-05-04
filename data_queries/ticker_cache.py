@@ -134,8 +134,17 @@ class TickerCache:
     def _get_daily_bars_locked(
         self, ticker: str, date: str, window: int,
     ) -> Optional[pd.DataFrame]:
-        today_date = pd.to_datetime(date).date()
+        requested_date = pd.to_datetime(date).date()
         cached_df = self._load_cache(ticker)
+
+        def _trim(df):
+            # The on-disk cache is incrementally appended through today, so
+            # callers asking for a historical end_date must get bars sliced
+            # to <= requested_date — otherwise comp charts render with bars
+            # past the trade date.
+            if df is None or df.empty:
+                return df
+            return df[df.index.date <= requested_date]
 
         if cached_df is not None and not cached_df.empty:
             cache_start = cached_df.index[0].date()
@@ -145,31 +154,31 @@ class TickerCache:
             ).date()
 
             has_enough_history = cache_start <= earliest_needed + timedelta(days=7)
-            missing_days = self._count_missing_trading_days(cache_end, today_date)
+            missing_days = self._count_missing_trading_days(cache_end, requested_date)
 
             if has_enough_history and missing_days == 0:
                 # Cache is fully up-to-date — zero API calls.
-                return cached_df
+                return _trim(cached_df)
 
             if has_enough_history and missing_days > 0:
                 # Incremental fetch: only the gap between cache end and today.
-                gap_calendar = (today_date - cache_end).days + 3  # small buffer
+                gap_calendar = (requested_date - cache_end).days + 3  # small buffer
                 new_data = _polygon_get_levels_data(
                     ticker, date, gap_calendar, 1, 'day',
                 )
                 if new_data is not None and not new_data.empty:
                     combined = pd.concat([cached_df, new_data]).sort_index()
                     combined = combined[~combined.index.duplicated(keep='last')]
-                    self._persist_completed(combined, today_date, ticker)
-                    return combined
+                    self._persist_completed(combined, requested_date, ticker)
+                    return _trim(combined)
                 # Fetch returned nothing — return what we have.
-                return cached_df
+                return _trim(cached_df)
 
         # Full fetch (no usable cache).
         result = _polygon_get_levels_data(ticker, date, window, 1, 'day')
         if result is not None and not result.empty:
-            self._persist_completed(result, today_date, ticker)
-        return result
+            self._persist_completed(result, requested_date, ticker)
+        return _trim(result)
 
     # ------------------------------------------------------------------
     # Helpers
