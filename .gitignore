@@ -27,3 +27,8 @@ data/*_backup.csv
 data/*_pre_*.csv
 data/*- Copy*.csv
 data/* - Copy.csv
+
+# Pickle caches (regenerable)
+data/backscanner_cache/
+data/options_replay_cache/
+data/batch_results/
