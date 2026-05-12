@@ -3,3 +3,27 @@ __pycache__/
 *.pyo
 .env
 automation/logs/
+
+# Python venv
+venv/
+.venv/
+
+# IDE / tooling
+.idea/
+.streamlit/
+.claude/settings.local.json
+.claude/checkpoints/
+
+# Logs
+*.log
+
+# Audio test artifacts
+scanners/*.mp3
+
+# Backup / pre-fix snapshots
+*.bak
+*.preremaining
+data/*_backup.csv
+data/*_pre_*.csv
+data/*- Copy*.csv
+data/* - Copy.csv
