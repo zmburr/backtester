@@ -1,0 +1,93 @@
+{
+  "experiment_id": "c92cd5f0",
+  "experiment_type": "exit_optimization",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "cap": "Medium",
+    "analysis_type": "all",
+    "trailing_percentages": [
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "metrics": {
+    "n": 31,
+    "atr_hit_rates": {
+      "1xx_hit_rate": 80.6,
+      "1.5xx_hit_rate": 64.5,
+      "2xx_hit_rate": 45.2,
+      "2.5xx_hit_rate": 38.7,
+      "3xx_hit_rate": 32.3
+    },
+    "atr_by_cap": {
+      "Medium": {
+        "1xx": 80.6,
+        "1.5xx": 64.5,
+        "2xx": 45.2,
+        "2.5xx": 38.7,
+        "3xx": 32.3
+      }
+    },
+    "time_exits": {
+      "10am": {
+        "avg_pnl": 3.77,
+        "win_rate": 61.3,
+        "n": 31
+      },
+      "1030am": {
+        "avg_pnl": 4.74,
+        "win_rate": 67.7,
+        "n": 31
+      },
+      "11am": {
+        "avg_pnl": 6.88,
+        "win_rate": 67.7,
+        "n": 31
+      },
+      "12pm": {
+        "avg_pnl": 9.69,
+        "win_rate": 71.0,
+        "n": 31
+      },
+      "1pm": {
+        "avg_pnl": 10.45,
+        "win_rate": 80.6,
+        "n": 31
+      },
+      "2pm": {
+        "avg_pnl": 9.97,
+        "win_rate": 74.2,
+        "n": 31
+      },
+      "close": {
+        "avg_pnl": 12.53,
+        "win_rate": 77.4,
+        "n": 31
+      }
+    },
+    "mfe_mae": {
+      "avg_mfe": 22.9,
+      "median_mfe": 17.44,
+      "avg_captured": 12.53,
+      "capture_efficiency": 11.1,
+      "avg_giveback": 20.64
+    },
+    "trailing_stop_results": {
+      "25pct": 17.93,
+      "50pct": 14.16,
+      "75pct": 10.69,
+      "100pct": 7.9
+    }
+  },
+  "summary": "Exit analysis: 1x ATR hit rate: ?%. Capture efficiency: 11.1%. 50% trailing stop would capture +14.16%.",
+  "statistical_tests": {},
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.0
+  },
+  "timestamp": "2026-03-13T22:04:50.093247",
+  "parent_id": "89c88b8c"
+}

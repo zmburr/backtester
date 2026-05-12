@@ -32,3 +32,7 @@ data/* - Copy.csv
 data/backscanner_cache/
 data/options_replay_cache/
 data/batch_results/
+
+# Generated report outputs (PDFs, HTML) — top-level only
+/reports/
+scripts/reports/

@@ -286,9 +286,33 @@ class SetupScreener:
         high_30d = window_30['high'].max()
         metrics['pct_off_30d_high'] = (current_close - high_30d) / high_30d if high_30d > 0 else 0
 
-        # --- Percent off 52-week high ---
-        high_52 = hist['high'].max()
-        metrics['pct_off_52wk_high'] = (current_close - high_52) / high_52 if high_52 > 0 else 0
+        # --- Percent from 52-week high ---
+        # Use the FULL window (incl. today's bar) so a fresh-high day produces a
+        # value <= 0, not a positive number. The prior implementation used
+        # hist['high'].max() (excluded today) which produced misleading positive
+        # values whenever today made a new period high — see case-note review
+        # 2026-05-05 (MU/SNDK).
+        high_52 = levels['high'].max()
+        intraday_high_today = levels.iloc[-1]['high'] if has_today_bar else None
+        prior_high_excl_today = hist['high'].max() if not hist.empty else None
+
+        # Canonical: pct_from_52wk_high follows the pct_from_* family convention
+        # (negative when below, ~0 at the high; cannot exceed 0 since
+        # current_close <= max high in the window).
+        metrics['pct_from_52wk_high'] = (current_close - high_52) / high_52 if high_52 > 0 else 0
+        # Backwards-compat alias for the bounce side (analyzers/bounce_scorer.py
+        # consumes 'pct_off_52wk_high' as a "discount from 52wk high" criterion).
+        metrics['pct_off_52wk_high'] = metrics['pct_from_52wk_high']
+
+        # --- Breaks 52-week high (parabolic-up archetype gate) ---
+        # True if today's intraday high prints at or above the prior period's
+        # max high (i.e. fresh 52wk break). Mirrors the 'breaks_fifty_two_wk'
+        # field used in scripts/generate_report.py.
+        if intraday_high_today is not None and prior_high_excl_today is not None:
+            metrics['breaks_52wk_high'] = bool(intraday_high_today >= prior_high_excl_today)
+        else:
+            metrics['breaks_52wk_high'] = False
+        metrics['breaks_fifty_two_wk'] = metrics['breaks_52wk_high']  # alias
 
         # --- Selloff total pct (for bounce screening) ---
         if consecutive_down > 0:

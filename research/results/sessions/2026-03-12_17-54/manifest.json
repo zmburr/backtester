@@ -1,0 +1,51 @@
+{
+  "session_id": "2026-03-12_17-54",
+  "started_at": "2026-03-12T17:54:47.184329",
+  "experiments": [
+    {
+      "index": 0,
+      "filename": "exp_000_exit_optimization.json",
+      "experiment_type": "exit_optimization",
+      "experiment_id": "2a1e1c41",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": null
+    },
+    {
+      "index": 1,
+      "filename": "exp_001_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "43421fb2",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "2a1e1c41"
+    },
+    {
+      "index": 2,
+      "filename": "exp_002_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "3d443e5c",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "43421fb2"
+    }
+  ],
+  "status": "completed",
+  "completed_at": "2026-03-12T17:55:19.596977",
+  "session_stats": {
+    "total_experiments": 3,
+    "significant_findings": 0,
+    "runtime_seconds": 32.4,
+    "claude_calls": 1,
+    "strategies_tested": [
+      "bounce",
+      "reversal"
+    ],
+    "experiment_types_used": [
+      "exit_optimization",
+      "regime_analysis",
+      "feature_importance"
+    ],
+    "statistical_guard_summary": "No tests registered yet."
+  }
+}

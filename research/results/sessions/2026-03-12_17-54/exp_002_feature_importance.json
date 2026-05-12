@@ -1,0 +1,31 @@
+{
+  "experiment_id": "3d443e5c",
+  "experiment_type": "feature_importance",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "target": "pnl",
+    "grade": null,
+    "cap": null
+  },
+  "metrics": {
+    "n_trades": 112,
+    "n_features_analyzed": 32,
+    "top_features": [],
+    "top_spearman": [],
+    "top_rf": []
+  },
+  "summary": "Top 5 predictors of reversal P&L: . Analyzed 32 features across 112 trades.",
+  "statistical_tests": {
+    "method": "spearman + random_forest",
+    "n_significant_spearman": 0
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.0,
+    "missing_features": [],
+    "target_mode": "pnl"
+  },
+  "timestamp": "2026-03-12T17:55:19.594024",
+  "parent_id": "43421fb2"
+}

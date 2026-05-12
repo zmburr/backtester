@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Local data and outputs
+.env
+data/
+charts/
+reports/
+*.log
+
+# Documentation (not needed in container)
+GOOGLE_CLOUD_DEPLOYMENT.md
+CLAUDE.md
+README.md
+
+# Test files
+test_*.py
+*_test.py

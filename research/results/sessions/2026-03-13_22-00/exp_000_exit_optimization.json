@@ -1,0 +1,114 @@
+{
+  "experiment_id": "f8d4656c",
+  "experiment_type": "exit_optimization",
+  "strategy": "reversal",
+  "parameters": {
+    "strategy": "reversal",
+    "cap": null,
+    "analysis_type": "all",
+    "trailing_percentages": [
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "metrics": {
+    "n": 52,
+    "atr_hit_rates": {
+      "1xx_hit_rate": 82.7,
+      "1.5xx_hit_rate": 67.3,
+      "2xx_hit_rate": 48.1,
+      "2.5xx_hit_rate": 40.4,
+      "3xx_hit_rate": 32.7
+    },
+    "atr_by_cap": {
+      "Medium": {
+        "1xx": 80.6,
+        "1.5xx": 64.5,
+        "2xx": 45.2,
+        "2.5xx": 38.7,
+        "3xx": 32.3
+      },
+      "Small": {
+        "1xx": 80.0,
+        "1.5xx": 80.0,
+        "2xx": 80.0,
+        "2.5xx": 40.0,
+        "3xx": 0.0
+      },
+      "ETF": {
+        "1xx": 80.0,
+        "1.5xx": 80.0,
+        "2xx": 40.0,
+        "2.5xx": 40.0,
+        "3xx": 40.0
+      },
+      "Large": {
+        "1xx": 85.7,
+        "1.5xx": 42.9,
+        "2xx": 14.3,
+        "2.5xx": 14.3,
+        "3xx": 14.3
+      }
+    },
+    "time_exits": {
+      "10am": {
+        "avg_pnl": 4.76,
+        "win_rate": 65.4,
+        "n": 52
+      },
+      "1030am": {
+        "avg_pnl": 6.05,
+        "win_rate": 75.0,
+        "n": 52
+      },
+      "11am": {
+        "avg_pnl": 7.05,
+        "win_rate": 75.0,
+        "n": 52
+      },
+      "12pm": {
+        "avg_pnl": 10.33,
+        "win_rate": 76.9,
+        "n": 52
+      },
+      "1pm": {
+        "avg_pnl": 11.54,
+        "win_rate": 84.6,
+        "n": 52
+      },
+      "2pm": {
+        "avg_pnl": 10.79,
+        "win_rate": 82.7,
+        "n": 52
+      },
+      "close": {
+        "avg_pnl": 13.5,
+        "win_rate": 84.6,
+        "n": 52
+      }
+    },
+    "mfe_mae": {
+      "avg_mfe": 21.97,
+      "median_mfe": 17.3,
+      "avg_captured": 13.5,
+      "capture_efficiency": 32.5,
+      "avg_giveback": 17.07
+    },
+    "trailing_stop_results": {
+      "25pct": 17.34,
+      "50pct": 14.17,
+      "75pct": 11.69,
+      "100pct": 9.81
+    }
+  },
+  "summary": "Exit analysis: 1x ATR hit rate: ?%. Capture efficiency: 32.5%. 50% trailing stop would capture +14.17%.",
+  "statistical_tests": {},
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.0
+  },
+  "timestamp": "2026-03-13T22:00:55.945046",
+  "parent_id": null
+}

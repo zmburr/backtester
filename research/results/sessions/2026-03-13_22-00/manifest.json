@@ -1,0 +1,136 @@
+{
+  "session_id": "2026-03-13_22-00",
+  "started_at": "2026-03-13T22:00:18.860328",
+  "experiments": [
+    {
+      "index": 0,
+      "filename": "exp_000_exit_optimization.json",
+      "experiment_type": "exit_optimization",
+      "experiment_id": "f8d4656c",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": null
+    },
+    {
+      "index": 1,
+      "filename": "exp_001_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "fc3294ae",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "f8d4656c"
+    },
+    {
+      "index": 2,
+      "filename": "exp_002_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "05eb8150",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "fc3294ae"
+    },
+    {
+      "index": 3,
+      "filename": "exp_003_regime_analysis.json",
+      "experiment_type": "regime_analysis",
+      "experiment_id": "aeddb91c",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "05eb8150"
+    },
+    {
+      "index": 4,
+      "filename": "exp_004_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "7f32194a",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "aeddb91c"
+    },
+    {
+      "index": 5,
+      "filename": "exp_005_walk_forward_sensitivity.json",
+      "experiment_type": "walk_forward_sensitivity",
+      "experiment_id": "c02481a2",
+      "strategy": "bounce",
+      "is_significant": true,
+      "parent_id": "7f32194a"
+    },
+    {
+      "index": 6,
+      "filename": "exp_006_risk_metrics.json",
+      "experiment_type": "risk_metrics",
+      "experiment_id": "ec3546ad",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "c02481a2"
+    },
+    {
+      "index": 7,
+      "filename": "exp_007_walk_forward_sensitivity.json",
+      "experiment_type": "walk_forward_sensitivity",
+      "experiment_id": "6f691763",
+      "strategy": "reversal",
+      "is_significant": true,
+      "parent_id": "ec3546ad"
+    },
+    {
+      "index": 8,
+      "filename": "exp_008_entry_signal_comparison.json",
+      "experiment_type": "entry_signal_comparison",
+      "experiment_id": "3dd97929",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "6f691763"
+    },
+    {
+      "index": 9,
+      "filename": "exp_009_feature_importance.json",
+      "experiment_type": "feature_importance",
+      "experiment_id": "89c88b8c",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "3dd97929"
+    },
+    {
+      "index": 10,
+      "filename": "exp_010_exit_optimization.json",
+      "experiment_type": "exit_optimization",
+      "experiment_id": "c92cd5f0",
+      "strategy": "reversal",
+      "is_significant": false,
+      "parent_id": "89c88b8c"
+    },
+    {
+      "index": 11,
+      "filename": "exp_011_filter_sweep.json",
+      "experiment_type": "filter_sweep",
+      "experiment_id": "57dd46d3",
+      "strategy": "bounce",
+      "is_significant": false,
+      "parent_id": "c92cd5f0"
+    }
+  ],
+  "status": "completed",
+  "completed_at": "2026-03-13T22:05:43.809525",
+  "session_stats": {
+    "total_experiments": 12,
+    "significant_findings": 3,
+    "runtime_seconds": 324.9,
+    "claude_calls": 7,
+    "strategies_tested": [
+      "reversal",
+      "bounce"
+    ],
+    "experiment_types_used": [
+      "entry_signal_comparison",
+      "risk_metrics",
+      "feature_importance",
+      "regime_analysis",
+      "walk_forward_sensitivity",
+      "filter_sweep",
+      "exit_optimization"
+    ],
+    "statistical_guard_summary": "No tests registered yet."
+  }
+}

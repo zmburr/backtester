@@ -1128,10 +1128,27 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
         }
 
         out_path = _SIGNAL_DIR / f"{date_str}_{session}.json"
-        out_path.write_text(json.dumps(payload, indent=2))
+        # numpy types (np.bool_, np.float64, etc) sneak in from the scoring
+        # pipeline — coerce them to native Python types so json.dumps works.
+        out_path.write_text(json.dumps(payload, indent=2, default=_json_default))
         print(f"Signals saved: {out_path.name} ({len(signals)} signals)")
     except Exception as e:
         log.warning(f"Failed to save signals JSON (non-fatal): {e}")
+
+
+def _json_default(obj):
+    """Coerce numpy + pandas scalar types to JSON-serialisable natives."""
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 def _send_report(html: str, go_count: int, caution_count: int, inline_images=None):

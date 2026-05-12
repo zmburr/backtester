@@ -1,0 +1,34 @@
+{
+  "experiment_id": "db2c9dd2",
+  "experiment_type": "feature_importance",
+  "strategy": "bounce",
+  "parameters": {
+    "strategy": "bounce",
+    "target": "pnl"
+  },
+  "metrics": {
+    "n_trades": 95,
+    "n_features_analyzed": 28,
+    "top_features": [],
+    "top_spearman": [],
+    "top_rf": []
+  },
+  "summary": "Top 5 predictors of bounce P&L: . Analyzed 28 features across 95 trades.",
+  "statistical_tests": {
+    "method": "spearman + random_forest",
+    "n_significant_spearman": 0
+  },
+  "is_significant": false,
+  "metadata": {
+    "runtime_seconds": 0.0,
+    "missing_features": [
+      "prior_day_close_vs_high_pct",
+      "consecutive_up_days",
+      "prior_day_range_atr",
+      "gap_from_pm_high"
+    ],
+    "target_mode": "pnl"
+  },
+  "timestamp": "2026-03-12T17:53:39.948072",
+  "parent_id": "b6d6d0ca"
+}
