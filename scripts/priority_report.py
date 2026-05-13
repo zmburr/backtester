@@ -34,6 +34,7 @@ from analyzers.bounce_exit_targets import (
     calculate_bounce_exit_targets,
     format_bounce_exit_targets_html,
 )
+from analyzers.setup_matcher import match_setup_for_report
 from support.config import send_email
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s – %(message)s")
@@ -510,6 +511,116 @@ def _build_comparables_addendum_html(
     )
 
 
+_SETUP_COLORS = {
+    '3DGapFade':         '#f78166',  # orange
+    '2DGapFade':         '#a371f7',  # purple
+    '2DBreakoutIB':      '#3fb950',  # green
+    'GapDownTrendBreak': '#58a6ff',  # blue
+}
+
+
+def _build_setup_match_html(match: Optional[Dict]) -> str:
+    """Compact HTML block for the premarket setup-matcher prediction.
+
+    Shows: predicted setup chip + premarket aggregates one-liner +
+    collapsed top-3 nearest historical neighbors.
+    """
+    if not match:
+        return ""
+
+    predicted = match.get('predicted') or '—'
+    color = _SETUP_COLORS.get(predicted, '#8b949e')
+
+    cen_conf = match.get('centroid_confidence')
+    knn_conf = match.get('knn_confidence')
+    conf_chip = ""
+    if cen_conf is not None and knn_conf is not None:
+        conf_chip = (
+            f' <span style="color:#8b949e; font-size:0.8em;">'
+            f'(centroid_conf {cen_conf:.2f} | knn_conf {knn_conf:.2f})'
+            f'</span>'
+        )
+
+    parts = [
+        f'<div style="margin-top: 14px; padding: 10px 12px; border-radius: 4px; '
+        f'background-color: #161b22; border-left: 4px solid {color};">',
+        f'<div style="margin-bottom: 6px;">'
+        f'<strong style="color: #c9d1d9;">Setup Match (premarket):</strong> '
+        f'<span style="color: {color}; font-weight: bold; font-size: 1.05em;">{predicted}</span>'
+        f'{conf_chip}'
+        f'</div>',
+    ]
+
+    # Premarket-aggregates one-liner
+    pm_high = match.get('pm_high')
+    pm_last = match.get('pm_last')
+    prior_close = match.get('prior_close')
+    pm_vol = match.get('pm_vol')
+    gap_pct = match.get('gap_pct')
+    if all(x is not None for x in (pm_last, prior_close)):
+        try:
+            gap_str = f"{float(gap_pct)*100:+.2f}%" if gap_pct is not None else "—"
+        except (TypeError, ValueError):
+            gap_str = "—"
+        try:
+            pm_high_pct = (float(pm_high) - float(prior_close)) / float(prior_close) * 100 if pm_high and prior_close else None
+        except (TypeError, ValueError, ZeroDivisionError):
+            pm_high_pct = None
+        try:
+            pm_vol_str = f"{int(pm_vol):,}" if pm_vol else "0"
+        except (TypeError, ValueError):
+            pm_vol_str = "—"
+        pm_high_str = (
+            f"${float(pm_high):.2f} ({pm_high_pct:+.2f}%)" if pm_high and pm_high_pct is not None
+            else f"${float(pm_high):.2f}" if pm_high else "—"
+        )
+        try:
+            pm_last_str = f"${float(pm_last):.2f}"
+        except (TypeError, ValueError):
+            pm_last_str = "—"
+        try:
+            prior_close_str = f"${float(prior_close):.2f}"
+        except (TypeError, ValueError):
+            prior_close_str = "—"
+        parts.append(
+            f'<div style="font-size: 0.85em; color: #8b949e;">'
+            f'PM Last: {pm_last_str} (gap {gap_str}) &middot; '
+            f'PM High: {pm_high_str} &middot; '
+            f'Prior Close: {prior_close_str} &middot; '
+            f'PM Vol: {pm_vol_str}'
+            f'</div>'
+        )
+
+    # Top-3 neighbors (collapsed)
+    neighbors = (match.get('neighbors') or [])[:3]
+    if neighbors:
+        nrows = []
+        for n in neighbors:
+            ncolor = _SETUP_COLORS.get(n.get('setup', ''), '#8b949e')
+            try:
+                d_str = f"{float(n.get('distance', 0)):.3f}"
+            except (TypeError, ValueError):
+                d_str = "—"
+            nrows.append(
+                f'<tr>'
+                f'<td style="padding: 2px 10px; color: #c9d1d9; font-weight: bold;">{n.get("ticker", "")}</td>'
+                f'<td style="padding: 2px 10px; color: #8b949e;">{n.get("date", "")}</td>'
+                f'<td style="padding: 2px 10px; color: {ncolor};">{n.get("setup", "")}</td>'
+                f'<td style="padding: 2px 10px; color: #8b949e;">d={d_str}</td>'
+                f'</tr>'
+            )
+        parts.append(
+            '<details style="margin-top: 6px;">'
+            '<summary style="color: #8b949e; cursor: pointer; font-size: 0.85em;">Nearest 3 historical analogs</summary>'
+            '<table style="border-collapse: collapse; font-size: 0.85em; margin-top: 4px;">'
+            + ''.join(nrows) +
+            '</table></details>'
+        )
+
+    parts.append('</div>')
+    return ''.join(parts)
+
+
 def build_priority_ticker_html(item: Dict) -> str:
     """Build full HTML section for one priority ticker."""
     ticker = item["ticker"]
@@ -520,6 +631,7 @@ def build_priority_ticker_html(item: Dict) -> str:
     comps_html = item.get("comps_html", "")
     exit_html = item.get("exit_html", "")
     intensity_html = item.get("intensity_html", "")
+    setup_match_html = item.get("setup_match_html", "")
     chart_data_uri = item.get("chart_data_uri", "")
 
     # Window label + color
@@ -554,6 +666,10 @@ def build_priority_ticker_html(item: Dict) -> str:
     # Intensity (bounce + reversal)
     if intensity_html:
         lines.append(intensity_html)
+
+    # Setup matcher (reversal only — premarket k-NN/centroid classifier)
+    if setup_match_html:
+        lines.append(setup_match_html)
 
     # Upgrade table (CAUTION only)
     if upgrade_html:
@@ -893,6 +1009,28 @@ def generate_priority_report() -> str:
                     item["ticker"], item["bucket"], item["score_result"], item["metrics"]
                 )
 
+        # 4c) Premarket setup matcher (reversal bucket only).
+        # Runs match_setup(premarket=True) in parallel for each reversal
+        # priority ticker. Saves a per-ticker dict to setup_match_map (used
+        # in 4d to render the inline HTML chip) and persists a JSON record
+        # of today's predictions for later precision/recall tracking.
+        t0 = time.time()
+        print("Phase 4c: Running premarket setup matcher (reversal tickers)...")
+        setup_match_map: Dict[str, Optional[Dict]] = {}
+        reversal_tickers = [item["ticker"] for item in priority if item["bucket"] == "reversal"]
+        if reversal_tickers:
+            with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+                futs = {executor.submit(match_setup_for_report, tk, today): tk for tk in reversal_tickers}
+                for f in as_completed(futs):
+                    tk = futs[f]
+                    try:
+                        setup_match_map[tk] = f.result()
+                    except Exception as e:
+                        log.warning(f"{tk}: setup matcher failed – {e}")
+                        setup_match_map[tk] = None
+        timings["setup_matcher"] = time.time() - t0
+        print(f"Phase 4c: Setup matcher ran for {sum(1 for v in setup_match_map.values() if v)} tickers")
+
         # 4d) Build score HTML, exit targets, charts
         print("Phase 4d: Building HTML sections + charts...")
         ticker_html_map: Dict[str, str] = {}
@@ -989,6 +1127,11 @@ def generate_priority_report() -> str:
             except Exception as e:
                 log.warning(f"Chart failed for {ticker}: {e}")
 
+            # Setup matcher HTML (reversal only — premarket k-NN/centroid classifier)
+            setup_match_html = ""
+            if bucket == "reversal":
+                setup_match_html = _build_setup_match_html(setup_match_map.get(ticker))
+
             # Assemble ticker HTML
             ticker_html_map[ticker] = build_priority_ticker_html({
                 "ticker": ticker,
@@ -996,6 +1139,7 @@ def generate_priority_report() -> str:
                 "rec": item["rec"],
                 "score_html": score_html,
                 "intensity_html": intensity_html,
+                "setup_match_html": setup_match_html,
                 "upgrade_html": upgrade_html,
                 "comps_html": comps_html,
                 "exit_html": exit_html,
