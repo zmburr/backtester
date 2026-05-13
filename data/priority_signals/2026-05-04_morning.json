@@ -1,0 +1,144 @@
+{
+  "date": "2026-05-04",
+  "session": "morning",
+  "generated_at": "2026-05-04T09:04:54.731568",
+  "go_count": 5,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.158572,
+        "pct_change_3": 0.184217,
+        "gap_pct": 0.017254,
+        "prior_day_range_atr": 2.022273,
+        "atr_pct": 0.057841,
+        "prior_day_rvol": 1.529801,
+        "premarket_rvol": 0.046289
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 2.4206292858167244,
+        "pct_change_30": 0.5373855379554197,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "STX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.190186,
+        "pct_change_3": 0.255427,
+        "gap_pct": 0.023482,
+        "prior_day_range_atr": 1.680569,
+        "atr_pct": 0.051746,
+        "prior_day_rvol": 1.795576,
+        "premarket_rvol": 0.05235
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.4320079707099942,
+        "pct_change_30": 0.6726415094339621,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "INTC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.157376,
+        "pct_change_3": 0.178656,
+        "gap_pct": -0.010681,
+        "prior_day_range_atr": 1.440439,
+        "atr_pct": 0.055225,
+        "prior_day_rvol": 1.152797,
+        "premarket_rvol": 0.022917
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.4541508856069267,
+        "pct_change_30": 1.1572109138155047,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SIMO",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.310695,
+        "pct_change_3": 0.572061,
+        "gap_pct": 0.023367,
+        "prior_day_range_atr": 1.641566,
+        "atr_pct": 0.063456,
+        "prior_day_rvol": 1.600044,
+        "premarket_rvol": 0.00924
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.3129866005794995,
+        "pct_change_30": 0.8393725490196079,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.12521,
+        "pct_change_3": 0.190215,
+        "gap_pct": 0.001074,
+        "prior_day_range_atr": 1.052256,
+        "atr_pct": 0.070762,
+        "prior_day_rvol": 0.54235,
+        "premarket_rvol": 0.057872
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.6865886662756349,
+        "pct_change_30": 1.3773928896991798,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

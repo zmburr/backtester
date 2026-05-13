@@ -1,0 +1,117 @@
+{
+  "date": "2026-04-30",
+  "session": "morning",
+  "generated_at": "2026-04-30T09:32:31.823989",
+  "go_count": 4,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "INTC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.225364,
+        "pct_change_3": 0.147928,
+        "gap_pct": 0.012661,
+        "prior_day_range_atr": 1.808791,
+        "atr_pct": 0.052318,
+        "prior_day_rvol": 1.824775,
+        "premarket_rvol": 0.033409
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.1504766227871084,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.556089,
+        "pct_change_3": 0.119363,
+        "gap_pct": 0.069757,
+        "prior_day_range_atr": 2.526485,
+        "atr_pct": 0.09228,
+        "prior_day_rvol": 3.833995,
+        "premarket_rvol": 0.054893
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 3.0166567519333727,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "BE",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.262924,
+        "pct_change_3": 0.245707,
+        "gap_pct": 0.027538,
+        "prior_day_range_atr": 1.112342,
+        "atr_pct": 0.07,
+        "prior_day_rvol": 1.950053,
+        "premarket_rvol": 0.017226
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.7992502343017808,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SIMO",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.430424,
+        "pct_change_3": 0.417307,
+        "gap_pct": 0.039936,
+        "prior_day_range_atr": 2.141691,
+        "atr_pct": 0.05198,
+        "prior_day_rvol": 7.179388,
+        "premarket_rvol": 0.074578
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.7237280076081787,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

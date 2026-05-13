@@ -1,0 +1,25 @@
+{
+  "date": "2026-04-28",
+  "session": "evening",
+  "generated_at": "2026-04-28T17:04:42.502246",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "CAR",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.708325,
+        "pct_off_30d_high": -0.785295,
+        "gap_pct": -0.002994,
+        "pct_change_3": -0.205704,
+        "prior_day_range_atr": 0.207959,
+        "pct_off_52wk_high": -0.785295,
+        "atr_pct": 0.636993
+      }
+    }
+  ]
+}

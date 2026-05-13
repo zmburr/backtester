@@ -1,0 +1,90 @@
+{
+  "date": "2026-05-05",
+  "session": "morning",
+  "generated_at": "2026-05-05T11:46:09.934003",
+  "go_count": 3,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.229266,
+        "pct_change_3": 0.11185,
+        "gap_pct": 0.105959,
+        "prior_day_range_atr": 1.057658,
+        "atr_pct": 0.051964,
+        "prior_day_rvol": 1.166807,
+        "premarket_rvol": 0.109817
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.36308820052021773,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.266886,
+        "pct_change_3": 0.180087,
+        "gap_pct": 0.094469,
+        "prior_day_range_atr": 0.913952,
+        "atr_pct": 0.05581,
+        "prior_day_rvol": 1.140445,
+        "premarket_rvol": 0.05929
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.7695396711332796,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.150665,
+        "pct_change_3": 0.249522,
+        "gap_pct": -0.004094,
+        "prior_day_range_atr": 1.567582,
+        "atr_pct": 0.071527,
+        "prior_day_rvol": 1.480498,
+        "premarket_rvol": 0.062285
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.4999149804455023,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

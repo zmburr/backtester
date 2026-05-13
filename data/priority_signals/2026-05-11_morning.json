@@ -1,0 +1,225 @@
+{
+  "date": "2026-05-11",
+  "session": "morning",
+  "generated_at": "2026-05-11T08:43:08.124749",
+  "go_count": 8,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.215028,
+        "pct_change_3": 0.281287,
+        "gap_pct": 0.020233,
+        "prior_day_range_atr": 1.413572,
+        "atr_pct": 0.057886,
+        "prior_day_rvol": 1.274297,
+        "premarket_rvol": 0.029237
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.2338420768513518,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.118428,
+        "pct_change_3": 0.153239,
+        "gap_pct": 0.032417,
+        "prior_day_range_atr": 1.119968,
+        "atr_pct": 0.061391,
+        "prior_day_rvol": 1.737113,
+        "premarket_rvol": 0.022044
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.3814661543009164,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "INTC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.254758,
+        "pct_change_3": 0.155062,
+        "gap_pct": 0.042747,
+        "prior_day_range_atr": 2.375307,
+        "atr_pct": 0.060664,
+        "prior_day_rvol": 1.606724,
+        "premarket_rvol": 0.056057
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.8326530612244896,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.265728,
+        "pct_change_3": 0.166526,
+        "gap_pct": 0.044249,
+        "prior_day_range_atr": 1.694067,
+        "atr_pct": 0.053742,
+        "prior_day_rvol": 1.580158,
+        "premarket_rvol": 0.065702
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.100967760085523,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "CRWD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.083057,
+        "pct_change_3": 0.107527,
+        "gap_pct": -0.014722,
+        "prior_day_range_atr": 1.777482,
+        "atr_pct": 0.039582,
+        "prior_day_rvol": 1.303439,
+        "premarket_rvol": 0.003042
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.3442259691304569,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.224757,
+        "pct_change_3": 0.339132,
+        "gap_pct": -0.007301,
+        "prior_day_range_atr": 2.578949,
+        "atr_pct": 0.073144,
+        "prior_day_rvol": 3.684837,
+        "premarket_rvol": 0.047383
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.5994843797391568,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.202387,
+        "pct_change_3": 0.110942,
+        "gap_pct": -0.002791,
+        "prior_day_range_atr": 1.718383,
+        "atr_pct": 0.064575,
+        "prior_day_rvol": 1.275164,
+        "premarket_rvol": 0.038823
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.5902150305883913,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.246366,
+        "pct_change_3": 0.227386,
+        "gap_pct": 0.015599,
+        "prior_day_range_atr": 1.143355,
+        "atr_pct": 0.077825,
+        "prior_day_rvol": 0.714801,
+        "premarket_rvol": 0.037671
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": null,
+        "pct_change_30": 2.613232591382479,
+        "passed_by_52wk": true,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

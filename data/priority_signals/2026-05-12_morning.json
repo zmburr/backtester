@@ -1,0 +1,144 @@
+{
+  "date": "2026-05-12",
+  "session": "morning",
+  "generated_at": "2026-05-12T08:44:31.886543",
+  "go_count": 5,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.131071,
+        "pct_change_3": 0.142204,
+        "gap_pct": -0.020879,
+        "prior_day_range_atr": 1.332085,
+        "atr_pct": 0.063809,
+        "prior_day_rvol": 1.80833,
+        "premarket_rvol": 0.026092
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.5158979606753891,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "INTC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.13163,
+        "pct_change_3": 0.145385,
+        "gap_pct": -0.047607,
+        "prior_day_range_atr": 1.052713,
+        "atr_pct": 0.06804,
+        "prior_day_rvol": 1.209792,
+        "premarket_rvol": 0.018571
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 2.001159285879898,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.178011,
+        "pct_change_3": 0.193132,
+        "gap_pct": -0.034326,
+        "prior_day_range_atr": 1.104792,
+        "atr_pct": 0.059716,
+        "prior_day_rvol": 1.665505,
+        "premarket_rvol": 0.023153
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.2264430882929287,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.197313,
+        "pct_change_3": 0.357914,
+        "gap_pct": -0.056071,
+        "prior_day_range_atr": 2.243312,
+        "atr_pct": 0.118636,
+        "prior_day_rvol": 1.862263,
+        "premarket_rvol": 0.008769
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 1.7355072463768115,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.221763,
+        "pct_change_3": 0.386297,
+        "gap_pct": -0.04363,
+        "prior_day_range_atr": 2.307981,
+        "atr_pct": 0.076981,
+        "prior_day_rvol": 2.21276,
+        "premarket_rvol": 0.016964
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 0.9259806335138683,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "date": "2026-04-20",
+  "session": "morning",
+  "generated_at": "2026-04-20T10:21:32.455317",
+  "go_count": 1,
+  "caution_count": 6,
+  "signals": [
+    {
+      "ticker": "IONQ",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.23076,
+        "pct_change_3": 0.28887,
+        "gap_pct": 0.000868,
+        "prior_day_range_atr": 1.015838,
+        "atr_pct": 0.064233,
+        "prior_day_rvol": 1.722134,
+        "premarket_rvol": 0.076159
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.09268,
+        "pct_change_3": 0.091426,
+        "gap_pct": -0.005711,
+        "prior_day_range_atr": 0.67611,
+        "atr_pct": 0.036923,
+        "prior_day_rvol": 0.992099,
+        "premarket_rvol": 0.054072
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.044518,
+        "pct_change_3": 0.044044,
+        "gap_pct": 0.013507,
+        "prior_day_range_atr": 0.897139,
+        "atr_pct": 0.02271,
+        "prior_day_rvol": 1.389642,
+        "premarket_rvol": 0.028896
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.191588,
+        "pct_change_3": 0.17419,
+        "gap_pct": 0.051061,
+        "prior_day_range_atr": 0.636103,
+        "atr_pct": 0.059793,
+        "prior_day_rvol": 1.025427,
+        "premarket_rvol": 0.043377
+      }
+    },
+    {
+      "ticker": "CRML",
+      "bucket": "reversal",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.256923,
+        "pct_change_3": 0.428896,
+        "gap_pct": -0.048567,
+        "prior_day_range_atr": 2.084777,
+        "atr_pct": 0.104363,
+        "prior_day_rvol": 6.679332,
+        "premarket_rvol": 0.220404
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.052202,
+        "pct_change_3": 0.1,
+        "gap_pct": -0.014727,
+        "prior_day_range_atr": 1.057996,
+        "atr_pct": 0.042216,
+        "prior_day_rvol": 1.297426,
+        "premarket_rvol": 0.035224
+      }
+    },
+    {
+      "ticker": "CAR",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "pct_from_9ema": 0.373384,
+        "pct_change_3": 0.199971,
+        "gap_pct": 0.029239,
+        "prior_day_range_atr": 1.479163,
+        "atr_pct": 0.105844,
+        "prior_day_rvol": 1.354962,
+        "premarket_rvol": 0.02989
+      }
+    }
+  ]
+}
