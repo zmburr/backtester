@@ -281,12 +281,17 @@ def create_daily_chart(ticker: str, output_dir: str = "charts", extra_hlines: li
     is_live = end_date is None
     if end_date is None:
         end_date = datetime.today().strftime("%Y-%m-%d")
-    start_window = 205  # days back
+    start_window = 365  # calendar days back — ~1 year of trading data
 
     # Fetch last year's daily data (trading days only handled by get_levels_data)
     df = get_levels_data(ticker, end_date, window=start_window, multiplier=1, timespan="day")
     if df is None or df.empty:
         raise ValueError(f"No data returned for {ticker}")
+
+    # Hard cap: keep at most the last 252 trading days (one trading year).
+    # Defense in depth in case the API returns more than requested.
+    if len(df) > 252:
+        df = df.iloc[-252:]
 
     # For live charts, splice today's intraday OHLC onto the daily series so the
     # chart, MAs, and 1Y-high hline reflect price action through *now*, not the
