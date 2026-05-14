@@ -1,0 +1,117 @@
+{
+  "date": "2026-05-14",
+  "session": "evening",
+  "generated_at": "2026-05-14T15:17:01.617826",
+  "go_count": 4,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "NBIS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.254295,
+        "pct_change_3": 0.170686,
+        "gap_pct": 0.09671,
+        "prior_day_range_atr": 1.290605,
+        "atr_pct": 0.076149,
+        "prior_day_rvol": 2.577577,
+        "premarket_rvol": 0.062175
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.1824815328208729,
+        "pct_change_30": 0.9975905936777179,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.444462,
+        "pct_change_3": 0.343348,
+        "gap_pct": 0.088299,
+        "prior_day_range_atr": 2.223374,
+        "atr_pct": 0.099952,
+        "prior_day_rvol": 4.899803,
+        "premarket_rvol": 0.086785
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.7740630972495355,
+        "pct_change_30": 2.8357843137254903,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.107552,
+        "pct_change_3": 0.104686,
+        "gap_pct": 0.007845,
+        "prior_day_range_atr": 1.097796,
+        "atr_pct": 0.06874,
+        "prior_day_rvol": 1.116217,
+        "premarket_rvol": 0.044154
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.9729794805583836,
+        "pct_change_30": 0.5187909097595057,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.283176,
+        "pct_change_3": 0.177112,
+        "gap_pct": 0.058679,
+        "prior_day_range_atr": 1.157446,
+        "atr_pct": 0.068034,
+        "prior_day_rvol": 0.978457,
+        "premarket_rvol": 0.030725
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.0504464266561933,
+        "pct_change_30": 0.9331983805668017,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
