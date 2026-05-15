@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-15",
+  "session": "morning",
+  "generated_at": "2026-05-15T05:46:03.607445",
+  "go_count": 2,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "POET",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.495173,
+        "pct_change_3": 0.479856,
+        "gap_pct": -0.02771,
+        "prior_day_range_atr": 1.406371,
+        "atr_pct": 0.121732,
+        "prior_day_rvol": 2.117478,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.0280205451193987,
+        "pct_change_30": 2.673214285714286,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.256677,
+        "pct_change_3": 0.390578,
+        "gap_pct": -0.070898,
+        "prior_day_range_atr": 1.669382,
+        "atr_pct": 0.112431,
+        "prior_day_rvol": 2.111157,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.533828250510366,
+        "pct_change_30": 3.2528875379939204,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
