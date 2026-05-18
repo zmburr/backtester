@@ -180,6 +180,11 @@ class CriteriaThresholds:
 
 
 # Cap-specific thresholds - validated against 110 trades (V2)
+# V3 (May 2026): Medium prior_day_range_atr 1.0->1.2, Medium rvol_score 1.5->2.0,
+# Large rvol_score 1.0->1.25. Calibrated against reversal_data.csv (n=121)
+# excluded-zone tradeable rates (MFE>=1 ATR); see signal_analysis 2026-05-15.
+# Live-system rec to raise Medium gap_pct -> 0.10 and Large gap_pct -> 0.03
+# was rejected: excluded zones were 78% and 86% tradeable in historical data.
 # TRUE A requires 5/6 or 6/6 criteria passed
 CAP_THRESHOLDS = {
     'Micro': CriteriaThresholds(
@@ -200,8 +205,8 @@ CAP_THRESHOLDS = {
     ),
     'Medium': CriteriaThresholds(
         pct_from_9ema=0.15,       # >= 15% above 9EMA
-        prior_day_range_atr=1.0,  # >= 1x ATR
-        rvol_score=1.5,           # >= 1.5x RVOL
+        prior_day_range_atr=1.2,  # >= 1.2x ATR (V3: was 1.0; excluded zone 44% tradeable vs 73% above)
+        rvol_score=2.0,           # >= 2x RVOL (V3: was 1.5; real separation cliff at 2.0, not 1.7)
         pct_change_3=0.10,        # >= 10% 3-day run
         gap_pct=0.05,             # >= 5% gap
         reversal_pct=-0.05,       # >= 5% reversal
@@ -209,7 +214,7 @@ CAP_THRESHOLDS = {
     'Large': CriteriaThresholds(
         pct_from_9ema=0.08,       # >= 8% above 9EMA
         prior_day_range_atr=0.8,  # >= 0.8x ATR
-        rvol_score=1.0,           # >= 1x RVOL
+        rvol_score=1.25,          # >= 1.25x RVOL (V3: was 1.0; <1.25 = 33% tradeable, 1.25-1.43 = 80%)
         pct_change_3=0.05,        # >= 5% 3-day run
         gap_pct=0.01,             # >= 1% gap (filters flat opens)
         reversal_pct=-0.03,       # >= 3% reversal
