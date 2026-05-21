@@ -1550,6 +1550,15 @@ ROUTING_MA_KEYS = ("pct_from_10mav", "pct_from_20mav", "pct_from_50mav", "pct_fr
 # Add tickers here when you want to track them as long breakouts.
 BREAKOUT_WATCHLIST: List[str] = []
 
+# Semiconductor (+ storage/flash) names charted vs SOXX in the relative-performance
+# block at the top of the report. Edit this list to curate the universe — only
+# names present in this list are plotted (they need not be on the main watchlist).
+SEMI_NAMES: List[str] = [
+    'NVDA', 'AMD', 'AVGO', 'MRVL', 'INTC', 'QCOM', 'MU', 'ON', 'STM', 'ARM',
+    'MXL', 'SIMO', 'NVTS', 'WOLF', 'CRDO', 'AXTI',  # core semis
+    'WDC', 'STX', 'SNDK',                            # storage / flash
+]
+
 
 def _safe_num(x) -> Optional[float]:
     try:
@@ -1996,6 +2005,99 @@ def _png_to_data_uri(path: Path) -> str:
     encoded = base64.b64encode(path.read_bytes()).decode()
     return f"data:image/png;base64,{encoded}"
 
+
+def create_rs_momentum_heatmap(
+    date: str,
+    output_dir: str = "charts",
+    window: int = 45,
+    benchmark: str = "SOXX",
+    names: Optional[List[str]] = None,
+    mom_lookback: int = 3,
+    display_days: int = 14,
+) -> Optional[str]:
+    """Heatmap of each semi's relative-strength MOMENTUM vs the benchmark.
+
+    Surfaces *changes* in relative performance (inflections) rather than the
+    accumulated level: for each name we build the relative-strength line
+    (name_close / benchmark_close) and color each day by its ``mom_lookback``-day
+    rate-of-change. Green = RS accelerating (starting to outperform the index),
+    red = RS rolling over (starting to lag). Rows are sorted so names with the
+    strongest recent momentum sit at top. ``window`` is calendar days (snapped to
+    a trading day). Returns the saved PNG path, or *None* on missing data.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import TwoSlopeNorm
+    import numpy as np
+
+    names = names if names is not None else SEMI_NAMES
+
+    def _close_series(ticker: str) -> Optional[pd.Series]:
+        df = _pq_module.get_levels_data(ticker, date, window, 1, "day")
+        if df is None or df.empty or "close" not in df.columns:
+            return None
+        s = df["close"].copy()
+        s.index = s.index.normalize()  # align on calendar date across tickers
+        return s[~s.index.duplicated(keep="last")]
+
+    bench_close = _close_series(benchmark)
+    if bench_close is None or len(bench_close) < mom_lookback + 2:
+        print(f"RS-momentum heatmap skipped: no {benchmark} data")
+        return None
+
+    mom: Dict[str, pd.Series] = {}
+    for ticker in names:
+        nc = _close_series(ticker)
+        if nc is None or len(nc) < mom_lookback + 2:
+            continue
+        common = bench_close.index.intersection(nc.index)
+        if len(common) < mom_lookback + 2:
+            continue
+        rs = nc.loc[common] / bench_close.loc[common]          # relative strength line
+        mom[ticker] = rs.pct_change(periods=mom_lookback) * 100.0
+
+    if not mom:
+        print("RS-momentum heatmap skipped: no semi data fetched")
+        return None
+
+    mom_df = pd.DataFrame(mom).tail(display_days)
+    # strongest recent momentum (last 5 days mean) at top
+    order = mom_df.tail(5).mean().sort_values(ascending=False).index
+    mom_df = mom_df[order]
+
+    data = mom_df.T.values                       # rows=tickers, cols=dates
+    vmax = float(np.nanpercentile(np.abs(data), 92)) or 1.0
+    norm = TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax)
+
+    fig, ax = plt.subplots(figsize=(13, 8))
+    im = ax.imshow(data, aspect="auto", cmap="RdYlGn", norm=norm)
+
+    ax.set_yticks(range(len(order)))
+    ax.set_yticklabels(order, fontsize=9)
+    dates = [d.strftime("%m/%d") for d in mom_df.index]
+    ax.set_xticks(range(len(dates)))
+    ax.set_xticklabels(dates, rotation=90, fontsize=8)
+    ax.set_title(
+        f"Semis RS-momentum vs {benchmark}  ({mom_lookback}-day rate-of-change of relative strength)\n"
+        f"green = starting to outperform {benchmark}, red = starting to lag",
+        fontsize=12,
+    )
+    cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.01)
+    cbar.set_label(f"RS {mom_lookback}d change vs {benchmark} (%)")
+
+    ax.set_xticks(np.arange(-.5, len(dates), 1), minor=True)
+    ax.set_yticks(np.arange(-.5, len(order), 1), minor=True)
+    ax.grid(which="minor", color="white", linewidth=0.6)
+    ax.tick_params(which="minor", length=0)
+
+    fig.tight_layout()
+    Path(output_dir).mkdir(exist_ok=True)
+    out_path = Path(output_dir) / "rs_momentum_heatmap.png"
+    fig.savefig(out_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    return str(out_path)
+
 # -------------------------------------------------
 # PDF export helper
 # -------------------------------------------------
@@ -2240,6 +2342,23 @@ def generate_report() -> str:
             sections.append(html)
         timings['chart_rendering'] = time.time() - t0
 
+        # Market-context block: semis RS-momentum heatmap vs SOXX (top of report)
+        t0 = time.time()
+        relperf_html = ""
+        try:
+            relperf_path = create_rs_momentum_heatmap(today, output_dir=charts_dir)
+            if relperf_path:
+                relperf_html = (
+                    '<div style="margin-bottom:16px;">'
+                    f'<img src="{_png_to_data_uri(Path(relperf_path))}" '
+                    'alt="Semis RS-momentum vs SOXX" '
+                    'style="max-width:860px; display:block; border-radius:4px;">'
+                    '</div>'
+                )
+        except Exception as e:
+            print(f"Failed to generate RS-momentum heatmap: {e}")
+        timings['relperf_chart'] = time.time() - t0
+
         # Put the long scoring guides at the bottom (tickers first).
         date_banner = (
             f'<div style="background-color: #21262d; color: #ffffff; padding: 10px 14px; '
@@ -2254,7 +2373,7 @@ def generate_report() -> str:
             '<strong>TRADING RULES &amp; REFERENCE</strong> — scroll down for scoring guides and checklists'
             '</div>'
         )
-        body_content = date_banner + "<br><br>\n".join(sections) + "<hr>" + rules_separator + HEADER_HTML
+        body_content = date_banner + relperf_html + "<br><br>\n".join(sections) + "<hr>" + rules_separator + HEADER_HTML
         html_report = (
             '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
             'Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #c9d1d9; '
