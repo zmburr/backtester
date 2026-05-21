@@ -2009,21 +2009,23 @@ def _png_to_data_uri(path: Path) -> str:
 def create_rs_momentum_heatmap(
     date: str,
     output_dir: str = "charts",
-    window: int = 45,
+    window: int = 90,
     benchmark: str = "SOXX",
     names: Optional[List[str]] = None,
     mom_lookback: int = 3,
     display_days: int = 14,
 ) -> Optional[str]:
-    """Heatmap of each semi's relative-strength MOMENTUM vs the benchmark.
+    """Heatmap of each semi's relative-strength momentum vs the benchmark,
+    colored SELF-RELATIVELY (per-name percentile).
 
-    Surfaces *changes* in relative performance (inflections) rather than the
-    accumulated level: for each name we build the relative-strength line
-    (name_close / benchmark_close) and color each day by its ``mom_lookback``-day
-    rate-of-change. Green = RS accelerating (starting to outperform the index),
-    red = RS rolling over (starting to lag). Rows are sorted so names with the
-    strongest recent momentum sit at top. ``window`` is calendar days (snapped to
-    a trading day). Returns the saved PNG path, or *None* on missing data.
+    Surfaces *changes* in relative performance (inflections): for each name we
+    build the relative-strength line (name_close / benchmark_close), take its
+    ``mom_lookback``-day rate-of-change, then color each day by where that value
+    ranks within THAT name's own history (0-100th percentile over the ~``window``
+    lookback). Green = unusually strong for that name, red = unusually weak —
+    independent of how large its moves are versus other names. Rows are sorted so
+    names at their highest recent self-percentile sit at top. ``window`` is
+    calendar days (snapped to a trading day). Returns the PNG path, or *None*.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -2032,6 +2034,7 @@ def create_rs_momentum_heatmap(
     import numpy as np
 
     names = names if names is not None else SEMI_NAMES
+    min_len = mom_lookback + 5
 
     def _close_series(ticker: str) -> Optional[pd.Series]:
         df = _pq_module.get_levels_data(ticker, date, window, 1, "day")
@@ -2042,49 +2045,59 @@ def create_rs_momentum_heatmap(
         return s[~s.index.duplicated(keep="last")]
 
     bench_close = _close_series(benchmark)
-    if bench_close is None or len(bench_close) < mom_lookback + 2:
+    if bench_close is None or len(bench_close) < min_len:
         print(f"RS-momentum heatmap skipped: no {benchmark} data")
         return None
 
-    mom: Dict[str, pd.Series] = {}
+    # Per name: RS-momentum, then percentile rank within the name's own history
+    pct: Dict[str, pd.Series] = {}
     for ticker in names:
         nc = _close_series(ticker)
-        if nc is None or len(nc) < mom_lookback + 2:
+        if nc is None or len(nc) < min_len:
             continue
         common = bench_close.index.intersection(nc.index)
-        if len(common) < mom_lookback + 2:
+        if len(common) < min_len:
             continue
         rs = nc.loc[common] / bench_close.loc[common]          # relative strength line
-        mom[ticker] = rs.pct_change(periods=mom_lookback) * 100.0
+        rs_mom = rs.pct_change(periods=mom_lookback)
+        pct[ticker] = rs_mom.rank(pct=True) * 100.0            # 0-100 self-percentile
 
-    if not mom:
+    if not pct:
         print("RS-momentum heatmap skipped: no semi data fetched")
         return None
 
-    mom_df = pd.DataFrame(mom).tail(display_days)
-    # strongest recent momentum (last 5 days mean) at top
-    order = mom_df.tail(5).mean().sort_values(ascending=False).index
-    mom_df = mom_df[order]
+    pct_df = pd.DataFrame(pct).tail(display_days)
+    # highest recent self-percentile (last 3 days mean) at top
+    order = pct_df.tail(3).mean().sort_values(ascending=False).index
+    pct_df = pct_df[order]
 
-    data = mom_df.T.values                       # rows=tickers, cols=dates
-    vmax = float(np.nanpercentile(np.abs(data), 92)) or 1.0
-    norm = TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax)
+    data = pct_df.T.values                       # rows=tickers, cols=dates
+    norm = TwoSlopeNorm(vmin=0, vcenter=50, vmax=100)
 
-    fig, ax = plt.subplots(figsize=(13, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
     im = ax.imshow(data, aspect="auto", cmap="RdYlGn", norm=norm)
 
     ax.set_yticks(range(len(order)))
     ax.set_yticklabels(order, fontsize=9)
-    dates = [d.strftime("%m/%d") for d in mom_df.index]
+    dates = [d.strftime("%m/%d") for d in pct_df.index]
     ax.set_xticks(range(len(dates)))
     ax.set_xticklabels(dates, rotation=90, fontsize=8)
     ax.set_title(
-        f"Semis RS-momentum vs {benchmark}  ({mom_lookback}-day rate-of-change of relative strength)\n"
-        f"green = starting to outperform {benchmark}, red = starting to lag",
-        fontsize=12,
+        f"Semis RS-momentum vs {benchmark} — self-relative percentile "
+        f"({mom_lookback}d RS rate-of-change)\n"
+        f"each cell = percentile within that name's own history; green = high for it",
+        fontsize=11,
     )
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.01)
-    cbar.set_label(f"RS {mom_lookback}d change vs {benchmark} (%)")
+    cbar.set_label("percentile within name's own history")
+
+    # annotate percentile so 90th vs 60th is unambiguous
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            v = data[i, j]
+            if not np.isnan(v):
+                ax.text(j, i, f"{v:.0f}", ha="center", va="center",
+                        fontsize=6, color="black")
 
     ax.set_xticks(np.arange(-.5, len(dates), 1), minor=True)
     ax.set_yticks(np.arange(-.5, len(order), 1), minor=True)
