@@ -2006,34 +2006,18 @@ def _png_to_data_uri(path: Path) -> str:
     return f"data:image/png;base64,{encoded}"
 
 
-def create_rs_momentum_heatmap(
+def _semi_rs_momentum_frame(
     date: str,
-    output_dir: str = "charts",
-    window: int = 90,
-    benchmark: str = "SOXX",
-    names: Optional[List[str]] = None,
-    mom_lookback: int = 3,
-    display_days: int = 14,
-) -> Optional[str]:
-    """Heatmap of each semi's relative-strength momentum vs the benchmark,
-    colored SELF-RELATIVELY (per-name percentile).
-
-    Surfaces *changes* in relative performance (inflections): for each name we
-    build the relative-strength line (name_close / benchmark_close), take its
-    ``mom_lookback``-day rate-of-change, then color each day by where that value
-    ranks within THAT name's own history (0-100th percentile over the ~``window``
-    lookback). Green = unusually strong for that name, red = unusually weak —
-    independent of how large its moves are versus other names. Rows are sorted so
-    names at their highest recent self-percentile sit at top. ``window`` is
-    calendar days (snapped to a trading day). Returns the PNG path, or *None*.
+    window: int,
+    benchmark: str,
+    names: List[str],
+    mom_lookback: int,
+):
+    """Fetch closes and return a DataFrame of each name's relative-strength
+    momentum vs the benchmark: the ``mom_lookback``-day rate-of-change of the
+    name/benchmark ratio (raw fraction). Index = normalized dates, columns =
+    tickers. Returns *None* if the benchmark series is unavailable.
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TwoSlopeNorm
-    import numpy as np
-
-    names = names if names is not None else SEMI_NAMES
     min_len = mom_lookback + 5
 
     def _close_series(ticker: str) -> Optional[pd.Series]:
@@ -2046,11 +2030,10 @@ def create_rs_momentum_heatmap(
 
     bench_close = _close_series(benchmark)
     if bench_close is None or len(bench_close) < min_len:
-        print(f"RS-momentum heatmap skipped: no {benchmark} data")
+        print(f"RS heatmap skipped: no {benchmark} data")
         return None
 
-    # Per name: RS-momentum, then percentile rank within the name's own history
-    pct: Dict[str, pd.Series] = {}
+    mom: Dict[str, pd.Series] = {}
     for ticker in names:
         nc = _close_series(ticker)
         if nc is None or len(nc) < min_len:
@@ -2059,57 +2042,142 @@ def create_rs_momentum_heatmap(
         if len(common) < min_len:
             continue
         rs = nc.loc[common] / bench_close.loc[common]          # relative strength line
-        rs_mom = rs.pct_change(periods=mom_lookback)
-        pct[ticker] = rs_mom.rank(pct=True) * 100.0            # 0-100 self-percentile
+        mom[ticker] = rs.pct_change(periods=mom_lookback)
 
-    if not pct:
-        print("RS-momentum heatmap skipped: no semi data fetched")
+    if not mom:
+        print("RS heatmap skipped: no semi data fetched")
         return None
+    return pd.DataFrame(mom)
 
-    pct_df = pd.DataFrame(pct).tail(display_days)
-    # highest recent self-percentile (last 3 days mean) at top
-    order = pct_df.tail(3).mean().sort_values(ascending=False).index
-    pct_df = pct_df[order]
 
-    data = pct_df.T.values                       # rows=tickers, cols=dates
-    norm = TwoSlopeNorm(vmin=0, vcenter=50, vmax=100)
+def _render_rs_heatmap(data, row_labels, col_labels, title, cbar_label,
+                       norm, value_fmt, out_path) -> str:
+    """Shared renderer for the semi RS heatmaps. ``data`` is rows=tickers,
+    cols=dates; ``value_fmt`` formats each annotated cell value."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
 
     fig, ax = plt.subplots(figsize=(12, 8))
     im = ax.imshow(data, aspect="auto", cmap="RdYlGn", norm=norm)
 
-    ax.set_yticks(range(len(order)))
-    ax.set_yticklabels(order, fontsize=9)
-    dates = [d.strftime("%m/%d") for d in pct_df.index]
-    ax.set_xticks(range(len(dates)))
-    ax.set_xticklabels(dates, rotation=90, fontsize=8)
-    ax.set_title(
-        f"Semis RS-momentum vs {benchmark} — self-relative percentile "
-        f"({mom_lookback}d RS rate-of-change)\n"
-        f"each cell = percentile within that name's own history; green = high for it",
-        fontsize=11,
-    )
+    ax.set_yticks(range(len(row_labels)))
+    ax.set_yticklabels(row_labels, fontsize=9)
+    ax.set_xticks(range(len(col_labels)))
+    ax.set_xticklabels(col_labels, rotation=90, fontsize=8)
+    ax.set_title(title, fontsize=11)
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.01)
-    cbar.set_label("percentile within name's own history")
+    cbar.set_label(cbar_label)
 
-    # annotate percentile so 90th vs 60th is unambiguous
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             v = data[i, j]
             if not np.isnan(v):
-                ax.text(j, i, f"{v:.0f}", ha="center", va="center",
+                ax.text(j, i, value_fmt(v), ha="center", va="center",
                         fontsize=6, color="black")
 
-    ax.set_xticks(np.arange(-.5, len(dates), 1), minor=True)
-    ax.set_yticks(np.arange(-.5, len(order), 1), minor=True)
+    ax.set_xticks(np.arange(-.5, len(col_labels), 1), minor=True)
+    ax.set_yticks(np.arange(-.5, len(row_labels), 1), minor=True)
     ax.grid(which="minor", color="white", linewidth=0.6)
     ax.tick_params(which="minor", length=0)
 
     fig.tight_layout()
-    Path(output_dir).mkdir(exist_ok=True)
-    out_path = Path(output_dir) / "rs_momentum_heatmap.png"
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=120, bbox_inches="tight")
     plt.close(fig)
     return str(out_path)
+
+
+def create_rs_momentum_heatmap(
+    date: str,
+    output_dir: str = "charts",
+    window: int = 90,
+    benchmark: str = "SOXX",
+    names: Optional[List[str]] = None,
+    mom_lookback: int = 3,
+    display_days: int = 14,
+) -> Optional[str]:
+    """Heatmap of each semi's RS-momentum vs the benchmark, colored
+    SELF-RELATIVELY (per-name percentile).
+
+    Each cell is where that day's ``mom_lookback``-day RS rate-of-change ranks
+    within THAT name's own history (0-100th percentile over the ~``window``
+    lookback). Green = unusually strong for that name, red = unusually weak —
+    independent of move magnitude vs other names. Rows sorted by highest recent
+    self-percentile. Returns the PNG path, or *None*.
+    """
+    from matplotlib.colors import TwoSlopeNorm
+
+    names = names if names is not None else SEMI_NAMES
+    mom_df = _semi_rs_momentum_frame(date, window, benchmark, names, mom_lookback)
+    if mom_df is None:
+        return None
+
+    # percentile rank per ticker over its full history, then show the last N days
+    pct_df = (mom_df.rank(pct=True) * 100.0).tail(display_days)
+    order = pct_df.tail(3).mean().sort_values(ascending=False).index
+    pct_df = pct_df[order]
+
+    return _render_rs_heatmap(
+        data=pct_df.T.values,
+        row_labels=list(order),
+        col_labels=[d.strftime("%m/%d") for d in pct_df.index],
+        title=(f"Semis RS-momentum vs {benchmark} — self-relative percentile "
+               f"({mom_lookback}d RS rate-of-change)\n"
+               f"each cell = percentile within that name's own history; green = high for it"),
+        cbar_label="percentile within name's own history",
+        norm=TwoSlopeNorm(vmin=0, vcenter=50, vmax=100),
+        value_fmt=lambda v: f"{v:.0f}",
+        out_path=Path(output_dir) / "rs_momentum_heatmap.png",
+    )
+
+
+def create_rs_absolute_heatmap(
+    date: str,
+    output_dir: str = "charts",
+    window: int = 90,
+    benchmark: str = "SOXX",
+    names: Optional[List[str]] = None,
+    mom_lookback: int = 3,
+    display_days: int = 14,
+) -> Optional[str]:
+    """Heatmap of each semi's RS-momentum vs the benchmark on an ABSOLUTE,
+    shared color scale.
+
+    Each cell is the actual ``mom_lookback``-day RS rate-of-change in % (out/under
+    -performance vs the benchmark), colored on one scale shared across names — so
+    magnitudes are directly comparable (biased toward high-beta names). Companion
+    to ``create_rs_momentum_heatmap`` (which normalizes per name). Rows sorted by
+    strongest recent absolute momentum. Returns the PNG path, or *None*.
+    """
+    from matplotlib.colors import TwoSlopeNorm
+    import numpy as np
+
+    names = names if names is not None else SEMI_NAMES
+    mom_df = _semi_rs_momentum_frame(date, window, benchmark, names, mom_lookback)
+    if mom_df is None:
+        return None
+
+    mom_df = (mom_df * 100.0).tail(display_days)
+    order = mom_df.tail(3).mean().sort_values(ascending=False).index
+    mom_df = mom_df[order]
+
+    data = mom_df.T.values
+    vmax = float(np.nanpercentile(np.abs(data), 90)) or 1.0  # robust to outliers
+
+    return _render_rs_heatmap(
+        data=data,
+        row_labels=list(order),
+        col_labels=[d.strftime("%m/%d") for d in mom_df.index],
+        title=(f"Semis RS-momentum vs {benchmark} — ABSOLUTE (shared scale, "
+               f"{mom_lookback}d RS rate-of-change)\n"
+               f"each cell = actual % out/under-performance vs {benchmark}; scale shared across names"),
+        cbar_label=f"RS {mom_lookback}d change vs {benchmark} (%)",
+        norm=TwoSlopeNorm(vmin=-vmax, vcenter=0.0, vmax=vmax),
+        value_fmt=lambda v: f"{v:.1f}",
+        out_path=Path(output_dir) / "rs_absolute_heatmap.png",
+    )
 
 # -------------------------------------------------
 # PDF export helper
@@ -2355,21 +2423,26 @@ def generate_report() -> str:
             sections.append(html)
         timings['chart_rendering'] = time.time() - t0
 
-        # Market-context block: semis RS-momentum heatmap vs SOXX (top of report)
+        # Market-context block: semis RS-momentum heatmaps vs SOXX (top of report)
+        # Self-relative (per-name percentile) first, then absolute (shared scale).
         t0 = time.time()
         relperf_html = ""
-        try:
-            relperf_path = create_rs_momentum_heatmap(today, output_dir=charts_dir)
-            if relperf_path:
-                relperf_html = (
-                    '<div style="margin-bottom:16px;">'
-                    f'<img src="{_png_to_data_uri(Path(relperf_path))}" '
-                    'alt="Semis RS-momentum vs SOXX" '
-                    'style="max-width:860px; display:block; border-radius:4px;">'
-                    '</div>'
-                )
-        except Exception as e:
-            print(f"Failed to generate RS-momentum heatmap: {e}")
+        for _hm_fn, _hm_alt in (
+            (create_rs_momentum_heatmap, "Semis RS-momentum vs SOXX (self-relative)"),
+            (create_rs_absolute_heatmap, "Semis RS-momentum vs SOXX (absolute)"),
+        ):
+            try:
+                _hm_path = _hm_fn(today, output_dir=charts_dir)
+                if _hm_path:
+                    relperf_html += (
+                        '<div style="margin-bottom:16px;">'
+                        f'<img src="{_png_to_data_uri(Path(_hm_path))}" '
+                        f'alt="{_hm_alt}" '
+                        'style="max-width:860px; display:block; border-radius:4px;">'
+                        '</div>'
+                    )
+            except Exception as e:
+                print(f"Failed to generate heatmap ({_hm_alt}): {e}")
         timings['relperf_chart'] = time.time() - t0
 
         # Put the long scoring guides at the bottom (tickers first).
