@@ -2473,7 +2473,7 @@ def generate_report() -> str:
 
         # Send email as HTML
         send_email(
-            to_email="zburr@trlm.com",
+            to_email="zmburr@gmail.com, zburr@trlm.com",
             subject="Daily Watchlist Report",
             body=html_report,
             is_html=True,
