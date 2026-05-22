@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-22",
+  "session": "morning",
+  "generated_at": "2026-05-22T05:46:05.543727",
+  "go_count": 2,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "ARM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.224758,
+        "pct_change_3": 0.386343,
+        "gap_pct": -0.017537,
+        "prior_day_range_atr": 1.61558,
+        "atr_pct": 0.06908,
+        "prior_day_rvol": 1.790341,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.0038987114691915,
+        "pct_change_30": 0.9909209252645285,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "RGTI",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.25113,
+        "pct_change_3": 0.326113,
+        "gap_pct": 0.049002,
+        "prior_day_range_atr": 1.853807,
+        "atr_pct": 0.086328,
+        "prior_day_rvol": 5.498249,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.0024943116469505282,
+        "pct_change_30": 0.5401816911250873,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
