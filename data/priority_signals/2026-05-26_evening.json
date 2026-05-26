@@ -1,0 +1,171 @@
+{
+  "date": "2026-05-26",
+  "session": "evening",
+  "generated_at": "2026-05-26T15:19:14.715730",
+  "go_count": 6,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "ARM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.254933,
+        "pct_change_3": 0.37356,
+        "gap_pct": 0.034567,
+        "prior_day_range_atr": 1.279828,
+        "atr_pct": 0.066011,
+        "prior_day_rvol": 1.130179,
+        "premarket_rvol": 0.068722
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.1561952152055945,
+        "pct_change_30": 1.058080977640502,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "NOK",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.160534,
+        "pct_change_3": 0.131675,
+        "gap_pct": 0.056231,
+        "prior_day_range_atr": 1.228696,
+        "atr_pct": 0.06002,
+        "prior_day_rvol": 1.074617,
+        "premarket_rvol": 0.177249
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.2595138005420652,
+        "pct_change_30": 0.6353065539112049,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.374356,
+        "pct_change_3": 0.505404,
+        "gap_pct": 0.07094,
+        "prior_day_range_atr": 1.628804,
+        "atr_pct": 0.09976,
+        "prior_day_rvol": 1.407821,
+        "premarket_rvol": 0.095186
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 2.115652111208639,
+        "pct_change_30": 2.066037735849057,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "CRDO",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.159346,
+        "pct_change_3": 0.292443,
+        "gap_pct": 0.004579,
+        "prior_day_range_atr": 1.259931,
+        "atr_pct": 0.084937,
+        "prior_day_rvol": 1.399574,
+        "premarket_rvol": 0.088621
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 0.5327980428025173,
+        "pct_change_30": 0.8263232711765197,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "QCOM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.167688,
+        "pct_change_3": 0.217525,
+        "gap_pct": 0.031365,
+        "prior_day_range_atr": 1.447912,
+        "atr_pct": 0.081063,
+        "prior_day_rvol": 0.951296,
+        "premarket_rvol": 0.038875
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.5298821555375,
+        "pct_change_30": 0.8597532406684366,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "RGTI",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.224621,
+        "pct_change_3": 0.655388,
+        "gap_pct": -0.069833,
+        "prior_day_range_atr": 2.216702,
+        "atr_pct": 0.094079,
+        "prior_day_rvol": 6.192801,
+        "premarket_rvol": 0.255647
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.06317969683695941,
+        "pct_change_30": 0.7997275204359674,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
