@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-28",
+  "session": "morning",
+  "generated_at": "2026-05-28T05:46:09.370179",
+  "go_count": 2,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "APP",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.138091,
+        "pct_change_3": 0.168639,
+        "gap_pct": 0.010866,
+        "prior_day_range_atr": 1.779427,
+        "atr_pct": 0.065479,
+        "prior_day_rvol": 1.726099,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.07295941788026142,
+        "pct_change_30": 0.30984291019815013,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.154485,
+        "pct_change_3": 0.218226,
+        "gap_pct": -0.011223,
+        "prior_day_range_atr": 0.997278,
+        "atr_pct": 0.074288,
+        "prior_day_rvol": 1.374044,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.777382781370396,
+        "pct_change_30": 0.993750805308594,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
