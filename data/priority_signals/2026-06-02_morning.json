@@ -1,0 +1,132 @@
+{
+  "date": "2026-06-02",
+  "session": "morning",
+  "generated_at": "2026-06-02T05:46:13.241599",
+  "go_count": 4,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "ARM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.282976,
+        "pct_change_3": 0.350633,
+        "gap_pct": 0.008316,
+        "prior_day_range_atr": 1.45935,
+        "atr_pct": 0.067219,
+        "prior_day_rvol": 1.697383,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.7089973374942484,
+        "pct_change_30": 1.452168176093085,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "CRWD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.128491,
+        "pct_change_3": 0.21199,
+        "gap_pct": -0.018129,
+        "prior_day_range_atr": 1.53705,
+        "atr_pct": 0.043763,
+        "prior_day_rvol": 1.420455,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.6271276215395943,
+        "pct_change_30": 0.8449581318551715,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MRVL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.36338,
+        "pct_change_3": 0.104328,
+        "gap_pct": 0.242127,
+        "prior_day_range_atr": 1.918277,
+        "atr_pct": 0.057417,
+        "prior_day_rvol": 1.187039,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.7489675990759455,
+        "pct_change_30": 0.5708354212899993,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "ORCL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.13932,
+        "pct_change_3": 0.299487,
+        "gap_pct": -0.040056,
+        "prior_day_range_atr": 2.330644,
+        "atr_pct": 0.046201,
+        "prior_day_rvol": 2.297295,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.15056895709794452,
+        "pct_change_30": 0.41751399520164517,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.278512,
+        "pct_off_30d_high": -0.34484,
+        "pct_change_3": -0.186011,
+        "prior_day_range_atr": 0.797649,
+        "pct_off_52wk_high": -0.34484,
+        "atr_pct": 0.22268
+      }
+    }
+  ]
+}
