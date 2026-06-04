@@ -1,0 +1,36 @@
+{
+  "date": "2026-06-04",
+  "session": "morning",
+  "generated_at": "2026-06-04T05:46:05.269219",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "MRVL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.194624,
+        "pct_change_3": 0.471463,
+        "gap_pct": -0.070114,
+        "prior_day_range_atr": 1.439167,
+        "atr_pct": 0.074786,
+        "prior_day_rvol": 3.433555,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.7680192626509827,
+        "pct_change_30": 0.9935893199391975,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
