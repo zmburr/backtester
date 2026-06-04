@@ -1,0 +1,117 @@
+{
+  "date": "2026-06-04",
+  "session": "evening",
+  "generated_at": "2026-06-04T15:16:43.555980",
+  "go_count": 4,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "MRVL",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.349648,
+        "pct_change_3": 0.471463,
+        "gap_pct": 0.050555,
+        "prior_day_range_atr": 1.439167,
+        "atr_pct": 0.066195,
+        "prior_day_rvol": 3.433555,
+        "premarket_rvol": 0.137977
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.127220336306939,
+        "pct_change_30": 0.9935893199391975,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "ARM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.114027,
+        "pct_change_3": 0.1657,
+        "gap_pct": -0.046609,
+        "prior_day_range_atr": 1.383059,
+        "atr_pct": 0.080308,
+        "prior_day_rvol": 0.8904,
+        "premarket_rvol": 0.05347
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.535525922166099,
+        "pct_change_30": 1.3467434041825743,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.161084,
+        "pct_change_3": 0.250513,
+        "gap_pct": -0.042997,
+        "prior_day_range_atr": 1.071396,
+        "atr_pct": 0.094978,
+        "prior_day_rvol": 0.863688,
+        "premarket_rvol": 0.08223
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 3.0328498264677766,
+        "pct_change_30": 1.8600265062697523,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.084417,
+        "pct_change_3": 0.118409,
+        "gap_pct": -0.017152,
+        "prior_day_range_atr": 1.063068,
+        "atr_pct": 0.050407,
+        "prior_day_rvol": 1.13189,
+        "premarket_rvol": 0.059677
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.4545865546313865,
+        "pct_change_30": 0.5479273598916131,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}
