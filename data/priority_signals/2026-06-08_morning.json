@@ -1,0 +1,99 @@
+{
+  "date": "2026-06-08",
+  "session": "morning",
+  "generated_at": "2026-06-08T05:46:53.291905",
+  "go_count": 4,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.231619,
+        "pct_off_30d_high": -0.378039,
+        "pct_change_3": -0.165511,
+        "prior_day_range_atr": 1.039348,
+        "pct_off_52wk_high": -0.378039,
+        "atr_pct": 0.186723
+      }
+    },
+    {
+      "ticker": "PL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.323394,
+        "pct_off_30d_high": -0.377512,
+        "pct_change_3": -0.252956,
+        "prior_day_range_atr": 1.483114,
+        "pct_off_52wk_high": -0.377512,
+        "atr_pct": 0.157369
+      }
+    },
+    {
+      "ticker": "POET",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.176103,
+        "pct_off_30d_high": -0.430082,
+        "pct_change_3": -0.228869,
+        "prior_day_range_atr": 1.442956,
+        "pct_off_52wk_high": -0.430082,
+        "atr_pct": 0.174716
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.351476,
+        "pct_off_30d_high": -0.358563,
+        "pct_change_3": -0.349326,
+        "prior_day_range_atr": 1.601446,
+        "pct_off_52wk_high": -0.358563,
+        "atr_pct": 0.177472
+      }
+    },
+    {
+      "ticker": "IONQ",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.184723,
+        "pct_off_30d_high": -0.229056,
+        "pct_change_3": -0.167815,
+        "prior_day_range_atr": 1.327305,
+        "pct_off_52wk_high": -0.329159,
+        "atr_pct": 0.105487
+      }
+    },
+    {
+      "ticker": "RVI",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.332024,
+        "pct_off_30d_high": -0.516733,
+        "pct_change_3": -0.133658,
+        "prior_day_range_atr": 1.020092,
+        "pct_off_52wk_high": -0.516733,
+        "atr_pct": 0.161986
+      }
+    }
+  ]
+}
