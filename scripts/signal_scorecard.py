@@ -52,6 +52,15 @@ ALERT_BAD = 50.0          # % — red banner
 
 EPISODE_GAP = 3           # trading days — reprints within this gap chain into one episode
 
+# Pre-trade criterion values captured from the signal JSONs at alert time, logged
+# per signal so criterion-level threshold analysis is possible from the outcome
+# table alone. Reversal and bounce signals populate different subsets.
+METRIC_COLUMNS = [
+    "pct_from_9ema", "pct_change_3", "gap_pct", "prior_day_range_atr",
+    "prior_day_rvol", "premarket_rvol",                       # reversal features
+    "selloff_total_pct", "pct_off_30d_high", "pct_off_52wk_high",  # bounce features
+]
+
 COLUMNS = [
     "signal_date", "session", "target_date", "ticker", "bucket", "cap",
     "recommendation", "score", "atr_pct",
@@ -62,7 +71,7 @@ COLUMNS = [
     "tradeable_d0", "tradeable_3d",
     "days_available", "complete",
     "episode_id", "episode_signal_num",
-]
+] + METRIC_COLUMNS
 
 
 # ── Trading calendar ─────────────────────────────────────────────────────────
@@ -182,6 +191,7 @@ def collect_signals() -> dict[tuple, dict]:
                 "recommendation": s.get("recommendation", ""),
                 "score": s.get("score", ""),
                 "atr_pct": s.get("metrics", {}).get("atr_pct"),
+                "metrics": s.get("metrics", {}),
             }
     return signals
 
@@ -194,8 +204,11 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
     window = trading_days_from(sig["target_date"], HORIZON_DAYS)
     bars = [bars_by_day[d] for d in window if d in bars_by_day]
 
-    row = {**sig}
+    row = {k: v for k, v in sig.items() if k != "metrics"}
     row["atr_pct"] = round(sig["atr_pct"], 6) if isinstance(sig["atr_pct"], (int, float)) else ""
+    for k in METRIC_COLUMNS:
+        v = sig.get("metrics", {}).get(k)
+        row[k] = round(v, 6) if isinstance(v, (int, float)) else ""
     row["days_available"] = len(bars)
     # complete = full horizon scored, or window can never grow (delisted/halted with partial data)
     row["complete"] = len(bars) >= HORIZON_DAYS or (len(window) >= HORIZON_DAYS and len(bars) < len(window))
@@ -571,6 +584,22 @@ def main():
     outcomes = load_outcomes()
     last_day = last_completed_trading_day()
     logger.info(f"{len(signals)} signals on file, {len(outcomes)} already scored, last completed day {last_day}")
+
+    # backfill criterion features onto already-scored rows (no price refetch needed)
+    backfilled = 0
+    for key, row in outcomes.items():
+        sig = signals.get(key)
+        if not sig:
+            continue
+        filled = False
+        for k in METRIC_COLUMNS:
+            v = sig["metrics"].get(k)
+            if row.get(k) in (None, "") and isinstance(v, (int, float)):
+                row[k] = round(v, 6)
+                filled = True
+        backfilled += filled
+    if backfilled:
+        logger.info(f"Backfilled criterion features onto {backfilled} existing rows")
 
     client = _polygon_client()
     updated, new_today = 0, []
