@@ -44,6 +44,7 @@ EMAIL_TO = "zmburr@gmail.com"
 SIGNAL_GATE = 15
 CLAUDE_BIN = "/opt/homebrew/bin/claude"
 MIN_CELL_N = 20
+EPISODE_GAP = 3  # keep in sync with signal_scorecard.EPISODE_GAP
 
 
 def load_state() -> dict:
@@ -108,6 +109,7 @@ This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each sco
 - tradeable_3d: MFE >= 1.0 ATR at any point in the window (primary success metric).
 - days_to_1atr: trading days until the 1-ATR favorable target hit ('' = never).
 - adverse_before_fav_atr: worst adverse run (ATRs) BEFORE the favorable target hit — this measures how EARLY the scanner fires. Large values on reversals mean the stock kept squeezing up before cracking.
+- episode_id / episode_signal_num: repeat flags of the same ticker within {EPISODE_GAP} trading days chain into one episode; their outcome windows OVERLAP, so rows within an episode are NOT independent samples. For any statistical claim, use episode_signal_num == 1 rows (or count distinct episode_id) as the sample. Reprints (episode_signal_num >= 2) may be analyzed separately as a persistence feature — "does a 2nd/3rd consecutive flag predict better odds?" — but never mix them into per-signal rates as if independent.
 
 ## Signal outcomes (complete windows only)
 {table}

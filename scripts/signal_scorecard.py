@@ -50,6 +50,8 @@ ROLLING_WINDOW = 30       # calendar days for rolling summary
 ALERT_WARN = 70.0         # % — warn banner
 ALERT_BAD = 50.0          # % — red banner
 
+EPISODE_GAP = 3           # trading days — reprints within this gap chain into one episode
+
 COLUMNS = [
     "signal_date", "session", "target_date", "ticker", "bucket", "cap",
     "recommendation", "score", "atr_pct",
@@ -59,6 +61,7 @@ COLUMNS = [
     "dir_correct_d0", "dir_correct_final",
     "tradeable_d0", "tradeable_3d",
     "days_available", "complete",
+    "episode_id", "episode_signal_num",
 ]
 
 
@@ -83,6 +86,23 @@ def next_trading_day(date: str) -> str | None:
         if d > date:
             return d
     return None
+
+
+def on_or_next_trading_day(date: str) -> str | None:
+    """`date` itself if it's a trading day, else the next one (holiday-proof targets)."""
+    for d in trading_days():
+        if d >= date:
+            return d
+    return None
+
+
+def _tindex(date: str) -> int:
+    """Position of `date` on the trading calendar (next trading day if holiday)."""
+    days = trading_days()
+    for i, d in enumerate(days):
+        if d >= date:
+            return i
+    return len(days)
 
 
 def last_completed_trading_day() -> str:
@@ -141,7 +161,9 @@ def collect_signals() -> dict[tuple, dict]:
             logger.warning(f"Failed to parse {path.name}: {e}")
             continue
         date, session = path.stem.rsplit("_", 1)
-        target = date if session == "morning" else next_trading_day(date)
+        # morning files target their own day (pushed to next trading day if the
+        # cron fired on a holiday); evening files target the next trading day
+        target = on_or_next_trading_day(date) if session == "morning" else next_trading_day(date)
         if target is None:
             continue
         for s in data.get("signals", []):
@@ -224,6 +246,30 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
     return row
 
 
+def assign_episodes(outcomes: dict[tuple, dict]):
+    """Chain repeat signals for the same ticker+bucket into episodes.
+
+    A signal joins the running episode when its target is within EPISODE_GAP
+    trading days of the previous signal's target (i.e. their outcome windows
+    overlap). Re-derived from scratch every run so labels stay deterministic.
+    episode_signal_num == 1 marks the independent, first-flag observation;
+    2+ are reprints whose windows double-count the same underlying move.
+    """
+    by_group: dict[tuple, list[dict]] = {}
+    for row in outcomes.values():
+        by_group.setdefault((row["ticker"], row["bucket"]), []).append(row)
+    for rows in by_group.values():
+        rows.sort(key=lambda r: r["target_date"])
+        prev_target, ep_start, num = None, None, 0
+        for r in rows:
+            if prev_target is None or _tindex(r["target_date"]) - _tindex(prev_target) > EPISODE_GAP:
+                ep_start, num = r["target_date"], 0
+            num += 1
+            r["episode_id"] = f"{r['ticker']}_{r['bucket']}_{ep_start}"
+            r["episode_signal_num"] = num
+            prev_target = r["target_date"]
+
+
 # ── CSV store ────────────────────────────────────────────────────────────────
 
 
@@ -302,15 +348,28 @@ def rolling_summary(rows: list[dict]) -> dict:
         "Reversals": rev,
         "Bounces": bnc,
     }
+    def _first(g):
+        return [r for r in g if str(r.get("episode_signal_num", "")) == "1"]
+
+    def _reprint(g):
+        return [r for r in g if str(r.get("episode_signal_num", "")) not in ("", "1")]
+
     timing_groups = {
         "Reversal GO": [r for r in rev if r.get("recommendation") == "GO"],
         "Reversal CAUTION": [r for r in rev if r.get("recommendation") == "CAUTION"],
+        "Reversal · 1st flag of episode": _first(rev),
+        "Reversal · reprint (2nd+ day)": _reprint(rev),
         "Reversal · morning signals": [r for r in rev if r.get("session") == "morning"],
         "Reversal · evening signals": [r for r in rev if r.get("session") == "evening"],
         "Bounce GO": [r for r in bnc if r.get("recommendation") == "GO"],
         "Bounce CAUTION": [r for r in bnc if r.get("recommendation") == "CAUTION"],
+        "Bounce · 1st flag of episode": _first(bnc),
     }
-    out = {"total": len(recent), "groups": {}, "timing": {}}
+    out = {
+        "total": len(recent),
+        "episodes": len({r.get("episode_id") for r in recent if r.get("episode_id")}),
+        "groups": {}, "timing": {},
+    }
     for label, g in groups.items():
         out["groups"][label] = {
             "tradeable_3d": _pct(g, "tradeable_3d"),
@@ -407,7 +466,7 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
                 t_rows += f'<tr><td style="{td}color:#e8ecf4;">{label}</td>{cells}</tr>'
 
             takeaways = []
-            for label in ("Reversal GO", "Bounce GO"):
+            for label in ("Reversal GO", "Bounce GO", "Reversal · 1st flag of episode", "Reversal · reprint (2nd+ day)"):
                 t = summary["timing"].get(label)
                 if t:
                     takeaways.append(
@@ -416,6 +475,13 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
                         f"{t['never']['pct']}% never do."
                         + (f" Median wait when it works: {t['median_days']} day(s)." if t["median_days"] is not None else "")
                     )
+            if summary.get("episodes"):
+                takeaways.append(
+                    f"<strong>Independence note:</strong> {summary['total']} signals collapse to "
+                    f"{summary['episodes']} distinct episodes — repeat flags of the same move share overlapping "
+                    f"windows, so per-signal rates overstate timing. The '1st flag' row is the unbiased view; "
+                    f"the reprint row tells you whether persistence (a 2nd/3rd day of flagging) is itself a signal."
+                )
             takeaway_html = "".join(f'<p style="color:#9ca3af;font-size:12px;margin:8px 0 0 0;">{x}</p>' for x in takeaways)
 
             dir_rows = ""
@@ -457,7 +523,7 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
               median adverse run before the move {e['median_adverse_before_atr']}x ATR
               (max {e['max_adverse_before_atr']}x).</p>"""
         sum_html = f"""<div style="background:#161a24;padding:12px 16px;border-radius:6px;margin:16px 0;border-left:3px solid #3b82f6;">
-          <strong style="color:#3b82f6;">Rolling {ROLLING_WINDOW}-Day (complete windows only, n={summary['total']})</strong>
+          <strong style="color:#3b82f6;">Rolling {ROLLING_WINDOW}-Day (complete windows only, n={summary['total']} signals across {summary.get('episodes', '?')} episodes)</strong>
           <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;">
             <thead><tr style="border-bottom:1px solid #2a3040;">
               <th style="padding:6px 10px;text-align:left;color:#6b7280;"></th>
@@ -543,7 +609,8 @@ def main():
             )
         time.sleep(0.12)
 
-    if not dry and updated:
+    assign_episodes(outcomes)
+    if not dry:
         save_outcomes(outcomes)
         logger.info(f"Saved {len(outcomes)} rows to {OUTCOMES_FILE.name} ({updated} updated)")
 
