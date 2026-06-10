@@ -104,6 +104,7 @@ This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each sco
 
 ## How signals are scored
 - bucket=reversal means SHORT thesis (favorable = down); bucket=bounce means LONG (favorable = up).
+- recommendation=VETO (from 2026-06-10 on): the signal scored GO/CAUTION but was hard-vetoed by the prior_day_rvol < 1.25 floor you recommended in Analysis #2. These are logged specifically so you can verify the veto: report the vetoed cohort's tradeable_3d rate each cycle, and flag immediately if it drifts toward the GO rate (veto would be discarding edge).
 - d0_pct..d3_pct: cumulative close-vs-entry-open raw price move per day.
 - mfe_atr_3d / mae_atr_3d: max favorable / adverse excursion over the window in ATRs.
 - tradeable_3d: MFE >= 1.0 ATR at any point in the window (primary success metric).

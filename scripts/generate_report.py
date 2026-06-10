@@ -523,6 +523,10 @@ BOUNCE_COLUMNS_TO_COMPARE = [
 # Premarket RVOL threshold is live-specific (not in historical scorer).
 _PREMARKET_RVOL_THRESHOLD = 0.05
 
+# Hard veto floor on prior-day RVOL for reversal signals (Signal Analysis #2):
+# below this, signals were 2/21 (10%) tradeable vs 26/46 (57%) above.
+RVOL_VETO_THRESHOLD = 1.25
+
 # Singleton scorer instance for threshold lookups + momentum gate
 _reversal_scorer = ReversalScorer()
 

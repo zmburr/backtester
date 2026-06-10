@@ -727,7 +727,7 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
 
 
 def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[str, str],
-                               addendum_html: str = "") -> str:
+                               addendum_html: str = "", vetoed: List[Dict] = None) -> str:
     """Assemble the full priority report HTML."""
     now = datetime.datetime.now()
     open_count = len(priority_list)
@@ -742,6 +742,23 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         f'</div></div>'
     )
 
+    # RVOL veto banner — kept visible so the veto can be sanity-checked daily
+    veto_html = ""
+    if vetoed:
+        items = []
+        for v in vetoed:
+            sr = v.get("score_result") or {}
+            reason = sr.get("veto_reason", "") if isinstance(sr, dict) else ""
+            rvol_txt = reason.split("RVOL ")[-1] if reason else ""
+            items.append(f'<strong>{v["ticker"]}</strong> ({v.get("score_str", "")}, RVOL {rvol_txt})')
+        veto_html = (
+            f'<div style="background: rgba(248,81,73,0.08); border-left: 3px solid #f85149; '
+            f'padding: 8px 14px; border-radius: 4px; margin-bottom: 14px; font-size: 0.9em; color: #f0a8a3;">'
+            f'<strong style="color:#f85149;">RVOL veto</strong> (prior-day RVOL &lt; 1.25 &mdash; '
+            f'historically 10% tradeable vs 57%): {", ".join(items)}'
+            f'</div>'
+        )
+
     summary = _build_summary_table(priority_list)
 
     # Ticker sections in priority order (highest-score first within OPEN)
@@ -751,7 +768,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         if html:
             sections.append(html)
 
-    body = header + summary + "\n".join(sections) + (addendum_html or "")
+    body = header + veto_html + summary + "\n".join(sections) + (addendum_html or "")
 
     return (
         '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
@@ -959,6 +976,13 @@ def generate_priority_report() -> str:
         # Sort: GO first, then CAUTION; within each group by score descending
         priority.sort(key=_priority_sort_key)
 
+        # RVOL-vetoed signals: kept out of the priority list, but saved to the
+        # signals JSON so the scorecard keeps measuring them (verifies the
+        # veto's edge) and noted in the email so the veto stays visible.
+        vetoed = [s for s in scored if s["rec"] == "VETO" and s["bucket"] != "breakout"]
+        if vetoed:
+            print(f"RVOL veto: {', '.join(v['ticker'] for v in vetoed)}")
+
         excluded_breakouts = sum(1 for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] == "breakout")
         go_ct = sum(1 for p in priority if p["rec"] == "GO")
         cau_ct = sum(1 for p in priority if p["rec"] == "CAUTION")
@@ -967,7 +991,9 @@ def generate_priority_report() -> str:
 
         if not priority:
             print("No OPEN windows found. Sending empty report.")
-            html = build_priority_report_html([], {})
+            if vetoed:
+                _save_signals_to_json(vetoed, 0, 0)
+            html = build_priority_report_html([], {}, vetoed=vetoed)
             _send_report(html, 0, 0)
             return html
 
@@ -1149,7 +1175,8 @@ def generate_priority_report() -> str:
         timings["deep_analysis"] = time.time() - t0
 
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
-        _save_signals_to_json(priority, go_ct, cau_ct)
+        # Vetoed signals ride along so the scorecard can verify the veto.
+        _save_signals_to_json(priority + vetoed, go_ct, cau_ct)
 
         # === Phase 4.75: Render top-3 comp charts for the addendum ===
         # 1-year daily chart ending on each comp's trade date. Deduped across
@@ -1189,7 +1216,7 @@ def generate_priority_report() -> str:
 
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
-        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html)
+        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html, vetoed=vetoed)
         _send_report(html_report, go_ct, cau_ct, inline_images=chart_images)
         timings["email"] = time.time() - t0
 
@@ -1259,6 +1286,8 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 if isinstance(sr, dict):
                     signal_entry["archetype_passed"] = sr.get("archetype_passed")
                     signal_entry["archetype_detail"] = sr.get("archetype_detail")
+                    if sr.get("rvol_vetoed"):
+                        signal_entry["veto_reason"] = sr.get("veto_reason", "")
 
             signals.append(signal_entry)
 

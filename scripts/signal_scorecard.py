@@ -358,6 +358,7 @@ def rolling_summary(rows: list[dict]) -> dict:
         "Overall": recent,
         "GO": [r for r in recent if r.get("recommendation") == "GO"],
         "CAUTION": [r for r in recent if r.get("recommendation") == "CAUTION"],
+        "Vetoed (RVOL)": [r for r in recent if r.get("recommendation") == "VETO"],
         "Reversals": rev,
         "Bounces": bnc,
     }
@@ -370,6 +371,7 @@ def rolling_summary(rows: list[dict]) -> dict:
     timing_groups = {
         "Reversal GO": [r for r in rev if r.get("recommendation") == "GO"],
         "Reversal CAUTION": [r for r in rev if r.get("recommendation") == "CAUTION"],
+        "Reversal · vetoed (RVOL)": [r for r in rev if r.get("recommendation") == "VETO"],
         "Reversal · 1st flag of episode": _first(rev),
         "Reversal · reprint (2nd+ day)": _reprint(rev),
         "Reversal · morning signals": [r for r in rev if r.get("session") == "morning"],
