@@ -126,6 +126,11 @@ Bounce SETUP_PROFILES (score >= 5 GO, == 4 CAUTION):
 ## Recommendations from previous analyses (do not repeat unless new data strengthens or reverses them)
 {past_text}
 
+## Settled questions (docs/signal_findings.md) — do not relitigate without new contradicting data
+- D0-close-direction confirmation: REJECTED. Long-first tactics: REJECTED. Entry-delay variants: CLOSED.
+- 1.5-ATR initial stop: AFFIRMED. RVOL >= 1.25 veto: DEPLOYED 2026-06-10 (verify its cohort, don't re-derive it).
+- gap_pct -> RVOL-tier score restructure: TESTED 2026-06-10, scored WORSE than the plain veto (18/33 = 54.5% vs 59.2%) — deferred until ~100 first-flags.
+
 ## Statistical guardrails — follow strictly
 - Do NOT recommend a threshold change based on any cell (bucket x cap x criterion) with n < {MIN_CELL_N}. Say "insufficient sample" instead.
 - Prefer pooled-across-cap conclusions at current sample sizes.

@@ -2,6 +2,13 @@
 
 Algorithmic trading analysis and backtesting platform for equities. Analyzes stock price movements, volume patterns, and technical breakouts to test reversal, momentum, and bounce trading strategies on historical data.
 
+> **Before proposing signal/scoring changes**: read `docs/signal_findings.md` —
+> the ledger of settled questions (D0-confirmation, long-first tactics, stop
+> placement) and deployed rules (RVOL veto, reprint trigger). Closed items need
+> new evidence to reopen. Signal performance is measured by the scorecard
+> feedback loop (`scripts/signal_scorecard.py` → `data/signal_outcomes.csv` →
+> `scripts/signal_analysis.py`), episode-level.
+
 ## Purpose
 
 1. **Never miss a trade**: The primary goal is to ensure no bounce, momentum, or capitulation setups are missed. Scanners, screeners, and alerts exist to surface every viable opportunity.

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import pandas as pd
 import numpy as np
+import csv
 import json
 import datetime
 import time
@@ -57,6 +58,39 @@ BOUNCE_COMP_COLUMNS = [
 REVERSAL_COMP_COLUMNS = [
     "pct_from_9ema", "gap_pct", "pct_change_3", "one_day_before_range_pct",
 ]
+
+_OUTCOMES_FILE = _DATA_DIR / "signal_outcomes.csv"
+_REPRINT_WINDOW_DAYS = 7  # calendar days ≈ EPISODE_GAP (3 trading days) + weekend
+
+
+def _reprint_context(ticker: str) -> Dict:
+    """Episode context for a reversal signal, observable at report time.
+
+    Reads the scorecard outcomes log (refreshed 5:30 AM, before the 5:45
+    morning report) for this ticker's reversal prints in the trailing window.
+
+    Returns:
+        print_num:         1 = fresh flag, N = Nth consecutive print
+        prior_print_paid:  True when an earlier print in this episode already
+                           hit its 1-ATR target on a COMPLETED day — the
+                           highest-conviction reprint state (Analysis #2:
+                           28/30 (93%) tradeable vs 18/40 (45%) otherwise;
+                           episode-level retest: 10/12 (83%)).
+    """
+    ctx = {"print_num": 1, "prior_print_paid": False}
+    try:
+        if not _OUTCOMES_FILE.exists():
+            return ctx
+        cutoff = (datetime.datetime.now() - datetime.timedelta(days=_REPRINT_WINDOW_DAYS)).strftime("%Y-%m-%d")
+        with open(_OUTCOMES_FILE, newline="") as f:
+            recent = [r for r in csv.DictReader(f)
+                      if r.get("ticker") == ticker and r.get("bucket") == "reversal"
+                      and r.get("target_date", "") >= cutoff]
+        ctx["print_num"] = len(recent) + 1
+        ctx["prior_print_paid"] = any(r.get("days_to_1atr") not in ("", None) for r in recent)
+    except Exception as e:  # non-fatal — context is an enhancement, not a gate
+        log.warning(f"{ticker}: reprint context failed – {e}")
+    return ctx
 
 
 # ---------------------------------------------------------------------------
@@ -742,6 +776,34 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         f'</div></div>'
     )
 
+    # Reprint trigger banner — highest-conviction state (Analysis #2: 93%
+    # per-signal, 83% by episode): a reprint whose prior print already paid.
+    reprint_html = ""
+    triggers, fresh_reprints = [], []
+    for item in priority_list:
+        rc = item.get("reprint") or {}
+        if item.get("bucket") != "reversal" or rc.get("print_num", 1) < 2:
+            continue
+        tag = f'<strong>{item["ticker"]}</strong> (print #{rc["print_num"]}, {item.get("score_str", "")})'
+        (triggers if rc.get("prior_print_paid") else fresh_reprints).append(tag)
+    if triggers or fresh_reprints:
+        parts = []
+        if triggers:
+            parts.append(
+                f'<span style="color:#3fb950;font-weight:bold;">REPRINT TRIGGER</span> '
+                f'(prior print already hit 1 ATR &mdash; 93% historical): {", ".join(triggers)}'
+            )
+        if fresh_reprints:
+            parts.append(
+                f'<span style="color:#d29922;">Reprints, prior print not yet paid</span> '
+                f'(45% historical): {", ".join(fresh_reprints)}'
+            )
+        reprint_html = (
+            f'<div style="background: rgba(63,185,80,0.08); border-left: 3px solid #3fb950; '
+            f'padding: 8px 14px; border-radius: 4px; margin-bottom: 14px; font-size: 0.9em; color: #c9d1d9;">'
+            + "<br>".join(parts) + '</div>'
+        )
+
     # RVOL veto banner — kept visible so the veto can be sanity-checked daily
     veto_html = ""
     if vetoed:
@@ -768,7 +830,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         if html:
             sections.append(html)
 
-    body = header + veto_html + summary + "\n".join(sections) + (addendum_html or "")
+    body = header + reprint_html + veto_html + summary + "\n".join(sections) + (addendum_html or "")
 
     return (
         '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
@@ -899,6 +961,7 @@ def generate_priority_report() -> str:
                     "score_result": score_result,
                     "metrics": pm,
                     "score_str": f"{score_result['score']}/{score_result['max_score']}",
+                    "reprint": _reprint_context(ticker),
                 })
             elif bucket == "bounce":
                 bm = bounce_metrics_all.get(ticker, {})
@@ -1288,6 +1351,10 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                     signal_entry["archetype_detail"] = sr.get("archetype_detail")
                     if sr.get("rvol_vetoed"):
                         signal_entry["veto_reason"] = sr.get("veto_reason", "")
+                rc = item.get("reprint")
+                if rc:
+                    signal_entry["print_num"] = rc.get("print_num", 1)
+                    signal_entry["prior_print_paid"] = rc.get("prior_print_paid", False)
 
             signals.append(signal_entry)
 
