@@ -1,0 +1,35 @@
+{
+  "analysis_number": 1,
+  "signal_count_at_last_analysis": 147,
+  "past_recommendations": [
+    {
+      "analysis": 1,
+      "text": "Log per-signal criterion feature values (pct_from_9ema, prior_day_range_atr, rvol_score, pct_change_3, gap_pct, reversal_pct) into the outcome table so criterion-level threshold analysis is possible next cycle."
+    },
+    {
+      "analysis": 1,
+      "text": "Surface episode_signal_num and prior-print outcome in scanner output \u2014 a reprint following an already-tradeable first print ran 13/14 and is the strongest entry filter found; reprints generally (58\u201391%) beat first prints (42%)."
+    },
+    {
+      "analysis": 1,
+      "text": "Adopt ~1.5-ATR initial stop guidance for reversal entries \u2014 covers 27/28 winners' pre-target adverse while losers run median 1.66-ATR MAE; sub-0.5-ATR stops would have knocked out 13/28 winners."
+    },
+    {
+      "analysis": 1,
+      "text": "Investigate a regime/breadth gate for Large-cap reversals (e.g., sector-wide squeeze detection) \u2014 Large GO ran 7/22 with the Apr-30\u2192May-6 semis melt-up contributing 7 correlated failures at ~3-ATR median MAE."
+    },
+    {
+      "analysis": 1,
+      "text": "Track the 4/5-vs-5/5 inversion (16/29 vs 6/16) over the next batch before acting; if it persists at n\u226520 per cell, evaluate whether the 5th criterion is selecting unshortable peak momentum."
+    },
+    {
+      "analysis": 1,
+      "text": "Document that first-print fixed holds to D+3 have negative expectancy (mean \u22121.5%) \u2014 exits must be MFE-managed (1-ATR target hit in \u22641 day median) rather than time-based."
+    },
+    {
+      "analysis": 1,
+      "text": "Defer all bounce-side conclusions until n \u2265 20 independent episodes (currently 7)."
+    }
+  ],
+  "last_analysis_at": "2026-06-10"
+}
