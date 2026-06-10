@@ -1,5 +1,5 @@
 {
-  "analysis_number": 1,
+  "analysis_number": 2,
   "signal_count_at_last_analysis": 147,
   "past_recommendations": [
     {
@@ -29,6 +29,42 @@
     {
       "analysis": 1,
       "text": "Defer all bounce-side conclusions until n \u2265 20 independent episodes (currently 7)."
+    },
+    {
+      "analysis": 2,
+      "text": "reversal | POOLED | prior_day_rvol | score-point only (per-cap 1.25\u20132.0) | hard floor: suppress/NOGO any signal with prior_day_rvol < 1.25 | 2/21 (10%) tradeable below 1.25 vs 26/46 (57%) above; within Large (n=32): 0/12 below vs 9/20 above; only 2 winners lost (WOLF 1.10, NOK 1.07); cluster-independent (2 of 21 sub-1.25 rows in the May melt-up)"
+    },
+    {
+      "analysis": 2,
+      "text": "reversal | POOLED | pct_from_9ema | per-cap score-point (0.04\u20130.80) | secondary hard floor at 0.10 pooled | \u22640.10: 2/16 (12%) vs >0.10: 26/51 (51%); after the RVOL veto it incrementally drops 7 more losers for 2 winners (AMD 0.054, TSLA 0.052, both Large); combined RVOL+9EMA gate: pass 24/37 (65%) vs fail 4/30 (13%) \u2014 adopt only if the RVOL veto alone proves insufficient, since within-Large medians barely separate (0.128 vs 0.107)"
+    },
+    {
+      "analysis": 2,
+      "text": "Implement the pooled prior_day_rvol \u2265 1.25 hard veto on reversal signals (downgrade to NOGO/suppress, not just a lost score point) \u2014 strongest single filter found this cycle, 10% vs 57% tradeable."
+    },
+    {
+      "analysis": 2,
+      "text": "Re-evaluate gap_pct as a reversal criterion next cycle \u2014 zero pooled separation (W med 0.014 vs L med 0.011, flat bins, n=67); if still flat at ~100 first-flags, replace its score point with an RVOL-tier point so the 5-point score stops rewarding noise (also a candidate cause of the 4/5 > 5/5 inversion)."
+    },
+    {
+      "analysis": 2,
+      "text": "Continue tracking the 4/5-vs-5/5 inversion (now 16/29 vs 6/16 first-flags, second consecutive cycle, 5/5 n=16 < 20) \u2014 check next cycle whether sub-1.25-RVOL and gap-credit signals account for the 5/5 underperformance before restructuring the score."
+    },
+    {
+      "analysis": 2,
+      "text": "Reprint persistence strengthened to 28/30 (93%) after a tradeable prior print vs 18/40 (45%) otherwise \u2014 escalate Analysis #1's recommendation to surface episode_signal_num + prior-print 1-ATR status in scanner output from \"recommended\" to \"highest-priority\", with the caveat that prior tradeability must already be observable (target printed) at reprint time."
+    },
+    {
+      "analysis": 2,
+      "text": "Document that D0-close-direction confirmation was tested and rejected (48% vs 37% lift, costs 14/28 winners incl. all 9 same-day payers) and that long-first tactics are unsupported (~58% long-side 1-ATR hit, adverse to thesis) \u2014 stop relitigating entry-delay variants; the edge levers are the RVOL veto, the reprint trigger, and the 1.5-ATR stop (now 27/28 winners survive, 25/39 losers capped)."
+    },
+    {
+      "analysis": 2,
+      "text": "Large-cap reversal weakness persists ex-cluster (9/28, 32% vs Medium 58%) \u2014 after deploying the RVOL veto (which removes all 12 sub-1.25 Large losers), re-measure Large before pursuing the breadth/regime gate from Analysis #1."
+    },
+    {
+      "analysis": 2,
+      "text": "Bounce side remains deferred at 7 independent episodes (4/7 tradeable); flag for review that the lone bounce GO (CAR 5/6) was the dataset's worst signal \u2014 when n\u226520, test whether the bounce score is inverted on mid-crash knife-catches (prior_day_range_atr 4.1 on that signal)."
     }
   ],
   "last_analysis_at": "2026-06-10"

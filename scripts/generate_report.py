@@ -856,6 +856,21 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     if not archetype_passed and recommendation == 'GO':
         recommendation = 'CAUTION'
 
+    # --- Prior-day RVOL veto (hard downgrade) ---
+    # Signal Analysis #2 (2026-06-10, 67 first-flag episodes): prior_day_rvol
+    # < 1.25 ran 2/21 (10%) tradeable vs 26/46 (57%) above — 0/12 in Large caps.
+    # Veto regardless of score; rec becomes 'VETO' (not silent NO-GO) so it
+    # stays visible in reports and the scorecard keeps measuring vetoed signals.
+    rvol_vetoed = (
+        prior_rvol is not None and not pd.isna(prior_rvol)
+        and prior_rvol < RVOL_VETO_THRESHOLD
+        and recommendation in ('GO', 'CAUTION')
+    )
+    veto_reason = ''
+    if rvol_vetoed:
+        veto_reason = f"RVOL VETO: prior-day RVOL {prior_rvol:.2f}x < {RVOL_VETO_THRESHOLD}"
+        recommendation = 'VETO'
+
     return {
         'ticker': ticker,
         'cap': cap,
@@ -868,6 +883,8 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
         'momentum_pctile_3': mom_pctile,
         'archetype_passed': archetype_passed,
         'archetype_detail': archetype_detail,
+        'rvol_vetoed': rvol_vetoed,
+        'veto_reason': veto_reason,
     }
 
 

@@ -726,7 +726,7 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
     """
     from data_queries.polygon_queries import (
         get_daily, get_levels_data, adjust_date_to_market,
-        fetch_and_calculate_volumes
+        fetch_and_calculate_volumes, get_actual_current_price
     )
     try:
         from data_queries.trillium_queries import get_actual_current_price_trill
@@ -915,6 +915,14 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
     if not today_price and get_actual_current_price_trill is not None:
         try:
             today_price = get_actual_current_price_trill(ticker)
+        except Exception:
+            pass
+    # Polygon snapshot fallback — Trillium is unavailable on some hosts, which
+    # left every morning bounce signal without a gap_pct (reversal path already
+    # falls back to Polygon; keep the two consistent)
+    if not today_price:
+        try:
+            today_price = get_actual_current_price(ticker, date)
         except Exception:
             pass
 
