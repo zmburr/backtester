@@ -354,13 +354,16 @@ def rolling_summary(rows: list[dict]) -> dict:
               and str(r.get("days_available") or "0") != "0"]  # exclude no-data (delisted) rows
     rev = [r for r in recent if r.get("bucket") == "reversal"]
     bnc = [r for r in recent if r.get("bucket") == "bounce"]
+    # Bucket-first: reversal (5 criteria) and bounce (6 criteria) are different
+    # instruments — never pool their GO/CAUTION rates into one percentage.
     groups = {
-        "Overall": recent,
-        "GO": [r for r in recent if r.get("recommendation") == "GO"],
-        "CAUTION": [r for r in recent if r.get("recommendation") == "CAUTION"],
-        "Vetoed (RVOL)": [r for r in recent if r.get("recommendation") == "VETO"],
-        "Reversals": rev,
-        "Bounces": bnc,
+        "Reversal GO": [r for r in rev if r.get("recommendation") == "GO"],
+        "Reversal CAUTION": [r for r in rev if r.get("recommendation") == "CAUTION"],
+        "Reversal · vetoed (RVOL)": [r for r in rev if r.get("recommendation") == "VETO"],
+        "Reversal (all)": rev,
+        "Bounce GO": [r for r in bnc if r.get("recommendation") == "GO"],
+        "Bounce CAUTION": [r for r in bnc if r.get("recommendation") == "CAUTION"],
+        "Bounce (all)": bnc,
     }
     def _first(g):
         return [r for r in g if str(r.get("episode_signal_num", "")) == "1"]
@@ -550,14 +553,15 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
         </div>
         {timing_html}"""
 
-    # alert banner
+    # alert banners — per bucket, never pooled
     alert_html = ""
-    go = summary.get("groups", {}).get("GO", {}).get("tradeable_3d")
-    if go and go["total"] >= 10 and go["pct"] < ALERT_WARN:
-        sev = "#ef4444" if go["pct"] < ALERT_BAD else "#f59e0b"
-        alert_html = f"""<div style="background:rgba(239,68,68,0.08);padding:12px 16px;border-radius:6px;margin:16px 0;border-left:3px solid {sev};">
-          <strong style="color:{sev};">GO tradeable rate {go['pct']}% ({go['correct']}/{go['total']}) over rolling {ROLLING_WINDOW}d</strong>
-        </div>"""
+    for label in ("Reversal GO", "Bounce GO"):
+        g = summary.get("groups", {}).get(label, {}).get("tradeable_3d")
+        if g and g["total"] >= 10 and g["pct"] < ALERT_WARN:
+            sev = "#ef4444" if g["pct"] < ALERT_BAD else "#f59e0b"
+            alert_html += f"""<div style="background:rgba(239,68,68,0.08);padding:12px 16px;border-radius:6px;margin:16px 0;border-left:3px solid {sev};">
+              <strong style="color:{sev};">{label} tradeable rate {g['pct']}% ({g['correct']}/{g['total']}) over rolling {ROLLING_WINDOW}d</strong>
+            </div>"""
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#0a0c10;color:#c8cdd8;padding:20px;max-width:860px;margin:0 auto;">
@@ -646,9 +650,10 @@ def main():
         logger.info(f"Saved {len(outcomes)} rows to {OUTCOMES_FILE.name} ({updated} updated)")
 
     summary = rolling_summary(list(outcomes.values()))
-    go = summary.get("groups", {}).get("GO", {}).get("tradeable_3d")
-    if go:
-        logger.info(f"Rolling {ROLLING_WINDOW}d GO tradeable_3d: {go['pct']}% ({go['correct']}/{go['total']})")
+    for label in ("Reversal GO", "Bounce GO"):
+        g = summary.get("groups", {}).get(label, {}).get("tradeable_3d")
+        if g:
+            logger.info(f"Rolling {ROLLING_WINDOW}d {label} tradeable_3d: {g['pct']}% ({g['correct']}/{g['total']})")
     for label, t in summary.get("timing", {}).items():
         logger.info(
             f"  timing {label}: D0 {t['d0']['pct']}% | <=D1 {t['le1']['pct']}% | "
@@ -657,8 +662,12 @@ def main():
 
     if not no_email:
         html = format_email(new_today, updated, summary, last_day)
-        n_trade = sum(1 for r in new_today if _is_true(r.get("tradeable_3d")))
-        subject = f"Signal Scorecard — {last_day} — {n_trade}/{len(new_today)} tradeable (3d)"
+        parts = []
+        for b, label in (("reversal", "rev"), ("bounce", "bnc")):
+            g = [r for r in new_today if r.get("bucket") == b]
+            if g:
+                parts.append(f"{label} {sum(1 for r in g if _is_true(r.get('tradeable_3d')))}/{len(g)}")
+        subject = f"Signal Scorecard — {last_day} — {', '.join(parts) or '0 signals'} tradeable (3d)"
         send_email(EMAIL_TO, subject, html, is_html=True)
         logger.info("Scorecard email sent.")
 
