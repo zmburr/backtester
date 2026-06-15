@@ -1,0 +1,38 @@
+{
+  "date": "2026-06-15",
+  "session": "evening",
+  "generated_at": "2026-06-15T15:17:31.882887",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "ARM",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.182224,
+        "pct_change_3": 0.172228,
+        "gap_pct": 0.083244,
+        "prior_day_range_atr": 0.88386,
+        "atr_pct": 0.09808,
+        "prior_day_rvol": 1.318343,
+        "premarket_rvol": 0.086834
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.5421748132663793,
+        "pct_change_30": 0.8106219094712819,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    }
+  ]
+}
