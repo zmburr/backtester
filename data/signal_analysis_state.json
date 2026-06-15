@@ -1,6 +1,6 @@
 {
-  "analysis_number": 2,
-  "signal_count_at_last_analysis": 147,
+  "analysis_number": 3,
+  "signal_count_at_last_analysis": 166,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -67,5 +67,5 @@
       "text": "Bounce side remains deferred at 7 independent episodes (4/7 tradeable); flag for review that the lone bounce GO (CAR 5/6) was the dataset's worst signal \u2014 when n\u226520, test whether the bounce score is inverted on mid-crash knife-catches (prior_day_range_atr 4.1 on that signal)."
     }
   ],
-  "last_analysis_at": "2026-06-10"
+  "last_analysis_at": "2026-06-15"
 }
