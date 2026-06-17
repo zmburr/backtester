@@ -1,6 +1,6 @@
 {
-  "analysis_number": 3,
-  "signal_count_at_last_analysis": 166,
+  "analysis_number": 4,
+  "signal_count_at_last_analysis": 182,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -65,7 +65,35 @@
     {
       "analysis": 2,
       "text": "Bounce side remains deferred at 7 independent episodes (4/7 tradeable); flag for review that the lone bounce GO (CAR 5/6) was the dataset's worst signal \u2014 when n\u226520, test whether the bounce score is inverted on mid-crash knife-catches (prior_day_range_atr 4.1 on that signal)."
+    },
+    {
+      "analysis": 4,
+      "text": "reversal | POOLED | pct_from_9ema | secondary floor 0.10 (pending) | adopt 0.10 floor as secondary gate behind the RVOL veto | combined RVOL\u22651.25 & 9EMA>0.10 = 24/37 (65%) pass vs 5/31 (16%) fail; \u22640.10 alone 3/18 (17%) vs >0.10 26/50 (52%) \u2014 strengthened vs Analysis #2, but \u22640.10 cell is n=18 (<20), so adopt only if RVOL veto proves insufficient once it fires on live reversals."
+    },
+    {
+      "analysis": 4,
+      "text": "Verify the VETO label appears on the first post-2026-06-10 reversal batch \u2014 the cohort is empty this cycle (no reversal signals since 2026-06-05), so the deployed veto is still unverified in production. Report its tradeable_3d rate vs GO rate next cycle."
+    },
+    {
+      "analysis": 4,
+      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status in scanner output (highest-priority) \u2014 reprint-after-tradeable held at 32/34 (94%) this cycle; it remains the single strongest entry filter."
+    },
+    {
+      "analysis": 4,
+      "text": "Re-measure Large-cap reversal performance only after the RVOL veto has actually fired on a live reversal batch (still 10/33 = 30% here, pre-veto data) before pursuing the Analysis #1 breadth/regime gate."
+    },
+    {
+      "analysis": 4,
+      "text": "Keep tracking the 4/5 > 5/5 inversion (now 17/30 vs 6/16, 3rd cycle, 5/5 n=16 < 20) \u2014 do not restructure the score yet."
+    },
+    {
+      "analysis": 4,
+      "text": "Hold all bounce-side conclusions \u2014 18 independent episodes (6/18 tradeable); the GO-vs-CAUTION inversion (0/6 vs 6/12) is suggestive of an inverted bounce score on knife-catches but is n<20. Re-test at n\u226520."
+    },
+    {
+      "analysis": 4,
+      "text": "Leave gap_pct as-is \u2014 flat again this cycle (W 0.012 vs L 0.011); revisit the score-point restructure only at ~100 first-flags (currently 68 reversal first-flags)."
     }
   ],
-  "last_analysis_at": "2026-06-15"
+  "last_analysis_at": "2026-06-17"
 }
