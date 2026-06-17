@@ -1,0 +1,67 @@
+{
+  "date": "2026-06-17",
+  "session": "evening",
+  "generated_at": "2026-06-17T15:17:35.200658",
+  "go_count": 2,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "STX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.162262,
+        "pct_change_3": 0.188057,
+        "gap_pct": 0.04866,
+        "prior_day_range_atr": 1.338062,
+        "atr_pct": 0.058619,
+        "prior_day_rvol": 1.722491,
+        "premarket_rvol": 0.032223
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.619665884660582,
+        "pct_change_30": 0.39645787635063773,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.262343,
+        "pct_change_3": 0.28678,
+        "gap_pct": 0.078302,
+        "prior_day_range_atr": 1.390103,
+        "atr_pct": 0.061289,
+        "prior_day_rvol": 2.363931,
+        "premarket_rvol": 0.054694
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.8287013369803466,
+        "pct_change_30": 0.5396509630165477,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 2,
+      "prior_print_paid": false
+    }
+  ]
+}
