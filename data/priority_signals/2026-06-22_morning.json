@@ -1,0 +1,54 @@
+{
+  "date": "2026-06-22",
+  "session": "morning",
+  "generated_at": "2026-06-22T05:46:43.863312",
+  "go_count": 1,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "WDC",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.247938,
+        "pct_change_3": 0.141845,
+        "gap_pct": 0.062809,
+        "prior_day_range_atr": 1.170043,
+        "atr_pct": 0.065477,
+        "prior_day_rvol": 2.243564,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.9803629928804425,
+        "pct_change_30": 0.5445099865466212,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 4,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.21202,
+        "pct_off_30d_high": -0.409262,
+        "gap_pct": 0.040322,
+        "pct_change_3": -0.091036,
+        "prior_day_range_atr": 1.151659,
+        "pct_off_52wk_high": -0.409262,
+        "atr_pct": 0.174751
+      }
+    }
+  ]
+}
