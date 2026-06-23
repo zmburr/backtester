@@ -1,0 +1,41 @@
+{
+  "date": "2026-06-23",
+  "session": "morning",
+  "generated_at": "2026-06-23T05:46:15.245355",
+  "go_count": 0,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.068889,
+        "pct_off_30d_high": -0.335827,
+        "gap_pct": -0.04477,
+        "pct_change_3": -0.071217,
+        "prior_day_range_atr": 1.062956,
+        "pct_off_52wk_high": -0.335827,
+        "atr_pct": 0.102248
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": 0.035379,
+        "pct_off_30d_high": -0.344593,
+        "gap_pct": -0.083255,
+        "pct_change_3": 0.087903,
+        "prior_day_range_atr": 1.019765,
+        "pct_off_52wk_high": -0.344593,
+        "atr_pct": 0.164137
+      }
+    }
+  ]
+}
