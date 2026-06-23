@@ -1,0 +1,86 @@
+{
+  "date": "2026-06-23",
+  "session": "evening",
+  "generated_at": "2026-06-23T15:16:15.116427",
+  "go_count": 1,
+  "caution_count": 3,
+  "signals": [
+    {
+      "ticker": "HQ",
+      "bucket": "reversal",
+      "cap": "Small",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.412124,
+        "pct_change_3": 1.052941,
+        "gap_pct": -0.159937,
+        "prior_day_range_atr": 2.92711,
+        "atr_pct": 0.12712,
+        "prior_day_rvol": 1.767675,
+        "premarket_rvol": 0.082587
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": null,
+        "pct_change_30": 2.839,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 3,
+      "prior_print_paid": true
+    },
+    {
+      "ticker": "FJET",
+      "bucket": "bounce",
+      "cap": "Micro",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.526316,
+        "pct_off_30d_high": -0.573456,
+        "gap_pct": -0.027778,
+        "pct_change_3": -0.152542,
+        "prior_day_range_atr": 0.436942,
+        "pct_off_52wk_high": -0.857143,
+        "atr_pct": 0.246308
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.068889,
+        "pct_off_30d_high": -0.335827,
+        "gap_pct": -0.042577,
+        "pct_change_3": -0.071217,
+        "prior_day_range_atr": 1.062956,
+        "pct_off_52wk_high": -0.335827,
+        "atr_pct": 0.102248
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": 0.035379,
+        "pct_off_30d_high": -0.344593,
+        "gap_pct": -0.105154,
+        "pct_change_3": 0.087903,
+        "prior_day_range_atr": 1.019765,
+        "pct_off_52wk_high": -0.344593,
+        "atr_pct": 0.164137
+      }
+    }
+  ]
+}
