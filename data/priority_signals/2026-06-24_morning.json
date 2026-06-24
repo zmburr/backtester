@@ -1,0 +1,25 @@
+{
+  "date": "2026-06-24",
+  "session": "morning",
+  "generated_at": "2026-06-24T05:46:16.543301",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.046714,
+        "pct_off_30d_high": -0.413159,
+        "gap_pct": -0.140835,
+        "pct_change_3": -0.034042,
+        "prior_day_range_atr": 1.113255,
+        "pct_off_52wk_high": -0.413159,
+        "atr_pct": 0.106974
+      }
+    }
+  ]
+}
