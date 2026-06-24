@@ -1,0 +1,41 @@
+{
+  "date": "2026-06-24",
+  "session": "evening",
+  "generated_at": "2026-06-24T15:16:03.643118",
+  "go_count": 1,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "6/6",
+      "metrics": {
+        "selloff_total_pct": -0.215448,
+        "pct_off_30d_high": -0.517032,
+        "gap_pct": -0.082569,
+        "pct_change_3": -0.205019,
+        "prior_day_range_atr": 1.113255,
+        "pct_off_52wk_high": -0.517032,
+        "atr_pct": 0.129981
+      }
+    },
+    {
+      "ticker": "FJET",
+      "bucket": "bounce",
+      "cap": "Micro",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.553137,
+        "pct_off_30d_high": -0.597608,
+        "gap_pct": -0.006623,
+        "pct_change_3": -0.186743,
+        "prior_day_range_atr": 0.371242,
+        "pct_off_52wk_high": -0.865232,
+        "atr_pct": 0.247463
+      }
+    }
+  ]
+}
