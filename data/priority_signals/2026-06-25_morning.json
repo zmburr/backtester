@@ -1,0 +1,105 @@
+{
+  "date": "2026-06-25",
+  "session": "morning",
+  "generated_at": "2026-06-25T05:46:21.808781",
+  "go_count": 2,
+  "caution_count": 4,
+  "signals": [
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.233654,
+        "pct_off_30d_high": -0.528239,
+        "gap_pct": 0.019478,
+        "pct_change_3": -0.187898,
+        "prior_day_range_atr": 1.101222,
+        "pct_off_52wk_high": -0.528239,
+        "atr_pct": 0.141648
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.224222,
+        "pct_off_30d_high": -0.463857,
+        "gap_pct": 0.06441,
+        "pct_change_3": -0.227004,
+        "prior_day_range_atr": 1.277611,
+        "pct_off_52wk_high": -0.463857,
+        "atr_pct": 0.158507
+      }
+    },
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.243242,
+        "pct_off_30d_high": -0.371036,
+        "gap_pct": 0.034157,
+        "pct_change_3": -0.141681,
+        "prior_day_range_atr": 0.523213,
+        "pct_off_52wk_high": -0.371036,
+        "atr_pct": 0.164376
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.354144,
+        "pct_off_30d_high": -0.510059,
+        "gap_pct": 0.040776,
+        "pct_change_3": -0.241238,
+        "prior_day_range_atr": 0.784773,
+        "pct_off_52wk_high": -0.510059,
+        "atr_pct": 0.199295
+      }
+    },
+    {
+      "ticker": "IREN",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.162504,
+        "pct_off_30d_high": -0.28861,
+        "gap_pct": 0.034592,
+        "pct_change_3": -0.115527,
+        "prior_day_range_atr": 1.062688,
+        "pct_off_52wk_high": -0.345648,
+        "atr_pct": 0.11131
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.207037,
+        "pct_off_30d_high": -0.43437,
+        "gap_pct": 0.017914,
+        "pct_change_3": -0.14837,
+        "prior_day_range_atr": 0.912361,
+        "pct_off_52wk_high": -0.43437,
+        "atr_pct": 0.12127
+      }
+    }
+  ]
+}
