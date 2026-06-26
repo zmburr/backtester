@@ -1,0 +1,105 @@
+{
+  "date": "2026-06-26",
+  "session": "evening",
+  "generated_at": "2026-06-26T15:16:11.908931",
+  "go_count": 2,
+  "caution_count": 4,
+  "signals": [
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.239394,
+        "pct_off_30d_high": -0.531773,
+        "gap_pct": -0.034773,
+        "pct_change_3": -0.202122,
+        "prior_day_range_atr": 1.067406,
+        "pct_off_52wk_high": -0.531773,
+        "atr_pct": 0.148378
+      }
+    },
+    {
+      "ticker": "INOD",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.309948,
+        "pct_off_30d_high": -0.415215,
+        "gap_pct": -0.016261,
+        "pct_change_3": -0.159141,
+        "prior_day_range_atr": 1.185618,
+        "pct_off_52wk_high": -0.415215,
+        "atr_pct": 0.149372
+      }
+    },
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.286648,
+        "pct_off_30d_high": -0.407113,
+        "gap_pct": -0.049516,
+        "pct_change_3": -0.060364,
+        "prior_day_range_atr": 0.797017,
+        "pct_off_52wk_high": -0.407113,
+        "atr_pct": 0.163831
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.250476,
+        "pct_off_30d_high": -0.482002,
+        "gap_pct": -0.036723,
+        "pct_change_3": -0.172897,
+        "prior_day_range_atr": 0.829012,
+        "pct_off_52wk_high": -0.482002,
+        "atr_pct": 0.160016
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.250859,
+        "pct_off_30d_high": -0.465629,
+        "gap_pct": 0.005205,
+        "pct_change_3": -0.151703,
+        "prior_day_range_atr": 0.615942,
+        "pct_off_52wk_high": -0.465629,
+        "atr_pct": 0.122937
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.200836,
+        "pct_off_30d_high": -0.408686,
+        "gap_pct": -0.045825,
+        "pct_change_3": -0.022899,
+        "prior_day_range_atr": 0.77714,
+        "pct_off_52wk_high": -0.408686,
+        "atr_pct": 0.165861
+      }
+    }
+  ]
+}
