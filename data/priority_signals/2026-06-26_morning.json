@@ -1,0 +1,121 @@
+{
+  "date": "2026-06-26",
+  "session": "morning",
+  "generated_at": "2026-06-26T05:46:26.065480",
+  "go_count": 3,
+  "caution_count": 4,
+  "signals": [
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.291427,
+        "pct_off_30d_high": -0.563804,
+        "gap_pct": -0.025813,
+        "pct_change_3": -0.256704,
+        "prior_day_range_atr": 1.067406,
+        "pct_off_52wk_high": -0.563804,
+        "atr_pct": 0.159274
+      }
+    },
+    {
+      "ticker": "INOD",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.309948,
+        "pct_off_30d_high": -0.415215,
+        "gap_pct": 0.000547,
+        "pct_change_3": -0.159141,
+        "prior_day_range_atr": 1.185618,
+        "pct_off_52wk_high": -0.415215,
+        "atr_pct": 0.149372
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.250476,
+        "pct_off_30d_high": -0.482002,
+        "gap_pct": -0.041808,
+        "pct_change_3": -0.172897,
+        "prior_day_range_atr": 0.829012,
+        "pct_off_52wk_high": -0.482002,
+        "atr_pct": 0.160016
+      }
+    },
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.286648,
+        "pct_off_30d_high": -0.407113,
+        "gap_pct": -0.05724,
+        "pct_change_3": -0.060364,
+        "prior_day_range_atr": 0.797017,
+        "pct_off_52wk_high": -0.407113,
+        "atr_pct": 0.163831
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.364088,
+        "pct_off_30d_high": -0.517603,
+        "gap_pct": -0.043006,
+        "pct_change_3": -0.113593,
+        "prior_day_range_atr": 0.691746,
+        "pct_off_52wk_high": -0.517603,
+        "atr_pct": 0.200431
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.250859,
+        "pct_off_30d_high": -0.465629,
+        "gap_pct": 0.009667,
+        "pct_change_3": -0.151703,
+        "prior_day_range_atr": 0.615942,
+        "pct_off_52wk_high": -0.465629,
+        "atr_pct": 0.122937
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.200836,
+        "pct_off_30d_high": -0.408686,
+        "gap_pct": -0.047081,
+        "pct_change_3": -0.022899,
+        "prior_day_range_atr": 0.77714,
+        "pct_off_52wk_high": -0.408686,
+        "atr_pct": 0.165861
+      }
+    }
+  ]
+}
