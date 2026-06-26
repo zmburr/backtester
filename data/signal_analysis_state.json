@@ -1,6 +1,6 @@
 {
-  "analysis_number": 4,
-  "signal_count_at_last_analysis": 182,
+  "analysis_number": 5,
+  "signal_count_at_last_analysis": 198,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -93,7 +93,31 @@
     {
       "analysis": 4,
       "text": "Leave gap_pct as-is \u2014 flat again this cycle (W 0.012 vs L 0.011); revisit the score-point restructure only at ~100 first-flags (currently 68 reversal first-flags)."
+    },
+    {
+      "analysis": 5,
+      "text": "VETO cohort still empty after 2026-06-10 (all 12 recent reversals have RVOL \u2265 1.25); the deployed veto remains unverified in production \u2014 keep reporting the vetoed tradeable_3d rate each cycle until it actually fires, and only re-examine the veto if a sub-1.25 reversal eventually appears and prints tradeable."
+    },
+    {
+      "analysis": 5,
+      "text": "Large-cap reversal weakness persists at 10/36 (28%) vs Medium 61%, but this is still pre-veto-effect data \u2014 defer the Analysis #1 breadth/regime gate until the RVOL veto has actually suppressed a live Large reversal batch."
+    },
+    {
+      "analysis": 5,
+      "text": "4/5 > 5/5 inversion now in its 4th cycle (58% vs 32%, 5/5 n=19) \u2014 do not restructure the score yet; re-check once 5/5 crosses n=20."
+    },
+    {
+      "analysis": 5,
+      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output (reprint-after-tradeable held 33/35 = 94%)."
+    },
+    {
+      "analysis": 5,
+      "text": "Hold all bounce conclusions \u2014 19 independent episodes (6/19 tradeable); GO-vs-CAUTION inversion (0/6 vs 6/13) is still suggestive of an inverted bounce score on knife-catches but GO cell is n=6. Re-test at n\u226520."
+    },
+    {
+      "analysis": 5,
+      "text": "Leave gap_pct as-is (flat: W 0.016 vs L 0.013); revisit the score-point restructure only near ~100 reversal first-flags (currently 74)."
     }
   ],
-  "last_analysis_at": "2026-06-17"
+  "last_analysis_at": "2026-06-26"
 }
