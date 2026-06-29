@@ -1,0 +1,70 @@
+{
+  "date": "2026-06-29",
+  "session": "morning",
+  "generated_at": "2026-06-29T05:47:06.022963",
+  "go_count": 1,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.115258,
+        "pct_change_3": 0.139022,
+        "gap_pct": 0.029631,
+        "prior_day_range_atr": 1.106893,
+        "atr_pct": 0.07252,
+        "prior_day_rvol": 3.113488,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.8341075507451866,
+        "pct_change_30": 0.07040821267735228,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.185324,
+        "pct_off_30d_high": -0.282567,
+        "gap_pct": 0.060352,
+        "pct_change_3": -0.227383,
+        "prior_day_range_atr": 1.587124,
+        "pct_off_52wk_high": -0.282567,
+        "atr_pct": 0.126979
+      }
+    },
+    {
+      "ticker": "ON",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.264414,
+        "pct_off_30d_high": -0.32812,
+        "gap_pct": 0.018753,
+        "pct_change_3": -0.216779,
+        "prior_day_range_atr": 0.862667,
+        "pct_off_52wk_high": -0.32812,
+        "atr_pct": 0.118094
+      }
+    }
+  ]
+}
