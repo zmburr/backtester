@@ -1,0 +1,86 @@
+{
+  "date": "2026-06-29",
+  "session": "evening",
+  "generated_at": "2026-06-29T15:16:57.090040",
+  "go_count": 1,
+  "caution_count": 3,
+  "signals": [
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.244693,
+        "pct_change_3": 0.139022,
+        "gap_pct": 0.149129,
+        "prior_day_range_atr": 1.106893,
+        "atr_pct": 0.064979,
+        "prior_day_rvol": 3.113488,
+        "premarket_rvol": 0.012343
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.0469720101166018,
+        "pct_change_30": 0.07040821267735228,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.164384,
+        "pct_off_30d_high": -0.509989,
+        "gap_pct": -0.042694,
+        "pct_change_3": 0.000143,
+        "prior_day_range_atr": 0.426439,
+        "pct_off_52wk_high": -0.509989,
+        "atr_pct": 0.183856
+      }
+    },
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.185324,
+        "pct_off_30d_high": -0.282567,
+        "gap_pct": 0.081065,
+        "pct_change_3": -0.227383,
+        "prior_day_range_atr": 1.587124,
+        "pct_off_52wk_high": -0.282567,
+        "atr_pct": 0.126979
+      }
+    },
+    {
+      "ticker": "ON",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.264414,
+        "pct_off_30d_high": -0.32812,
+        "gap_pct": -0.005019,
+        "pct_change_3": -0.216779,
+        "prior_day_range_atr": 0.862667,
+        "pct_off_52wk_high": -0.32812,
+        "atr_pct": 0.118094
+      }
+    }
+  ]
+}
