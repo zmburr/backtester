@@ -1,0 +1,128 @@
+{
+  "date": "2026-06-30",
+  "session": "evening",
+  "generated_at": "2026-06-30T15:16:48.628626",
+  "go_count": 3,
+  "caution_count": 2,
+  "signals": [
+    {
+      "ticker": "CRWD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.09729,
+        "pct_change_3": 0.103845,
+        "gap_pct": 0.027392,
+        "prior_day_range_atr": 1.556803,
+        "atr_pct": 0.043644,
+        "prior_day_rvol": 1.357385,
+        "premarket_rvol": 0.019027
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.5339826723024844,
+        "pct_change_30": 0.2809897404948701,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.178183,
+        "pct_change_3": 0.242239,
+        "gap_pct": -0.012072,
+        "prior_day_range_atr": 2.35685,
+        "atr_pct": 0.07336,
+        "prior_day_rvol": 1.485346,
+        "premarket_rvol": 0.020455
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.0208781261287785,
+        "pct_change_30": 0.22762627232571536,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 2,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.337595,
+        "pct_change_3": 0.276268,
+        "gap_pct": 0.156403,
+        "prior_day_range_atr": 1.458049,
+        "atr_pct": 0.076603,
+        "prior_day_rvol": 1.285873,
+        "premarket_rvol": 0.046215
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 2.7878833633299913,
+        "pct_change_30": 0.22178418562739352,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    },
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": 0.167609,
+        "pct_off_30d_high": -0.364989,
+        "gap_pct": -0.053872,
+        "pct_change_3": 0.274864,
+        "prior_day_range_atr": 1.482994,
+        "pct_off_52wk_high": -0.44391,
+        "atr_pct": 0.120745
+      }
+    },
+    {
+      "ticker": "ON",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.281292,
+        "pct_off_30d_high": -0.343537,
+        "gap_pct": 0.002258,
+        "pct_change_3": -0.254085,
+        "prior_day_range_atr": 0.422735,
+        "pct_off_52wk_high": -0.343537,
+        "atr_pct": 0.118585
+      }
+    }
+  ]
+}
