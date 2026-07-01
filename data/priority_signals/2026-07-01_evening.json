@@ -1,0 +1,38 @@
+{
+  "date": "2026-07-01",
+  "session": "evening",
+  "generated_at": "2026-07-01T15:16:09.768635",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "FCEL",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.249748,
+        "pct_change_3": 0.83257,
+        "gap_pct": -0.108442,
+        "prior_day_range_atr": 2.157293,
+        "atr_pct": 0.129785,
+        "prior_day_rvol": 2.068196,
+        "premarket_rvol": 0.093487
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.0518423460354804,
+        "pct_change_30": 0.6858614232209738,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 1,
+      "prior_print_paid": false
+    }
+  ]
+}
