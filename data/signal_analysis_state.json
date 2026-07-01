@@ -1,6 +1,6 @@
 {
-  "analysis_number": 5,
-  "signal_count_at_last_analysis": 198,
+  "analysis_number": 6,
+  "signal_count_at_last_analysis": 214,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -117,7 +117,35 @@
     {
       "analysis": 5,
       "text": "Leave gap_pct as-is (flat: W 0.016 vs L 0.013); revisit the score-point restructure only near ~100 reversal first-flags (currently 74)."
+    },
+    {
+      "analysis": 6,
+      "text": "Keep reporting the VETO cohort's tradeable_3d rate every cycle; it is still empty (0 rows, all post-deploy reversals RVOL\u22651.318) \u2014 flag immediately if/when it fires and print tradeable, but do NOT re-derive the veto."
+    },
+    {
+      "analysis": 6,
+      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output \u2014 reprint-after-tradeable held at 41/45 (91%) this cycle."
+    },
+    {
+      "analysis": 6,
+      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle; adopt behind the RVOL veto only once the \u22640.10 first-flag cell reaches n\u226520 (currently 18)."
+    },
+    {
+      "analysis": 6,
+      "text": "Do not restructure the 5-point reversal score \u2014 4/5>5/5 inversion is in its 5th cycle but 5/5 is still n=19 (<20); re-check when it crosses 20."
+    },
+    {
+      "analysis": 6,
+      "text": "Hold all bounce conclusions \u2014 26 independent episodes (7/26); GO-vs-CAUTION inversion (0/7 vs 7/19) still suggestive of an inverted bounce score on knife-catches but GO cell is n=7. Re-test at n\u226520."
+    },
+    {
+      "analysis": 6,
+      "text": "Defer the Analysis #1 breadth/regime gate for Large-cap reversal (10/36, 28%) until the RVOL veto has actually suppressed a live Large reversal batch."
+    },
+    {
+      "analysis": 6,
+      "text": "Leave gap_pct scored as-is; revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 74)."
     }
   ],
-  "last_analysis_at": "2026-06-26"
+  "last_analysis_at": "2026-07-01"
 }
