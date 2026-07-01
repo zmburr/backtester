@@ -1,0 +1,38 @@
+{
+  "date": "2026-07-01",
+  "session": "morning",
+  "generated_at": "2026-07-01T05:46:24.442511",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "GLW",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.105178,
+        "pct_change_3": 0.120258,
+        "gap_pct": -0.03684,
+        "prior_day_range_atr": 1.162369,
+        "atr_pct": 0.074414,
+        "prior_day_rvol": 1.356767,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.9541425446983698,
+        "pct_change_30": 0.3316823940357646,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "print_num": 3,
+      "prior_print_paid": false
+    }
+  ]
+}
