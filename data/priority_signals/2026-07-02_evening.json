@@ -1,0 +1,25 @@
+{
+  "date": "2026-07-02",
+  "session": "evening",
+  "generated_at": "2026-07-02T15:16:01.333006",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "KEEL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.256078,
+        "pct_off_30d_high": -0.377205,
+        "gap_pct": 0.007435,
+        "pct_change_3": -0.205882,
+        "prior_day_range_atr": 0.783615,
+        "pct_off_52wk_high": -0.377205,
+        "atr_pct": 0.150134
+      }
+    }
+  ]
+}
