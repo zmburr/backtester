@@ -40,6 +40,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from analyzers.reversal_pretrade import (
     ReversalPretrade,
     classify_reversal_setup,
+    GATE_THRESHOLDS,
     REVERSAL_SETUP_PROFILES,
 )
 
@@ -427,9 +428,22 @@ class HistoricalBackscanner:
             if avg_vol < MIN_AVG_VOLUME:
                 continue
 
+            # Estimate cap early so the pre-filter and classification gate
+            # can use per-cap thresholds (the old flat 4%-gap / 25%-9EMA
+            # pre-filter silently dropped every ETF/Large candidate)
+            cap = self.estimate_cap(float(history.iloc[-1]['close']), float(avg_vol))
+
+            # Cap filter
+            if self.cap_filter and cap not in self.cap_filter:
+                continue
+
             # Quick 3DGapFade pre-filter: check consecutive up days, gap,
-            # and 9EMA extension before computing full metrics
+            # and 9EMA extension before computing full metrics. Uses the
+            # per-cap gate thresholds with slack (gap -1pp, 9EMA -5pp) so the
+            # pre-filter is strictly looser than classify_reversal_setup.
             if self.setup_type == '3DGapFade':
+                gate = GATE_THRESHOLDS.get(cap, GATE_THRESHOLDS['_default'])
+
                 # Check consecutive up closes at end of hist_only
                 up_count = 0
                 for i in range(len(hist_only) - 1, 0, -1):
@@ -437,21 +451,21 @@ class HistoricalBackscanner:
                         up_count += 1
                     else:
                         break
-                if up_count < 2:
+                if up_count < gate['up_days']:
                     continue
 
-                # Check 4%+ gap up on trade day (tightened from any gap)
+                # Gap up on trade day
                 if history.index[-1] == date:
                     today_open = history.iloc[-1]['open']
                     prior_close = hist_only.iloc[-1]['close']
-                    if prior_close > 0 and today_open < prior_close * 1.04:
+                    if prior_close > 0 and today_open < prior_close * (1 + gate['gap_min'] - 0.01):
                         continue
 
-                # Quick 9EMA extension check (>= 25% as pre-filter margin)
+                # Quick 9EMA extension check (gate threshold minus margin)
                 if len(hist_only) >= 9:
                     ema_9 = hist_only['close'].ewm(span=9, adjust=False).mean().iloc[-1]
                     last_close = hist_only.iloc[-1]['close']
-                    if ema_9 > 0 and (last_close - ema_9) / ema_9 < 0.25:
+                    if ema_9 > 0 and (last_close - ema_9) / ema_9 < gate['ema9_min'] - 0.05:
                         continue
 
             # Full metric computation
@@ -460,20 +474,10 @@ class HistoricalBackscanner:
                 continue
 
             # Classify
-            setup_type = classify_reversal_setup(metrics)
+            setup_type = classify_reversal_setup(metrics, cap=cap)
             if setup_type is None:
                 continue
             if self.setup_type and setup_type != self.setup_type:
-                continue
-
-            # Estimate cap
-            cap = self.estimate_cap(
-                metrics.get('current_price', 0),
-                metrics.get('avg_daily_vol', 0),
-            )
-
-            # Cap filter
-            if self.cap_filter and cap not in self.cap_filter:
                 continue
 
             # Score

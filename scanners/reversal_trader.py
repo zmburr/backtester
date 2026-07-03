@@ -634,7 +634,7 @@ class ReversalTradeManager:
         self.metrics = self._compute_metrics(levels)
 
         # ---- 7. Classify setup type ----
-        self.setup_type = classify_reversal_setup(self.metrics)
+        self.setup_type = classify_reversal_setup(self.metrics, cap=self.cap)
         self.logger.info(f'Setup type: {self.setup_type or "Generic"}')
 
         # ---- 8. Validate pre-trade ----
