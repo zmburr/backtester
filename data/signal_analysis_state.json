@@ -1,6 +1,6 @@
 {
-  "analysis_number": 6,
-  "signal_count_at_last_analysis": 214,
+  "analysis_number": 7,
+  "signal_count_at_last_analysis": 231,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -145,7 +145,31 @@
     {
       "analysis": 6,
       "text": "Leave gap_pct scored as-is; revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 74)."
+    },
+    {
+      "analysis": 7,
+      "text": "VETO cohort still empty (0 rows; min post-06-10 reversal RVOL = 1.318 vs 1.25 floor). Keep reporting its tradeable_3d rate each cycle; flag the instant a sub-1.25 reversal appears and prints tradeable. Do not re-derive."
+    },
+    {
+      "analysis": 7,
+      "text": "Close the 4/5>5/5 inversion as a cap-mix confound, not a scoring defect \u2014 5/5 is 70% Large (weak cap); within-cap the gap is noise. Stop treating the pooled inversion as evidence to restructure the 5-point score; report it cap-stratified going forward."
+    },
+    {
+      "analysis": 7,
+      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle \u2014 direction is strong and stable (17% vs 51%) but the \u22640.10 cell is n=18, one short of the n\u226520 gate. Adopt behind the RVOL veto the moment it reaches 20."
+    },
+    {
+      "analysis": 7,
+      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output (reprint-after-tradeable 48/51 = 94%)."
+    },
+    {
+      "analysis": 7,
+      "text": "Defer the Analysis #1 breadth/regime gate for Large-cap reversal weakness (11/37 = 30%) until the RVOL veto has actually suppressed a live Large reversal batch (still pre-veto data)."
+    },
+    {
+      "analysis": 7,
+      "text": "Hold all bounce conclusions (29 episodes, 8/29 tradeable; GO 0/8 vs CAUTION 8/21) and leave gap_pct scored as-is (W 0.016 vs L 0.013, flat) \u2014 revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 75)."
     }
   ],
-  "last_analysis_at": "2026-07-01"
+  "last_analysis_at": "2026-07-03"
 }
