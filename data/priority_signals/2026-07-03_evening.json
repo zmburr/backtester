@@ -1,0 +1,174 @@
+{
+  "date": "2026-07-03",
+  "session": "evening",
+  "generated_at": "2026-07-03T15:16:14.444181",
+  "go_count": 5,
+  "caution_count": 6,
+  "signals": [
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.234494,
+        "pct_off_30d_high": -0.423059,
+        "pct_change_3": -0.183653,
+        "prior_day_range_atr": 1.421018,
+        "pct_off_52wk_high": -0.48239,
+        "atr_pct": 0.150457
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.202198,
+        "pct_off_30d_high": -0.604498,
+        "pct_change_3": -0.214484,
+        "prior_day_range_atr": 1.152272,
+        "pct_off_52wk_high": -0.604498,
+        "atr_pct": 0.209069
+      }
+    },
+    {
+      "ticker": "KEEL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.256078,
+        "pct_off_30d_high": -0.377205,
+        "pct_change_3": -0.200348,
+        "prior_day_range_atr": 1.308463,
+        "pct_off_52wk_high": -0.377205,
+        "atr_pct": 0.156514
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.173714,
+        "pct_off_30d_high": -0.576822,
+        "pct_change_3": -0.19308,
+        "prior_day_range_atr": 1.223044,
+        "pct_off_52wk_high": -0.576822,
+        "atr_pct": 0.145319
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.248416,
+        "pct_off_30d_high": -0.399106,
+        "pct_change_3": -0.319598,
+        "prior_day_range_atr": 1.330047,
+        "pct_off_52wk_high": -0.399106,
+        "atr_pct": 0.237194
+      }
+    },
+    {
+      "ticker": "DGXX",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.308271,
+        "pct_off_30d_high": -0.477866,
+        "pct_change_3": -0.155963,
+        "prior_day_range_atr": 1.1115,
+        "pct_off_52wk_high": -0.5,
+        "atr_pct": 0.132997
+      }
+    },
+    {
+      "ticker": "LITE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.137092,
+        "pct_off_30d_high": -0.306051,
+        "pct_change_3": -0.151202,
+        "prior_day_range_atr": 1.259611,
+        "pct_off_52wk_high": -0.329158,
+        "atr_pct": 0.102344
+      }
+    },
+    {
+      "ticker": "LWLG",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.191548,
+        "pct_off_30d_high": -0.46044,
+        "pct_change_3": -0.221459,
+        "prior_day_range_atr": 1.291951,
+        "pct_off_52wk_high": -0.606339,
+        "atr_pct": 0.122961
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.165105,
+        "pct_off_30d_high": -0.280931,
+        "pct_change_3": -0.219249,
+        "prior_day_range_atr": 1.015682,
+        "pct_off_52wk_high": -0.280931,
+        "atr_pct": 0.136807
+      }
+    },
+    {
+      "ticker": "ORCL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.261776,
+        "pct_off_30d_high": -0.439481,
+        "pct_change_3": -0.042852,
+        "prior_day_range_atr": 1.00049,
+        "pct_off_52wk_high": -0.594267,
+        "atr_pct": 0.058664
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.122807,
+        "pct_off_30d_high": -0.505073,
+        "pct_change_3": -0.170984,
+        "prior_day_range_atr": 1.104309,
+        "pct_off_52wk_high": -0.505073,
+        "atr_pct": 0.177093
+      }
+    }
+  ]
+}
