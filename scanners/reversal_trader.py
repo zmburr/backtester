@@ -166,7 +166,7 @@ KNOWN_ETFS = {
     'GLD', 'SLV', 'GDXJ', 'QQQ', 'SPY', 'XLE', 'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLY',
     'XLB', 'XLU', 'IWM', 'DIA', 'VTI', 'VOO', 'VXX', 'UVXY', 'SQQQ', 'TQQQ', 'SPXU', 'SPXL',
     'TLT', 'HYG', 'LQD', 'EEM', 'EWZ', 'EWJ', 'FXI', 'KWEB', 'SMH', 'XBI', 'IBB', 'ARKK', 'ARKG',
-    'IBIT', 'ETHE',
+    'IBIT', 'ETHE', 'SOXL', 'SOXS',
 }
 _market_cap_cache: Dict[str, str] = {}
 

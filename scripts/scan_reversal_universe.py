@@ -153,10 +153,11 @@ def scan_universe_date(scanner: HistoricalBackscanner, date: str,
         if metrics is None:
             continue
 
-        # Estimate cap
+        # Estimate cap (KNOWN_ETFS-aware so ETFs get the ETF gate/thresholds)
         cap = HistoricalBackscanner.estimate_cap(
             metrics.get('current_price', 0),
             metrics.get('avg_daily_vol', 0),
+            ticker=ticker,
         )
 
         # Cap filter

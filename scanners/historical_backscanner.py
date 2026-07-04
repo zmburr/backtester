@@ -43,6 +43,7 @@ from analyzers.reversal_pretrade import (
     GATE_THRESHOLDS,
     REVERSAL_SETUP_PROFILES,
 )
+from scanners.reversal_trader import KNOWN_ETFS
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 
@@ -357,11 +358,17 @@ class HistoricalBackscanner:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def estimate_cap(price: float, avg_vol: float) -> str:
+    def estimate_cap(price: float, avg_vol: float, ticker: str = None) -> str:
         """
         Rough market cap estimation from price and average volume.
         Not perfect, but sufficient for threshold selection.
+
+        Checks KNOWN_ETFS first when a ticker is given: the dollar-volume
+        heuristic classifies liquid ETFs (GLD, SLV, KWEB...) as Large/Medium,
+        which would apply the wrong per-cap gate and thresholds.
         """
+        if ticker and ticker.upper() in KNOWN_ETFS:
+            return 'ETF'
         daily_dollar_vol = price * avg_vol
         if daily_dollar_vol > 5_000_000_000:
             return 'Large'
@@ -431,7 +438,7 @@ class HistoricalBackscanner:
             # Estimate cap early so the pre-filter and classification gate
             # can use per-cap thresholds (the old flat 4%-gap / 25%-9EMA
             # pre-filter silently dropped every ETF/Large candidate)
-            cap = self.estimate_cap(float(history.iloc[-1]['close']), float(avg_vol))
+            cap = self.estimate_cap(float(history.iloc[-1]['close']), float(avg_vol), ticker=ticker)
 
             # Cap filter
             if self.cap_filter and cap not in self.cap_filter:
