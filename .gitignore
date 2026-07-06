@@ -37,3 +37,4 @@ data/batch_results/
 /reports/
 scripts/reports/
 data/bounce_population_*.csv
+data/analog_path_cache.pkl

@@ -1,0 +1,15 @@
+{
+  "generated": "2026-07-06T17:17:37",
+  "n": 90,
+  "med_corr_full": 0.638,
+  "med_corr_am": 0.734,
+  "in_band_11_n": 57,
+  "in_band_11_p_green": 0.895,
+  "in_band_11_med_close": 8.55,
+  "out_band_11_p_green": 0.727,
+  "out_band_11_med_close": 7.63,
+  "exit_rate": 0.411,
+  "below_band_med_drift": 2.61,
+  "exit_p_green": 0.676,
+  "nonexit_p_green": 0.943
+}

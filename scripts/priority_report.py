@@ -1308,7 +1308,7 @@ def _bounce_cohort_payload() -> Optional[Dict]:
         occ = pd.to_numeric(df["bounce_open_close_pct"], errors="coerce")
         v15 = pd.to_numeric(df["percent_of_vol_in_first_15_min"], errors="coerce").dropna()
         known = tol.notna()
-        return {
+        payload = {
             "n": int(known.sum()),
             "low_by_10_pct": _safe_round((tol[known] == 1).mean()),
             "low_by_10_med_open_close": _safe_round(occ[tol == 1].median()),
@@ -1317,6 +1317,16 @@ def _bounce_cohort_payload() -> Optional[Dict]:
             "vol15_med": _safe_round(v15.quantile(0.50)),
             "vol15_q75": _safe_round(v15.quantile(0.75)),
         }
+        # Analog-tracking validation stats (scripts/validate_analog_tracking.py)
+        # — the live analog chart renders these as its caption / band-exit
+        # context. Optional; omitted when the study hasn't been run.
+        stats_path = _DATA_DIR / "analog_tracking_stats.json"
+        try:
+            if stats_path.exists():
+                payload["analog_stats"] = json.loads(stats_path.read_text())
+        except Exception as e:
+            log.debug(f"analog stats load failed: {e}")
+        return payload
     except Exception as e:
         log.warning(f"bounce cohort payload failed (non-fatal): {e}")
         return None
