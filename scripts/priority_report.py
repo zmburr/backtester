@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import pandas as pd
 import numpy as np
-import csv
 import json
 import datetime
 import time
@@ -58,39 +57,6 @@ BOUNCE_COMP_COLUMNS = [
 REVERSAL_COMP_COLUMNS = [
     "pct_from_9ema", "gap_pct", "pct_change_3", "one_day_before_range_pct",
 ]
-
-_OUTCOMES_FILE = _DATA_DIR / "signal_outcomes.csv"
-_REPRINT_WINDOW_DAYS = 7  # calendar days ≈ EPISODE_GAP (3 trading days) + weekend
-
-
-def _reprint_context(ticker: str) -> Dict:
-    """Episode context for a reversal signal, observable at report time.
-
-    Reads the scorecard outcomes log (refreshed 5:30 AM, before the 5:45
-    morning report) for this ticker's reversal prints in the trailing window.
-
-    Returns:
-        print_num:         1 = fresh flag, N = Nth consecutive print
-        prior_print_paid:  True when an earlier print in this episode already
-                           hit its 1-ATR target on a COMPLETED day — the
-                           highest-conviction reprint state (Analysis #2:
-                           28/30 (93%) tradeable vs 18/40 (45%) otherwise;
-                           episode-level retest: 10/12 (83%)).
-    """
-    ctx = {"print_num": 1, "prior_print_paid": False}
-    try:
-        if not _OUTCOMES_FILE.exists():
-            return ctx
-        cutoff = (datetime.datetime.now() - datetime.timedelta(days=_REPRINT_WINDOW_DAYS)).strftime("%Y-%m-%d")
-        with open(_OUTCOMES_FILE, newline="") as f:
-            recent = [r for r in csv.DictReader(f)
-                      if r.get("ticker") == ticker and r.get("bucket") == "reversal"
-                      and r.get("target_date", "") >= cutoff]
-        ctx["print_num"] = len(recent) + 1
-        ctx["prior_print_paid"] = any(r.get("days_to_1atr") not in ("", None) for r in recent)
-    except Exception as e:  # non-fatal — context is an enhancement, not a gate
-        log.warning(f"{ticker}: reprint context failed – {e}")
-    return ctx
 
 
 # ---------------------------------------------------------------------------
@@ -761,7 +727,7 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
 
 
 def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[str, str],
-                               addendum_html: str = "", vetoed: List[Dict] = None) -> str:
+                               addendum_html: str = "") -> str:
     """Assemble the full priority report HTML."""
     now = datetime.datetime.now()
     open_count = len(priority_list)
@@ -776,51 +742,6 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         f'</div></div>'
     )
 
-    # Reprint trigger banner — highest-conviction state (Analysis #2: 93%
-    # per-signal, 83% by episode): a reprint whose prior print already paid.
-    reprint_html = ""
-    triggers, fresh_reprints = [], []
-    for item in priority_list:
-        rc = item.get("reprint") or {}
-        if item.get("bucket") != "reversal" or rc.get("print_num", 1) < 2:
-            continue
-        tag = f'<strong>{item["ticker"]}</strong> (print #{rc["print_num"]}, {item.get("score_str", "")})'
-        (triggers if rc.get("prior_print_paid") else fresh_reprints).append(tag)
-    if triggers or fresh_reprints:
-        parts = []
-        if triggers:
-            parts.append(
-                f'<span style="color:#3fb950;font-weight:bold;">REPRINT TRIGGER</span> '
-                f'(prior print already hit 1 ATR &mdash; 93% historical): {", ".join(triggers)}'
-            )
-        if fresh_reprints:
-            parts.append(
-                f'<span style="color:#d29922;">Reprints, prior print not yet paid</span> '
-                f'(45% historical): {", ".join(fresh_reprints)}'
-            )
-        reprint_html = (
-            f'<div style="background: rgba(63,185,80,0.08); border-left: 3px solid #3fb950; '
-            f'padding: 8px 14px; border-radius: 4px; margin-bottom: 14px; font-size: 0.9em; color: #c9d1d9;">'
-            + "<br>".join(parts) + '</div>'
-        )
-
-    # RVOL veto banner — kept visible so the veto can be sanity-checked daily
-    veto_html = ""
-    if vetoed:
-        items = []
-        for v in vetoed:
-            sr = v.get("score_result") or {}
-            reason = sr.get("veto_reason", "") if isinstance(sr, dict) else ""
-            rvol_txt = reason.split("RVOL ")[-1] if reason else ""
-            items.append(f'<strong>{v["ticker"]}</strong> ({v.get("score_str", "")}, RVOL {rvol_txt})')
-        veto_html = (
-            f'<div style="background: rgba(248,81,73,0.08); border-left: 3px solid #f85149; '
-            f'padding: 8px 14px; border-radius: 4px; margin-bottom: 14px; font-size: 0.9em; color: #f0a8a3;">'
-            f'<strong style="color:#f85149;">RVOL veto</strong> (prior-day RVOL &lt; 1.25 &mdash; '
-            f'historically 10% tradeable vs 57%): {", ".join(items)}'
-            f'</div>'
-        )
-
     summary = _build_summary_table(priority_list)
 
     # Ticker sections in priority order (highest-score first within OPEN)
@@ -830,7 +751,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         if html:
             sections.append(html)
 
-    body = header + reprint_html + veto_html + summary + "\n".join(sections) + (addendum_html or "")
+    body = header + summary + "\n".join(sections) + (addendum_html or "")
 
     return (
         '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
@@ -961,7 +882,6 @@ def generate_priority_report() -> str:
                     "score_result": score_result,
                     "metrics": pm,
                     "score_str": f"{score_result['score']}/{score_result['max_score']}",
-                    "reprint": _reprint_context(ticker),
                 })
             elif bucket == "bounce":
                 bm = bounce_metrics_all.get(ticker, {})
@@ -1039,13 +959,6 @@ def generate_priority_report() -> str:
         # Sort: GO first, then CAUTION; within each group by score descending
         priority.sort(key=_priority_sort_key)
 
-        # RVOL-vetoed signals: kept out of the priority list, but saved to the
-        # signals JSON so the scorecard keeps measuring them (verifies the
-        # veto's edge) and noted in the email so the veto stays visible.
-        vetoed = [s for s in scored if s["rec"] == "VETO" and s["bucket"] != "breakout"]
-        if vetoed:
-            print(f"RVOL veto: {', '.join(v['ticker'] for v in vetoed)}")
-
         excluded_breakouts = sum(1 for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] == "breakout")
         go_ct = sum(1 for p in priority if p["rec"] == "GO")
         cau_ct = sum(1 for p in priority if p["rec"] == "CAUTION")
@@ -1054,9 +967,7 @@ def generate_priority_report() -> str:
 
         if not priority:
             print("No OPEN windows found. Sending empty report.")
-            if vetoed:
-                _save_signals_to_json(vetoed, 0, 0)
-            html = build_priority_report_html([], {}, vetoed=vetoed)
+            html = build_priority_report_html([], {})
             _send_report(html, 0, 0)
             return html
 
@@ -1238,8 +1149,7 @@ def generate_priority_report() -> str:
         timings["deep_analysis"] = time.time() - t0
 
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
-        # Vetoed signals ride along so the scorecard can verify the veto.
-        _save_signals_to_json(priority + vetoed, go_ct, cau_ct)
+        _save_signals_to_json(priority, go_ct, cau_ct, comps_map)
 
         # === Phase 4.75: Render top-3 comp charts for the addendum ===
         # 1-year daily chart ending on each comp's trade date. Deduped across
@@ -1279,7 +1189,7 @@ def generate_priority_report() -> str:
 
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
-        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html, vetoed=vetoed)
+        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html)
         _send_report(html_report, go_ct, cau_ct, inline_images=chart_images)
         timings["email"] = time.time() - t0
 
@@ -1310,9 +1220,134 @@ _BOUNCE_METRIC_KEYS = [
     "prior_day_range_atr", "pct_off_52wk_high", "atr_pct",
 ]
 
+# ---------------------------------------------------------------------------
+# Bounce odds + analogs for the signal JSON (consumed by the morning watcher)
+# ---------------------------------------------------------------------------
+# Empirical odds from the UNCONDITIONED backscanner population (see
+# scripts/build_bounce_odds.py). Optional — signals simply omit "odds" if the
+# file hasn't been generated.
+_BOUNCE_ODDS_PATH = _DATA_DIR / "bounce_odds.json"
+try:
+    _BOUNCE_ODDS = json.loads(_BOUNCE_ODDS_PATH.read_text())
+except Exception:
+    _BOUNCE_ODDS = None
+    log.info("bounce_odds.json not found — signal JSON will omit odds")
 
-def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int):
-    """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard."""
+
+def _lookup_bounce_odds(score_str: str, cap: str) -> Optional[Dict]:
+    """Match a live signal to its odds bucket: (score band, cap) first, then
+    score band alone, then the population base rate."""
+    if not _BOUNCE_ODDS:
+        return None
+    try:
+        score = int(str(score_str).split("/")[0])
+    except (ValueError, IndexError):
+        return None
+
+    band_only = None
+    for b in _BOUNCE_ODDS.get("buckets", []):
+        if not (b["score_min"] <= score <= b["score_max"]):
+            continue
+        if b.get("cap") == cap:
+            return {**_odds_fields(b), "bucket": f"score {b['score_min']}-{b['score_max']} · {cap}"}
+        if b.get("cap") is None:
+            band_only = b
+    if band_only is not None:
+        return {**_odds_fields(band_only),
+                "bucket": f"score {band_only['score_min']}-{band_only['score_max']}"}
+    base = _BOUNCE_ODDS.get("base")
+    if base:
+        return {**_odds_fields(base), "bucket": "all screened days"}
+    return None
+
+
+def _odds_fields(b: Dict) -> Dict:
+    out = {k: b.get(k) for k in ("n", "p_green", "p_bounce5", "med_return")}
+    # Base-rate contrast: P(bounce>=5% off low) across ALL screened days is
+    # ~10%, so "64% for days like this" means something. p_green does NOT
+    # discriminate (coin flip at every score) — consumers should lead with
+    # p_bounce5.
+    base = (_BOUNCE_ODDS or {}).get("base") or {}
+    if base.get("p_bounce5") is not None:
+        out["base_p_bounce5"] = base["p_bounce5"]
+    return out
+
+
+def _analogs_payload(comps: Optional[pd.DataFrame]) -> Optional[Dict]:
+    """Compact top-5 analog outcomes for the watcher: per-comp rows + medians."""
+    if comps is None or comps.empty:
+        return None
+    out_rows = []
+    for _, r in comps.iterrows():
+        out_rows.append({
+            "ticker": r.get("ticker"),
+            "date": _coerce_comp_date(r.get("date")),
+            "open_high_pct": _safe_round(r.get("bounce_open_high_pct")),
+            "open_low_pct": _safe_round(r.get("bounce_open_low_pct")),
+            "open_close_pct": _safe_round(r.get("bounce_open_close_pct")),
+            "time_of_low_bucket": _safe_int(r.get("time_of_low_bucket")),
+            "distance": _safe_round(r.get("_distance")),
+        })
+    tol = pd.to_numeric(comps.get("time_of_low_bucket"), errors="coerce")
+    return {
+        "comps": out_rows,
+        "n": len(out_rows),
+        "med_open_high": _safe_round(comps["bounce_open_high_pct"].median()),
+        "med_open_low": _safe_round(comps["bounce_open_low_pct"].median()),
+        "med_open_close": _safe_round(comps["bounce_open_close_pct"].median()),
+        "n_low_by_10": int((tol == 1).sum()) if tol is not None else None,
+    }
+
+
+def _bounce_cohort_payload() -> Optional[Dict]:
+    """Cohort stats over the full curated bounce_data.csv — the watcher's
+    live checkpoints (low-timing, 15-min vol) compare against these."""
+    try:
+        df = _BOUNCE_DF
+        tol = pd.to_numeric(df["time_of_low_bucket"], errors="coerce")
+        occ = pd.to_numeric(df["bounce_open_close_pct"], errors="coerce")
+        v15 = pd.to_numeric(df["percent_of_vol_in_first_15_min"], errors="coerce").dropna()
+        known = tol.notna()
+        return {
+            "n": int(known.sum()),
+            "low_by_10_pct": _safe_round((tol[known] == 1).mean()),
+            "low_by_10_med_open_close": _safe_round(occ[tol == 1].median()),
+            "low_after_10_med_open_close": _safe_round(occ[tol > 1].median()),
+            "vol15_q25": _safe_round(v15.quantile(0.25)),
+            "vol15_med": _safe_round(v15.quantile(0.50)),
+            "vol15_q75": _safe_round(v15.quantile(0.75)),
+        }
+    except Exception as e:
+        log.warning(f"bounce cohort payload failed (non-fatal): {e}")
+        return None
+
+
+def _safe_round(v, digits: int = 4):
+    try:
+        f = float(v)
+        if pd.isna(f):
+            return None
+        return round(f, digits)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_int(v):
+    try:
+        f = float(v)
+        if pd.isna(f):
+            return None
+        return int(f)
+    except (TypeError, ValueError):
+        return None
+
+
+def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int,
+                          comps_map: Optional[Dict[str, pd.DataFrame]] = None):
+    """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard
+    and the morning watcher. Bounce signals additionally carry their historical
+    analogs (Phase-4a comps) and empirical odds; the payload carries the bounce
+    cohort stats the watcher's live checkpoints compare against."""
     try:
         _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
@@ -1349,12 +1384,17 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 if isinstance(sr, dict):
                     signal_entry["archetype_passed"] = sr.get("archetype_passed")
                     signal_entry["archetype_detail"] = sr.get("archetype_detail")
-                    if sr.get("rvol_vetoed"):
-                        signal_entry["veto_reason"] = sr.get("veto_reason", "")
-                rc = item.get("reprint")
-                if rc:
-                    signal_entry["print_num"] = rc.get("print_num", 1)
-                    signal_entry["prior_print_paid"] = rc.get("prior_print_paid", False)
+
+            # Bounce signals carry their historical analogs + empirical odds so
+            # the morning watcher can show "days like this" context live.
+            if bucket == "bounce":
+                if comps_map is not None:
+                    analogs = _analogs_payload(comps_map.get(item["ticker"]))
+                    if analogs is not None:
+                        signal_entry["analogs"] = analogs
+                odds = _lookup_bounce_odds(item.get("score_str", ""), item.get("cap", ""))
+                if odds is not None:
+                    signal_entry["odds"] = odds
 
             signals.append(signal_entry)
 
@@ -1366,6 +1406,13 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
             "caution_count": caution_count,
             "signals": signals,
         }
+
+        # Cohort stats (curated bounce_data.csv) for the watcher's live
+        # low-timing / early-vol checkpoints. Only included when relevant.
+        if any(s["bucket"] == "bounce" for s in signals):
+            cohort = _bounce_cohort_payload()
+            if cohort is not None:
+                payload["bounce_cohort"] = cohort
 
         out_path = _SIGNAL_DIR / f"{date_str}_{session}.json"
         # numpy types (np.bool_, np.float64, etc) sneak in from the scoring

@@ -1,0 +1,158 @@
+{
+  "generated": "2026-07-06T15:28:51",
+  "population_file": "bounce_population_2022_2026.csv",
+  "n_total": 218810,
+  "bounce_ltc_threshold": 0.05,
+  "base": {
+    "n": 218810,
+    "p_green": 0.5124,
+    "p_bounce5": 0.1058,
+    "med_return": 0.0008
+  },
+  "buckets": [
+    {
+      "score_min": 0,
+      "score_max": 2,
+      "cap": "ETF",
+      "n": 2742,
+      "p_green": 0.5058,
+      "p_bounce5": 0.0511,
+      "med_return": 0.0004
+    },
+    {
+      "score_min": 0,
+      "score_max": 2,
+      "cap": "Large",
+      "n": 1725,
+      "p_green": 0.4986,
+      "p_bounce5": 0.127,
+      "med_return": 0.0
+    },
+    {
+      "score_min": 0,
+      "score_max": 2,
+      "cap": "Medium",
+      "n": 105949,
+      "p_green": 0.5136,
+      "p_bounce5": 0.074,
+      "med_return": 0.0007
+    },
+    {
+      "score_min": 0,
+      "score_max": 2,
+      "cap": "Small",
+      "n": 104715,
+      "p_green": 0.5111,
+      "p_bounce5": 0.1251,
+      "med_return": 0.001
+    },
+    {
+      "score_min": 0,
+      "score_max": 2,
+      "cap": null,
+      "n": 215131,
+      "p_green": 0.5122,
+      "p_bounce5": 0.099,
+      "med_return": 0.0008
+    },
+    {
+      "score_min": 3,
+      "score_max": 3,
+      "cap": "ETF",
+      "n": 78,
+      "p_green": 0.5256,
+      "p_bounce5": 0.1923,
+      "med_return": 0.0022
+    },
+    {
+      "score_min": 3,
+      "score_max": 3,
+      "cap": "Large",
+      "n": 106,
+      "p_green": 0.5283,
+      "p_bounce5": 0.4151,
+      "med_return": 0.0051
+    },
+    {
+      "score_min": 3,
+      "score_max": 3,
+      "cap": "Medium",
+      "n": 1382,
+      "p_green": 0.5232,
+      "p_bounce5": 0.4117,
+      "med_return": 0.0035
+    },
+    {
+      "score_min": 3,
+      "score_max": 3,
+      "cap": "Small",
+      "n": 792,
+      "p_green": 0.5215,
+      "p_bounce5": 0.5442,
+      "med_return": 0.004
+    },
+    {
+      "score_min": 3,
+      "score_max": 3,
+      "cap": null,
+      "n": 2358,
+      "p_green": 0.5229,
+      "p_bounce5": 0.4491,
+      "med_return": 0.0034
+    },
+    {
+      "score_min": 4,
+      "score_max": 4,
+      "cap": "Medium",
+      "n": 522,
+      "p_green": 0.5498,
+      "p_bounce5": 0.5709,
+      "med_return": 0.0079
+    },
+    {
+      "score_min": 4,
+      "score_max": 4,
+      "cap": "Small",
+      "n": 267,
+      "p_green": 0.5056,
+      "p_bounce5": 0.6554,
+      "med_return": 0.0019
+    },
+    {
+      "score_min": 4,
+      "score_max": 4,
+      "cap": null,
+      "n": 854,
+      "p_green": 0.5351,
+      "p_bounce5": 0.5913,
+      "med_return": 0.0068
+    },
+    {
+      "score_min": 5,
+      "score_max": 6,
+      "cap": "Medium",
+      "n": 339,
+      "p_green": 0.4985,
+      "p_bounce5": 0.6136,
+      "med_return": 0.0
+    },
+    {
+      "score_min": 5,
+      "score_max": 6,
+      "cap": "Small",
+      "n": 101,
+      "p_green": 0.5446,
+      "p_bounce5": 0.7228,
+      "med_return": 0.0283
+    },
+    {
+      "score_min": 5,
+      "score_max": 6,
+      "cap": null,
+      "n": 467,
+      "p_green": 0.5096,
+      "p_bounce5": 0.6381,
+      "med_return": 0.0053
+    }
+  ]
+}

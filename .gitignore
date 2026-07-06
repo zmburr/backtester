@@ -36,3 +36,4 @@ data/batch_results/
 # Generated report outputs (PDFs, HTML) — top-level only
 /reports/
 scripts/reports/
+data/bounce_population_*.csv
