@@ -523,10 +523,6 @@ BOUNCE_COLUMNS_TO_COMPARE = [
 # Premarket RVOL threshold is live-specific (not in historical scorer).
 _PREMARKET_RVOL_THRESHOLD = 0.05
 
-# Hard veto floor on prior-day RVOL for reversal signals (Signal Analysis #2):
-# below this, signals were 2/21 (10%) tradeable vs 26/46 (57%) above.
-RVOL_VETO_THRESHOLD = 1.25
-
 # Singleton scorer instance for threshold lookups + momentum gate
 _reversal_scorer = ReversalScorer()
 
@@ -860,21 +856,6 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
     if not archetype_passed and recommendation == 'GO':
         recommendation = 'CAUTION'
 
-    # --- Prior-day RVOL veto (hard downgrade) ---
-    # Signal Analysis #2 (2026-06-10, 67 first-flag episodes): prior_day_rvol
-    # < 1.25 ran 2/21 (10%) tradeable vs 26/46 (57%) above — 0/12 in Large caps.
-    # Veto regardless of score; rec becomes 'VETO' (not silent NO-GO) so it
-    # stays visible in reports and the scorecard keeps measuring vetoed signals.
-    rvol_vetoed = (
-        prior_rvol is not None and not pd.isna(prior_rvol)
-        and prior_rvol < RVOL_VETO_THRESHOLD
-        and recommendation in ('GO', 'CAUTION')
-    )
-    veto_reason = ''
-    if rvol_vetoed:
-        veto_reason = f"RVOL VETO: prior-day RVOL {prior_rvol:.2f}x < {RVOL_VETO_THRESHOLD}"
-        recommendation = 'VETO'
-
     return {
         'ticker': ticker,
         'cap': cap,
@@ -887,8 +868,6 @@ def score_pretrade_setup(ticker: str, metrics: Dict, cap: str = None) -> Dict:
         'momentum_pctile_3': mom_pctile,
         'archetype_passed': archetype_passed,
         'archetype_detail': archetype_detail,
-        'rvol_vetoed': rvol_vetoed,
-        'veto_reason': veto_reason,
     }
 
 
@@ -1576,8 +1555,13 @@ BREAKOUT_WATCHLIST: List[str] = []
 # names present in this list are plotted (they need not be on the main watchlist).
 SEMI_NAMES: List[str] = [
     'NVDA', 'AMD', 'AVGO', 'MRVL', 'INTC', 'QCOM', 'MU', 'ON', 'STM', 'ARM',
-    'MXL', 'SIMO', 'NVTS', 'WOLF', 'CRDO', 'AXTI',  # core semis
-    'WDC', 'STX', 'SNDK',                            # storage / flash
+    'MXL', 'SIMO', 'NVTS', 'WOLF', 'CRDO', 'AXTI', 'ALAB',  # logic / GPU / core semis
+    'WDC', 'STX', 'SNDK',                                    # storage / flash
+    'TXN', 'ADI', 'NXPI', 'MCHP', 'MPWR',                    # analog / MCU / diversified
+    'AMAT', 'LRCX', 'KLAC', 'ASML', 'TER', 'ENTG',          # semicap equipment
+    'TSM', 'GFS', 'UMC',                                     # foundry / IDM (ADRs)
+    'SWKS', 'QRVO',                                          # RF / connectivity
+    'LSCC', 'RMBS', 'POWI', 'SITM', 'AMBA', 'INDI', 'ALGM', 'SLAB',  # programmable / specialty
 ]
 
 
@@ -2494,7 +2478,7 @@ def generate_report() -> str:
 
         # Send email as HTML
         send_email(
-            to_email="zmburr@gmail.com, zburr@trlm.com",
+            to_email="zburr@trlm.com",
             subject="Daily Watchlist Report",
             body=html_report,
             is_html=True,

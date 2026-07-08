@@ -4,8 +4,6 @@ from data_queries.polygon_queries import get_daily, adjust_date_forward, get_lev
     adjust_date_to_market, get_intraday, check_pct_move, fetch_and_calculate_volumes, get_ticker_mavs_open, get_range_vol_expansion_data, get_ipo_date, get_atr
 import pandas as pd
 import logging
-from tabulate import tabulate
-from datetime import datetime, timedelta
 from support.date_utils import csv_date_to_iso, parse_row_date
 from support.market_session import PREMARKET_START, PREMARKET_END, MARKET_OPEN, MARKET_CLOSE, AFTERHOURS_END
 from support.csv_utils import load_csv, save_csv_atomic
@@ -68,12 +66,6 @@ def find_time_of_low_price(data):
     if idx_low_price != len(data.index) - 1:  # check if it's not the last index
         time_of_low_price = data.index[idx_low_price + 1]
     return time_of_low_price
-
-
-def get_current_price(ticker, date):
-    date = csv_date_to_iso(date)
-    data = get_daily(ticker, date)
-    return data.open
 
 
 def get_pct_volume(row):

@@ -40,3 +40,4 @@ data/bounce_population_*.csv
 data/analog_path_cache.pkl
 
 data/iv_study/*.parquet
+data/iv_study/*.pkl
