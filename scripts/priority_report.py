@@ -36,6 +36,7 @@ from analyzers.bounce_exit_targets import (
 )
 from analyzers.setup_matcher import match_setup_for_report
 from support.config import send_email
+from support.signal_ledger import log_signals, current_session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s – %(message)s")
 log = logging.getLogger(__name__)
@@ -1036,6 +1037,10 @@ def generate_priority_report() -> str:
                     })
 
         timings["routing_scoring"] = time.time() - t0
+
+        # === Unified signal ledger: log EVERY scored signal (incl. NO-GO), not just
+        # the GO/CAUTION `priority` subset — removes the selection bias. Non-fatal. ===
+        log_signals("priority_report", current_session(), scored)
 
         # === Phase 3: Filter → keep tradeable tiers (GO + CAUTION = "OPEN"), excluding breakout bucket ===
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] != "breakout"]

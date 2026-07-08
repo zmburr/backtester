@@ -23,6 +23,7 @@ from scanners import stock_screener as ss
 from analyzers.bounce_scorer import BouncePretrade, fetch_bounce_metrics
 from analyzers.charter import create_daily_chart, cleanup_charts
 from support.config import send_email
+from support.signal_ledger import log_signals, current_session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s – %(message)s")
 log = logging.getLogger(__name__)
@@ -215,6 +216,10 @@ def generate_screener_report() -> str | None:
                         "label": config["label"],
                     })
 
+        # Unified signal ledger: log EVERY scored signal (incl. NO-GO). The EQS
+        # screen name (entry["label"]) is folded into the ledger's setup_type column.
+        log_signals("eqs_screener", current_session(), scored)
+
         # Filter: keep only GO + CAUTION
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION")]
         priority.sort(key=lambda x: (0 if x["rec"] == "GO" else 1, x["score_str"]), reverse=False)
@@ -254,7 +259,7 @@ def generate_screener_report() -> str | None:
                     ticker_results[ticker] = future.result()
                 except Exception as e:
                     log.warning(f"Error building section for {ticker}: {e}")
-                    ticker_results[ticker] = (f"<h2>{ticker}</h2><p>Error: {e}</p>", [])
+                    ticker_results[ticker] = (f"<h2>{ticker}</h2><p>Error: {e}</p>", [], None)
         timings["build_html"] = time.time() - t0
 
         # === Phase 6: Charts (sequential — matplotlib not thread-safe) ===
@@ -263,7 +268,7 @@ def generate_screener_report() -> str | None:
         sections: List[str] = []
         for item in priority:
             ticker = item["ticker"]
-            html, chart_hlines = ticker_results.get(ticker, ("", []))
+            html, chart_hlines, _signal_row = ticker_results.get(ticker, ("", [], None))
             try:
                 chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
                 img_tag = (
