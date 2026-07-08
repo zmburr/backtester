@@ -334,9 +334,9 @@ class ReversalPretrade:
         print(f"Setup Type: {result.setup_type} ({result.cap} Cap)")
         if profile:
             print(f"  {profile.description}")
-            print(f"  Historical: {profile.sample_size} A+B trades, "
-                  f"{profile.historical_win_rate * 100:.0f}% WR, "
-                  f"+{profile.historical_avg_pnl:.0f}% avg P&L")
+            print(f"  Historical: {profile.historical_win_rate * 100:.0f}% WR, "
+                  f"+{profile.historical_avg_pnl:.0f}% avg P&L "
+                  f"(n={profile.sample_size} curated A+B trades)")
         print(f"Generated: {result.timestamp}")
         print("=" * 70)
 

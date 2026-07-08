@@ -39,5 +39,9 @@ scripts/reports/
 data/bounce_population_*.csv
 data/analog_path_cache.pkl
 
+# Walk-forward validation artifacts (regenerable via scripts/run_walk_forward.py)
+validation/reports/
+data/derived_thresholds_*.json
+
 data/iv_study/*.parquet
 data/iv_study/*.pkl

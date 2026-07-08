@@ -366,10 +366,18 @@ class ReversalScorer:
     """Scores reversal setups based on 6 cap-adjusted criteria."""
 
     def __init__(self, thresholds=None, readiness_thresholds=None,
-                 momentum_pctile_min=None):
+                 momentum_pctile_min=None, ref_by_cap_group=None):
         self.thresholds = thresholds or CAP_THRESHOLDS
         self.readiness_thresholds = readiness_thresholds or READINESS_THRESHOLDS
         self.momentum_pctile_min = momentum_pctile_min if momentum_pctile_min is not None else MOMENTUM_PCTILE_MIN
+        # Reference distribution for the momentum-percentile gate and intensity
+        # scoring. Defaults to the module-global reference built from the full
+        # reversal_data.csv at import (production behavior). Walk-forward passes
+        # a train-only reference here to eliminate the look-ahead leak — see
+        # validation/walk_forward_engine.py. With the default, both the gate and
+        # compute_reversal_intensity read the exact same distribution as before,
+        # so default scoring is byte-identical.
+        self.ref_by_cap_group = ref_by_cap_group if ref_by_cap_group is not None else _ref_by_cap_group
 
     def _get_thresholds(self, cap: str) -> CriteriaThresholds:
         """Get thresholds for market cap."""
@@ -508,7 +516,7 @@ class ReversalScorer:
             return False, None
 
         cap_group = _CAP_GROUPS.get(cap, 'large')
-        ref_df = _ref_by_cap_group.get(cap_group, _reversal_ref)
+        ref_df = self.ref_by_cap_group.get(cap_group, _reversal_ref)
         if ref_df.empty:
             return True, None
 
@@ -572,7 +580,9 @@ class ReversalScorer:
         # Intensity: only compute when pretrade is GO and atr_pct is available
         intensity = None
         if pretrade_rec == 'GO' and metrics.get('atr_pct'):
-            intensity_result = compute_reversal_intensity(metrics, cap=cap)
+            cap_group = _CAP_GROUPS.get(cap, 'large')
+            intensity_ref = self.ref_by_cap_group.get(cap_group, _reversal_ref)
+            intensity_result = compute_reversal_intensity(metrics, cap=cap, ref_df=intensity_ref)
             intensity = intensity_result.get('composite')
 
         return {
