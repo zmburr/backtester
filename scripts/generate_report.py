@@ -8,6 +8,7 @@ saves one PNG chart per ticker in the *charts/* directory.
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from support.config import send_email
+from support.signal_ledger import log_signals, current_session
 import pandas as pd
 import base64
 import datetime
@@ -1676,10 +1677,14 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
                        bounce_metrics: dict = None,
                        bucket_override: str = None,
                        bucket_reason_override: str = None,
-                       is_ambiguous_override: bool = False) -> Tuple[str, list]:
+                       is_ambiguous_override: bool = False) -> Tuple[str, list, Optional[dict]]:
     """Build HTML content for one ticker (everything except chart generation).
 
-    Returns (html_string, chart_hlines) so chart rendering can happen separately.
+    Returns (html_string, chart_hlines, signal_row) so chart rendering can happen
+    separately and the caller can feed signal_row into the unified signal ledger.
+    signal_row is a scored-entry dict (ticker/bucket/cap/rec/score_result/metrics/
+    score_str) for reversal/bounce/breakout buckets, or None for FILTERED tickers
+    (no playbook, nothing to score).
 
     The pipeline pre-computes routing for the whole watchlist, then passes the
     bucket / reason / ambiguous flag in via the *_override params. If
@@ -1735,6 +1740,9 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
     cap = None
     score_result = None
     exit_data = {}
+    # Unified signal ledger row for this ticker (None for FILTERED). Populated by
+    # whichever bucket branch runs below.
+    signal_row: Optional[dict] = None
 
     def _build_breakout_metrics(pre_m, mav_d):
         """Assemble metrics dict for BreakoutPretrade / compute_breakout_intensity from
@@ -1783,6 +1791,15 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
         if pretrade_metrics:
             score_result = score_pretrade_setup(ticker, pretrade_metrics)
             cap = score_result.get('cap')
+            signal_row = {
+                "ticker": ticker,
+                "bucket": bucket,
+                "cap": cap,
+                "rec": score_result.get("recommendation", ""),
+                "score_result": score_result,
+                "metrics": pretrade_metrics,
+                "score_str": f"{score_result.get('score')}/{score_result.get('max_score')}",
+            }
             lines.append("<strong>Reversal Setup Score:</strong>")
             lines.append(format_pretrade_score_html(score_result))
 
@@ -1841,6 +1858,25 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
         for ln in _render_breakout_section(pretrade_metrics, mav_data):
             lines.append(ln)
 
+        # Ledger row: score the breakout and map intensity tier to GO/CAUTION/NO-GO
+        # exactly as priority_report does (FULL_SIZE->GO, REDUCED_SIZE->CAUTION).
+        if pretrade_metrics:
+            _bk_bm = _build_breakout_metrics(pretrade_metrics, mav_data)
+            try:
+                _br = BreakoutPretrade().validate(ticker, _bk_bm)
+                _rec = {'FULL_SIZE': 'GO', 'REDUCED_SIZE': 'CAUTION'}.get(_br.recommendation, 'NO-GO')
+                signal_row = {
+                    "ticker": ticker,
+                    "bucket": bucket,
+                    "cap": cap,
+                    "rec": _rec,
+                    "score_result": _br,
+                    "metrics": _bk_bm,
+                    "score_str": f"{_br.score}/{_br.max_score} [{_br.recommendation}]",
+                }
+            except Exception as e:
+                print(f"{ticker}: breakout ledger scoring failed - {e}")
+
         # Use the long-side bounce exit targets framework (same direction)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
         exit_data = get_exit_target_data(ticker, today, prefer_open=True)
@@ -1883,6 +1919,15 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
             checker = BouncePretrade()
             bounce_result = checker.validate(ticker, bounce_metrics, cap=cap)
             bounce_setup_type = bounce_result.setup_type
+            signal_row = {
+                "ticker": ticker,
+                "bucket": bucket,
+                "cap": cap,
+                "rec": bounce_result.recommendation,
+                "score_result": bounce_result,
+                "metrics": bounce_metrics,
+                "score_str": f"{bounce_result.score}/{bounce_result.max_score}",
+            }
             lines.append("<strong>Bounce Setup Score:</strong>")
             lines.append(format_bounce_score_html(bounce_result, bounce_metrics=bounce_metrics))
 
@@ -1897,6 +1942,16 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
                 '<span style="color: #c9d1d9;">Bounce metrics unavailable; skipping bounce checklist.</span>'
                 '</div>'
             )
+            # Still log a NO-GO row (metrics blank) so the ledger stays unbiased.
+            signal_row = {
+                "ticker": ticker,
+                "bucket": bucket,
+                "cap": cap,
+                "rec": "NO-GO",
+                "score_result": None,
+                "metrics": {},
+                "score_str": "N/A",
+            }
 
         # Add bounce exit target LEVELS (measured ABOVE open for long trades)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -2017,8 +2072,8 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
             if pc and pc < op:
                 chart_hlines.append((pc, 'green', f'Prior Close ${pc:.2f}'))
 
-    # Return HTML (without chart) and chart overlay data
-    return "\n".join(lines), chart_hlines
+    # Return HTML (without chart), chart overlay data, and the ledger signal row
+    return "\n".join(lines), chart_hlines, signal_row
 
 
 def _png_to_data_uri(path: Path) -> str:
@@ -2422,15 +2477,23 @@ def generate_report() -> str:
                     ticker_results[ticker] = future.result()
                 except Exception as e:
                     print(f"Error building section for {ticker}: {e}")
-                    ticker_results[ticker] = (f"<h2>{ticker}</h2><p>Error building section: {e}</p>", [])
+                    ticker_results[ticker] = (f"<h2>{ticker}</h2><p>Error building section: {e}</p>", [], None)
         timings['build_ticker_html'] = time.time() - t0
+
+        # === Unified signal ledger: log EVERY scored ticker from the watchlist
+        # (reversal/bounce/breakout, incl. NO-GO) — the whole watchlist is scored
+        # here, so this is the only source that captures NO-GO signals. Non-fatal. ===
+        _ledger_rows = [
+            r for _t, (_h, _c, r) in ticker_results.items() if r is not None
+        ]
+        log_signals("watchlist_report", current_session(), _ledger_rows)
 
         # Sequential chart rendering (mplfinance uses matplotlib global state, not thread-safe)
         t0 = time.time()
         print("Generating charts (sequential)...")
         sections = []
         for ticker in sorted_watchlist:
-            html, chart_hlines = ticker_results[ticker]
+            html, chart_hlines, _signal_row = ticker_results[ticker]
             try:
                 chart_path = Path(create_daily_chart(ticker, output_dir=charts_dir, extra_hlines=chart_hlines or None))
                 img_tag = (
