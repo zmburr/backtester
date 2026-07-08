@@ -735,6 +735,23 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
 
     metrics: Dict = {}
 
+    # Live price — Trillium (real-time) first, Polygon snapshot second (15-min
+    # delayed on the current plan, but never hours-stale). Previously a Trillium
+    # failure fell through silently to the prior daily close, which mis-scored
+    # premarket signals (RKLB 2026-07-08: scored a capitulation gap off the
+    # stale close while the live price was gapping UP +3.1%).
+    live_price = None
+    if get_actual_current_price_trill is not None:
+        try:
+            live_price = get_actual_current_price_trill(ticker)
+        except Exception:
+            pass
+    if live_price is None:
+        try:
+            live_price = get_actual_current_price(ticker, date)
+        except Exception:
+            pass
+
     # Get 310 calendar days (~200+ trading days) for SMA200 classification
     # Use `date` (today) so we can optionally include today's daily bar if it exists.
     # IMPORTANT: Many features (consecutive down days, prior-day stats, 30d high) should
@@ -755,17 +772,16 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         hist_levels = levels.iloc[:-1] if has_today_bar and len(levels) > 1 else levels
 
         # Use live price as reference for all current-price calculations
-        live_price = None
-        if get_actual_current_price_trill is not None:
-            try:
-                live_price = get_actual_current_price_trill(ticker)
-            except Exception:
-                pass
         if live_price is not None:
             current_close = live_price
         else:
-            # Fallback to the most recent daily close available (today if present, else prior day)
+            # Last resort: most recent daily close (today if present, else prior day).
+            # Loud on purpose — a stale reference invalidates gap/selloff metrics.
             current_close = levels.iloc[-1]['close']
+            logging.warning(
+                f"{ticker}: no live price from Trillium OR Polygon — "
+                f"scoring off stale daily close {current_close}"
+            )
 
         metrics['current_price'] = current_close
 
@@ -902,7 +918,8 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
         metrics['prior_day_rvol'] = None
         metrics['premarket_rvol'] = None
 
-    # Gap pct — use today's open; during premarket fall back to Trillium live price
+    # Gap pct — use today's open; during premarket fall back to the live price
+    # (Trillium-or-Polygon, resolved once at the top of this function)
     today_daily = get_daily(ticker, date)
     prior_daily = get_daily(ticker, prior_date)
 
@@ -911,20 +928,8 @@ def fetch_bounce_metrics(ticker: str, date: str) -> Dict:
 
     if today_daily:
         today_price = getattr(today_daily, 'open', None)
-    # Premarket fallback: open is None before market open, fetch live price from Trillium
-    if not today_price and get_actual_current_price_trill is not None:
-        try:
-            today_price = get_actual_current_price_trill(ticker)
-        except Exception:
-            pass
-    # Polygon snapshot fallback — Trillium is unavailable on some hosts, which
-    # left every morning bounce signal without a gap_pct (reversal path already
-    # falls back to Polygon; keep the two consistent)
-    if not today_price:
-        try:
-            today_price = get_actual_current_price(ticker, date)
-        except Exception:
-            pass
+    if not today_price and live_price is not None:
+        today_price = live_price
 
     if prior_daily:
         prior_close = getattr(prior_daily, 'close', None)

@@ -17,9 +17,15 @@ Alerts are EMAIL ONLY by design — this is meant to run unattended on a
 remote machine where popups/TTS are useless.
 
 Scoring is identical to the priority report path: BouncePretrade's six V3
-criteria with cap-specific thresholds — but "current price" is the live
+criteria with cap-specific thresholds — but "current price" is the latest
 premarket price instead of a stale close, so gap/selloff/discount metrics
 reflect the actual premarket capitulation.
+
+NOTE on data latency: the current Polygon plan serves 15-MINUTE DELAYED
+data (verified 2026-07-08: minute aggs and last-trade both lag exactly
+15:00). Alerts therefore fire ~15 min after the actual score crossing.
+Upgrading the Polygon plan to a real-time entitlement removes the lag with
+no code change here.
 
 Watchlist is read from scanners/stock_screener.py (single source of truth).
 
