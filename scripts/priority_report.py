@@ -621,6 +621,84 @@ def _build_setup_match_html(match: Optional[Dict]) -> str:
     return ''.join(parts)
 
 
+_IV_THETA_OK = None  # lazily probed once per run; None = not yet checked
+
+
+def _iv_profile_for_ticker(ticker: str):
+    """(iv_profile_html, profile_dict) for the reversal IV top-profile block.
+
+    Display + log only (study caveat: no non-reversal control days yet).
+    Returns ("", None) whenever Theta Terminal is down or the name has no
+    usable options data, so the report degrades cleanly on machines without
+    Theta set up (see iv_study/THETA_SETUP_MAC.md).
+    """
+    global _IV_THETA_OK
+    try:
+        from options_replay import theta_client
+        from iv_study.live_profile import get_iv_profile
+        from analyzers.reversal_scorer import check_iv_profile
+    except Exception as e:
+        log.info(f"IV profile unavailable (imports): {e}")
+        return "", None
+
+    if _IV_THETA_OK is None:
+        _IV_THETA_OK = theta_client.check_terminal_running()
+        if not _IV_THETA_OK:
+            log.info("IV profile skipped: Theta Terminal not running "
+                     "(setup: iv_study/THETA_SETUP_MAC.md)")
+    if not _IV_THETA_OK:
+        return "", None
+
+    try:
+        profile = get_iv_profile(ticker)
+    except Exception as e:
+        log.warning(f"IV profile failed for {ticker}: {e}")
+        return "", None
+    if not profile:
+        return "", None
+
+    passed, detail = check_iv_profile(profile)
+    n_met = detail.get("n_conditions_met") or 0
+    if passed:
+        verdict, color = f"MATCHES TOP PROFILE ({n_met}/3)", "#3fb950"
+    elif n_met:
+        verdict, color = f"PARTIAL ({n_met}/3)", "#e3b341"
+    else:
+        verdict, color = "NO MATCH (0/3)", "#8b949e"
+
+    def _pct(v):
+        return f"{100 * v:+.0f}%" if v is not None else "—"
+
+    rows = [
+        ("8-day IV run-up", _pct(profile.get("iv_runup_chg")),
+         f"{profile.get('hist_iv_runup_chg', 0):.0f}th pctile of historical tops"),
+        ("Final 2-day IV change", _pct(profile.get("iv_ramp_final2d")),
+         f"{profile.get('hist_iv_ramp_final2d', 0):.0f}th pctile of historical tops"),
+        ("Prior-close IV vs own 8d range", f"{profile.get('prior_close_iv_pctile', 0):.0f}th pctile",
+         "historical tops: median 100th"),
+    ]
+    if profile.get("iv_gap_open") is not None:
+        rows.append(("IV gap at open", _pct(profile.get("iv_gap_open")),
+                     f"{profile.get('hist_iv_gap_open', 0):.0f}th pctile of historical tops"))
+
+    tr = "".join(
+        f'<tr><td style="padding:1px 10px 1px 0; color:#8b949e;">{name}</td>'
+        f'<td style="padding:1px 10px 1px 0; color:#f0f6fc; text-align:right;">{val}</td>'
+        f'<td style="padding:1px 0; color:#8b949e;">{ctx}</td></tr>'
+        for name, val, ctx in rows
+    )
+    html = (
+        f'<div style="margin-top:8px; font-size:0.85em;">'
+        f'<strong style="color:#f0f6fc;">IV Profile</strong> '
+        f'<span style="color:{color}; font-weight:bold;">{verdict}</span>'
+        f'<span style="color:#8b949e;"> — vs {profile.get("reference_n", 105)} historical tops '
+        f'({profile.get("n_marks", 0)} daily marks) · informational, not scored</span>'
+        f'<table style="border-collapse:collapse; margin-top:2px;">{tr}</table>'
+        f'</div>'
+    )
+    return html, {**profile, "match": bool(passed)}
+
+
 def build_priority_ticker_html(item: Dict) -> str:
     """Build full HTML section for one priority ticker."""
     ticker = item["ticker"]
@@ -632,6 +710,7 @@ def build_priority_ticker_html(item: Dict) -> str:
     exit_html = item.get("exit_html", "")
     intensity_html = item.get("intensity_html", "")
     setup_match_html = item.get("setup_match_html", "")
+    iv_profile_html = item.get("iv_profile_html", "")
     chart_data_uri = item.get("chart_data_uri", "")
 
     # Window label + color
@@ -670,6 +749,10 @@ def build_priority_ticker_html(item: Dict) -> str:
     # Setup matcher (reversal only — premarket k-NN/centroid classifier)
     if setup_match_html:
         lines.append(setup_match_html)
+
+    # IV top-profile (reversal only — informational, from the IV timing study)
+    if iv_profile_html:
+        lines.append(iv_profile_html)
 
     # Upgrade table (CAUTION only)
     if upgrade_html:
@@ -1132,6 +1215,13 @@ def generate_priority_report() -> str:
             if bucket == "reversal":
                 setup_match_html = _build_setup_match_html(setup_match_map.get(ticker))
 
+            # IV top-profile (reversal only — display + signals log, not scored)
+            iv_profile_html = ""
+            if bucket == "reversal":
+                iv_profile_html, iv_profile = _iv_profile_for_ticker(ticker)
+                if iv_profile:
+                    item["iv_profile"] = iv_profile
+
             # Assemble ticker HTML
             ticker_html_map[ticker] = build_priority_ticker_html({
                 "ticker": ticker,
@@ -1140,6 +1230,7 @@ def generate_priority_report() -> str:
                 "score_html": score_html,
                 "intensity_html": intensity_html,
                 "setup_match_html": setup_match_html,
+                "iv_profile_html": iv_profile_html,
                 "upgrade_html": upgrade_html,
                 "comps_html": comps_html,
                 "exit_html": exit_html,
@@ -1394,6 +1485,13 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 if isinstance(sr, dict):
                     signal_entry["archetype_passed"] = sr.get("archetype_passed")
                     signal_entry["archetype_detail"] = sr.get("archetype_detail")
+                # IV top-profile (forward dataset for the eventual gating decision)
+                ivp = item.get("iv_profile")
+                if isinstance(ivp, dict):
+                    signal_entry["iv_profile"] = {
+                        k: (round(v, 6) if isinstance(v, float) else v)
+                        for k, v in ivp.items()
+                    }
 
             # Bounce signals carry their historical analogs + empirical odds so
             # the morning watcher can show "days like this" context live.

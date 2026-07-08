@@ -319,6 +319,49 @@ def check_archetype(metrics: Dict) -> Tuple[bool, Dict]:
     return passed, detail
 
 
+# ---------------------------------------------------------------------------
+# IV top-profile check (display-only for now).
+#
+# From the IV top-timing study (iv_study/, n=105 optionable reversal trades):
+# historical parabolic tops show median +44% ATM-IV rise over the 8-day run-up,
+# a steepening final-2-day ramp, and the night-before close IV at the top of
+# its own trailing range (median 100th pctile). Thresholds are the study's q25
+# values, carried in data/iv_study/iv_reference.json and evaluated by
+# iv_study.live_profile; this function only applies the match rule so future
+# gating lives next to check_archetype. NOT wired into score/recommendation --
+# the study has no non-reversal control days yet, so the profile is logged and
+# displayed until forward signals justify a gate.
+# ---------------------------------------------------------------------------
+IV_PROFILE_MIN_CONDITIONS = 2   # of the 3 study-derived conditions
+
+
+def check_iv_profile(profile: Dict) -> Tuple[bool, Dict]:
+    """Test whether a live IV profile matches the historical top signature.
+
+    `profile` is the dict from iv_study.live_profile.get_iv_profile (contains
+    a `conditions` map of the 3 study-derived booleans). Passes when at least
+    IV_PROFILE_MIN_CONDITIONS hold. Returns (passed, detail); an empty/None
+    profile fails with n_conditions_met=None so "no data" is distinguishable
+    from "profile checked and absent".
+    """
+    if not profile or 'conditions' not in profile:
+        return False, {'n_conditions_met': None, 'conditions': {},
+                       'min_required': IV_PROFILE_MIN_CONDITIONS}
+
+    conditions = profile['conditions']
+    n_met = sum(bool(v) for v in conditions.values())
+    detail = {
+        'n_conditions_met': n_met,
+        'min_required': IV_PROFILE_MIN_CONDITIONS,
+        'conditions': dict(conditions),
+        'iv_runup_chg': profile.get('iv_runup_chg'),
+        'iv_ramp_final2d': profile.get('iv_ramp_final2d'),
+        'prior_close_iv_pctile': profile.get('prior_close_iv_pctile'),
+        'reference_n': profile.get('reference_n'),
+    }
+    return n_met >= IV_PROFILE_MIN_CONDITIONS, detail
+
+
 class ReversalScorer:
     """Scores reversal setups based on 6 cap-adjusted criteria."""
 

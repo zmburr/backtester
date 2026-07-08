@@ -38,3 +38,5 @@ data/batch_results/
 scripts/reports/
 data/bounce_population_*.csv
 data/analog_path_cache.pkl
+
+data/iv_study/*.parquet
