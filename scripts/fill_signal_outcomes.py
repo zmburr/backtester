@@ -16,14 +16,19 @@ Breakout note: the dispatcher's validate_signal has no breakout branch — its
 We follow that convention here: breakout uses the bounce/long MFE definition.
 
 Usage:
-    python -m scripts.fill_signal_outcomes                 # fill all unfilled rows with date < today
+    python -m scripts.fill_signal_outcomes                 # fill unfilled rows from the last 7 calendar days
+    python -m scripts.fill_signal_outcomes --all           # backfill ALL unfilled past rows
     python -m scripts.fill_signal_outcomes --date 2026-07-07   # fill only that date's unfilled rows
+
+The no-arg default is bounded to the last 7 calendar days so the morning run
+stays fast (one get_daily per row, rate-limited); use --all for a full backfill.
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime
+import math
 import time
 from pathlib import Path
 
@@ -40,12 +45,6 @@ _SLEEP_BETWEEN_CALLS = 0.15
 # Everything else (bounce, breakout, anything unknown) is treated long-side,
 # matching the dispatcher's validate_signal else-branch.
 _SHORT_BUCKETS = {"reversal"}
-
-_OUTCOME_COLS = [
-    "open", "high", "low", "close", "volume",
-    "outcome_pct", "max_favorable_pct", "atr_move", "mfe_atr",
-    "outcome_filled_date",
-]
 
 
 def _to_float(v):
@@ -73,16 +72,22 @@ def _compute_outcome(row: dict, bar) -> dict | None:
     l = _to_float(getattr(bar, "low", None))
     c = _to_float(getattr(bar, "close", None))
     vol = getattr(bar, "volume", None)
-    if o is None or h is None or l is None or c is None:
+    # A valid daily bar has all OHLC present, finite, and strictly positive. A
+    # zero/negative/non-finite price yields a fake 0.0 outcome, so return None to
+    # leave the row unfilled for a later retry instead of stamping bad data.
+    if not all(v is not None and math.isfinite(v) and v > 0 for v in (o, h, l, c)):
+        ticker = str(row.get("ticker", "")).strip()
+        date = str(row.get("date", "")).strip()
+        print(f"  {ticker} {date}: invalid daily bar (OHLC={o},{h},{l},{c}) — left unfilled")
         return None
 
-    outcome_pct = (c - o) / o if o != 0 else 0.0
+    outcome_pct = (c - o) / o
 
     bucket = (row.get("bucket") or "").strip().lower()
     if bucket in _SHORT_BUCKETS:
-        max_favorable_pct = (o - l) / o if o != 0 else 0.0
+        max_favorable_pct = (o - l) / o
     else:  # bounce, breakout, unknown -> long-side, like dispatcher's else branch
-        max_favorable_pct = (h - o) / o if o != 0 else 0.0
+        max_favorable_pct = (h - o) / o
 
     atr_pct = _to_float(row.get("atr_pct"))
     if atr_pct and atr_pct > 0:
@@ -106,8 +111,12 @@ def _compute_outcome(row: dict, bar) -> dict | None:
     }
 
 
-def fill_outcomes(target_date: str | None) -> tuple[int, int]:
-    """Fill unfilled rows. Returns (n_filled, n_failed)."""
+def fill_outcomes(target_date: str | None, backfill_all: bool = False) -> tuple[int, int]:
+    """Fill unfilled rows. Returns (n_filled, n_failed).
+
+    Scope: --date fills exactly that date; otherwise only settled (past) days,
+    bounded to the last 7 calendar days unless backfill_all is True.
+    """
     if not LEDGER_PATH.exists():
         print(f"No ledger at {LEDGER_PATH} — nothing to fill.")
         return 0, 0
@@ -123,6 +132,7 @@ def fill_outcomes(target_date: str | None) -> tuple[int, int]:
             df[col] = ""
 
     today_str = datetime.date.today().strftime("%Y-%m-%d")
+    cutoff_str = (datetime.date.today() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
 
     def _row_in_scope(row) -> bool:
         if not _is_unfilled(row):
@@ -130,7 +140,11 @@ def fill_outcomes(target_date: str | None) -> tuple[int, int]:
         d = row.get("date", "")
         if target_date is not None:
             return d == target_date
-        return bool(d) and d < today_str  # no-arg: only settled (past) days
+        if not (bool(d) and d < today_str):  # only settled (past) days
+            return False
+        if backfill_all:
+            return True
+        return d >= cutoff_str  # no-arg: last 7 calendar days only
 
     scope_idx = [i for i, row in df.iterrows() if _row_in_scope(row)]
     if not scope_idx:
@@ -186,11 +200,17 @@ def fill_outcomes(target_date: str | None) -> tuple[int, int]:
 def main():
     parser = argparse.ArgumentParser(description="Fill forward outcomes on the signal ledger.")
     parser.add_argument("--date", help="Fill only rows with this date (YYYY-MM-DD).")
+    parser.add_argument("--all", action="store_true",
+                        help="Backfill ALL unfilled past rows (default: last 7 days only).")
     args = parser.parse_args()
 
-    n_filled, n_failed = fill_outcomes(args.date)
+    n_filled, n_failed = fill_outcomes(args.date, backfill_all=args.all)
+    if args.date:
+        scope_desc = "date " + args.date
+    else:
+        scope_desc = "all settled days" if args.all else "last 7 days"
     print("\n" + "=" * 44)
-    print(f"  Signal ledger outcome fill — {'date ' + args.date if args.date else 'all settled days'}")
+    print(f"  Signal ledger outcome fill — {scope_desc}")
     print(f"  filled: {n_filled}    failed/skipped: {n_failed}")
     print("=" * 44)
 
