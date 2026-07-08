@@ -130,7 +130,12 @@ class WalkForwardSensitivityExperiment(BaseExperiment):
         n_degraded = verdicts.count("degraded")
         n_collapsed = verdicts.count("collapsed")
 
-        if n_collapsed == 0 and n_degraded <= 1:
+        if not verdicts:
+            # Every split ran but none produced a real degradation verdict
+            # (all GO buckets were empty / below the min-n guard). We measured
+            # nothing — don't report it as a stable edge.
+            stability = "NO_DATA"
+        elif n_collapsed == 0 and n_degraded <= 1:
             stability = "STABLE"
         elif n_collapsed == 0:
             stability = "MODERATELY_STABLE"
@@ -171,7 +176,7 @@ class WalkForwardSensitivityExperiment(BaseExperiment):
                 "stability_verdict": stability,
                 "verdicts": verdicts,
             },
-            is_significant=(stability in ("STABLE", "MODERATELY_STABLE")),
+            is_significant=(bool(verdicts) and stability in ("STABLE", "MODERATELY_STABLE")),
             metadata={
                 "runtime_seconds": round(time.time() - t0, 1),
                 "errors": errors,

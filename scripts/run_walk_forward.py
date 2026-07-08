@@ -167,16 +167,29 @@ def main():
         print(f"#  {'CROSS-STRATEGY SUMMARY':<74}  #")
         print(f"{'#' * 80}")
 
-        print(f"\n  {'Strategy':<12} {'Base WR':>10} {'OOS WR':>10} {'Delta':>8} {'Verdict':>12}")
-        print(f"  {'-' * 55}")
+        # Base rate = win rate over ALL candidates (scorer-independent). The
+        # Delta / Verdict come from the GO-CONDITIONAL win rate, so the GO WR
+        # columns are what the Delta is computed from — not the base columns.
+        print("\n  Base rate = WR over all candidates; GO WR = GO-bucket WR.")
+        print("  Delta and Verdict are computed from the GO-conditional WR.\n")
+        header = (f"  {'Strategy':<10} {'Base tr':>8} {'Base val':>9} "
+                  f"{'GO WR tr':>9} {'GO WR val':>10} {'Delta':>8} {'Verdict':>11}")
+        print(header)
+        print(f"  {'-' * (len(header) - 2)}")
         for strategy, result in results.items():
             t = result.train_metrics
             v = result.validate_metrics
             deg = result.train_vs_validate
-            if t and v:
-                verdict = deg.verdict.upper() if deg else '?'
-                delta = deg.win_rate_change_pp if deg else 0
-                print(f"  {strategy:<12} {t.win_rate:>9.1f}% {v.win_rate:>9.1f}% {delta:>+7.1f}pp {verdict:>12}")
+            if not (t and v):
+                continue
+            go_t = t.by_recommendation.get('GO')
+            go_v = v.by_recommendation.get('GO')
+            go_t_wr = f"{go_t['win_rate']:.1f}%" if go_t else 'n/a'
+            go_v_wr = f"{go_v['win_rate']:.1f}%" if go_v else 'n/a'
+            verdict = deg.verdict.upper() if deg else 'NO_DATA'
+            delta = f"{deg.win_rate_change_pp:+.1f}pp" if deg else 'n/a'
+            print(f"  {strategy:<10} {t.win_rate:>7.1f}% {v.win_rate:>8.1f}% "
+                  f"{go_t_wr:>9} {go_v_wr:>10} {delta:>8} {verdict:>11}")
 
     print("\nDone.")
 

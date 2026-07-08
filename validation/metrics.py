@@ -30,6 +30,12 @@ from analyzers.bootstrap import (
 # Recommendation buckets we always try to surface (in report order).
 RECOMMENDATION_BUCKETS = ['GO', 'CAUTION', 'NO-GO', 'VETO']
 
+# Minimum GO-bucket sample size for a degradation verdict to be trustworthy.
+# A GO bucket with 1-9 trades produces a win rate too noisy to compare across
+# windows, so go_bucket_as_metrics treats n < MIN_GO_N like an empty bucket
+# (returns None -> the caller routes into the no_data path).
+MIN_GO_N = 10
+
 
 @dataclass
 class PeriodMetrics:
@@ -228,12 +234,13 @@ def go_bucket_as_metrics(pm: Optional[PeriodMetrics]) -> Optional[PeriodMetrics]
     """Rebuild a minimal PeriodMetrics from a period's GO recommendation bucket.
 
     Used to compare production-vs-derived GO-conditional win rates via
-    compute_degradation. Returns None if there is no GO bucket.
+    compute_degradation. Returns None if there is no GO bucket, or if the GO
+    bucket has fewer than MIN_GO_N trades (too few to compare reliably).
     """
     if pm is None:
         return None
     go = pm.by_recommendation.get('GO')
-    if not go or go['n'] == 0:
+    if not go or go['n'] < MIN_GO_N:
         return None
     return PeriodMetrics(
         n=go['n'],

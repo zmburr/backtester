@@ -379,8 +379,12 @@ def _load_population(strategy: str, override: Optional[str]) -> Optional[pd.Data
     else:
         return None
     if not os.path.exists(path):
-        logger.warning(f"Population CSV not found for {strategy}: {path}")
-        return None
+        raise FileNotFoundError(
+            f"Population CSV not found for {strategy}: {path}. This is the "
+            f"measurement source (the unconditioned candidate universe). Generate "
+            f"it with scan_reversal_universe.py (reversal) / bounce_backscanner.py "
+            f"(bounce), or pass population_path=... to override."
+        )
     df = pd.read_csv(path).dropna(subset=["ticker", "date"])
     logger.info(f"Loaded {len(df)} candidates from {path}")
     return df
@@ -394,6 +398,10 @@ def run_walk_forward(
     population_path: str = None,
 ) -> WalkForwardResult:
     """Run a single walk-forward validation pass.
+
+    csv_path is the CURATED derivation input ONLY (thresholds are derived from it);
+    all outcome measurement uses the separate candidate population file (override
+    it with population_path), never csv_path.
 
     Args:
         strategy: "reversal", "bounce", or "breakout".
@@ -431,7 +439,7 @@ def run_walk_forward(
 
     # Breakout has no scoring system / population — measure base rates on curated.
     if strategy == 'breakout' or scfg.get("population_csv") is None:
-        return _breakout_result(strategy, split, curated, train_end, validate_end,
+        return _breakout_result(strategy, split, train_c, validate_c, test_c,
                                 derived, diagnostics)
 
     # --- Load candidate population (measurement) and split by the same cutoffs ---
@@ -450,6 +458,27 @@ def run_walk_forward(
     logger.info(f"Population split: train={len(train_p)}, validate={len(validate_p)}, test={len(test_p)}")
 
     derived_scorer, production_scorer = _build_derived_scorers(strategy, derived)
+
+    # Guard: if derivation produced no thresholds, the "derived" scorer silently
+    # reverts to production (reversal_scorer's `thresholds or CAP_THRESHOLDS`
+    # fallback; empty bounce profiles), so a derived-vs-production or
+    # train-vs-validate "derived" comparison would be a tautology. Detect it and
+    # skip those comparisons rather than report a fake identity result.
+    if strategy == 'reversal':
+        derivation_empty = not derived.reversal_cap_thresholds
+    elif strategy == 'bounce':
+        derivation_empty = not derived.bounce_setup_profiles
+    else:
+        derivation_empty = False
+    if derivation_empty:
+        logger.warning(
+            f"derivation produced no thresholds for {strategy} on train window — "
+            f"comparison skipped"
+        )
+        diagnostics.sparse_cells.append(
+            "derivation_empty: derived scorer reverts to production; "
+            "train/validate/test and production-vs-derived comparisons skipped"
+        )
 
     # --- Score candidates with the DERIVED scorer ---
     train_scored = _score(strategy, train_p, derived_scorer)
@@ -474,18 +503,19 @@ def run_walk_forward(
     test_go = go_bucket_as_metrics(test_m)
 
     train_vs_validate = None
-    if train_go is not None and validate_go is not None:
-        train_vs_validate = compute_degradation(train_go, validate_go)
     train_vs_test = None
-    if train_go is not None and test_go is not None:
-        train_vs_test = compute_degradation(train_go, test_go)
-
-    # --- Production vs derived, on GO-conditional win rate (the whole point) ---
     production_vs_derived_validate = None
-    prod_go = go_bucket_as_metrics(validate_prod_m)
-    derived_go = go_bucket_as_metrics(validate_m)
-    if prod_go is not None and derived_go is not None:
-        production_vs_derived_validate = compute_degradation(prod_go, derived_go)
+    if not derivation_empty:
+        if train_go is not None and validate_go is not None:
+            train_vs_validate = compute_degradation(train_go, validate_go)
+        if train_go is not None and test_go is not None:
+            train_vs_test = compute_degradation(train_go, test_go)
+
+        # --- Production vs derived, on GO-conditional win rate (the whole point) ---
+        prod_go = go_bucket_as_metrics(validate_prod_m)
+        derived_go = go_bucket_as_metrics(validate_m)
+        if prod_go is not None and derived_go is not None:
+            production_vs_derived_validate = compute_degradation(prod_go, derived_go)
 
     return WalkForwardResult(
         train_metrics=train_m,
@@ -502,15 +532,23 @@ def run_walk_forward(
     )
 
 
-def _breakout_result(strategy, split, curated, train_end, validate_end,
+def _breakout_result(strategy, split, train_c, validate_c, test_c,
                      derived, diagnostics) -> WalkForwardResult:
-    """Breakout has no scorer/population: measure base rates on curated trades."""
-    train_c, validate_c, test_c = temporal_split(curated, train_end, validate_end)
+    """Breakout has no scorer/population: measure base rates on curated trades.
 
+    Takes the already-split curated frames from run_walk_forward (no re-split).
+    """
     def _base(df: pd.DataFrame) -> PeriodMetrics:
-        col = 'reversal_open_close_pct'  # not present for breakout; degrade gracefully
-        if col not in df.columns or len(df) == 0:
-            return PeriodMetrics(n=len(df), win_rate=0.0, avg_pnl=0.0)
+        col = 'breakout_open_close_pct'  # curated breakout day open->close outcome
+        if col not in df.columns:
+            # Never fabricate a 0% base rate on real rows: if the outcome column
+            # is absent the breakout base rate is simply not measured (n=0).
+            logger.warning(
+                f"breakout curated data missing '{col}' — base rates not measured"
+            )
+            return PeriodMetrics(n=0, win_rate=0.0, avg_pnl=0.0)
+        if len(df) == 0:
+            return PeriodMetrics(n=0, win_rate=0.0, avg_pnl=0.0)
         pnl = df[col].to_numpy(dtype=float) * 100.0
         return build_period_metrics(pnl=pnl, wins=pnl > 0)
 
