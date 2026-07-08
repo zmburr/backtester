@@ -21,11 +21,14 @@ criteria with cap-specific thresholds — but "current price" is the latest
 premarket price instead of a stale close, so gap/selloff/discount metrics
 reflect the actual premarket capitulation.
 
-NOTE on data latency: the current Polygon plan serves 15-MINUTE DELAYED
-data (verified 2026-07-08: minute aggs and last-trade both lag exactly
-15:00). Alerts therefore fire ~15 min after the actual score crossing.
-Upgrading the Polygon plan to a real-time entitlement removes the lag with
-no code change here.
+Price sources: Trillium/SHEL (real-time, one shared session per poll) is
+primary; Polygon minute bars are the fallback AND provide premarket-low
+tracking. The current Polygon plan serves 15-MINUTE DELAYED data (verified
+2026-07-08: minute aggs and last-trade both lag exactly 15:00), so rows
+scored off Polygon (src=P in the table/emails) trail real time by ~15 min;
+Trillium rows (src=T) are live. This means the scanner must run on a
+machine with SHEL access (this desktop) — sheldatagateway is vendored into
+the backtester venv (copied from orderPipe venv; needs zstandard/lz4/ujson).
 
 Watchlist is read from scanners/stock_screener.py (single source of truth).
 
@@ -230,12 +233,60 @@ def metrics_from_price(static: dict, price: float) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Live prices — Trillium (real-time) with Polygon fallback
+# ---------------------------------------------------------------------------
+
+def trillium_prices(tickers: list, date: str) -> dict:
+    """Latest 1-min bar close per ticker via ONE shared SHEL session.
+
+    Real-time (unlike the 15-min-delayed Polygon plan). ~0.05s/ticker.
+    Returns {} when SHEL is unavailable so callers fall back to Polygon.
+    """
+    try:
+        from data_queries.trillium_queries import HAS_SHEL, USER, PWD
+        import sheldatagateway
+        from sheldatagateway import environments
+    except Exception:
+        return {}
+    if not HAS_SHEL or not PWD:
+        return {}
+
+    d = pd.to_datetime(date).date()
+    prices = {}
+    try:
+        with sheldatagateway.Session(environments.env_defs.Prod, USER, PWD) as session:
+            for t in tickers:
+                aggs = []
+                try:
+                    handle = session.request_data(
+                        callback=aggs.append, symbol=t,
+                        start_date=d, end_date=d, subscriptions=['bar-1min'])
+                    handle.wait()
+                    handle.raise_on_error()
+                except Exception:
+                    continue
+                if aggs:
+                    last = aggs[-1]
+                    close = last.get('close') if isinstance(last, dict) else getattr(last, 'close', None)
+                    if close:
+                        prices[t] = float(close)
+    except Exception as e:
+        logger.warning(f'Trillium session failed ({e}) — Polygon fallback (15-min delayed)')
+    return prices
+
+
+# ---------------------------------------------------------------------------
 # Scan
 # ---------------------------------------------------------------------------
 
 def scan(tickers, statics, caps, checker: BouncePretrade, date: str,
-         asof: pd.Timestamp) -> list[dict]:
-    """One pass: live premarket price per ticker -> score. Returns row dicts."""
+         asof: pd.Timestamp, live_prices: dict | None = None) -> list[dict]:
+    """One pass: live premarket price per ticker -> score. Returns row dicts.
+
+    live_prices: real-time Trillium closes keyed by ticker; a ticker missing
+    from the dict scores off the latest (delayed) Polygon minute bar instead.
+    Polygon bars are always fetched for premarket-low tracking.
+    """
     open_ts = pd.Timestamp(f'{date} 09:30', tz=TZ)
     rows = []
     for ticker in tickers:
@@ -249,7 +300,9 @@ def scan(tickers, statics, caps, checker: BouncePretrade, date: str,
             upto = intra[intra.index <= asof]
             if upto.empty:
                 continue
-            price = upto.iloc[-1]['close']
+            live = (live_prices or {}).get(ticker)
+            price = live if live is not None else upto.iloc[-1]['close']
+            src = 'T' if live is not None else 'P'
             pm = upto[upto.index < open_ts]
             pm_low = pm['low'].min() if not pm.empty else None
             pm_low_time = str(pm['low'].idxmin().time())[:5] if not pm.empty else ''
@@ -258,7 +311,7 @@ def scan(tickers, statics, caps, checker: BouncePretrade, date: str,
             res: ChecklistResult = checker.validate(ticker, m, cap=caps[ticker])
             rows.append({
                 'ticker': ticker, 'cap': caps[ticker], 'setup': res.setup_type,
-                'score': res.score, 'rec': res.recommendation, 'price': price,
+                'score': res.score, 'rec': res.recommendation, 'price': price, 'src': src,
                 'gap_pct': m['gap_pct'], 'selloff': m['selloff_total_pct'],
                 'off_30d': m['pct_off_30d_high'], 'pct3': m.get('pct_change_3'),
                 'off_52wk': m['pct_off_52wk_high'], 'range_atr': m['prior_day_range_atr'],
@@ -325,7 +378,9 @@ def format_alert_email(row: dict, asof: pd.Timestamp) -> tuple[str, str]:
 <h2 style="color:#e8ecf4;margin:0 0 4px 0;">{row['ticker']} — {row['score']}/6 {row['rec']} ({row['setup']}, {row['cap']} cap)</h2>
 <div style="color:#6b7280;font-size:12px;margin-bottom:12px;">as of {asof.strftime('%H:%M ET %Y-%m-%d')} — premarket scanner</div>
 <div style="font-size:14px;margin-bottom:12px;">
-Price <strong>{row['price']:.2f}</strong> &nbsp;|&nbsp; Gap {_pct(row['gap_pct'])} vs prior close
+Price <strong>{row['price']:.2f}</strong>
+<span style="color:#6b7280;font-size:11px;">({'Trillium real-time' if row.get('src') == 'T' else 'Polygon, 15-min delayed'})</span>
+&nbsp;|&nbsp; Gap {_pct(row['gap_pct'])} vs prior close
 &nbsp;|&nbsp; PM low <strong>{row['pm_low']:.2f}</strong> @ {row['pm_low_time']}
 &nbsp;|&nbsp; now {_pct(row['off_pm_low'])} off the PM low
 </div>
@@ -386,14 +441,15 @@ def process_alerts(rows, state, asof, do_email: bool):
 # ---------------------------------------------------------------------------
 
 def print_table(rows, asof):
-    print(f"\nPremarket bounce scores as of {asof.strftime('%Y-%m-%d %H:%M ET')}")
-    print(f"{'TICKER':7s}{'CAP':7s}{'SCORE':6s}{'REC':9s}{'PRICE':>9s}{'GAP':>8s}"
+    print(f"\nPremarket bounce scores as of {asof.strftime('%Y-%m-%d %H:%M ET')}"
+          f"  (src T=Trillium real-time, P=Polygon 15-min delayed)")
+    print(f"{'TICKER':7s}{'CAP':7s}{'SCORE':6s}{'REC':9s}{'PRICE':>9s}{'SRC':>4s}{'GAP':>8s}"
           f"{'SELLOFF':>9s}{'OFF30D':>8s}{'3D':>8s}{'OFF52W':>8s}{'PMLOW@':>8s}{'OFF LOW':>9s}")
     for r in rows:
         if r['score'] < 1:
             continue
         print(f"{r['ticker']:7s}{r['cap']:7s}{str(r['score'])+'/6':6s}{r['rec']:9s}"
-              f"{r['price']:>9.2f}{_pct(r['gap_pct']):>8s}{_pct(r['selloff']):>9s}"
+              f"{r['price']:>9.2f}{r.get('src', 'P'):>4s}{_pct(r['gap_pct']):>8s}{_pct(r['selloff']):>9s}"
               f"{_pct(r['off_30d']):>8s}{_pct(r['pct3']):>8s}{_pct(r['off_52wk']):>8s}"
               f"{r['pm_low_time']:>8s}{_pct(r['off_pm_low']):>9s}")
 
@@ -440,7 +496,9 @@ def main():
 
     if args.once:
         asof = _now_et()
-        rows = scan(tickers, statics, caps, checker, date, asof)
+        live = trillium_prices(tickers, date)
+        logger.info(f'Trillium live prices: {len(live)}/{len(tickers)} tickers')
+        rows = scan(tickers, statics, caps, checker, date, asof, live_prices=live)
         print_table(rows, asof)
         if args.email:
             process_alerts(rows, state, asof, do_email=True)
@@ -459,9 +517,11 @@ def main():
 
     while _now_et() < end:
         asof = _now_et()
-        rows = scan(tickers, statics, caps, checker, date, asof)
+        live = trillium_prices(tickers, date)
+        rows = scan(tickers, statics, caps, checker, date, asof, live_prices=live)
         best = rows[0] if rows else None
-        logger.info(f"scan @ {asof.strftime('%H:%M')}: {len(rows)} scored"
+        logger.info(f"scan @ {asof.strftime('%H:%M')}: {len(rows)} scored, "
+                    f"{len(live)} real-time"
                     + (f" | top: {best['ticker']} {best['score']}/6 {best['rec']}" if best else ''))
 
         process_alerts(rows, state, asof, do_email=do_email)
