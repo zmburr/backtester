@@ -661,9 +661,9 @@ class BouncePretrade:
         print(f"BOUNCE PRE-TRADE CHECKLIST: {result.ticker}")
         print(f"Setup Profile: {profile.name}")
         print(f"  {profile.description}")
-        print(f"  Historical: {profile.sample_size} A-grade trades, "
-              f"{profile.historical_win_rate*100:.0f}% WR, "
-              f"+{profile.historical_avg_pnl:.0f}% avg P&L")
+        print(f"  Historical: {profile.historical_win_rate*100:.0f}% WR, "
+              f"+{profile.historical_avg_pnl:.0f}% avg P&L "
+              f"(n={profile.sample_size} curated A-grade trades)")
         print(f"Generated: {result.timestamp}")
         print("=" * 70)
 

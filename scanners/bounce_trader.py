@@ -848,10 +848,10 @@ class BounceTradeManager:
             self._alert('STRONGSTOCK bounce — median high plus 12 percent, close plus 8', priority=2)
 
         if self.is_etf:
-            self._alert('ETF — 93 percent win rate but lower upside. Plus 6 percent avg', priority=2)
+            self._alert('ETF — 93 percent historical win rate on curated trades but lower upside. Plus 6 percent avg', priority=2)
 
         if self.has_exhaustion_gap:
-            self._alert('EXHAUSTION GAP — 93 percent win rate, plus 12 percent avg', priority=2)
+            self._alert('EXHAUSTION GAP — 93 percent historical win rate on curated trades, plus 12 percent avg', priority=2)
 
         self._alert(f'Bounce intensity: {self.bounce_intensity:.0f} out of 100', priority=2)
 
@@ -1258,7 +1258,7 @@ class BounceTradeManager:
         if not self.time_alerts_fired['10:00'] and t >= dt_time(10, 0):
             self.time_alerts_fired['10:00'] = True
             if self.low_water_mark < self.open_price:
-                self._alert('LOW NOT IN FIRST 30 MIN — late lows: 50 percent win rate', priority=1)
+                self._alert('LOW NOT IN FIRST 30 MIN — late lows: 50 percent historical win rate on curated trades', priority=1)
             else:
                 self._alert('EARLY LOW CONFIRMED — 99 percent close green historically', priority=1)
 
