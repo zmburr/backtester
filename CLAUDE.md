@@ -2,10 +2,17 @@
 
 Algorithmic trading analysis and backtesting platform for equities. Analyzes stock price movements, volume patterns, and technical breakouts to test reversal, momentum, and bounce trading strategies on historical data.
 
+> **Before proposing signal/scoring changes**: read `docs/signal_findings.md` —
+> the ledger of settled questions (D0-confirmation, long-first tactics, stop
+> placement) and deployed rules (RVOL veto, reprint trigger). Closed items need
+> new evidence to reopen. Signal performance is measured by the scorecard
+> feedback loop (`scripts/signal_scorecard.py` → `data/signal_outcomes.csv` →
+> `scripts/signal_analysis.py`), episode-level.
+
 ## Purpose
 
 1. **Never miss a trade**: The primary goal is to ensure no bounce, momentum, or capitulation setups are missed. Scanners, screeners, and alerts exist to surface every viable opportunity.
-2. **Rule enforcement, not execution**: The "trader" files (e.g., `bounce_trader.py`, `reversal_trader.py`) are decision-support tools that help follow trading rules in the moment. They do NOT execute any trades or manage any real risk — all execution is done manually by the trader.
+2. **Rule enforcement, not execution**: The "trader" files (e.g., `bounce_trader.py`, `live_watcher.py`) are decision-support tools that help follow trading rules in the moment. They do NOT execute any trades or manage any real risk — all execution is done manually by the trader.
 
 
 ## Project Structure
@@ -35,6 +42,7 @@ backtester/
 │   ├── bounce_exit_targets.py      # Exit target framework for bounces
 │   ├── crack_analyzer.py           # Crack-day pattern analysis
 │   ├── crack_covering_rules.py     # Covering rules for reversal exits
+│   ├── exit_optimizer.py           # Exit strategy optimization
 │   ├── pretrade_checklist.py       # Generic pre-trade checklist
 │   ├── reversal_scorer.py          # Parabolic short scoring (6 cap-adjusted criteria)
 │   └── reversal_pretrade.py        # Per-setup-type reversal pre-trade validator
@@ -43,6 +51,7 @@ backtester/
 │   ├── historical_backscanner.py   # Historical backscanner for reversals (bulk Polygon data)
 │   ├── bounce_backscanner.py       # Historical backscanner for bounce setups (bulk Polygon data)
 │   ├── stock_screener.py           # Watchlist screener with percentile rankings
+│   ├── live_watcher.py             # Live market monitoring
 │   ├── bounce_trader.py            # Live bounce trade monitor with TTS alerts
 │   └── reversal_trader.py          # Live reversal/crack trade monitor with TTS alerts
 ├── charting/                       # Streamlit trade prep app
@@ -360,10 +369,8 @@ python backtesters/main_backtester.py
 # Fill missing data in CSVs
 python data_collectors/combined_data_collection.py
 
-# Generate daily report (run as a module from the project root so the top-level
-# `support` package resolves; `python scripts/generate_report.py` fails with
-# ModuleNotFoundError: No module named 'support')
-python -m scripts.generate_report
+# Generate daily report
+python scripts/generate_report.py
 # or
 run_generate_report.bat
 

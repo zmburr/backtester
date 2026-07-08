@@ -1,5 +1,6 @@
 from data_queries.polygon_queries import get_intraday, add_two_hours
-from support.market_session import PREMARKET_START, MARKET_OPEN
+from support.market_session import PREMARKET_START, PREMARKET_END, MARKET_OPEN, MARKET_OPEN_PLUS_2MIN
+from tabulate import tabulate
 
 class stopStrategies:
     def __init__(self, trade):
@@ -17,9 +18,24 @@ class stopStrategies:
         df = self.data.between_time(PREMARKET_START, time[11:])
         return df.high.max()
 
+    def low_of_day(self, time):
+        df = self.data.between_time(PREMARKET_START, time[11:])
+        return df.low.min()
+
     def market_hours_low(self, time):
         df = self.data.between_time(MARKET_OPEN, time[11:])
         return df.low.min()
+
+    def premarket_high(self, time):
+        df = self.data.between_time(PREMARKET_START, PREMARKET_END)
+        return df.high.max()
+
+    def premarket_low(self, time):
+        df = self.data.between_time(PREMARKET_START, PREMARKET_END)
+        return df.low.min()
+
+    def open_price(self, time):
+        return self.data.between_time(MARKET_OPEN, MARKET_OPEN_PLUS_2MIN).iloc[0].open
 
     def set_stop_price(self, signal, time):
         strategy_method = getattr(self, self.trade.stop_strategy, None)

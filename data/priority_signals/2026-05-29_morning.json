@@ -1,10 +1,37 @@
 {
   "date": "2026-05-29",
   "session": "morning",
-  "generated_at": "2026-05-29T08:44:50.718188",
-  "go_count": 1,
+  "generated_at": "2026-05-29T05:46:06.807814",
+  "go_count": 2,
   "caution_count": 0,
   "signals": [
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.113437,
+        "pct_change_3": 0.10819,
+        "gap_pct": 0.013723,
+        "prior_day_range_atr": 1.131845,
+        "atr_pct": 0.056658,
+        "prior_day_rvol": 0.767224,
+        "premarket_rvol": 0.0
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.2265865542068053,
+        "pct_change_30": 1.0071672090500543,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
     {
       "ticker": "SNDK",
       "bucket": "reversal",
@@ -12,21 +39,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.10187,
+        "pct_from_9ema": 0.110607,
         "pct_change_3": 0.110199,
-        "gap_pct": 0.017885,
+        "gap_pct": 0.025956,
         "prior_day_range_atr": 1.057325,
-        "atr_pct": 0.077983,
+        "atr_pct": 0.07737,
         "prior_day_rvol": 0.667948,
-        "premarket_rvol": 0.007169
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 2.508825840208061,
         "pct_change_30": 0.8409814740052932,
         "passed_by_52wk": false,
-        "passed_by_200mav": false,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3

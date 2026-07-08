@@ -5,17 +5,11 @@ Mirrors bounce_trader.py architecture (event-driven threading + TTS alerts) but 
 for the parabolic short playbook.  Tracks 2-minute Prior Bar Breaks in real time,
 classifies crack patterns via CoveringRules, and fires position-sizing alerts.
 
-DEPRECATED for LIVE monitoring (2026-06): the orderPipe morning watcher
-(``python -m morning_watcher.morning_watcher``) now runs the live reversal path —
-auto-launched from the scanner setups, TRAC-position-aware, with live-R, the
-GO-gate verdict, the day-high-reclaim exit, and a port of this file's PBB +
-CoveringRules tree (orderPipe/morning_watcher/rules/covering_rules.py). Keep this
-script for BACKTEST / --replay and as the reference implementation of the
-covering decision tree; don't launch it manually alongside the watcher.
-
 Usage:
-    python scanners/reversal_trader.py GLD ETF --replay 2026-05-04   # backtest/replay
-    python scanners/reversal_trader.py GLD ETF --dry-run             # test mode
+    python scanners/reversal_trader.py GLD ETF
+    python scanners/reversal_trader.py MSTR              # auto-detect cap
+    python scanners/reversal_trader.py GLD ETF --dry-run  # test mode
+    python scanners/reversal_trader.py GLD ETF --trac     # TRAC position tracking
 """
 
 import sys
@@ -51,7 +45,6 @@ from data_queries.polygon_queries import get_atr, get_levels_data, get_daily
 from analyzers.reversal_pretrade import ReversalPretrade, classify_reversal_setup
 from analyzers.reversal_scorer import ReversalScorer, compute_reversal_intensity
 from analyzers.crack_covering_rules import CoveringRules
-from support.risk_source import one_r_dollars, tier_multiples
 
 try:
     from data_queries.trillium_queries import get_actual_current_price_trill
@@ -634,17 +627,6 @@ class ReversalTradeManager:
         if levels is None or levels.empty:
             raise ValueError(f'No historical data for {ticker}')
 
-        # Polygon's range is inclusive of `date`: historical mode gets the trade
-        # day's bar, and a live mid-day launch gets today's PARTIAL bar. Either
-        # way prior_close becomes the trade day's own close and every derived
-        # metric (gap, up-days, 9EMA distance) shifts a day. Classifier audit
-        # 6/2026: 21/25 A-grades misclassified from this. History must end the
-        # day BEFORE the trade date.
-        trade_day = pd.to_datetime(self.date).date()
-        levels = levels[levels.index.date < trade_day]
-        if levels.empty:
-            raise ValueError(f'No pre-trade-date history for {ticker}')
-
         self.prior_close = float(levels.iloc[-1]['close'])
         self.prior_high = float(levels.iloc[-1]['high'])
 
@@ -709,30 +691,6 @@ class ReversalTradeManager:
             '15:55': False,
         }
 
-        # Matrix cover triggers (cover-rule research, scripts/research_cover_rules.py):
-        # flush_half  — down >=4 ATRs from open: sell HALF into weakness (capture cost
-        #               ~0.005 vs holding; insurance is free). Never cover ALL into a
-        #               flush: corr(early velocity, final depth) = 0.78.
-        # tripwire_1230 — after 12:30, a 25% retrace of the day range ends the trend
-        #               (before 12:30 the same retrace is noise; hybrid rule p25 0.53 vs 0.40 EOD).
-        self.matrix_triggers_fired: Dict[str, bool] = {
-            'flush_half': False,
-            'tripwire_1230': False,
-        }
-
-        # R-multiple sizing (sourced from ExitMonitor via support/risk_source.py;
-        # never hardcoded). None -> R features silently disable.
-        self.one_r = one_r_dollars()
-        self.tiers = tier_multiples()
-        if self.one_r:
-            self.logger.info(f'R model loaded: 1R = ${self.one_r:,.0f}')
-        else:
-            self.logger.warning('ExitMonitor risk model unavailable — R sizing disabled')
-
-        # Alert plumbing: history for replay summaries, mute for replay mode.
-        self.tts_enabled = True
-        self.alert_history: List[tuple] = []
-
         self.high_water_mark = self.open_price
         self.low_water_mark = self.open_price
         self.trade_df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume', 'vwap'])
@@ -763,14 +721,12 @@ class ReversalTradeManager:
         else:
             metrics['pct_from_9ema'] = 0
 
-        # 50 SMA — None (not 0) when history is too short: 0 reads as "at the
-        # 50MA, not extended" and makes classify_reversal_setup reject recent
-        # IPOs (audit 6/2026: PLTR/TEM/CRCL A-grades killed by this sentinel).
+        # 50 SMA
         if len(levels) >= 50:
             sma50 = levels['close'].rolling(50).mean().iloc[-1]
-            metrics['pct_from_50mav'] = (self.open_price - sma50) / sma50 if sma50 != 0 else None
+            metrics['pct_from_50mav'] = (self.open_price - sma50) / sma50 if sma50 != 0 else 0
         else:
-            metrics['pct_from_50mav'] = None
+            metrics['pct_from_50mav'] = 0
 
         # Consecutive up days (close > prior close)
         up_count = 0
@@ -907,14 +863,6 @@ class ReversalTradeManager:
         for a in self.drawdown_alerts:
             pct = (a.price - self.open_price) / self.open_price * 100
             print(f'  {a.name:<30} ${a.price:>9.2f} {pct:>+9.1f}%')
-
-        # R sizing off the open (ExitMonitor 1R, stop at +1 ATR squeeze level)
-        if self.one_r and self.atr:
-            quote = self._r_quote(stop=self.open_price + 1.0 * self.atr,
-                                  entry=self.open_price)
-            if quote:
-                print(f'\n  R SIZING (1R = ${self.one_r:,.0f}, stop = +1 ATR):')
-                print(f'  {quote}')
         print()
 
     def _fire_setup_alerts(self):
@@ -1010,9 +958,6 @@ class ReversalTradeManager:
                         # Update running low for covering tracker
                         self.covering_tracker.on_price_update(low)
 
-                        # Matrix cover triggers (flush-half, 12:30 tripwire)
-                        self._check_matrix_cover_triggers(low, price)
-
             # Time alerts
             self._check_time_alerts()
 
@@ -1064,12 +1009,6 @@ class ReversalTradeManager:
         if action['cover_pct'] > 0.001:
             self._fire_covering_alert(action)
 
-        # Add re-quote (console only): if re-adding after this held bounce,
-        # what size keeps the risk unit constant from here with stop at HOD?
-        quote = self._r_quote(stop=self.high_water_mark, entry=bar_2m['close'])
-        if quote:
-            print(f'  ADD QUOTE (stop = HOD): {quote}')
-
     def _fire_covering_alert(self, action: Dict):
         """Fire TTS alert for a covering decision."""
         msg = (
@@ -1104,101 +1043,6 @@ class ReversalTradeManager:
                 self.logger.info(f'DRAWDOWN: {alert.name} @ ${alert.price:.2f}')
 
     # -----------------------------------------------------------------------
-    # Matrix cover triggers (data-backed, cover_rule_results.csv, 55 gap fades)
-    # -----------------------------------------------------------------------
-
-    def _check_matrix_cover_triggers(self, bar_low: float, bar_close: float):
-        """The two profit-taking signals that survived the cover-rule research.
-
-        Everything else (VWAP reclaim, bounce-off-low, stale-low) tested as a
-        capture tax — deliberately NOT alerted here. Default state is hold.
-        """
-        if not self.open_locked or not self.atr:
-            return
-
-        # 1. Flush-half: >=4 ATRs below the open — sell HALF into the weakness.
-        if not self.matrix_triggers_fired['flush_half']:
-            atrs_down = (self.open_price - bar_low) / self.atr
-            if atrs_down >= 4.0:
-                self.matrix_triggers_fired['flush_half'] = True
-                self._alert(
-                    f'MATRIX FLUSH: {self.ticker} down {atrs_down:.1f} ATRs from open. '
-                    f'Sell HALF into this weakness. Hold the rest — '
-                    f'fast moves finish deeper, do not cover it all.',
-                    priority=1)
-
-        # 2. Tripwire: after 12:30, a 25% retrace of the day range = trend over.
-        if not self.matrix_triggers_fired['tripwire_1230']:
-            t = self.current_time.time() if hasattr(self.current_time, 'time') else None
-            if t is not None and t >= dt_time(12, 30):
-                day_range = self.open_price - self.low_water_mark
-                min_range = max(self.atr, 0.02 * self.open_price)  # noise floor
-                if day_range >= min_range:
-                    retrace = (bar_close - self.low_water_mark) / day_range
-                    if retrace >= 0.25:
-                        self.matrix_triggers_fired['tripwire_1230'] = True
-                        self._alert(
-                            f'MATRIX TRIPWIRE: {self.ticker} retraced '
-                            f'{retrace*100:.0f} percent of the day range after 12:30. '
-                            f'Day trend is likely over. Cover at {bar_close:.2f}.',
-                            priority=1)
-
-    def _r_quote(self, stop: float, entry: float) -> Optional[str]:
-        """Share counts per conviction tier for a short entered here with this stop.
-
-        shares = tier_R x $1R / risk_per_share. The Cal.xlsx question — 'what
-        size keeps my risk unit constant from THIS price?' — answered live.
-        """
-        if not self.one_r or not self.tiers:
-            return None
-        risk = stop - entry  # short: risk is to the upside
-        if risk <= 0:
-            return None
-        parts = [f'{lbl} {int(self.tiers[lbl] * self.one_r / risk):,}'
-                 for lbl in ('A', 'B', 'C') if lbl in self.tiers]
-        return f"{' / '.join(parts)} sh  (${risk:.2f}/sh to stop {stop:.2f})"
-
-    def _overnight_max_shares(self, price: float, tail_gap: float) -> Optional[int]:
-        """Max overnight remainder so a tail_gap move against costs 1R."""
-        if not self.one_r or price <= 0 or tail_gap <= 0:
-            return None
-        return int(self.one_r / (tail_gap * price))
-
-    def _overnight_guidance(self, price: Optional[float] = None) -> str:
-        """Matrix overnight rule by setup x cap (mgmt_trade_summary.csv, 75 trades),
-        with the max overnight remainder computed in shares (1R against the
-        bucket's tail gap) when the R model and a price are available."""
-        liquid = self.cap in ('ETF', 'Large')
-        setup = self.setup_type or ''
-
-        def shares_line(tail_gap: float, tail_label: str) -> str:
-            n = self._overnight_max_shares(price, tail_gap) if price else None
-            if n is None:
-                return ''
-            return (f' Max overnight remainder: {n:,} shares — '
-                    f'one R against a {tail_label} gap.')
-
-        if setup == 'GapDownTrendBreak':
-            return ('Overnight rule: FLATTEN by the close. Gap down trend breaks '
-                    'gap against shorts at every cap. Worst case minus 65 percent.')
-        if setup == '3DGapFade' and liquid:
-            return ('Overnight rule: holding overnight is fine in liquid 3D gap fades. '
-                    'Worst historical overnight gap minus 2.2 percent.'
-                    + shares_line(0.10, 'minus 10 percent'))
-        if setup == '3DGapFade':
-            return ('Overnight rule: this cap bucket has minus 27 to minus 35 percent tails.'
-                    + (shares_line(0.30, 'minus 30 percent')
-                       or ' Hold only a remainder sized so a minus 30 percent gap costs one R.'))
-        if setup == '2DGapFade':
-            if liquid:
-                return ('Overnight rule: small overnight remainder is fine in liquid names.'
-                        + shares_line(0.10, 'minus 10 percent'))
-            return ('Overnight rule: flatten micros. Worst tail minus 24 percent close to close.'
-                    + shares_line(0.30, 'minus 30 percent'))
-        return ('Overnight rule: no setup-specific stats. Flatten if illiquid.'
-                + shares_line(0.30, 'minus 30 percent'))
-
-    # -----------------------------------------------------------------------
     # Time-based alerts
     # -----------------------------------------------------------------------
 
@@ -1230,13 +1074,12 @@ class ReversalTradeManager:
                    f'pattern {pattern}')
             self._alert(msg, priority=1)
 
-        # 3:30 PM — approaching close: matrix overnight rule (setup x cap)
+        # 3:30 PM — approaching close
         if not self.time_alerts_fired['15:30'] and t >= dt_time(15, 30):
             self.time_alerts_fired['15:30'] = True
             remaining = self.covering_tracker.position_remaining * 100
-            last_px = float(self.trade_df.iloc[-1]['close']) if not self.trade_df.empty else self.open_price
-            msg = (f'Approaching close — {remaining:.0f}% remaining. '
-                   f'{self._overnight_guidance(price=last_px)}')
+            msg = (f'Approaching close — {remaining:.0f}% remaining, '
+                   f'consider covering or holding overnight')
             self._alert(msg, priority=1)
 
         # 3:55 PM — EOD summary
@@ -1265,9 +1108,8 @@ class ReversalTradeManager:
     # -----------------------------------------------------------------------
 
     def _alert(self, message: str, priority: int = 1):
-        self.alert_history.append((self.current_time, priority, message))
         self.logger.info(f'ALERT (P{priority}): {message}')
-        if priority == 1 and self.tts_enabled:
+        if priority == 1:
             play_sounds(message)
 
 
@@ -1275,14 +1117,8 @@ class ReversalTradeManager:
 # Entry point
 # ---------------------------------------------------------------------------
 
-def reversal_main(ticker: str, cap: str = None, dry_run: bool = False, enable_trac: bool = False,
-                  replay_date: str = None):
+def reversal_main(ticker: str, cap: str = None, dry_run: bool = False, enable_trac: bool = False):
     """Entry point — build manager, optionally attach live stream, and run."""
-
-    if replay_date:
-        manager = ReversalTradeManager(ticker=ticker, cap=cap, date=replay_date)
-        _simulate_replay(manager)
-        return
 
     trac_scraper = None
     if enable_trac:
@@ -1322,85 +1158,6 @@ def reversal_main(ticker: str, cap: str = None, dry_run: bool = False, enable_tr
             trac_scraper.close()
 
 
-def _simulate_replay(manager: ReversalTradeManager):
-    """Replay a real historical session through the full live pipeline.
-
-    Fetches 1-minute bars from Polygon for the manager's date and feeds them
-    through the exact same processing as live trading — targets, drawdowns,
-    PBB tracking, covering rules, matrix triggers, R quotes, and time alerts
-    all fire as they would have that day. TTS is muted; a chronological alert
-    tape prints at the end for signal review.
-
-    Usage: python scanners/reversal_trader.py MSTR --replay 2024-11-21
-    """
-    from data_queries.polygon_queries import get_intraday
-
-    manager.tts_enabled = False
-
-    bars = get_intraday(manager.ticker, manager.date, 1, 'minute')
-    if bars is None or bars.empty:
-        logger.error(f'REPLAY: no minute bars for {manager.ticker} {manager.date}')
-        return
-    rth = bars[(bars.index.time >= dt_time(9, 30)) & (bars.index.time < dt_time(16, 0))]
-    if rth.empty:
-        logger.error(f'REPLAY: no RTH bars for {manager.ticker} {manager.date}')
-        return
-
-    logger.info(f'REPLAY: {manager.ticker} {manager.date} — {len(rth)} RTH minute bars')
-    if not manager.open_locked:
-        manager._lock_open_price(float(rth['open'].iloc[0]))
-
-    for ts, row in rth.iterrows():
-        bar = {
-            'type': 'bar-5s',
-            'close-time': int(ts.value),
-            'open': float(row['open']),
-            'high': float(row['high']),
-            'low': float(row['low']),
-            'close': float(row['close']),
-            'volume': float(row['volume']),
-            'vwap': float(row['vwap']) if 'vwap' in row and pd.notna(row['vwap']) else float(row['close']),
-        }
-        series = convert_aggs(bar)
-        if series is None:
-            continue
-        manager.trade_df = concatenate_trade_df(manager.trade_df, series)
-        manager.current_time = series.name
-
-        if series['high'] > manager.high_water_mark:
-            manager.high_water_mark = series['high']
-            manager.covering_tracker.hod_price = series['high']
-        if series['low'] < manager.low_water_mark:
-            manager.low_water_mark = series['low']
-
-        manager._check_target_alerts(series['low'])
-        manager._check_drawdown_alerts(series['high'])
-
-        completed_2m = manager.bar_aggregator.feed(series)
-        if completed_2m is not None:
-            for pbb in manager.pbb_tracker.feed(completed_2m):
-                if pbb['status'] == 'held':
-                    manager._process_held_pbb(pbb, completed_2m)
-                elif pbb['status'] == 'failed':
-                    manager.covering_tracker.on_failed_pbb()
-
-        manager.covering_tracker.on_price_update(series['low'])
-        manager._check_matrix_cover_triggers(series['low'], series['close'])
-        manager._check_time_alerts()
-
-    # Chronological alert tape
-    print(f'\n{"=" * 100}')
-    print(f'  REPLAY ALERT TAPE — {manager.ticker} {manager.date} '
-          f'(open {manager.open_price:.2f}, LOD {manager.low_water_mark:.2f}, '
-          f'HOD {manager.high_water_mark:.2f})')
-    print(f'{"=" * 100}')
-    for when, priority, msg in manager.alert_history:
-        t_str = when.strftime('%H:%M') if hasattr(when, 'strftime') else '--:--'
-        speaker = 'TTS' if priority == 1 else 'log'
-        print(f'  {t_str}  [{speaker}]  {msg}')
-    print(f'{"=" * 100}\n')
-
-
 def _simulate_dry_run(manager: ReversalTradeManager):
     """Simulate a crack day: open -> slight squeeze (HOD) -> crack through targets -> bounce (PBB) -> resume selling.
 
@@ -1412,12 +1169,6 @@ def _simulate_dry_run(manager: ReversalTradeManager):
 
     op = manager.open_price
     atr = manager.atr
-
-    # Outside market hours the manager starts in premarket mode with the open
-    # unlocked, which gates the entire price pipeline (targets, PBBs, covering,
-    # matrix triggers). Lock it explicitly so the dry run exercises everything.
-    if not manager.open_locked:
-        manager._lock_open_price(op)
 
     # Base time: 9:30 ET on the trade date (use UTC offset for ET = UTC-5)
     trade_date = manager.date
@@ -1463,25 +1214,13 @@ def _simulate_dry_run(manager: ReversalTradeManager):
         (op - 2.35 * atr,  'holds (bar 1 of 3)'),
         (op - 2.4 * atr,   'holds (bar 2 of 3)'),
         (op - 2.45 * atr,  'holds (bar 3 of 3) -> second HELD PBB'),
-        # Matrix triggers — entries with explicit minute offset from 9:30:
-        (op - 3.2 * atr,   'flush leg', 56),
-        (op - 4.1 * atr,   'should trigger MATRIX FLUSH (>=4 ATRs down)', 58),
-        (op - 3.0 * atr,   '12:35 retrace -> should trigger MATRIX TRIPWIRE', 185),
-        (op - 3.5 * atr,   '15:31 -> overnight guidance fires', 361),
-        (op - 3.6 * atr,   '15:55 -> EOD summary', 385),
     ]
 
-    for i, entry in enumerate(test_sequence):
-        # Space bars 2 minutes apart so each is its own 2-minute window;
-        # 3-tuples carry an explicit minute offset from the open (late-day tests).
-        if len(entry) == 3:
-            price, desc, minute = entry
-        else:
-            price, desc = entry
-            minute = i * 2
+    for i, (price, desc) in enumerate(test_sequence):
+        # Space bars 2 minutes apart so each is its own 2-minute window
         bar = {
             'type': 'bar-5s',
-            'close-time': base_ts + minute * 60_000_000_000,
+            'close-time': base_ts + i * 120_000_000_000,  # 120 seconds = 2 minutes
             'open': price - 0.005 * atr,
             'high': price + 0.01 * atr,
             'low': price - 0.01 * atr,
@@ -1518,9 +1257,6 @@ def _simulate_dry_run(manager: ReversalTradeManager):
                             logger.info(f'DRY RUN FAILED PBB @ ${pbb["pbb_price"]:.2f}')
 
                 manager.covering_tracker.on_price_update(series['low'])
-                manager._check_matrix_cover_triggers(series['low'], series['close'])
-
-            manager._check_time_alerts()
 
         manager.new_data_event.clear()
         _time.sleep(0.3)
@@ -1557,20 +1293,10 @@ if __name__ == '__main__':
         _dry_run = '--dry-run' in sys.argv
         _enable_trac = '--trac' in sys.argv
 
-        _replay_date = None
-        if '--replay' in sys.argv:
-            idx = sys.argv.index('--replay')
-            if idx + 1 < len(sys.argv) and not sys.argv[idx + 1].startswith('--'):
-                _replay_date = sys.argv[idx + 1]
-            else:
-                print('--replay requires a date: --replay YYYY-MM-DD')
-                sys.exit(1)
-
-        if len(sys.argv) >= 3 and not sys.argv[2].startswith('--') and sys.argv[2] != _replay_date:
+        if len(sys.argv) >= 3 and not sys.argv[2].startswith('--'):
             _cap = sys.argv[2]
 
-        reversal_main(_ticker, cap=_cap, dry_run=_dry_run, enable_trac=_enable_trac,
-                      replay_date=_replay_date)
+        reversal_main(_ticker, cap=_cap, dry_run=_dry_run, enable_trac=_enable_trac)
     else:
         # Interactive mode
         print('=== Reversal Trader — Interactive Mode ===')

@@ -1,4 +1,4 @@
-"""Exit optimization experiment — analyzes ATR targets, time exits, MFE/MAE, trailing stops for reversals."""
+"""Exit optimization experiment — wraps ExitOptimizer for ATR targets, time exits, MFE/MAE."""
 
 import io
 import sys

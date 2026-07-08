@@ -1,0 +1,56 @@
+{
+  "date": "2026-06-11",
+  "session": "morning",
+  "generated_at": "2026-06-11T05:46:12.956288",
+  "go_count": 0,
+  "caution_count": 3,
+  "signals": [
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.331049,
+        "pct_off_30d_high": -0.400059,
+        "gap_pct": 0.039024,
+        "pct_change_3": -0.162582,
+        "prior_day_range_atr": 0.660951,
+        "pct_off_52wk_high": -0.400059,
+        "atr_pct": 0.18893
+      }
+    },
+    {
+      "ticker": "RVI",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.263611,
+        "pct_off_30d_high": -0.514149,
+        "pct_change_3": -0.02767,
+        "prior_day_range_atr": 1.040257,
+        "pct_off_52wk_high": -0.514149,
+        "atr_pct": 0.137164
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.312158,
+        "pct_off_30d_high": -0.462757,
+        "gap_pct": 0.036389,
+        "pct_change_3": -0.216528,
+        "prior_day_range_atr": 0.517346,
+        "pct_off_52wk_high": -0.462757,
+        "atr_pct": 0.251567
+      }
+    }
+  ]
+}

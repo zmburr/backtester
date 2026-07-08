@@ -1,7 +1,7 @@
 {
   "date": "2026-05-26",
   "session": "morning",
-  "generated_at": "2026-05-26T08:43:32.389736",
+  "generated_at": "2026-05-26T05:46:43.979470",
   "go_count": 5,
   "caution_count": 0,
   "signals": [
@@ -12,21 +12,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.234493,
+        "pct_from_9ema": 0.249571,
         "pct_change_3": 0.37356,
-        "gap_pct": 0.017716,
+        "gap_pct": 0.030146,
         "prior_day_range_atr": 1.279828,
-        "atr_pct": 0.067104,
+        "atr_pct": 0.066295,
         "prior_day_rvol": 1.130179,
-        "premarket_rvol": 0.017286
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
-        "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.1469817227768924,
         "pct_change_30": 1.058080977640502,
-        "passed_by_52wk": false,
-        "passed_by_200mav": false,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3
@@ -39,21 +39,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.385544,
+        "pct_from_9ema": 0.375892,
         "pct_change_3": 0.505404,
-        "gap_pct": 0.079658,
+        "gap_pct": 0.072137,
         "prior_day_range_atr": 1.628804,
-        "atr_pct": 0.098955,
+        "atr_pct": 0.099649,
         "prior_day_rvol": 1.407821,
-        "premarket_rvol": 0.022418
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": true,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 2.1191332867518886,
         "pct_change_30": 2.066037735849057,
         "passed_by_52wk": true,
-        "passed_by_200mav": false,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3
@@ -66,21 +66,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.168971,
+        "pct_from_9ema": 0.159226,
         "pct_change_3": 0.217525,
-        "gap_pct": 0.032499,
+        "gap_pct": 0.023892,
         "prior_day_range_atr": 1.447912,
-        "atr_pct": 0.080974,
+        "atr_pct": 0.081654,
         "prior_day_rvol": 0.951296,
-        "premarket_rvol": 0.009071
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 0.5187956016277302,
         "pct_change_30": 0.8597532406684366,
         "passed_by_52wk": false,
-        "passed_by_200mav": false,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3
@@ -93,18 +93,18 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.291146,
+        "pct_from_9ema": 0.315564,
         "pct_change_3": 0.655388,
-        "gap_pct": -0.019304,
+        "gap_pct": -0.000757,
         "prior_day_range_atr": 2.216702,
-        "atr_pct": 0.089232,
+        "atr_pct": 0.087575,
         "prior_day_rvol": 6.192801,
-        "premarket_rvol": 0.099237
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 0.14213403851457693,
         "pct_change_30": 0.7997275204359674,
         "passed_by_52wk": false,
         "passed_by_200mav": false,
@@ -120,21 +120,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.255598,
+        "pct_from_9ema": 0.218947,
         "pct_change_3": 0.187999,
-        "gap_pct": 0.098011,
+        "gap_pct": 0.065961,
         "prior_day_range_atr": 1.229819,
-        "atr_pct": 0.132978,
+        "atr_pct": 0.136977,
         "prior_day_rvol": 1.100726,
-        "premarket_rvol": 0.032199
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 2.6807572972866147,
         "pct_change_30": 2.0099052540913007,
         "passed_by_52wk": false,
-        "passed_by_200mav": false,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3

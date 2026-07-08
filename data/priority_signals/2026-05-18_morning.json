@@ -1,7 +1,7 @@
 {
   "date": "2026-05-18",
   "session": "morning",
-  "generated_at": "2026-05-18T08:45:21.934710",
+  "generated_at": "2026-05-18T05:46:19.722629",
   "go_count": 1,
   "caution_count": 0,
   "signals": [
@@ -12,21 +12,21 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.250728,
+        "pct_from_9ema": 0.282466,
         "pct_change_3": 0.163146,
-        "gap_pct": 0.088228,
+        "gap_pct": 0.115842,
         "prior_day_range_atr": 1.946326,
-        "atr_pct": 0.127863,
+        "atr_pct": 0.124699,
         "prior_day_rvol": 1.458628,
-        "premarket_rvol": 0.029602
+        "premarket_rvol": 0.0
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": null,
+        "pct_from_200mav": 1.67725348647664,
         "pct_change_30": 1.6137479541734858,
         "passed_by_52wk": false,
-        "passed_by_200mav": false,
+        "passed_by_200mav": true,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3

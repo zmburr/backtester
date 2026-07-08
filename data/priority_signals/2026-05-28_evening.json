@@ -1,0 +1,117 @@
+{
+  "date": "2026-05-28",
+  "session": "evening",
+  "generated_at": "2026-05-28T15:16:27.017973",
+  "go_count": 4,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "APP",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.187659,
+        "pct_change_3": 0.168639,
+        "gap_pct": 0.054893,
+        "prior_day_range_atr": 1.779427,
+        "atr_pct": 0.062746,
+        "prior_day_rvol": 1.726099,
+        "premarket_rvol": 0.028514
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.11969109984368743,
+        "pct_change_30": 0.30984291019815013,
+        "passed_by_52wk": false,
+        "passed_by_200mav": false,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.192281,
+        "pct_change_3": 0.221929,
+        "gap_pct": 0.036196,
+        "prior_day_range_atr": 1.616027,
+        "atr_pct": 0.105914,
+        "prior_day_rvol": 1.236384,
+        "premarket_rvol": 0.076036
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.693299344143814,
+        "pct_change_30": 1.5551517993201265,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.126902,
+        "pct_change_3": 0.102204,
+        "gap_pct": 0.046293,
+        "prior_day_range_atr": 0.817003,
+        "atr_pct": 0.055594,
+        "prior_day_rvol": 0.660848,
+        "premarket_rvol": 0.024831
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 1.2143288189463322,
+        "pct_change_30": 0.9427608107578314,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.171702,
+        "pct_change_3": 0.218226,
+        "gap_pct": 0.003522,
+        "prior_day_range_atr": 0.997278,
+        "atr_pct": 0.073196,
+        "prior_day_rvol": 1.374044,
+        "premarket_rvol": 0.068671
+      },
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.8188022391152938,
+        "pct_change_30": 0.993750805308594,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": true,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      }
+    }
+  ]
+}

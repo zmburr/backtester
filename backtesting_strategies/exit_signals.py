@@ -1,5 +1,6 @@
 from data_queries.polygon_queries import get_intraday, add_two_hours
 from support.market_session import MARKET_CLOSE, NEAR_CLOSE
+from datetime import datetime, timedelta
 import logging
 
 
@@ -81,3 +82,12 @@ class exitSignals:
         self.trade.close_price = close_data.iloc[-1].close
         self.trade.high_price = self.data.high.max()
         self.trade.low_price = self.data.low.min()
+
+# from backtesting_strategies.trade import backtestTrade
+#
+# trade = backtestTrade('2024-01-29', 'AAPL', 'SELL')
+# trade.position_size = -1000
+# trade.signal_time = '2024-01-29 09:30:00'
+# e = exitSignals(trade)
+# print(e.multi_bar_exit('quick'))
+# print(e.multi_bar_exit('delayed'))
