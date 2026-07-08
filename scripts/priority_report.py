@@ -1329,6 +1329,14 @@ except Exception:
     _BOUNCE_ODDS = None
     log.info("bounce_odds.json not found — signal JSON will omit odds")
 
+# Reversal analog of bounce odds (see scripts/build_reversal_odds.py).
+_REVERSAL_ODDS_PATH = _DATA_DIR / "reversal_odds.json"
+try:
+    _REVERSAL_ODDS = json.loads(_REVERSAL_ODDS_PATH.read_text())
+except Exception:
+    _REVERSAL_ODDS = None
+    log.info("reversal_odds.json not found — reversal signals will omit odds")
+
 
 def _lookup_bounce_odds(score_str: str, cap: str) -> Optional[Dict]:
     """Match a live signal to its odds bucket: (score band, cap) first, then
@@ -1366,6 +1374,45 @@ def _odds_fields(b: Dict) -> Dict:
     base = (_BOUNCE_ODDS or {}).get("base") or {}
     if base.get("p_bounce5") is not None:
         out["base_p_bounce5"] = base["p_bounce5"]
+    return out
+
+
+def _lookup_reversal_odds(score_str: str, cap: str) -> Optional[Dict]:
+    """Match a reversal signal to its odds bucket: (score band, cap) first,
+    then score band alone, then the population base rate."""
+    if not _REVERSAL_ODDS:
+        return None
+    try:
+        score = int(str(score_str).split("/")[0])
+    except (ValueError, IndexError):
+        return None
+
+    band_only = None
+    for b in _REVERSAL_ODDS.get("buckets", []):
+        if not (b["score_min"] <= score <= b["score_max"]):
+            continue
+        if b.get("cap") == cap:
+            return {**_reversal_odds_fields(b),
+                    "bucket": f"score {b['score_min']}-{b['score_max']} · {cap}"}
+        if b.get("cap") is None:
+            band_only = b
+    if band_only is not None:
+        return {**_reversal_odds_fields(band_only),
+                "bucket": f"score {band_only['score_min']}-{band_only['score_max']}"}
+    base = _REVERSAL_ODDS.get("base")
+    if base:
+        return {**_reversal_odds_fields(base), "bucket": "all screened days"}
+    return None
+
+
+def _reversal_odds_fields(b: Dict) -> Dict:
+    out = {k: b.get(k) for k in ("n", "p_fade", "p_fade5", "p_close_low", "med_return")}
+    # p_fade barely moves with score (~53% -> ~56%): the score discriminates
+    # fade MAGNITUDE, not direction. p_fade5 climbs 4.5x from band 0-2 to 5-6
+    # (0.08 -> 0.34) — consumers should lead with p_fade5.
+    base = (_REVERSAL_ODDS or {}).get("base") or {}
+    if base.get("p_fade5") is not None:
+        out["base_p_fade5"] = base["p_fade5"]
     return out
 
 
@@ -1497,6 +1544,11 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                         k: (round(v, 6) if isinstance(v, float) else v)
                         for k, v in ivp.items()
                     }
+                # Empirical fade odds from the unconditioned universe, so the
+                # watcher can show "days like this" context (lead with p_fade5).
+                odds = _lookup_reversal_odds(item.get("score_str", ""), item.get("cap", ""))
+                if odds is not None:
+                    signal_entry["odds"] = odds
 
             # Bounce signals carry their historical analogs + empirical odds so
             # the morning watcher can show "days like this" context live.
