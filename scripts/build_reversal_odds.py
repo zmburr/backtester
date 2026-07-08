@@ -79,6 +79,9 @@ def load_population(paths: list[Path]) -> pd.DataFrame:
 
 def build(paths: list[Path]) -> dict:
     df = load_population(paths)
+    # Coerce score to numeric first so dirty values become NaN and drop with the
+    # dropna below, instead of crashing the astype(int).
+    df["score"] = pd.to_numeric(df["score"], errors="coerce")
     df = df.dropna(subset=_REQUIRED)
     df["score"] = df["score"].astype(int)
 

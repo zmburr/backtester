@@ -1770,11 +1770,17 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
 
     def _render_breakout_section(pre_m, mav_d, header_label="Breakout Setup Score"):
         """Render breakout pretrade + intensity HTML (used by both is_breakout
-        and the ambiguous augmentation in is_reversal)."""
+        and the ambiguous augmentation in is_reversal).
+
+        Returns (html_lines, breakout_metrics, validate_result). The metrics and
+        validate result are None when there is nothing to score or scoring raised;
+        the is_breakout ledger branch reuses them so breakout is scored exactly once.
+        """
         out = []
         if not pre_m:
-            return out
+            return out, None, None
         bm = _build_breakout_metrics(pre_m, mav_d)
+        br = None
         try:
             checker = BreakoutPretrade()
             br = checker.validate(ticker, bm)
@@ -1784,7 +1790,7 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
             out.append(format_breakout_intensity_html(intensity_result, setup_type=br.setup_type))
         except Exception as e:
             out.append(f'<div style="color: #f85149;">Breakout scoring error: {e}</div>')
-        return out
+        return out, bm, br
 
     if is_reversal:
         # REVERSAL path (by MA routing): show reversal checklist + exit levels
@@ -1829,9 +1835,10 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
                     '(near 52wk high). Use news context to pick thesis.</span>'
                     '</div>'
                 )
-                for ln in _render_breakout_section(pretrade_metrics, mav_data,
-                                                    header_label="Breakout Setup Score (alt thesis)"):
-                    lines.append(ln)
+                alt_lines, _, _ = _render_breakout_section(
+                    pretrade_metrics, mav_data,
+                    header_label="Breakout Setup Score (alt thesis)")
+                lines.extend(alt_lines)
 
         # Add data-informed exit target LEVELS (measured from last close)
         today = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -1855,27 +1862,23 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
         # OR explicitly in BREAKOUT_WATCHLIST. Long-side momentum continuation.
         if cap is None:
             cap = get_ticker_cap(ticker)
-        for ln in _render_breakout_section(pretrade_metrics, mav_data):
-            lines.append(ln)
+        bk_lines, _bk_bm, _br = _render_breakout_section(pretrade_metrics, mav_data)
+        lines.extend(bk_lines)
 
-        # Ledger row: score the breakout and map intensity tier to GO/CAUTION/NO-GO
+        # Ledger row: reuse the score computed by _render_breakout_section (breakout
+        # is scored exactly once) and map the intensity tier to GO/CAUTION/NO-GO
         # exactly as priority_report does (FULL_SIZE->GO, REDUCED_SIZE->CAUTION).
-        if pretrade_metrics:
-            _bk_bm = _build_breakout_metrics(pretrade_metrics, mav_data)
-            try:
-                _br = BreakoutPretrade().validate(ticker, _bk_bm)
-                _rec = {'FULL_SIZE': 'GO', 'REDUCED_SIZE': 'CAUTION'}.get(_br.recommendation, 'NO-GO')
-                signal_row = {
-                    "ticker": ticker,
-                    "bucket": bucket,
-                    "cap": cap,
-                    "rec": _rec,
-                    "score_result": _br,
-                    "metrics": _bk_bm,
-                    "score_str": f"{_br.score}/{_br.max_score} [{_br.recommendation}]",
-                }
-            except Exception as e:
-                print(f"{ticker}: breakout ledger scoring failed - {e}")
+        if _br is not None:
+            _rec = {'FULL_SIZE': 'GO', 'REDUCED_SIZE': 'CAUTION'}.get(_br.recommendation, 'NO-GO')
+            signal_row = {
+                "ticker": ticker,
+                "bucket": bucket,
+                "cap": cap,
+                "rec": _rec,
+                "score_result": _br,
+                "metrics": _bk_bm,
+                "score_str": f"{_br.score}/{_br.max_score} [{_br.recommendation}]",
+            }
 
         # Use the long-side bounce exit targets framework (same direction)
         today = datetime.datetime.now().strftime('%Y-%m-%d')

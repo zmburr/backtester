@@ -1504,7 +1504,7 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
     try:
         _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
-        session = "morning" if now.hour < 12 else "evening"
+        session = current_session(now)
         date_str = now.strftime("%Y-%m-%d")
 
         signals = []
