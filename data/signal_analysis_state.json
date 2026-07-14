@@ -1,6 +1,6 @@
 {
-  "analysis_number": 8,
-  "signal_count_at_last_analysis": 253,
+  "analysis_number": 9,
+  "signal_count_at_last_analysis": 272,
   "past_recommendations": [
     {
       "analysis": 1,
@@ -197,7 +197,31 @@
     {
       "analysis": 8,
       "text": "Leave gap_pct scored as-is (W 0.020 vs L 0.024, flat/inverted); revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 78)."
+    },
+    {
+      "analysis": 9,
+      "text": "VETO cohort empty again (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 keep reporting its tradeable_3d rate each cycle; flag instantly if a sub-1.25 reversal fires and prints tradeable."
+    },
+    {
+      "analysis": 9,
+      "text": "9EMA \u22640.10 floor still gated at n=19 (16% vs 53%) \u2014 no new reversal first-flags this cycle; adopt behind the RVOL veto the moment the cell reaches 20."
+    },
+    {
+      "analysis": 9,
+      "text": "NEW \u2014 treat the bounce GO 0/12 inversion as a depth confound (11/12 GO first-flags are \u2264 -35% off 30d high, the 1/24 cell); report bounce results depth-stratified at -0.35 going forward, and evaluate re-keying pct_off_30d_high / pct_off_52wk_high scoring direction once the shallow first-flag cell reaches n\u226520 (currently 16)."
+    },
+    {
+      "analysis": 9,
+      "text": "Keep episode_signal_num + prior-print 1-ATR status as the top scanner output \u2014 reprint-after-tradeable now 53/57 (93%); extend the same status line to bounce chains, where all 10 winners hit at D1+ and deep episodes resolve on print 3-4."
+    },
+    {
+      "analysis": 9,
+      "text": "Note the regime flip \u2014 zero reversal signals completed after 07-02, 11 bounce first-flags in four sessions; Large-reversal regime-gate deferral unchanged (11/38, still pre-veto-effect data)."
+    },
+    {
+      "analysis": 9,
+      "text": "Leave gap_pct scored as-is (sixth flat cycle) and revisit the RVOL-tier restructure at ~100 reversal first-flags (still 78 \u2014 no progress this cycle)."
     }
   ],
-  "last_analysis_at": "2026-07-10"
+  "last_analysis_at": "2026-07-14"
 }
