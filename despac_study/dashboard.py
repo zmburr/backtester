@@ -41,6 +41,56 @@ def base_layout(fig, title, ytitle="", xtitle=""):
     return fig
 
 
+@st.cache_data(show_spinner=False)
+def deal_bars(ticker, start, end):
+    from despac_study.fetch_prices import get_daily_bars
+    return get_daily_bars(ticker, start, end)
+
+
+def deal_fig(row, height=420, compact=False):
+    """Price path around the flip: shell ticker (blue) into new ticker (red),
+    entry line at last old close, flip-date marker."""
+    flip_d = str(row["flip_date"])
+    start = (pd.Timestamp(flip_d) - pd.Timedelta(days=45)).strftime("%Y-%m-%d")
+    end = (pd.Timestamp(flip_d) + pd.Timedelta(days=25)).strftime("%Y-%m-%d")
+    fig = go.Figure()
+    if isinstance(row.get("old_ticker"), str):
+        old = deal_bars(row["old_ticker"], start, end)
+        if not old.empty:
+            fig.add_scatter(x=old.index, y=old["c"], mode="lines", name=row["old_ticker"],
+                            line=dict(color=CAT[0], width=2))
+    new = deal_bars(row["flip_ticker"], start, end)
+    if not new.empty:
+        fig.add_scatter(x=new.index, y=new["c"], mode="lines", name=row["flip_ticker"],
+                        line=dict(color=CAT[5], width=2))
+    if pd.notna(row.get("last_old_close")):
+        fig.add_hline(y=row["last_old_close"], line_dash="dot", line_color=INK2,
+                      annotation_text=f"entry {row['last_old_close']:.2f}",
+                      annotation_font=dict(size=10, color=INK2))
+    # category (string-date) x-axis: add_vline+annotation crashes in plotly,
+    # so draw the flip marker as an explicit shape + annotation
+    anchor = new.index[0] if not new.empty else flip_d
+    fig.add_shape(type="line", x0=anchor, x1=anchor, yref="paper", y0=0, y1=1,
+                  line=dict(dash="dot", color=CAT[2], width=1.5))
+    if not compact:
+        fig.add_annotation(x=anchor, y=1.04, yref="paper", showarrow=False,
+                           text=f"flip {flip_d}", font=dict(color=CAT[2], size=12))
+    red_txt = f"{row['redemption_pct_best']:.0f}%" if pd.notna(row.get("redemption_pct_best")) else "?"
+    if compact:
+        title = (f"{row.get('old_ticker', '?')} -> {row['flip_ticker']}   "
+                 f"high +{row['flip_high_ret_pct']:.0f}%  10d max +{row['max_runup_10d_pct']:.0f}%  "
+                 f"red {red_txt}")
+    else:
+        title = (f"{row['company_name']}  |  red {red_txt}  |  gap {row['flip_gap_pct']}%  "
+                 f"high {row['flip_high_ret_pct']}%  +5d {row['post_flip_ret_5d_pct']}%")
+    base_layout(fig, title, "close ($)")
+    fig.update_layout(height=height, showlegend=not compact,
+                      margin=dict(l=45, r=15, t=42, b=30))
+    if compact:
+        fig.update_layout(title_font_size=13)
+    return fig
+
+
 @st.cache_data
 def load():
     themed = pd.read_csv(THEMED_CSV)
@@ -73,7 +123,21 @@ st.title("De-SPAC flip study")
 st.caption(f"{len(f)} tradeable 1:1 flips in view (of {len(themed)} total; {len(master)} confirmed de-SPACs 2020-present). "
            "Entry = last close under the old SPAC ticker.")
 
-tab1, tab2, tab3, tab4 = st.tabs(["The edge", "Redemptions & float", "Themes & eras", "Deal browser"])
+tab1, tab2, tab3, tab5, tab4 = st.tabs(
+    ["The edge", "Redemptions & float", "Themes & eras", "Top movers", "Deal browser"])
+
+# ---------------------------------------------------------------- tab 5
+with tab5:
+    st.caption("Ten biggest flip moves in the current filter (ranked by 10-day max runup "
+               "over the last old-ticker close). Blue = SPAC shell, red = post-flip ticker, "
+               "dotted white = your entry, gold dotted = flip day.")
+    top10 = f.dropna(subset=["max_runup_10d_pct", "flip_ticker"]).nlargest(10, "max_runup_10d_pct")
+    cols = st.columns(2)
+    for i, (_, row) in enumerate(top10.iterrows()):
+        with cols[i % 2]:
+            st.plotly_chart(deal_fig(row, height=320, compact=True),
+                            use_container_width=True, theme=None,
+                            key=f"mover_{row['flip_ticker']}_{i}")
 
 # ---------------------------------------------------------------- tab 1
 with tab1:
@@ -237,31 +301,4 @@ with tab4:
                         [""] + sorted(f["flip_ticker"].dropna().unique()))
     if pick:
         row = f[f["flip_ticker"] == pick].iloc[0]
-        from despac_study.fetch_prices import get_daily_bars
-        flip_d = str(row["flip_date"])
-        start = (pd.Timestamp(flip_d) - pd.Timedelta(days=45)).strftime("%Y-%m-%d")
-        end = (pd.Timestamp(flip_d) + pd.Timedelta(days=25)).strftime("%Y-%m-%d")
-        fig = go.Figure()
-        if isinstance(row.get("old_ticker"), str):
-            old = get_daily_bars(row["old_ticker"], start, end)
-            if not old.empty:
-                fig.add_scatter(x=old.index, y=old["c"], mode="lines", name=row["old_ticker"],
-                                line=dict(color=CAT[0], width=2))
-        new = get_daily_bars(pick, start, end)
-        if not new.empty:
-            fig.add_scatter(x=new.index, y=new["c"], mode="lines", name=pick,
-                            line=dict(color=CAT[5], width=2))
-        if pd.notna(row.get("last_old_close")):
-            fig.add_hline(y=row["last_old_close"], line_dash="dot", line_color=INK2,
-                          annotation_text=f"entry {row['last_old_close']:.2f}")
-        # category (string-date) x-axis: add_vline+annotation crashes in
-        # plotly, so draw the flip marker as an explicit shape + annotation
-        anchor = new.index[0] if not new.empty else flip_d
-        fig.add_shape(type="line", x0=anchor, x1=anchor, yref="paper", y0=0, y1=1,
-                      line=dict(dash="dot", color=CAT[2], width=1.5))
-        fig.add_annotation(x=anchor, y=1.04, yref="paper", showarrow=False,
-                           text=f"flip {flip_d}", font=dict(color=CAT[2], size=12))
-        meta = (f"{row['company_name']}  |  red {row['redemption_pct_best']}%  |  "
-                f"gap {row['flip_gap_pct']}%  high {row['flip_high_ret_pct']}%  "
-                f"+5d {row['post_flip_ret_5d_pct']}%")
-        st.plotly_chart(base_layout(fig, meta, "close ($)"), use_container_width=True, theme=None)
+        st.plotly_chart(deal_fig(row), use_container_width=True, theme=None)
