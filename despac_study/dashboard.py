@@ -254,8 +254,13 @@ with tab4:
         if pd.notna(row.get("last_old_close")):
             fig.add_hline(y=row["last_old_close"], line_dash="dot", line_color=INK2,
                           annotation_text=f"entry {row['last_old_close']:.2f}")
-        fig.add_vline(x=flip_d, line_dash="dot", line_color=CAT[2],
-                      annotation_text=f"flip {flip_d}")
+        # category (string-date) x-axis: add_vline+annotation crashes in
+        # plotly, so draw the flip marker as an explicit shape + annotation
+        anchor = new.index[0] if not new.empty else flip_d
+        fig.add_shape(type="line", x0=anchor, x1=anchor, yref="paper", y0=0, y1=1,
+                      line=dict(dash="dot", color=CAT[2], width=1.5))
+        fig.add_annotation(x=anchor, y=1.04, yref="paper", showarrow=False,
+                           text=f"flip {flip_d}", font=dict(color=CAT[2], size=12))
         meta = (f"{row['company_name']}  |  red {row['redemption_pct_best']}%  |  "
                 f"gap {row['flip_gap_pct']}%  high {row['flip_high_ret_pct']}%  "
                 f"+5d {row['post_flip_ret_5d_pct']}%")
