@@ -3,7 +3,9 @@
  "alerted": {
   "SOXL": 5,
   "CRDO": 5,
-  "MXL": 5
+  "MXL": 5,
+  "ALAB": 5,
+  "AAOI": 5
  },
- "brief_sent": false
+ "brief_sent": true
 }
