@@ -122,6 +122,7 @@ def prepare_days() -> Tuple[List[DayData], List[DayData]]:
                 atr = atr_pct * float(two["open"].iloc[0])
         except (TypeError, ValueError):
             pass
+        two.attrs["atr"] = atr
         fires = {name: DETECTORS[spec["det"]](two, atr, spec)
                  for name, spec in VARIANTS.items()}
         dd = DayData(row["ticker"], row["date_iso"], str(row.get("Setup", "")),
