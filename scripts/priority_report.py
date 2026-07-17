@@ -731,10 +731,15 @@ def build_priority_ticker_html(item: Dict) -> str:
         if score_str else ''
     )
 
+    # Intensity belongs in the headline next to the ticker, not only in the
+    # block below — the 7/17 "88 not registered" fix.
+    header_intensity = _intensity_chip(item, font_size="0.85em")
+    intensity_chip = f' {header_intensity}' if header_intensity else ''
+
     lines = [
         f'<div style="border-top: 3px solid {rec_color}; margin-top: 28px; padding-top: 10px;">',
         f'<h2 style="margin: 0 0 4px 0; color: #f0f6fc;">{ticker} '
-        f'<span style="color: {rec_color}; font-size: 0.8em;">Window: {rec_label}</span>{score_chip}{archetype_glyph} '
+        f'<span style="color: {rec_color}; font-size: 0.8em;">Window: {rec_label}</span>{score_chip}{intensity_chip}{archetype_glyph} '
         f'<span style="color: {bucket_color}; font-size: 0.65em; font-weight: normal;">{bucket.upper()}</span></h2>',
         f'</div>',
     ]
@@ -788,12 +793,14 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
         rec_label, color = gr.format_window_label(rec)
         bucket = item["bucket"].upper()
         score_str = item.get("score_str", "")
+        intensity_chip = _intensity_chip(item) or '<span style="color:#6e7681;">—</span>'
         rows.append(
             f'<tr>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d; font-weight: bold;">{item["ticker"]}</td>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d; color: {color}; font-weight: bold;">{rec_label}</td>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d;">{bucket}</td>'
             f'<td style="padding: 4px 10px; border: 1px solid #30363d;">{score_str}</td>'
+            f'<td style="padding: 4px 10px; border: 1px solid #30363d;">{intensity_chip}</td>'
             f'</tr>'
         )
 
@@ -804,14 +811,187 @@ def _build_summary_table(priority_list: List[Dict]) -> str:
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Window</th>'
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Bucket</th>'
         '<th style="padding: 4px 10px; border: 1px solid #30363d;">Score</th>'
+        '<th style="padding: 4px 10px; border: 1px solid #30363d;">Intensity</th>'
         '</tr>'
         + "\n".join(rows)
         + '</table>'
     )
 
 
+# ---------------------------------------------------------------------------
+# High-edge intensity surfacing — "the 88 you didn't register"
+# ---------------------------------------------------------------------------
+# The checklist score (e.g. 5/6) gates the window OPEN/closed; the continuous
+# intensity composite (0-100) says HOW MUCH edge. 7/17: six bounce GOs all tied
+# at 5/6 and sorted alphabetically, burying SOXL's 88 mid-report — trader
+# "didn't fully register" it. These thresholds are the tiers already validated
+# in generate_report.py: bounce >=65 -> 100% WR, +23% avg (n=83 GapFade);
+# reversal >=70 -> top quartile, mostly grade-A (n=110).
+HIGH_EDGE_BOUNCE_INTENSITY = 65
+HIGH_EDGE_REVERSAL_INTENSITY = 70
+
+
+def _compute_live_intensity(item: Dict, all_data: Dict) -> None:
+    """Attach the continuous intensity composite to a priority item.
+
+    Runs in Phase 3 — before sorting, the summary table, and the subject line —
+    so the number can drive surfacing instead of only appearing in the buried
+    per-ticker block. Stores the full result dict so Phase 4d's HTML render
+    doesn't compute it twice.
+    """
+    ticker = item["ticker"]
+    bucket = item["bucket"]
+    metrics = item.get("metrics", {})
+    if item.get("score_result") is None:
+        return
+    try:
+        if bucket == "bounce":
+            setup_type, _ = classify_stock(metrics)
+            ref = gr.BOUNCE_DF_WEAK if setup_type == "GapFade_weakstock" else gr.BOUNCE_DF_STRONG
+            result = gr.compute_bounce_intensity(metrics, ref_df=ref)
+        elif bucket == "reversal":
+            mav = (all_data.get(ticker, {}) or {}).get("mav_data", {}) or {}
+            result = gr.compute_reversal_intensity({
+                'atr_pct':             metrics.get('atr_pct'),
+                'pct_from_9ema':       metrics.get('pct_from_9ema'),
+                'pct_change_3':        metrics.get('pct_change_3'),
+                'gap_pct':             metrics.get('gap_pct'),
+                'prior_day_range_atr': metrics.get('prior_day_range_atr'),
+                'rvol_score':          metrics.get('prior_day_rvol'),
+                'pct_from_50mav':      mav.get('pct_from_50mav'),
+            }, cap=item.get("cap"))
+        else:
+            return
+    except Exception as e:
+        log.warning(f"{ticker}: intensity compute failed – {e}")
+        return
+    item["intensity_result"] = result
+    item["live_intensity"] = result.get("composite")
+
+
+def _is_high_edge(item: Dict) -> bool:
+    v = item.get("live_intensity")
+    if v is None:
+        return False
+    thresh = (HIGH_EDGE_BOUNCE_INTENSITY if item.get("bucket") == "bounce"
+              else HIGH_EDGE_REVERSAL_INTENSITY)
+    return float(v) >= thresh
+
+
+def _top_high_edge(priority_list: List[Dict]) -> Optional[Dict]:
+    """Highest-intensity item clearing its bucket's high-edge tier, else None."""
+    hits = [p for p in priority_list if _is_high_edge(p)]
+    return max(hits, key=lambda p: float(p["live_intensity"])) if hits else None
+
+
+def _intensity_chip(item: Dict, font_size: str = "1em") -> str:
+    """Colored 'NN/100' chip for a priority item's intensity ('' if unavailable).
+    Color tiers match the per-bucket intensity blocks so the number reads the
+    same everywhere in the report."""
+    v = item.get("live_intensity")
+    if v is None:
+        return ""
+    v = float(v)
+    if item.get("bucket") == "bounce":
+        color = "#3fb950" if v >= 50 else ("#e3b341" if v >= 40 else "#f85149")
+    else:
+        color = "#3fb950" if v >= 50 else ("#e3b341" if v >= 25 else "#f85149")
+    glyph = "&#9889; " if _is_high_edge(item) else ""
+    return (f'<span style="color: {color}; font-weight: bold; font-size: {font_size};">'
+            f'{glyph}{v:.0f}/100</span>')
+
+
+def _build_high_edge_banner_html(priority_list: List[Dict]) -> str:
+    """Green banner under the report header when any candidate clears its
+    high-edge intensity tier. This is the '88' made unmissable: the checklist
+    score caps at GO, the intensity says how much edge sits behind it."""
+    hits = sorted((p for p in priority_list if _is_high_edge(p)),
+                  key=lambda p: -float(p["live_intensity"]))
+    if not hits:
+        return ""
+    chips = " &nbsp;&middot;&nbsp; ".join(
+        f'<strong style="color:#f0f6fc;">{p["ticker"]}</strong> {_intensity_chip(p)}'
+        f'<span style="color:#8b949e; font-size:0.8em;"> ({p["bucket"]})</span>'
+        for p in hits
+    )
+    return (
+        f'<div style="background-color: #0d2818; border: 2px solid #3fb950; '
+        f'border-radius: 6px; padding: 12px 16px; margin-bottom: 16px;">'
+        f'<div style="font-size: 1.25em; font-weight: bold; color: #3fb950;">'
+        f'&#9889; HIGH-EDGE SCORE &mdash; {chips}</div>'
+        f'<div style="color: #e6edf3; margin-top: 6px;">'
+        f'Bounce intensity &ge;{HIGH_EDGE_BOUNCE_INTENSITY}: 100% WR, +23% avg historically (n=83). '
+        f'Reversal &ge;{HIGH_EDGE_REVERSAL_INTENSITY}: top quartile, mostly grade-A (n=110). '
+        f'The number is the size of the edge &mdash; say it out loud, then read that ticker\'s '
+        f'odds + target levels below before the open.</div></div>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Cluster signal — "outsized opportunity day" flag
+# ---------------------------------------------------------------------------
+# Same-day candidate counts in bounce_data.csv are bimodal: normal days carry
+# 1-3 candidates; the historic cluster days carry 7-16 (2/5/18 Volmageddon 7,
+# 5/12/22 growth capitulation 16, 8/5/24 yen-carry unwind 12, 4/7/25 tariff
+# crash 15). There is a clean gap between 3 and 7 — the thresholds sit in it.
+# Cluster-day edge (Bounce Play playbook, n=36): median open-to-high +24.2%
+# vs +9.0% solo; overnight gap-up 11/11 with median +10.6% incremental.
+CLUSTER_DAY_THRESHOLD = 7    # >= this many bounce OPEN windows -> CLUSTER DAY
+CLUSTER_WATCH_THRESHOLD = 4  # >= this -> elevated, worth a heads-up
+
+
+def compute_cluster_signal(priority_list: List[Dict]) -> Dict:
+    """Classify the session by simultaneous bounce OPEN windows.
+
+    Returns {level: 'CLUSTER'|'WATCH'|None, bounce_open: int, total_open: int}.
+    Counts the bounce bucket only — reversal/breakout windows don't carry the
+    cluster-day edge (correlated sector capitulation) this flag encodes.
+    """
+    bounce_open = sum(1 for p in priority_list if p.get("bucket") == "bounce")
+    if bounce_open >= CLUSTER_DAY_THRESHOLD:
+        level = "CLUSTER"
+    elif bounce_open >= CLUSTER_WATCH_THRESHOLD:
+        level = "WATCH"
+    else:
+        level = None
+    return {"level": level, "bounce_open": bounce_open, "total_open": len(priority_list)}
+
+
+def _build_cluster_banner_html(cluster: Optional[Dict]) -> str:
+    """Banner injected directly under the report header when the cluster signal
+    fires. CLUSTER = red, playbook reminders inline; WATCH = amber heads-up."""
+    if not cluster or not cluster.get("level"):
+        return ""
+    n = cluster["bounce_open"]
+    if cluster["level"] == "CLUSTER":
+        return (
+            f'<div style="background-color: #3d1214; border: 2px solid #f85149; '
+            f'border-radius: 6px; padding: 12px 16px; margin-bottom: 16px;">'
+            f'<div style="font-size: 1.25em; font-weight: bold; color: #f85149;">'
+            f'&#9873; CLUSTER DAY &mdash; {n} bounce windows open (threshold {CLUSTER_DAY_THRESHOLD})</div>'
+            f'<div style="color: #e6edf3; margin-top: 6px;">Outsized opportunity day. '
+            f'Historical comps: 2/5/18, 5/12/22, 3/13/23, 8/5/24, 4/7/25. '
+            f'Cluster days: median high +24.2% vs +9.0% solo; overnight gap-up 11/11 (median +10.6% incremental).</div>'
+            f'<ul style="color: #c9d1d9; margin: 8px 0 0 0; padding-left: 20px;">'
+            f'<li>Single stocks &gt; ETFs for upside (+36.9% vs +7.4% median high)</li>'
+            f'<li>Scale out from 1 ATR; stretch target 2&ndash;3 ATR &mdash; do not sell it all into the first push</li>'
+            f'<li>Bottom in first 30 min = 100% close green historically &mdash; lean aggressive</li>'
+            f'<li>Hold a portion overnight</li>'
+            f'<li>USE the target levels below &mdash; stop underestimating how far these rip</li>'
+            f'</ul></div>'
+        )
+    return (
+        f'<div style="background-color: #3a2d0e; border: 2px solid #d29922; '
+        f'border-radius: 6px; padding: 10px 16px; margin-bottom: 16px;">'
+        f'<span style="font-weight: bold; color: #d29922;">&#9888; CLUSTER WATCH &mdash; '
+        f'{n} bounce windows open</span>'
+        f'<span style="color: #c9d1d9;"> (cluster day fires at {CLUSTER_DAY_THRESHOLD}). '
+        f'Elevated vs the 0&ndash;3 baseline &mdash; check whether the candidates share a sector/theme.</span></div>'
+    )
+
+
 def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[str, str],
-                               addendum_html: str = "") -> str:
+                               addendum_html: str = "", cluster: Optional[Dict] = None) -> str:
     """Assemble the full priority report HTML."""
     now = datetime.datetime.now()
     open_count = len(priority_list)
@@ -826,6 +1006,8 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         f'</div></div>'
     )
 
+    cluster_banner = _build_cluster_banner_html(cluster)
+    high_edge_banner = _build_high_edge_banner_html(priority_list)
     summary = _build_summary_table(priority_list)
 
     # Ticker sections in priority order (highest-score first within OPEN)
@@ -835,7 +1017,7 @@ def build_priority_report_html(priority_list: List[Dict], ticker_html_map: Dict[
         if html:
             sections.append(html)
 
-    body = header + summary + "\n".join(sections) + (addendum_html or "")
+    body = header + cluster_banner + high_edge_banner + summary + "\n".join(sections) + (addendum_html or "")
 
     return (
         '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', '
@@ -873,11 +1055,17 @@ def _numeric_score_parts(item: Dict) -> Tuple[float, float]:
     return -1.0, 0.0
 
 
-def _priority_sort_key(item: Dict) -> Tuple[int, float, float, str]:
+def _priority_sort_key(item: Dict) -> Tuple[int, float, float, float, str]:
     score, max_score = _numeric_score_parts(item)
     score_ratio = score / max_score if max_score else -1.0
     rec_rank = 0 if item.get("rec") == "GO" else 1
-    return rec_rank, -score_ratio, -score, item.get("ticker", "")
+    # Intensity breaks checklist-score ties so the highest-edge name leads the
+    # report (7/17: six 5/6 GOs previously fell back to alphabetical order).
+    try:
+        intensity = float(item.get("live_intensity"))
+    except (TypeError, ValueError):
+        intensity = -1.0
+    return rec_rank, -score_ratio, -intensity, -score, item.get("ticker", "")
 
 
 # ---------------------------------------------------------------------------
@@ -1044,7 +1232,13 @@ def generate_priority_report() -> str:
 
         # === Phase 3: Filter → keep tradeable tiers (GO + CAUTION = "OPEN"), excluding breakout bucket ===
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] != "breakout"]
-        # Sort: GO first, then CAUTION; within each group by score descending
+
+        # Continuous intensity — computed BEFORE sorting/summary/subject so the
+        # highest-edge name leads the report instead of hiding mid-list.
+        for item in priority:
+            _compute_live_intensity(item, all_data)
+
+        # Sort: GO first, then CAUTION; within each group by score, then intensity
         priority.sort(key=_priority_sort_key)
 
         excluded_breakouts = sum(1 for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] == "breakout")
@@ -1052,6 +1246,18 @@ def generate_priority_report() -> str:
         cau_ct = sum(1 for p in priority if p["rec"] == "CAUTION")
         print(f"Phase 3: {len(priority)} OPEN windows from {len(scored)} total"
               f"{f' [{excluded_breakouts} breakout tickers excluded]' if excluded_breakouts else ''}")
+
+        # Cluster signal: many simultaneous bounce windows = outsized opportunity day
+        cluster = compute_cluster_signal(priority)
+        if cluster["level"]:
+            print(f"Phase 3: {cluster['level']} signal — {cluster['bounce_open']} bounce windows open")
+
+        # Top high-edge candidate: drives the subject line + TTS so the number
+        # is registered before the report is even opened.
+        top_edge = _top_high_edge(priority)
+        if top_edge:
+            print(f"Phase 3: HIGH-EDGE — {top_edge['ticker']} intensity "
+                  f"{float(top_edge['live_intensity']):.0f}/100 ({top_edge['bucket']})")
 
         if not priority:
             print("No OPEN windows found. Sending empty report.")
@@ -1134,30 +1340,16 @@ def generate_priority_report() -> str:
             # Score HTML
             score_html = ""
             intensity_html = ""
+            # Intensity was computed once in Phase 3 (_compute_live_intensity);
+            # here we only render it.
             if bucket == "reversal" and score_result:
                 score_html = gr.format_pretrade_score_html(score_result)
-                # Reversal intensity (cap-stratified percentile vs grade-A reference)
-                rev_mav = all_data.get(ticker, {}).get("mav_data", {}) or {}
-                rev_intensity_metrics = {
-                    'atr_pct':             metrics.get('atr_pct'),
-                    'pct_from_9ema':       metrics.get('pct_from_9ema'),
-                    'pct_change_3':        metrics.get('pct_change_3'),
-                    'gap_pct':             metrics.get('gap_pct'),
-                    'prior_day_range_atr': metrics.get('prior_day_range_atr'),
-                    'rvol_score':          metrics.get('prior_day_rvol'),
-                    'pct_from_50mav':      rev_mav.get('pct_from_50mav'),
-                }
-                rev_intensity = gr.compute_reversal_intensity(rev_intensity_metrics, cap=cap)
-                intensity_html = gr.format_reversal_intensity_html(rev_intensity)
-                item["live_intensity"] = rev_intensity.get("composite")
+                if item.get("intensity_result"):
+                    intensity_html = gr.format_reversal_intensity_html(item["intensity_result"])
             elif bucket == "bounce" and score_result:
                 score_html = gr.format_bounce_score_html(score_result, bounce_metrics=metrics)
-                # Bounce intensity
-                setup_type, _ = classify_stock(metrics)
-                ref = gr.BOUNCE_DF_WEAK if setup_type == "GapFade_weakstock" else gr.BOUNCE_DF_STRONG
-                intensity = gr.compute_bounce_intensity(metrics, ref_df=ref)
-                intensity_html = gr.format_bounce_intensity_html(intensity)
-                item["live_intensity"] = intensity.get("composite")
+                if item.get("intensity_result"):
+                    intensity_html = gr.format_bounce_intensity_html(item["intensity_result"])
 
             # Exit targets
             exit_html = ""
@@ -1232,6 +1424,9 @@ def generate_priority_report() -> str:
                 "ticker": ticker,
                 "bucket": bucket,
                 "rec": item["rec"],
+                "live_intensity": item.get("live_intensity"),
+                "score_str": item.get("score_str", ""),
+                "score_result": score_result,
                 "score_html": score_html,
                 "intensity_html": intensity_html,
                 "setup_match_html": setup_match_html,
@@ -1245,7 +1440,7 @@ def generate_priority_report() -> str:
         timings["deep_analysis"] = time.time() - t0
 
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
-        _save_signals_to_json(priority, go_ct, cau_ct, comps_map)
+        _save_signals_to_json(priority, go_ct, cau_ct, comps_map, cluster=cluster)
 
         # === Phase 4.75: Render top-3 comp charts for the addendum ===
         # 1-year daily chart ending on each comp's trade date. Deduped across
@@ -1285,8 +1480,10 @@ def generate_priority_report() -> str:
 
         # === Phase 5: Build HTML + send email ===
         t0 = time.time()
-        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html)
-        _send_report(html_report, go_ct, cau_ct, inline_images=chart_images)
+        html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html,
+                                                 cluster=cluster)
+        _send_report(html_report, go_ct, cau_ct, inline_images=chart_images, cluster=cluster,
+                     top_edge=top_edge)
         timings["email"] = time.time() - t0
 
     finally:
@@ -1496,7 +1693,8 @@ def _safe_int(v):
 
 
 def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int,
-                          comps_map: Optional[Dict[str, pd.DataFrame]] = None):
+                          comps_map: Optional[Dict[str, pd.DataFrame]] = None,
+                          cluster: Optional[Dict] = None):
     """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard
     and the morning watcher. Bounce signals additionally carry their historical
     analogs (Phase-4a comps) and empirical odds; the payload carries the bounce
@@ -1529,6 +1727,14 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 "score": item.get("score_str", ""),
                 "metrics": metrics,
             }
+
+            # Continuous intensity + high-edge flag, so the morning watcher and
+            # the scorecard see the same number the report surfaces (7/17: the
+            # 88 lived only in the email HTML — unvalidatable after the fact).
+            li = item.get("live_intensity")
+            if li is not None:
+                signal_entry["intensity"] = round(float(li), 1)
+                signal_entry["high_edge"] = bool(_is_high_edge(item))
 
             # Carry the archetype flag through for scorecard feedback-loop analysis.
             # Only reversals populate this; bounces leave it out.
@@ -1571,6 +1777,10 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
             "caution_count": caution_count,
             "signals": signals,
         }
+        # Cluster signal (level None on normal days) — persisted so the
+        # scorecard can validate the threshold against realized outcomes.
+        if cluster is not None:
+            payload["cluster_signal"] = cluster
 
         # Cohort stats (curated bounce_data.csv) for the watcher's live
         # low-timing / early-vol checkpoints. Only included when relevant.
@@ -1603,15 +1813,41 @@ def _json_default(obj):
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
-def _send_report(html: str, go_count: int, caution_count: int, inline_images=None):
+def _send_report(html: str, go_count: int, caution_count: int, inline_images=None,
+                 cluster: Optional[Dict] = None, top_edge: Optional[Dict] = None):
     """Send the priority report email.
 
     go_count + caution_count are the underlying tier counts (kept for backward
     compatibility with callers); the subject surfaces the unified OPEN total.
+    A firing cluster signal is prefixed onto the subject so it's visible from
+    the inbox without opening the report; the top high-edge intensity score is
+    prefixed the same way (the number should be registered from the lock
+    screen, before the report is opened).
     """
     date_str = datetime.datetime.now().strftime("%m/%d/%Y")
     open_total = go_count + caution_count
     subject = f"Priority Report — {open_total} Window{'s' if open_total != 1 else ''} Open | {date_str}"
+    if top_edge is not None:
+        subject = f"⚡ {top_edge['ticker']} {float(top_edge['live_intensity']):.0f} — {subject}"
+    if cluster and cluster.get("level") == "CLUSTER":
+        subject = f"🚨 CLUSTER DAY ({cluster['bounce_open']} bounce) — {subject}"
+    elif cluster and cluster.get("level") == "WATCH":
+        subject = f"⚠️ Cluster Watch ({cluster['bounce_open']} bounce) — {subject}"
+
+    # Hand the TTS line to run_priority_report.bat so the spoken alert carries
+    # the signal, not just "report sent". Non-fatal.
+    try:
+        _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
+        tts = f"Priority report sent. {open_total} windows open."
+        if top_edge is not None:
+            tts += (f" Top score {top_edge['ticker']} at "
+                    f"{float(top_edge['live_intensity']):.0f} out of 100. High edge.")
+        if cluster and cluster.get("level") == "CLUSTER":
+            tts = f"Cluster day. {cluster['bounce_open']} bounce windows open. " + tts
+        (_SIGNAL_DIR / "latest_tts.txt").write_text(tts)
+    except Exception as e:
+        log.debug(f"TTS line write failed (non-fatal): {e}")
+
     try:
         send_email(
             to_email="zmburr@gmail.com",
