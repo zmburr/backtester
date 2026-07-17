@@ -1,7 +1,9 @@
 {
  "date": "2026-07-17",
  "alerted": {
-  "SOXL": 5
+  "SOXL": 5,
+  "CRDO": 5,
+  "MXL": 5
  },
  "brief_sent": false
 }
