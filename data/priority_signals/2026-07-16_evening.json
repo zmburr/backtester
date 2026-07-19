@@ -1,0 +1,1125 @@
+{
+  "date": "2026-07-16",
+  "session": "evening",
+  "generated_at": "2026-07-16T21:51:35.778956",
+  "go_count": 3,
+  "caution_count": 11,
+  "signals": [
+    {
+      "ticker": "DRAM",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.154579,
+        "pct_off_30d_high": -0.356528,
+        "gap_pct": -0.053833,
+        "pct_change_3": -0.086562,
+        "prior_day_range_atr": 1.019217,
+        "pct_off_52wk_high": -0.356528,
+        "atr_pct": 0.106662
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "ETHE",
+            "date": "2025-01-13",
+            "open_high_pct": 0.0182,
+            "open_low_pct": -0.0443,
+            "open_close_pct": 0.0149,
+            "time_of_low_bucket": 1,
+            "distance": 1.0052
+          },
+          {
+            "ticker": "SMH",
+            "date": "2025-04-07",
+            "open_high_pct": 0.123,
+            "open_low_pct": -0.0195,
+            "open_close_pct": 0.0658,
+            "time_of_low_bucket": 1,
+            "distance": 1.2036
+          },
+          {
+            "ticker": "IGV",
+            "date": "2026-02-04",
+            "open_high_pct": 0.0087,
+            "open_low_pct": -0.03,
+            "open_close_pct": -0.0025,
+            "time_of_low_bucket": 1,
+            "distance": 1.2546
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2025-04-07",
+            "open_high_pct": 0.143,
+            "open_low_pct": -0.0166,
+            "open_close_pct": 0.078,
+            "time_of_low_bucket": 1,
+            "distance": 1.3215
+          },
+          {
+            "ticker": "SMH",
+            "date": "2024-08-05",
+            "open_high_pct": 0.0872,
+            "open_low_pct": -0.0024,
+            "open_close_pct": 0.0613,
+            "time_of_low_bucket": 1,
+            "distance": 1.3965
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0872,
+        "med_open_low": -0.0195,
+        "med_open_close": 0.0613,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 467,
+        "p_green": 0.5096,
+        "p_bounce5": 0.6381,
+        "med_return": 0.0053,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6"
+      }
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.209183,
+        "pct_off_30d_high": -0.431021,
+        "gap_pct": -0.066412,
+        "pct_change_3": -0.182531,
+        "prior_day_range_atr": 0.982576,
+        "pct_off_52wk_high": -0.431021,
+        "atr_pct": 0.181937
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.1668
+          },
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.221
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.2937
+          },
+          {
+            "ticker": "JMIA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.2111,
+            "open_low_pct": -0.01,
+            "open_close_pct": 0.1767,
+            "time_of_low_bucket": 1,
+            "distance": 0.2953
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2020-05-27",
+            "open_high_pct": 0.0418,
+            "open_low_pct": -0.099,
+            "open_close_pct": 0.0191,
+            "time_of_low_bucket": 2,
+            "distance": 0.3314
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0308,
+        "med_open_close": 0.0472,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.214585,
+        "pct_off_30d_high": -0.442907,
+        "gap_pct": -0.045612,
+        "pct_change_3": -0.206451,
+        "prior_day_range_atr": 0.646101,
+        "pct_off_52wk_high": -0.442907,
+        "atr_pct": 0.148334
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.2006
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.2108
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.3475
+          },
+          {
+            "ticker": "JMIA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.2111,
+            "open_low_pct": -0.01,
+            "open_close_pct": 0.1767,
+            "time_of_low_bucket": 1,
+            "distance": 0.3551
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2020-05-27",
+            "open_high_pct": 0.0418,
+            "open_low_pct": -0.099,
+            "open_close_pct": 0.0191,
+            "time_of_low_bucket": 2,
+            "distance": 0.3844
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0308,
+        "med_open_close": 0.0472,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.173616,
+        "pct_off_30d_high": -0.532055,
+        "gap_pct": -0.037492,
+        "pct_change_3": -0.123168,
+        "prior_day_range_atr": 1.256048,
+        "pct_off_52wk_high": -0.580177,
+        "atr_pct": 0.14876
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.3746
+          },
+          {
+            "ticker": "AXTI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.1137,
+            "open_low_pct": -0.0184,
+            "open_close_pct": 0.0345,
+            "time_of_low_bucket": 1,
+            "distance": 0.3922
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.5043
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2020-05-27",
+            "open_high_pct": 0.0418,
+            "open_low_pct": -0.099,
+            "open_close_pct": 0.0191,
+            "time_of_low_bucket": 2,
+            "distance": 0.5615
+          },
+          {
+            "ticker": "CLSK",
+            "date": "2024-08-05",
+            "open_high_pct": 0.2097,
+            "open_low_pct": -0.0739,
+            "open_close_pct": 0.2087,
+            "time_of_low_bucket": 1,
+            "distance": 0.5814
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0739,
+        "med_open_close": 0.0345,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.261438,
+        "pct_off_30d_high": -0.633117,
+        "gap_pct": -0.046986,
+        "pct_change_3": -0.104241,
+        "prior_day_range_atr": 0.916034,
+        "pct_off_52wk_high": -0.684269,
+        "atr_pct": 0.185967
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "UPST",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2607,
+            "open_low_pct": -0.0066,
+            "open_close_pct": 0.1881,
+            "time_of_low_bucket": 1,
+            "distance": 0.34
+          },
+          {
+            "ticker": "VFC",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1253,
+            "open_low_pct": -0.0198,
+            "open_close_pct": 0.0378,
+            "time_of_low_bucket": 1,
+            "distance": 0.4152
+          },
+          {
+            "ticker": "LCID",
+            "date": "2022-05-12",
+            "open_high_pct": 0.21,
+            "open_low_pct": -0.0236,
+            "open_close_pct": 0.1562,
+            "time_of_low_bucket": 1,
+            "distance": 0.4915
+          },
+          {
+            "ticker": "AXTI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.1137,
+            "open_low_pct": -0.0184,
+            "open_close_pct": 0.0345,
+            "time_of_low_bucket": 1,
+            "distance": 0.5392
+          },
+          {
+            "ticker": "AAOI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2874,
+            "open_low_pct": -0.0144,
+            "open_close_pct": 0.113,
+            "time_of_low_bucket": 1,
+            "distance": 0.5851
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.21,
+        "med_open_low": -0.0184,
+        "med_open_close": 0.113,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.184542,
+        "pct_off_30d_high": -0.416855,
+        "gap_pct": -0.046286,
+        "pct_change_3": -0.122672,
+        "prior_day_range_atr": 0.819275,
+        "pct_off_52wk_high": -0.416855,
+        "atr_pct": 0.168105
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.1953
+          },
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.2297
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2020-05-27",
+            "open_high_pct": 0.0418,
+            "open_low_pct": -0.099,
+            "open_close_pct": 0.0191,
+            "time_of_low_bucket": 2,
+            "distance": 0.2486
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.2746
+          },
+          {
+            "ticker": "JMIA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.2111,
+            "open_low_pct": -0.01,
+            "open_close_pct": 0.1767,
+            "time_of_low_bucket": 1,
+            "distance": 0.3035
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0308,
+        "med_open_close": 0.0472,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "INTC",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.131371,
+        "pct_off_30d_high": -0.331366,
+        "gap_pct": -0.017963,
+        "pct_change_3": -0.076998,
+        "prior_day_range_atr": 1.07005,
+        "pct_off_52wk_high": -0.331366,
+        "atr_pct": 0.102212
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVDA",
+            "date": "2024-07-25",
+            "open_high_pct": 0.0318,
+            "open_low_pct": -0.0596,
+            "open_close_pct": -0.0067,
+            "time_of_low_bucket": 2,
+            "distance": 1.2636
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 1.4051
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.1007,
+            "open_low_pct": -0.0174,
+            "open_close_pct": 0.0738,
+            "time_of_low_bucket": 1,
+            "distance": 1.6739
+          },
+          {
+            "ticker": "RIOT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0886,
+            "open_low_pct": -0.0172,
+            "open_close_pct": 0.0751,
+            "time_of_low_bucket": 1,
+            "distance": 1.6805
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 1.7729
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1007,
+        "med_open_low": -0.0174,
+        "med_open_close": 0.0738,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "MRVL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.219858,
+        "pct_off_30d_high": -0.437644,
+        "gap_pct": -0.029768,
+        "pct_change_3": -0.147198,
+        "prior_day_range_atr": 1.009431,
+        "pct_off_52wk_high": -0.437644,
+        "atr_pct": 0.117911
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 0.4128
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 1.3822
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 1.5633
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2273,
+            "open_low_pct": -0.008,
+            "open_close_pct": 0.1679,
+            "time_of_low_bucket": 1,
+            "distance": 1.6716
+          },
+          {
+            "ticker": "RIOT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0886,
+            "open_low_pct": -0.0172,
+            "open_close_pct": 0.0751,
+            "time_of_low_bucket": 1,
+            "distance": 1.8142
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.016,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.137377,
+        "pct_off_30d_high": -0.336725,
+        "gap_pct": -0.041486,
+        "pct_change_3": -0.111622,
+        "prior_day_range_atr": 1.151336,
+        "pct_off_52wk_high": -0.336725,
+        "atr_pct": 0.109319
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 1.1929
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.1007,
+            "open_low_pct": -0.0174,
+            "open_close_pct": 0.0738,
+            "time_of_low_bucket": 1,
+            "distance": 1.2709
+          },
+          {
+            "ticker": "RIOT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0886,
+            "open_low_pct": -0.0172,
+            "open_close_pct": 0.0751,
+            "time_of_low_bucket": 1,
+            "distance": 1.2913
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-07-25",
+            "open_high_pct": 0.0318,
+            "open_low_pct": -0.0596,
+            "open_close_pct": -0.0067,
+            "time_of_low_bucket": 2,
+            "distance": 1.3996
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 1.4535
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1007,
+        "med_open_low": -0.0174,
+        "med_open_close": 0.0738,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "NOK",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.18109,
+        "pct_off_30d_high": -0.414327,
+        "gap_pct": -0.04,
+        "pct_change_3": -0.125749,
+        "prior_day_range_atr": 1.524627,
+        "pct_off_52wk_high": -0.414327,
+        "atr_pct": 0.077334
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.2069
+          },
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.2366
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2020-05-27",
+            "open_high_pct": 0.0418,
+            "open_low_pct": -0.099,
+            "open_close_pct": 0.0191,
+            "time_of_low_bucket": 2,
+            "distance": 0.2429
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.2753
+          },
+          {
+            "ticker": "JMIA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.2111,
+            "open_low_pct": -0.01,
+            "open_close_pct": 0.1767,
+            "time_of_low_bucket": 1,
+            "distance": 0.3123
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0308,
+        "med_open_close": 0.0472,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      }
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.23856,
+        "pct_off_30d_high": -0.420166,
+        "gap_pct": -0.054186,
+        "pct_change_3": -0.184481,
+        "prior_day_range_atr": 1.040139,
+        "pct_off_52wk_high": -0.420166,
+        "atr_pct": 0.176767
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 0.6453
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 1.1968
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 1.3657
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2273,
+            "open_low_pct": -0.008,
+            "open_close_pct": 0.1679,
+            "time_of_low_bucket": 1,
+            "distance": 1.4726
+          },
+          {
+            "ticker": "RIOT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0886,
+            "open_low_pct": -0.0172,
+            "open_close_pct": 0.0751,
+            "time_of_low_bucket": 1,
+            "distance": 1.5957
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.016,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.21886,
+        "pct_off_30d_high": -0.528212,
+        "gap_pct": -0.091272,
+        "pct_change_3": -0.138417,
+        "prior_day_range_atr": 0.948218,
+        "pct_off_52wk_high": -0.528212,
+        "atr_pct": 0.251662
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "ARKK",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1286,
+            "open_low_pct": -0.0228,
+            "open_close_pct": 0.0855,
+            "time_of_low_bucket": 1,
+            "distance": 1.6832
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1634,
+            "open_low_pct": -0.0096,
+            "open_close_pct": 0.1164,
+            "time_of_low_bucket": 1,
+            "distance": 1.8868
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2025-04-07",
+            "open_high_pct": 0.143,
+            "open_low_pct": -0.0166,
+            "open_close_pct": 0.078,
+            "time_of_low_bucket": 1,
+            "distance": 1.9547
+          },
+          {
+            "ticker": "KWEB",
+            "date": "2022-03-15",
+            "open_high_pct": 0.1,
+            "open_low_pct": -0.0187,
+            "open_close_pct": 0.0663,
+            "time_of_low_bucket": 1,
+            "distance": 2.0353
+          },
+          {
+            "ticker": "SMH",
+            "date": "2025-04-07",
+            "open_high_pct": 0.123,
+            "open_low_pct": -0.0195,
+            "open_close_pct": 0.0658,
+            "time_of_low_bucket": 1,
+            "distance": 2.2696
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1286,
+        "med_open_low": -0.0187,
+        "med_open_close": 0.078,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "STX",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.159096,
+        "pct_off_30d_high": -0.361354,
+        "gap_pct": -0.052143,
+        "pct_change_3": -0.150361,
+        "prior_day_range_atr": 1.21501,
+        "pct_off_52wk_high": -0.361354,
+        "atr_pct": 0.117088
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 0.82
+          },
+          {
+            "ticker": "RIOT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0886,
+            "open_low_pct": -0.0172,
+            "open_close_pct": 0.0751,
+            "time_of_low_bucket": 1,
+            "distance": 1.0685
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 1.1242
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.1007,
+            "open_low_pct": -0.0174,
+            "open_close_pct": 0.0738,
+            "time_of_low_bucket": 1,
+            "distance": 1.152
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2273,
+            "open_low_pct": -0.008,
+            "open_close_pct": 0.1679,
+            "time_of_low_bucket": 1,
+            "distance": 1.1833
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1261,
+        "med_open_low": -0.0172,
+        "med_open_close": 0.0751,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.171599,
+        "pct_off_30d_high": -0.428657,
+        "gap_pct": -0.052857,
+        "pct_change_3": -0.177392,
+        "prior_day_range_atr": 1.251918,
+        "pct_off_52wk_high": -0.428657,
+        "atr_pct": 0.127332
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 0.574
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 0.922
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2273,
+            "open_low_pct": -0.008,
+            "open_close_pct": 0.1679,
+            "time_of_low_bucket": 1,
+            "distance": 1.1242
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 1.3732
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2024-08-05",
+            "open_high_pct": 0.1007,
+            "open_low_pct": -0.0174,
+            "open_close_pct": 0.0738,
+            "time_of_low_bucket": 1,
+            "distance": 1.4531
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.016,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    }
+  ],
+  "bounce_cohort": {
+    "n": 96,
+    "low_by_10_pct": 0.7708,
+    "low_by_10_med_open_close": 0.1018,
+    "low_after_10_med_open_close": -0.019,
+    "vol15_q25": 0.1185,
+    "vol15_med": 0.1902,
+    "vol15_q75": 0.3014,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}
