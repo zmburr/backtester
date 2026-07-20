@@ -45,12 +45,29 @@ OUTCOMES_FILE = PROJECT_ROOT / "data" / "signal_outcomes.csv"
 EMAIL_TO = "zmburr@gmail.com"
 
 HORIZON_DAYS = 4          # D0..D+3
-MFE_ATR_THRESHOLD = 1.0   # favorable excursion >= 1 ATR = tradeable
+MFE_ATR_THRESHOLD = 1.0   # timing-curve target (days_to_1atr) — deep T2-style objective
+# Tradeable gate, per bucket. Bounce = the playbook T1 target (0.5x ATR, 71%
+# historical hit rate), capped at 6% absolute because the signal-day ATR is
+# inflated by the very selloff that produced the signal (median bounce-signal
+# atr_pct is ~16%; a 28%-ATR name would otherwise need a 14% rally to "count").
+# Reversal keeps the strict 1.0x gate — it validates well there (~90% rolling GO).
+BOUNCE_GATE_ATR = 0.5
+BOUNCE_GATE_ABS_CAP = 0.06
+REVERSAL_GATE_ATR = 1.0
 ROLLING_WINDOW = 30       # calendar days for rolling summary
 ALERT_WARN = 70.0         # % — warn banner
 ALERT_BAD = 50.0          # % — red banner
 
 EPISODE_GAP = 3           # trading days — reprints within this gap chain into one episode
+
+
+def gate_atr(bucket: str, atr: float | None) -> float | None:
+    """Tradeable MFE gate in ATR units for a signal's bucket, or None without ATR."""
+    if not atr or atr <= 0:
+        return None
+    if bucket == "reversal":
+        return REVERSAL_GATE_ATR
+    return min(BOUNCE_GATE_ATR, BOUNCE_GATE_ABS_CAP / atr)
 
 # Pre-trade criterion values captured from the signal JSONs at alert time, logged
 # per signal so criterion-level threshold analysis is possible from the outcome
@@ -254,9 +271,37 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
 
     row["dir_correct_d0"] = closes[0] > 0
     row["dir_correct_final"] = closes[-1] > 0
-    row["tradeable_d0"] = bool(closes[0] > 0 and atr and day_mfe[0] / atr >= MFE_ATR_THRESHOLD)
-    row["tradeable_3d"] = bool(atr and mfe / atr >= MFE_ATR_THRESHOLD)
+    gate = gate_atr(sig["bucket"], atr)
+    row["tradeable_d0"] = bool(closes[0] > 0 and gate is not None and day_mfe[0] / atr >= gate)
+    row["tradeable_3d"] = bool(gate is not None and mfe / atr >= gate)
     return row
+
+
+def refresh_tradeable_flags(outcomes: dict[tuple, dict]) -> int:
+    """Re-derive tradeable judgments on every stored row from its stored facts
+    (mfe_atr columns), so gate changes propagate to history without refetching.
+    The CSV stores facts; the judgment is recomputed each run."""
+
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    changed = 0
+    for row in outcomes.values():
+        atr = _num(row.get("atr_pct"))
+        gate = gate_atr(row.get("bucket", ""), atr)
+        mfe3, mfe0 = _num(row.get("mfe_atr_3d")), _num(row.get("mfe_atr_d0"))
+        if gate is None or mfe3 is None:
+            continue
+        new_3d = mfe3 >= gate
+        new_d0 = bool(_is_true(row.get("dir_correct_d0")) and mfe0 is not None and mfe0 >= gate)
+        if _is_true(row.get("tradeable_3d")) != new_3d or _is_true(row.get("tradeable_d0")) != new_d0:
+            changed += 1
+        row["tradeable_3d"] = new_3d
+        row["tradeable_d0"] = new_d0
+    return changed
 
 
 def assign_episodes(outcomes: dict[tuple, dict]):
@@ -427,6 +472,13 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
         body_rows = ""
         for r in new_rows:
             t3 = _is_true(r.get("tradeable_3d"))
+            window_open = not _is_true(r.get("complete"))
+            if t3:
+                trade_cell = ('#22c55e', '&#10003;')
+            elif window_open:
+                trade_cell = ('#f59e0b', '&#8230;')  # window still open — not a verdict yet
+            else:
+                trade_cell = ('#ef4444', '&#10007;')
             color = "#22c55e" if t3 else "#f59e0b" if _is_true(r.get("dir_correct_final")) else "#ef4444"
             mfe = r.get("mfe_atr_3d", "")
             mae = r.get("mae_atr_3d", "")
@@ -439,7 +491,7 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
               <td style="{td}color:#9ca3af;">{mfe}x</td>
               <td style="{td}color:#9ca3af;">{mae}x</td>
               <td style="{td}color:#9ca3af;text-align:center;">{dt if dt != '' else '—'}</td>
-              <td style="{td}color:{'#22c55e' if t3 else '#ef4444'};font-weight:600;text-align:center;">{'&#10003;' if t3 else '&#10007;'}</td>
+              <td style="{td}color:{trade_cell[0]};font-weight:600;text-align:center;">{trade_cell[1]}</td>
             </tr>"""
         table = f"""<table style="width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace;">
           <thead><tr style="border-bottom:2px solid #2a3040;">
@@ -452,7 +504,7 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
             <th style="padding:8px 10px;text-align:center;color:#6b7280;">Days&rarr;1ATR</th>
             <th style="padding:8px 10px;text-align:center;color:#6b7280;">Tradeable</th>
           </tr></thead><tbody>{body_rows}</tbody></table>
-          <p style="color:#4b5563;font-size:11px;">MFE/MAE in ATRs over the D0&ndash;D+3 window (window may still be open for recent signals). Days&rarr;1ATR = trading days until the 1-ATR favorable target hit.</p>"""
+          <p style="color:#4b5563;font-size:11px;">MFE/MAE in ATRs over the D0&ndash;D+3 window. Tradeable gate: bounce = MFE &ge; min(0.5&times;ATR, 6% abs) &mdash; the T1 target; reversal = MFE &ge; 1.0&times;ATR. &#8230; = window still open (no verdict yet). Days&rarr;1ATR = trading days until the deeper 1-ATR target hit.</p>"""
     else:
         table = "<p style='color:#6b7280;'>No new signals validated today.</p>"
 
@@ -545,7 +597,7 @@ def format_email(new_rows: list[dict], updated: int, summary: dict, target_date:
           <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;">
             <thead><tr style="border-bottom:1px solid #2a3040;">
               <th style="padding:6px 10px;text-align:left;color:#6b7280;"></th>
-              <th style="padding:6px 10px;text-align:left;color:#6b7280;">Tradeable (3d MFE&ge;1ATR)</th>
+              <th style="padding:6px 10px;text-align:left;color:#6b7280;">Tradeable (3d MFE&ge;gate)</th>
               <th style="padding:6px 10px;text-align:left;color:#6b7280;">Tradeable D0 (legacy)</th>
               <th style="padding:6px 10px;text-align:left;color:#6b7280;">Direction (final close)</th>
             </tr></thead><tbody>{rows_html}</tbody></table>
@@ -590,6 +642,10 @@ def main():
     outcomes = load_outcomes()
     last_day = last_completed_trading_day()
     logger.info(f"{len(signals)} signals on file, {len(outcomes)} already scored, last completed day {last_day}")
+
+    reflagged = refresh_tradeable_flags(outcomes)
+    if reflagged:
+        logger.info(f"Tradeable gate re-derived on load: {reflagged} stored row(s) changed judgment")
 
     # backfill criterion features onto already-scored rows (no price refetch needed)
     backfilled = 0
@@ -667,7 +723,9 @@ def main():
             g = [r for r in new_today if r.get("bucket") == b]
             if g:
                 parts.append(f"{label} {sum(1 for r in g if _is_true(r.get('tradeable_3d')))}/{len(g)}")
-        subject = f"Signal Scorecard — {last_day} — {', '.join(parts) or '0 signals'} tradeable (3d)"
+        n_open = sum(1 for r in new_today if not _is_true(r.get("complete")))
+        open_note = f", {n_open} open" if n_open else ""
+        subject = f"Signal Scorecard — {last_day} — {', '.join(parts) or '0 signals'} tradeable (3d{open_note})"
         send_email(EMAIL_TO, subject, html, is_html=True)
         logger.info("Scorecard email sent.")
 
