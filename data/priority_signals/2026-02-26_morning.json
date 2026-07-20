@@ -1,0 +1,89 @@
+{
+  "date": "2026-02-26",
+  "session": "morning",
+  "generated_at": "2026-07-20T15:06:22.226737",
+  "_synthetic": true,
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "EWY",
+      "bucket": "reversal",
+      "cap": "ETF",
+      "recommendation": "CAUTION",
+      "score": "3/5",
+      "metrics": {
+        "gap_pct": 0.029653,
+        "atr_pct": 0.025943,
+        "pct_change_3": 0.100538,
+        "pct_from_9ema": 0.110599,
+        "prior_day_range_atr": 1.175063,
+        "prior_day_rvol": 1.0547
+      },
+      "intensity": 22.9,
+      "archetype_passed": true,
+      "archetype_detail": "curated A-grade 3DGapFade",
+      "odds": {
+        "n": 878,
+        "p_fade": 0.6879,
+        "p_fade5": 0.5376,
+        "p_close_low": 0.3759,
+        "med_return": -0.0606,
+        "base_p_fade5": 0.0853,
+        "bucket": "3DGapFade \u00b7 all caps"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AMD",
+            "date": "2024-01-18",
+            "open_low_pct": -0.048014,
+            "open_close_pct": -0.021239,
+            "distance": 0.0674
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-02-12",
+            "open_low_pct": -0.018595,
+            "open_close_pct": -0.004848,
+            "distance": 0.1421
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-06-06",
+            "open_low_pct": -0.046176,
+            "open_close_pct": -0.024587,
+            "distance": 0.1482
+          },
+          {
+            "ticker": "UAL",
+            "date": "2023-01-18",
+            "open_low_pct": -0.086252,
+            "open_close_pct": -0.079849,
+            "distance": 0.1851
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2023-06-21",
+            "open_low_pct": -0.063061,
+            "open_close_pct": -0.056955,
+            "distance": 0.1969
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.048014,
+        "med_open_close": -0.024587
+      },
+      "setup_type": "3DGapFade",
+      "setup_match": "3DGapFade (curated book)",
+      "setup_stats": {
+        "setup": "3DGapFade",
+        "n": 32,
+        "win_rate": 0.9062,
+        "ci_lo": 0.75,
+        "ci_hi": 0.9688,
+        "avg_pnl": 0.145
+      }
+    }
+  ]
+}

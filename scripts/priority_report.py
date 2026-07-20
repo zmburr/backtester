@@ -1440,7 +1440,8 @@ def generate_priority_report() -> str:
         timings["deep_analysis"] = time.time() - t0
 
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
-        _save_signals_to_json(priority, go_ct, cau_ct, comps_map, cluster=cluster)
+        _save_signals_to_json(priority, go_ct, cau_ct, comps_map, cluster=cluster,
+                              setup_match_map=setup_match_map)
 
         # === Phase 4.75: Render top-3 comp charts for the addendum ===
         # 1-year daily chart ending on each comp's trade date. Deduped across
@@ -1574,11 +1575,25 @@ def _odds_fields(b: Dict) -> Dict:
     return out
 
 
-def _lookup_reversal_odds(score_str: str, cap: str) -> Optional[Dict]:
-    """Match a reversal signal to its odds bucket: (score band, cap) first,
-    then score band alone, then the population base rate."""
+def _lookup_reversal_odds(score_str: str, cap: str,
+                          setup_type: Optional[str] = None) -> Optional[Dict]:
+    """Match a reversal signal to its odds bucket. Preference order:
+    (setup, cap) -> (setup) -> (score band, cap) -> (score band) -> base.
+    The typed setup discriminates far better than the generic score
+    (3DGapFade p_fade5 53.8% vs 8.5% base; score bands top out ~34%)."""
     if not _REVERSAL_ODDS:
         return None
+    if setup_type:
+        setup_only = None
+        for b in _REVERSAL_ODDS.get("setup_buckets", []):
+            if b.get("setup") != setup_type:
+                continue
+            if b.get("cap") == cap:
+                return {**_reversal_odds_fields(b), "bucket": f"{setup_type} · {cap}"}
+            if b.get("cap") is None:
+                setup_only = b
+        if setup_only is not None:
+            return {**_reversal_odds_fields(setup_only), "bucket": f"{setup_type} · all caps"}
     try:
         score = int(str(score_str).split("/")[0])
     except (ValueError, IndexError):
@@ -1611,6 +1626,62 @@ def _reversal_odds_fields(b: Dict) -> Dict:
     if base.get("p_fade5") is not None:
         out["base_p_fade5"] = base["p_fade5"]
     return out
+
+
+def _reversal_analogs_payload(comps: Optional[pd.DataFrame]) -> Optional[Dict]:
+    """Reversal twin of _analogs_payload — open-anchored SHORT outcomes from
+    curated reversal_data.csv comps. Same key names as the bounce payload
+    where semantics line up (med_open_low = the fade depth) so the watcher
+    card and the analog chart consume both shapes uniformly."""
+    if comps is None or comps.empty:
+        return None
+    out_rows = []
+    for _, r in comps.iterrows():
+        out_rows.append({
+            "ticker": r.get("ticker"),
+            "date": _coerce_comp_date(r.get("date")),
+            "open_low_pct": _safe_round(r.get("reversal_open_low_pct")),
+            "open_close_pct": _safe_round(r.get("reversal_open_close_pct")),
+            "distance": _safe_round(r.get("_distance")),
+        })
+    return {
+        "comps": out_rows,
+        "n": len(out_rows),
+        "med_open_low": _safe_round(comps["reversal_open_low_pct"].median()
+                                    if "reversal_open_low_pct" in comps else None),
+        "med_open_close": _safe_round(comps["reversal_open_close_pct"].median()
+                                      if "reversal_open_close_pct" in comps else None),
+    }
+
+
+# Per-setup curated-book record (scripts/compute_reversal_stats.py). Optional —
+# reversal signals simply omit "setup_stats" when absent. The watcher card
+# labels these as the winners-only book; the population odds are the base.
+_REVERSAL_STATS_PATH = _DATA_DIR / "reversal_stats.json"
+try:
+    _REVERSAL_STATS = json.loads(_REVERSAL_STATS_PATH.read_text())
+except Exception:
+    _REVERSAL_STATS = None
+    log.info("reversal_stats.json not found — reversal signals will omit setup_stats")
+
+
+def _lookup_setup_stats(setup_type: Optional[str]) -> Optional[Dict]:
+    """Curated-book WR + BCa CI for a typed reversal setup, if computed."""
+    if not setup_type or not _REVERSAL_STATS:
+        return None
+    block = _REVERSAL_STATS.get(str(setup_type).lower())
+    if not isinstance(block, dict):
+        return None
+    ci = block.get("ab_win_rate_ci") or {}
+    out = {
+        "setup": setup_type,
+        "n": ci.get("n") or block.get("ab_count"),
+        "win_rate": (ci.get("point") / 100.0) if ci.get("point") is not None else None,
+        "ci_lo": (ci.get("ci_lower") / 100.0) if ci.get("ci_lower") is not None else None,
+        "ci_hi": (ci.get("ci_upper") / 100.0) if ci.get("ci_upper") is not None else None,
+        "avg_pnl": (block.get("ab_avg_pnl") / 100.0) if block.get("ab_avg_pnl") is not None else None,
+    }
+    return out if out["win_rate"] is not None else None
 
 
 def _analogs_payload(comps: Optional[pd.DataFrame]) -> Optional[Dict]:
@@ -1694,7 +1765,8 @@ def _safe_int(v):
 
 def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int,
                           comps_map: Optional[Dict[str, pd.DataFrame]] = None,
-                          cluster: Optional[Dict] = None):
+                          cluster: Optional[Dict] = None,
+                          setup_match_map: Optional[Dict] = None):
     """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard
     and the morning watcher. Bounce signals additionally carry their historical
     analogs (Phase-4a comps) and empirical odds; the payload carries the bounce
@@ -1750,11 +1822,31 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                         k: (round(v, 6) if isinstance(v, float) else v)
                         for k, v in ivp.items()
                     }
+                # Typed setup from the premarket setup matcher (resolved FIRST —
+                # the odds lookup prefers setup-conditioned buckets).
+                sm = (setup_match_map or {}).get(item["ticker"])
+                if isinstance(sm, dict) and sm.get("predicted"):
+                    signal_entry["setup_type"] = sm["predicted"]
+                    conf = max(sm.get("centroid_confidence") or 0.0,
+                               sm.get("knn_confidence") or 0.0)
+                    signal_entry["setup_match"] = (
+                        f"{sm['predicted']} (conf {conf:.0%})" if conf else sm["predicted"])
+                stats = _lookup_setup_stats(signal_entry.get("setup_type"))
+                if stats is not None:
+                    signal_entry["setup_stats"] = stats
                 # Empirical fade odds from the unconditioned universe, so the
                 # watcher can show "days like this" context (lead with p_fade5).
-                odds = _lookup_reversal_odds(item.get("score_str", ""), item.get("cap", ""))
+                odds = _lookup_reversal_odds(item.get("score_str", ""), item.get("cap", ""),
+                                             setup_type=signal_entry.get("setup_type"))
                 if odds is not None:
                     signal_entry["odds"] = odds
+                # Historical analogs (kNN comps vs curated reversal_data.csv) —
+                # same comps the email addendum renders; the watcher draws the
+                # envelope chart + card medians from them.
+                if comps_map is not None:
+                    analogs = _reversal_analogs_payload(comps_map.get(item["ticker"]))
+                    if analogs is not None:
+                        signal_entry["analogs"] = analogs
 
             # Bounce signals carry their historical analogs + empirical odds so
             # the morning watcher can show "days like this" context live.

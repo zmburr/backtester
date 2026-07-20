@@ -102,6 +102,26 @@ def build(paths: list[Path]) -> dict:
             print(f"  band {lo}-{hi}: collapsed thin cap buckets into band: {', '.join(collapsed)}")
         buckets.append(band_bucket)
 
+    # Setup-conditioned buckets — the typed classification (3DGapFade etc.)
+    # discriminates fade outcomes better than the generic score, so consumers
+    # should prefer (setup, cap) -> (setup) -> score-band buckets. These are
+    # MECHANICAL-GATE odds: "days the classifier labels X" — the honest
+    # tradeable denominator, same construction as the bounce odds.
+    setup_buckets = []
+    if "setup_type" in df.columns:
+        typed = df[df["setup_type"].notna()
+                   & (df["setup_type"].astype(str).str.strip() != "")
+                   & (df["setup_type"].astype(str).str.lower() != "generic")]
+        for setup, sdf in typed.groupby("setup_type"):
+            if len(sdf) < MIN_BUCKET_N:
+                print(f"  setup {setup}: n={len(sdf)} < {MIN_BUCKET_N} — skipped")
+                continue
+            setup_buckets.append({"setup": str(setup), "cap": None, **_bucket_stats(sdf)})
+            for cap, cap_df in sdf.groupby("cap"):
+                if len(cap_df) >= MIN_BUCKET_N:
+                    setup_buckets.append({"setup": str(setup), "cap": str(cap),
+                                          **_bucket_stats(cap_df)})
+
     return {
         "generated": datetime.datetime.now().isoformat(timespec="seconds"),
         "population_files": [p.name for p in paths],
@@ -110,6 +130,7 @@ def build(paths: list[Path]) -> dict:
         "close_low_threshold": CLOSE_LOW_THRESHOLD,
         "base": _bucket_stats(df),
         "buckets": buckets,
+        "setup_buckets": setup_buckets,
     }
 
 

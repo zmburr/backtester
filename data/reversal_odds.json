@@ -1,7 +1,11 @@
 {
-  "generated": "2026-07-08T17:43:01",
+  "generated": "2026-07-20T15:05:28",
   "population_files": [
     "reversal_universe_2020-01-01_2025-12-31.csv",
+    "reversal_universe_2020_2021.csv",
+    "reversal_universe_2022_2023.csv",
+    "reversal_universe_2024-02-01_2024-02-29.csv",
+    "reversal_universe_2024_2025.csv",
     "reversal_universe_2026_ytd.csv"
   ],
   "n_total": 210716,
@@ -184,6 +188,35 @@
       "p_fade5": 0.3436,
       "p_close_low": 0.3151,
       "med_return": -0.0133
+    }
+  ],
+  "setup_buckets": [
+    {
+      "setup": "3DGapFade",
+      "cap": null,
+      "n": 878,
+      "p_fade": 0.6879,
+      "p_fade5": 0.5376,
+      "p_close_low": 0.3759,
+      "med_return": -0.0606
+    },
+    {
+      "setup": "3DGapFade",
+      "cap": "Medium",
+      "n": 362,
+      "p_fade": 0.7376,
+      "p_fade5": 0.5691,
+      "p_close_low": 0.4171,
+      "med_return": -0.075
+    },
+    {
+      "setup": "3DGapFade",
+      "cap": "Small",
+      "n": 447,
+      "p_fade": 0.6577,
+      "p_fade5": 0.5101,
+      "p_close_low": 0.3557,
+      "med_return": -0.0541
     }
   ]
 }
