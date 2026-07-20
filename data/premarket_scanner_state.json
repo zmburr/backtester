@@ -1,13 +1,5 @@
 {
- "date": "2026-07-17",
- "alerted": {
-  "SOXL": 5,
-  "CRDO": 5,
-  "MXL": 5,
-  "ALAB": 5,
-  "AAOI": 5,
-  "DRAM": 5,
-  "RVI": 5
- },
- "brief_sent": true
+ "date": "2026-07-20",
+ "alerted": {},
+ "brief_sent": false
 }
