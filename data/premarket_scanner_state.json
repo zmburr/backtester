@@ -1,5 +1,7 @@
 {
  "date": "2026-07-22",
- "alerted": {},
+ "alerted": {
+  "HQ": 5
+ },
  "brief_sent": true
 }
