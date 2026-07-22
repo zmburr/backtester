@@ -1,15 +1,7 @@
 {
-  "analysis_number": 9,
-  "signal_count_at_last_analysis": 272,
+  "analysis_number": 10,
+  "signal_count_at_last_analysis": 287,
   "past_recommendations": [
-    {
-      "analysis": 1,
-      "text": "Log per-signal criterion feature values (pct_from_9ema, prior_day_range_atr, rvol_score, pct_change_3, gap_pct, reversal_pct) into the outcome table so criterion-level threshold analysis is possible next cycle."
-    },
-    {
-      "analysis": 1,
-      "text": "Surface episode_signal_num and prior-print outcome in scanner output \u2014 a reprint following an already-tradeable first print ran 13/14 and is the strongest entry filter found; reprints generally (58\u201391%) beat first prints (42%)."
-    },
     {
       "analysis": 1,
       "text": "Adopt ~1.5-ATR initial stop guidance for reversal entries \u2014 covers 27/28 winners' pre-target adverse while losers run median 1.66-ATR MAE; sub-0.5-ATR stops would have knocked out 13/28 winners."
@@ -221,7 +213,35 @@
     {
       "analysis": 9,
       "text": "Leave gap_pct scored as-is (sixth flat cycle) and revisit the RVOL-tier restructure at ~100 reversal first-flags (still 78 \u2014 no progress this cycle)."
+    },
+    {
+      "analysis": 10,
+      "text": "Bounce metric re-based by the min(0.5\u00d7ATR, 6%) gate cap \u2014 invalidate/re-baseline all pre-#10 bounce conclusions in docs/signal_findings.md (GO 0/12 inversion does NOT reproduce: now GO 8/13 vs CAUTION 26/36); date-stamp the re-base and restart bounce cell counts from this cycle."
+    },
+    {
+      "analysis": 10,
+      "text": "Continue reporting VETO cohort tradeable_3d each cycle \u2014 still 0 rows (min post-06-10 reversal RVOL 1.286); flag instantly if a sub-1.25 reversal fires and prints tradeable."
+    },
+    {
+      "analysis": 10,
+      "text": "Adopt the 9EMA \u2264 0.10 reversal floor (behind the RVOL veto) the moment the first-flag cell reaches n=20 \u2014 held at 3/19 (15.8% vs 55.0%) for a third cycle with no new low-9EMA reversals."
+    },
+    {
+      "analysis": 10,
+      "text": "Keep episode_signal_num + prior-print-tradeable status as the top scanner output \u2014 reversal reprint-after-tradeable 39/43 (91%) vs 19/41 (46%) without; bounce 51/63 (81%) under the new gate."
+    },
+    {
+      "analysis": 10,
+      "text": "Data QA \u2014 CAR_reversal_2026-04-08 first-flag has mfe_atr_3d=1.22 (\u22651.0 gate) and tradeable_3d=True but blank days_to_1atr; audit the days_to_1atr writer for signals whose MFE hits intraday D0 after a >1.4-ATR adverse run."
+    },
+    {
+      "analysis": 10,
+      "text": "Track the regime flip \u2014 zero completed reversal signals since 07-02 window close; 11 bounce first-flags this cycle including the first 5 Large-cap bounces (3/5 tradeable, n too small); revisit Large-cap GapFade thresholds once that cell reaches n\u226520."
+    },
+    {
+      "analysis": 10,
+      "text": "RVOL-tier restructure still deferred \u2014 reversal first-flags at 79 of the ~100 trigger (one added this cycle); gap_pct flat for a seventh cycle."
     }
   ],
-  "last_analysis_at": "2026-07-14"
+  "last_analysis_at": "2026-07-22"
 }
