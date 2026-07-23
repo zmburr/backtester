@@ -1,39 +1,7 @@
 {
-  "analysis_number": 10,
-  "signal_count_at_last_analysis": 287,
+  "analysis_number": 11,
+  "signal_count_at_last_analysis": 306,
   "past_recommendations": [
-    {
-      "analysis": 1,
-      "text": "Adopt ~1.5-ATR initial stop guidance for reversal entries \u2014 covers 27/28 winners' pre-target adverse while losers run median 1.66-ATR MAE; sub-0.5-ATR stops would have knocked out 13/28 winners."
-    },
-    {
-      "analysis": 1,
-      "text": "Investigate a regime/breadth gate for Large-cap reversals (e.g., sector-wide squeeze detection) \u2014 Large GO ran 7/22 with the Apr-30\u2192May-6 semis melt-up contributing 7 correlated failures at ~3-ATR median MAE."
-    },
-    {
-      "analysis": 1,
-      "text": "Track the 4/5-vs-5/5 inversion (16/29 vs 6/16) over the next batch before acting; if it persists at n\u226520 per cell, evaluate whether the 5th criterion is selecting unshortable peak momentum."
-    },
-    {
-      "analysis": 1,
-      "text": "Document that first-print fixed holds to D+3 have negative expectancy (mean \u22121.5%) \u2014 exits must be MFE-managed (1-ATR target hit in \u22641 day median) rather than time-based."
-    },
-    {
-      "analysis": 1,
-      "text": "Defer all bounce-side conclusions until n \u2265 20 independent episodes (currently 7)."
-    },
-    {
-      "analysis": 2,
-      "text": "reversal | POOLED | prior_day_rvol | score-point only (per-cap 1.25\u20132.0) | hard floor: suppress/NOGO any signal with prior_day_rvol < 1.25 | 2/21 (10%) tradeable below 1.25 vs 26/46 (57%) above; within Large (n=32): 0/12 below vs 9/20 above; only 2 winners lost (WOLF 1.10, NOK 1.07); cluster-independent (2 of 21 sub-1.25 rows in the May melt-up)"
-    },
-    {
-      "analysis": 2,
-      "text": "reversal | POOLED | pct_from_9ema | per-cap score-point (0.04\u20130.80) | secondary hard floor at 0.10 pooled | \u22640.10: 2/16 (12%) vs >0.10: 26/51 (51%); after the RVOL veto it incrementally drops 7 more losers for 2 winners (AMD 0.054, TSLA 0.052, both Large); combined RVOL+9EMA gate: pass 24/37 (65%) vs fail 4/30 (13%) \u2014 adopt only if the RVOL veto alone proves insufficient, since within-Large medians barely separate (0.128 vs 0.107)"
-    },
-    {
-      "analysis": 2,
-      "text": "Implement the pooled prior_day_rvol \u2265 1.25 hard veto on reversal signals (downgrade to NOGO/suppress, not just a lost score point) \u2014 strongest single filter found this cycle, 10% vs 57% tradeable."
-    },
     {
       "analysis": 2,
       "text": "Re-evaluate gap_pct as a reversal criterion next cycle \u2014 zero pooled separation (W med 0.014 vs L med 0.011, flat bins, n=67); if still flat at ~100 first-flags, replace its score point with an RVOL-tier point so the 5-point score stops rewarding noise (also a candidate cause of the 4/5 > 5/5 inversion)."
@@ -241,7 +209,39 @@
     {
       "analysis": 10,
       "text": "RVOL-tier restructure still deferred \u2014 reversal first-flags at 79 of the ~100 trigger (one added this cycle); gap_pct flat for a seventh cycle."
+    },
+    {
+      "analysis": 11,
+      "text": "VETO cohort remains empty (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle reporting; flag instantly if a sub-1.25 reversal fires and prints tradeable."
+    },
+    {
+      "analysis": 11,
+      "text": "9EMA \u22640.10 reversal floor held at 3/19 for a fourth cycle (no new reversal first-flags anywhere) \u2014 adopt behind the RVOL veto the moment the cell reaches n=20; no re-derivation."
+    },
+    {
+      "analysis": 11,
+      "text": "CLOSE the #9 bounce depth re-key question \u2014 shallow cell reached n=20 at 17/20 (85%) vs deep 30/42 (71%); no inversion under the re-based gate; keep depth thresholds as-is and revisit criterion weighting only when bounce losers reach n\u226530 (currently 15)."
+    },
+    {
+      "analysis": 11,
+      "text": "Re-test bounce GO-vs-CAUTION at the next bounce GO first-flag (GO cell hits n=20) \u2014 currently 14/19 vs 33/43, score non-separating; if it stays flat at n\u226520, evaluate demoting the bounce score to informational."
+    },
+    {
+      "analysis": 11,
+      "text": "Add a same-session/cluster identifier for cross-ticker correlation \u2014 the 07-17 wave went 19/19 tradeable across correlated semis/storage names and inflates pooled bounce rates; episode chaining does not capture this."
+    },
+    {
+      "analysis": 11,
+      "text": "Data QA \u2014 CAR_reversal_2026-04-08 days_to_1atr now populated (0), so the #10 writer bug appears fixed; residual boundary case: MU_reversal_2026-05-27 first-flag has mfe_atr_3d exactly 1.00, tradeable_3d=True, blank days_to_1atr \u2014 check for a strict-> vs >= comparison at exactly 1.0 ATR."
+    },
+    {
+      "analysis": 11,
+      "text": "Track regime \u2014 second consecutive cycle with zero new reversal first-flags (stuck at 79 of the ~100 RVOL-tier-restructure trigger); Large-reversal regime-gate deferral and gap_pct (eighth flat cycle) both unchanged."
+    },
+    {
+      "analysis": 11,
+      "text": "Large-cap bounce cell grew to 6/8 tradeable \u2014 keep accumulating toward n\u226520 before touching Large GapFade thresholds."
     }
   ],
-  "last_analysis_at": "2026-07-22"
+  "last_analysis_at": "2026-07-23"
 }
