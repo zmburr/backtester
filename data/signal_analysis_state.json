@@ -1,39 +1,7 @@
 {
-  "analysis_number": 11,
-  "signal_count_at_last_analysis": 306,
+  "analysis_number": 12,
+  "signal_count_at_last_analysis": 322,
   "past_recommendations": [
-    {
-      "analysis": 2,
-      "text": "Re-evaluate gap_pct as a reversal criterion next cycle \u2014 zero pooled separation (W med 0.014 vs L med 0.011, flat bins, n=67); if still flat at ~100 first-flags, replace its score point with an RVOL-tier point so the 5-point score stops rewarding noise (also a candidate cause of the 4/5 > 5/5 inversion)."
-    },
-    {
-      "analysis": 2,
-      "text": "Continue tracking the 4/5-vs-5/5 inversion (now 16/29 vs 6/16 first-flags, second consecutive cycle, 5/5 n=16 < 20) \u2014 check next cycle whether sub-1.25-RVOL and gap-credit signals account for the 5/5 underperformance before restructuring the score."
-    },
-    {
-      "analysis": 2,
-      "text": "Reprint persistence strengthened to 28/30 (93%) after a tradeable prior print vs 18/40 (45%) otherwise \u2014 escalate Analysis #1's recommendation to surface episode_signal_num + prior-print 1-ATR status in scanner output from \"recommended\" to \"highest-priority\", with the caveat that prior tradeability must already be observable (target printed) at reprint time."
-    },
-    {
-      "analysis": 2,
-      "text": "Document that D0-close-direction confirmation was tested and rejected (48% vs 37% lift, costs 14/28 winners incl. all 9 same-day payers) and that long-first tactics are unsupported (~58% long-side 1-ATR hit, adverse to thesis) \u2014 stop relitigating entry-delay variants; the edge levers are the RVOL veto, the reprint trigger, and the 1.5-ATR stop (now 27/28 winners survive, 25/39 losers capped)."
-    },
-    {
-      "analysis": 2,
-      "text": "Large-cap reversal weakness persists ex-cluster (9/28, 32% vs Medium 58%) \u2014 after deploying the RVOL veto (which removes all 12 sub-1.25 Large losers), re-measure Large before pursuing the breadth/regime gate from Analysis #1."
-    },
-    {
-      "analysis": 2,
-      "text": "Bounce side remains deferred at 7 independent episodes (4/7 tradeable); flag for review that the lone bounce GO (CAR 5/6) was the dataset's worst signal \u2014 when n\u226520, test whether the bounce score is inverted on mid-crash knife-catches (prior_day_range_atr 4.1 on that signal)."
-    },
-    {
-      "analysis": 4,
-      "text": "reversal | POOLED | pct_from_9ema | secondary floor 0.10 (pending) | adopt 0.10 floor as secondary gate behind the RVOL veto | combined RVOL\u22651.25 & 9EMA>0.10 = 24/37 (65%) pass vs 5/31 (16%) fail; \u22640.10 alone 3/18 (17%) vs >0.10 26/50 (52%) \u2014 strengthened vs Analysis #2, but \u22640.10 cell is n=18 (<20), so adopt only if RVOL veto proves insufficient once it fires on live reversals."
-    },
-    {
-      "analysis": 4,
-      "text": "Verify the VETO label appears on the first post-2026-06-10 reversal batch \u2014 the cohort is empty this cycle (no reversal signals since 2026-06-05), so the deployed veto is still unverified in production. Report its tradeable_3d rate vs GO rate next cycle."
-    },
     {
       "analysis": 4,
       "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status in scanner output (highest-priority) \u2014 reprint-after-tradeable held at 32/34 (94%) this cycle; it remains the single strongest entry filter."
@@ -241,7 +209,39 @@
     {
       "analysis": 11,
       "text": "Large-cap bounce cell grew to 6/8 tradeable \u2014 keep accumulating toward n\u226520 before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 12,
+      "text": "VETO cohort still empty (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle reporting; flag instantly if a sub-1.25 reversal fires and prints tradeable."
+    },
+    {
+      "analysis": 12,
+      "text": "9EMA \u22640.10 reversal floor frozen at 3/19 for a fifth cycle \u2014 adopt behind the RVOL veto the moment the cell reaches n=20; no re-derivation."
+    },
+    {
+      "analysis": 12,
+      "text": "Monitor the reversal score-tier inversion \u2014 5/5 first-flags 8/21 (38%) vs 4/5 21/35 (60%); if it persists past n\u224830 in the 5/5 cell, investigate whether the readiness gate over-rewards climactic (too-early) days."
+    },
+    {
+      "analysis": 12,
+      "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at n=19 (14/19 vs 35/45); execute the #11 retest at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational if flat."
+    },
+    {
+      "analysis": 12,
+      "text": "Add pct_change_3 \u22650.20 (post-veto 19/27 = 70% vs 13/29 = 45%) to the deferred RVOL-tier/score restructure agenda at ~100 reversal first-flags (counter still 79); gap_pct flat a ninth cycle and remains the demotion candidate in that same restructure."
+    },
+    {
+      "analysis": 12,
+      "text": "Same-session cluster identifier (carried from #11) \u2014 this cycle's 15/16 tradeable completions all sit inside the correlated 07-14/07-17 bounce wave; pooled bounce rates remain inflated until cross-ticker correlation is tagged."
+    },
+    {
+      "analysis": 12,
+      "text": "Data QA \u2014 the exact-1.00 mfe_atr_3d boundary bug now has a second instance: MXL_bounce_2026-07-17 print 3 (mfe_atr_3d=1.0, days_to_1atr blank) joins MU_reversal_2026-05-27 first-flag; fix the strict `>` to `>=` comparison in the days_to_1atr writer."
+    },
+    {
+      "analysis": 12,
+      "text": "Track regime \u2014 reversal scanner dark since 07-01 (one July first-flag); Large-reversal regime-gate deferral unchanged (12/38, still predominantly pre-veto data); Large GapFade cell at n=8 (6/8), keep accumulating toward n\u226520."
     }
   ],
-  "last_analysis_at": "2026-07-23"
+  "last_analysis_at": "2026-07-27"
 }
