@@ -2,7 +2,7 @@
  "date": "2026-07-28",
  "alerted": {
   "SOXL": 6,
-  "DRAM": 5,
+  "DRAM": 6,
   "SNDK": 5,
   "AAOI": 5,
   "UMC": 6,
@@ -11,7 +11,8 @@
   "BE": 5,
   "CRDO": 5,
   "LITE": 6,
-  "GLW": 5
+  "GLW": 5,
+  "SIMO": 6
  },
  "brief_sent": false
 }
