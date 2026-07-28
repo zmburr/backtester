@@ -1,5 +1,13 @@
 {
- "date": "2026-07-27",
- "alerted": {},
- "brief_sent": true
+ "date": "2026-07-28",
+ "alerted": {
+  "SOXL": 6,
+  "DRAM": 5,
+  "SNDK": 5,
+  "AAOI": 5,
+  "UMC": 6,
+  "MXL": 5,
+  "NBIS": 5
+ },
+ "brief_sent": false
 }
