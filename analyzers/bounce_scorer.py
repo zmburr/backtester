@@ -304,6 +304,10 @@ def classify_stock(metrics: Dict) -> Tuple[str, Dict]:
 
 def classify_from_setup_column(setup_name: str) -> str:
     """Classify from the Setup column in bounce_data.csv for historical scoring."""
+    if not isinstance(setup_name, str):
+        # Blank Setup cell (NaN) — e.g. a freshly appended row awaiting
+        # enrichment. Treat like an unrecognized name.
+        return 'GapFade_strongstock'
     if 'IntradayCapitch' in setup_name:
         return 'IntradayCapitch'
     if 'weakstock' in setup_name:
