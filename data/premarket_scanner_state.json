@@ -2,7 +2,8 @@
  "date": "2026-07-29",
  "alerted": {
   "UMC": 5,
-  "LITE": 5
+  "LITE": 5,
+  "SOXL": 5
  },
  "brief_sent": false
 }
