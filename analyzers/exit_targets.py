@@ -12,7 +12,7 @@ Each cap size has different optimal targets based on historical hit rates.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 import logging
 
 logging.basicConfig(level=logging.INFO)
