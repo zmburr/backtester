@@ -165,6 +165,7 @@ def build_static(ticker: str, date: str) -> dict | None:
 
     s['sma200'] = closes.rolling(200).mean().iloc[-1] if len(closes) >= 200 else None
     s['close_30_ago'] = hist.iloc[-30]['close'] if len(hist) >= 30 else None
+    s['close_15_ago'] = hist.iloc[-15]['close'] if len(hist) >= 15 else None
     s['close_3_ago'] = hist.iloc[-3]['close'] if len(hist) >= 3 else None
 
     hl = hist['high'] - hist['low']
@@ -223,6 +224,8 @@ def metrics_from_price(static: dict, price: float) -> dict:
         m['pct_change_30'] = (price - s['close_30_ago']) / s['close_30_ago']
     if s['close_3_ago']:
         m['pct_change_3'] = (price - s['close_3_ago']) / s['close_3_ago']
+    if s.get('close_15_ago'):
+        m['pct_change_15'] = (price - s['close_15_ago']) / s['close_15_ago']
 
     if s['consecutive_down_days'] > 0 or price < s['prior_close']:
         fo = s['selloff_first_open']

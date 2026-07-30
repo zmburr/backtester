@@ -173,7 +173,8 @@ def _load_existing_keys() -> set:
     return keys
 
 
-def log_signals(source: str, session: str, scored: List[Dict]) -> int:
+def log_signals(source: str, session: str, scored: List[Dict],
+                date_str: Optional[str] = None) -> int:
     """Append every scored signal in *scored* to the ledger.
 
     Facts only — no prediction_correct column. Idempotent on
@@ -184,13 +185,18 @@ def log_signals(source: str, session: str, scored: List[Dict]) -> int:
     all logged — the whole point of the ledger is to remove the GO/CAUTION
     selection bias).
 
+    ``date_str`` overrides the row date (default: today). Evening-board rows
+    pass the NEXT trading day because ``date`` is the setup day whose OHLC the
+    outcome filler scores the row against.
+
     Returns the number of rows actually written. NEVER raises: any failure is
     logged and swallowed so report generation can't break on a ledger error.
     """
     try:
         if not scored:
             return 0
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        if date_str is None:
+            date_str = datetime.datetime.now().strftime("%Y-%m-%d")
         existing = _load_existing_keys()
 
         rows: List[Dict] = []
