@@ -1,9 +1,8 @@
 {
- "date": "2026-07-29",
+ "date": "2026-07-30",
  "alerted": {
-  "UMC": 5,
-  "LITE": 5,
-  "SOXL": 5
+  "NBIS": 5,
+  "AXTI": 5
  },
- "brief_sent": true
+ "brief_sent": false
 }
