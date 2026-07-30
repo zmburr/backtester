@@ -1,8 +1,5 @@
 {
  "date": "2026-07-30",
- "alerted": {
-  "NBIS": 5,
-  "AXTI": 5
- },
+ "alerted": {},
  "brief_sent": true
 }

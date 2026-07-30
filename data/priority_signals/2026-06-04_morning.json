@@ -1,9 +1,9 @@
 {
   "date": "2026-06-04",
   "session": "morning",
-  "generated_at": "2026-06-04T05:46:05.269219",
+  "generated_at": "2026-06-04T08:45:28.040240",
   "go_count": 1,
-  "caution_count": 0,
+  "caution_count": 1,
   "signals": [
     {
       "ticker": "MRVL",
@@ -12,24 +12,39 @@
       "recommendation": "GO",
       "score": "4/5",
       "metrics": {
-        "pct_from_9ema": 0.194624,
+        "pct_from_9ema": 0.205484,
         "pct_change_3": 0.471463,
-        "gap_pct": -0.070114,
+        "gap_pct": -0.061661,
         "prior_day_range_atr": 1.439167,
-        "atr_pct": 0.074786,
+        "atr_pct": 0.074112,
         "prior_day_rvol": 3.433555,
-        "premarket_rvol": 0.0
+        "premarket_rvol": 0.046882
       },
       "archetype_passed": true,
       "archetype_detail": {
         "breaks_fifty_two_wk": false,
-        "pct_from_200mav": 1.7680192626509827,
+        "pct_from_200mav": null,
         "pct_change_30": 0.9935893199391975,
         "passed_by_52wk": false,
-        "passed_by_200mav": true,
+        "passed_by_200mav": false,
         "passed_by_30d": true,
         "threshold_200mav": 0.5,
         "threshold_30d": 0.3
+      }
+    },
+    {
+      "ticker": "SPCE",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.410309,
+        "pct_off_30d_high": -0.517978,
+        "pct_change_3": -0.429521,
+        "prior_day_range_atr": 0.926318,
+        "pct_off_52wk_high": -0.517978,
+        "atr_pct": 0.225949
       }
     }
   ]

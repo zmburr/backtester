@@ -1,7 +1,7 @@
 {
   "date": "2026-07-21",
   "session": "morning",
-  "generated_at": "2026-07-21T05:46:35.485381",
+  "generated_at": "2026-07-21T08:43:53.179003",
   "go_count": 0,
   "caution_count": 1,
   "signals": [
@@ -12,15 +12,15 @@
       "recommendation": "CAUTION",
       "score": "4/6",
       "metrics": {
-        "selloff_total_pct": -0.290061,
-        "pct_off_30d_high": -0.376808,
-        "gap_pct": 0.052038,
-        "pct_change_3": -0.151129,
+        "selloff_total_pct": -0.296273,
+        "pct_off_30d_high": -0.382261,
+        "gap_pct": 0.042833,
+        "pct_change_3": -0.158557,
         "prior_day_range_atr": 0.69248,
-        "pct_off_52wk_high": -0.376808,
-        "atr_pct": 0.17819
+        "pct_off_52wk_high": -0.382261,
+        "atr_pct": 0.179763
       },
-      "intensity": 40.8,
+      "intensity": 41.7,
       "high_edge": false,
       "analogs": {
         "comps": [
@@ -31,16 +31,7 @@
             "open_low_pct": -0.021,
             "open_close_pct": 0.167,
             "time_of_low_bucket": 1,
-            "distance": 0.3865
-          },
-          {
-            "ticker": "MARA",
-            "date": "2024-01-03",
-            "open_high_pct": 0.1473,
-            "open_low_pct": -0.015,
-            "open_close_pct": 0.1321,
-            "time_of_low_bucket": 1,
-            "distance": 0.425
+            "distance": 0.3995
           },
           {
             "ticker": "HUT",
@@ -49,7 +40,16 @@
             "open_low_pct": -0.0143,
             "open_close_pct": 0.0538,
             "time_of_low_bucket": 1,
-            "distance": 0.4397
+            "distance": 0.4074
+          },
+          {
+            "ticker": "MARA",
+            "date": "2024-01-03",
+            "open_high_pct": 0.1473,
+            "open_low_pct": -0.015,
+            "open_close_pct": 0.1321,
+            "time_of_low_bucket": 1,
+            "distance": 0.4323
           },
           {
             "ticker": "VERU",
@@ -58,7 +58,7 @@
             "open_low_pct": -0.0262,
             "open_close_pct": 0.0741,
             "time_of_low_bucket": 2,
-            "distance": 0.5213
+            "distance": 0.4794
           },
           {
             "ticker": "ROOT",
@@ -67,7 +67,7 @@
             "open_low_pct": -0.0465,
             "open_close_pct": 0.0539,
             "time_of_low_bucket": 1,
-            "distance": 0.5681
+            "distance": 0.52
           }
         ],
         "n": 5,

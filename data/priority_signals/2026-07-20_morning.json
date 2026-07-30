@@ -1,9 +1,9 @@
 {
   "date": "2026-07-20",
   "session": "morning",
-  "generated_at": "2026-07-20T05:47:11.328190",
+  "generated_at": "2026-07-20T08:48:47.307007",
   "go_count": 0,
-  "caution_count": 4,
+  "caution_count": 3,
   "signals": [
     {
       "ticker": "MXL",
@@ -12,15 +12,15 @@
       "recommendation": "CAUTION",
       "score": "4/6",
       "metrics": {
-        "selloff_total_pct": -0.214708,
-        "pct_off_30d_high": -0.434996,
-        "gap_pct": 0.009048,
-        "pct_change_3": -0.184039,
+        "selloff_total_pct": -0.198133,
+        "pct_off_30d_high": -0.423071,
+        "gap_pct": 0.030345,
+        "pct_change_3": -0.166817,
         "prior_day_range_atr": 0.530373,
-        "pct_off_52wk_high": -0.434996,
-        "atr_pct": 0.18103
+        "pct_off_52wk_high": -0.423071,
+        "atr_pct": 0.177288
       },
-      "intensity": 47.1,
+      "intensity": 41.8,
       "high_edge": false,
       "analogs": {
         "comps": [
@@ -31,7 +31,7 @@
             "open_low_pct": -0.0308,
             "open_close_pct": 0.0262,
             "time_of_low_bucket": 1,
-            "distance": 0.1945
+            "distance": 0.1889
           },
           {
             "ticker": "NVAX",
@@ -40,7 +40,7 @@
             "open_low_pct": -0.0992,
             "open_close_pct": 0.0472,
             "time_of_low_bucket": 1,
-            "distance": 0.296
+            "distance": 0.3008
           },
           {
             "ticker": "XPEV",
@@ -49,16 +49,16 @@
             "open_low_pct": -0.0213,
             "open_close_pct": 0.1912,
             "time_of_low_bucket": 1,
-            "distance": 0.3987
+            "distance": 0.3784
           },
           {
-            "ticker": "BE",
-            "date": "2025-11-14",
-            "open_high_pct": 0.2375,
-            "open_low_pct": -0.021,
-            "open_close_pct": 0.167,
+            "ticker": "AXSM",
+            "date": "2025-04-07",
+            "open_high_pct": 0.0818,
+            "open_low_pct": -0.0206,
+            "open_close_pct": 0.0427,
             "time_of_low_bucket": 1,
-            "distance": 0.4402
+            "distance": 0.3959
           },
           {
             "ticker": "MRNA",
@@ -67,94 +67,14 @@
             "open_low_pct": -0.099,
             "open_close_pct": 0.0191,
             "time_of_low_bucket": 2,
-            "distance": 0.4441
+            "distance": 0.4024
           }
         ],
         "n": 5,
-        "med_open_high": 0.0901,
+        "med_open_high": 0.0818,
         "med_open_low": -0.0308,
-        "med_open_close": 0.0472,
+        "med_open_close": 0.0427,
         "n_low_by_10": 4
-      },
-      "odds": {
-        "n": 522,
-        "p_green": 0.5498,
-        "p_bounce5": 0.5709,
-        "med_return": 0.0079,
-        "base_p_bounce5": 0.1058,
-        "bucket": "score 4-4 \u00b7 Medium"
-      }
-    },
-    {
-      "ticker": "UMC",
-      "bucket": "bounce",
-      "cap": "Medium",
-      "recommendation": "CAUTION",
-      "score": "4/6",
-      "metrics": {
-        "selloff_total_pct": -0.217969,
-        "pct_off_30d_high": -0.308702,
-        "gap_pct": -0.057882,
-        "pct_change_3": -0.196629,
-        "prior_day_range_atr": 0.921191,
-        "pct_off_52wk_high": -0.308702,
-        "atr_pct": 0.085375
-      },
-      "intensity": 46.4,
-      "high_edge": false,
-      "analogs": {
-        "comps": [
-          {
-            "ticker": "AXSM",
-            "date": "2025-04-07",
-            "open_high_pct": 0.0818,
-            "open_low_pct": -0.0206,
-            "open_close_pct": 0.0427,
-            "time_of_low_bucket": 1,
-            "distance": 0.2146
-          },
-          {
-            "ticker": "AR",
-            "date": "2025-04-07",
-            "open_high_pct": 0.1187,
-            "open_low_pct": -0.0118,
-            "open_close_pct": 0.0586,
-            "time_of_low_bucket": 1,
-            "distance": 0.2494
-          },
-          {
-            "ticker": "BE",
-            "date": "2025-11-14",
-            "open_high_pct": 0.2375,
-            "open_low_pct": -0.021,
-            "open_close_pct": 0.167,
-            "time_of_low_bucket": 1,
-            "distance": 0.2994
-          },
-          {
-            "ticker": "XPEV",
-            "date": "2020-12-02",
-            "open_high_pct": 0.2206,
-            "open_low_pct": -0.0213,
-            "open_close_pct": 0.1912,
-            "time_of_low_bucket": 1,
-            "distance": 0.3239
-          },
-          {
-            "ticker": "NVAX",
-            "date": "2021-02-17",
-            "open_high_pct": 0.1034,
-            "open_low_pct": -0.0088,
-            "open_close_pct": 0.0994,
-            "time_of_low_bucket": 1,
-            "distance": 0.3302
-          }
-        ],
-        "n": 5,
-        "med_open_high": 0.1187,
-        "med_open_low": -0.0206,
-        "med_open_close": 0.0994,
-        "n_low_by_10": 5
       },
       "odds": {
         "n": 522,
@@ -172,15 +92,15 @@
       "recommendation": "CAUTION",
       "score": "4/6",
       "metrics": {
-        "selloff_total_pct": -0.163465,
-        "pct_off_30d_high": -0.403689,
-        "gap_pct": 0.01033,
-        "pct_change_3": -0.025486,
+        "selloff_total_pct": -0.15234,
+        "pct_off_30d_high": -0.395759,
+        "gap_pct": 0.023766,
+        "pct_change_3": -0.012527,
         "prior_day_range_atr": 1.049477,
-        "pct_off_52wk_high": -0.403689,
-        "atr_pct": 0.105045
+        "pct_off_52wk_high": -0.395759,
+        "atr_pct": 0.103667
       },
-      "intensity": 27.9,
+      "intensity": 24.2,
       "high_edge": false,
       "analogs": {
         "comps": [
@@ -191,7 +111,7 @@
             "open_low_pct": -0.0074,
             "open_close_pct": 0.1404,
             "time_of_low_bucket": 1,
-            "distance": 1.461
+            "distance": 1.6728
           },
           {
             "ticker": "NVDA",
@@ -200,7 +120,7 @@
             "open_low_pct": -0.0596,
             "open_close_pct": -0.0067,
             "time_of_low_bucket": 2,
-            "distance": 1.8922
+            "distance": 1.8512
           },
           {
             "ticker": "TSLA",
@@ -209,7 +129,7 @@
             "open_low_pct": -0.0426,
             "open_close_pct": 0.0425,
             "time_of_low_bucket": 1,
-            "distance": 2.0975
+            "distance": 2.279
           },
           {
             "ticker": "RIOT",
@@ -218,22 +138,22 @@
             "open_low_pct": -0.0172,
             "open_close_pct": 0.0751,
             "time_of_low_bucket": 1,
-            "distance": 2.3865
+            "distance": 2.5506
           },
           {
-            "ticker": "TSLA",
-            "date": "2024-08-05",
-            "open_high_pct": 0.1007,
-            "open_low_pct": -0.0174,
-            "open_close_pct": 0.0738,
+            "ticker": "AAPL",
+            "date": "2018-02-06",
+            "open_high_pct": 0.0574,
+            "open_low_pct": -0.0054,
+            "open_close_pct": 0.053,
             "time_of_low_bucket": 1,
-            "distance": 2.4451
+            "distance": 2.5758
           }
         ],
         "n": 5,
-        "med_open_high": 0.1007,
-        "med_open_low": -0.0174,
-        "med_open_close": 0.0738,
+        "med_open_high": 0.0886,
+        "med_open_low": -0.0172,
+        "med_open_close": 0.053,
         "n_low_by_10": 4
       },
       "odds": {
@@ -252,27 +172,18 @@
       "recommendation": "CAUTION",
       "score": "4/6",
       "metrics": {
-        "selloff_total_pct": -0.140658,
-        "pct_off_30d_high": -0.395527,
-        "gap_pct": 0.01316,
-        "pct_change_3": -0.059046,
+        "selloff_total_pct": -0.126351,
+        "pct_off_30d_high": -0.385463,
+        "gap_pct": 0.030028,
+        "pct_change_3": -0.043379,
         "prior_day_range_atr": 1.155822,
-        "pct_off_52wk_high": -0.395527,
-        "atr_pct": 0.111675
+        "pct_off_52wk_high": -0.385463,
+        "atr_pct": 0.109846
       },
-      "intensity": 24.6,
+      "intensity": 23.6,
       "high_edge": false,
       "analogs": {
         "comps": [
-          {
-            "ticker": "MSTR",
-            "date": "2024-12-20",
-            "open_high_pct": 0.1425,
-            "open_low_pct": -0.0074,
-            "open_close_pct": 0.1404,
-            "time_of_low_bucket": 1,
-            "distance": 1.3525
-          },
           {
             "ticker": "NVDA",
             "date": "2024-07-25",
@@ -280,7 +191,16 @@
             "open_low_pct": -0.0596,
             "open_close_pct": -0.0067,
             "time_of_low_bucket": 2,
-            "distance": 1.6425
+            "distance": 1.5989
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 1.6495
           },
           {
             "ticker": "TSLA",
@@ -289,7 +209,16 @@
             "open_low_pct": -0.0426,
             "open_close_pct": 0.0425,
             "time_of_low_bucket": 1,
-            "distance": 1.9057
+            "distance": 2.1631
+          },
+          {
+            "ticker": "AAPL",
+            "date": "2018-02-06",
+            "open_high_pct": 0.0574,
+            "open_low_pct": -0.0054,
+            "open_close_pct": 0.053,
+            "time_of_low_bucket": 1,
+            "distance": 2.3484
           },
           {
             "ticker": "TSLA",
@@ -298,22 +227,13 @@
             "open_low_pct": -0.0174,
             "open_close_pct": 0.0738,
             "time_of_low_bucket": 1,
-            "distance": 2.1988
-          },
-          {
-            "ticker": "RIOT",
-            "date": "2024-01-03",
-            "open_high_pct": 0.0886,
-            "open_low_pct": -0.0172,
-            "open_close_pct": 0.0751,
-            "time_of_low_bucket": 1,
-            "distance": 2.2204
+            "distance": 2.4011
           }
         ],
         "n": 5,
         "med_open_high": 0.1007,
         "med_open_low": -0.0174,
-        "med_open_close": 0.0738,
+        "med_open_close": 0.053,
         "n_low_by_10": 4
       },
       "odds": {
@@ -327,9 +247,9 @@
     }
   ],
   "cluster_signal": {
-    "level": "WATCH",
-    "bounce_open": 4,
-    "total_open": 4
+    "level": null,
+    "bounce_open": 3,
+    "total_open": 3
   },
   "bounce_cohort": {
     "n": 100,
