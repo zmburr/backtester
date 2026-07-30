@@ -1,0 +1,71 @@
+{
+  "bonuses": [
+    "52-week high breakout"
+  ],
+  "classification_details": {
+    "classification": "D1_news_break",
+    "signals": [
+      "Manually specified"
+    ]
+  },
+  "intensity": 72.1,
+  "items": [
+    {
+      "actual": 0.840244,
+      "actual_display": "+84.02%",
+      "description": "Extended above 9 EMA (>= 18%)",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "reference": "A+B median: +25.47%",
+      "threshold": 0.18,
+      "threshold_display": "+18.00%"
+    },
+    {
+      "actual": 1.731497,
+      "actual_display": "+173.15%",
+      "description": "Extended above 50 MA (>= 36%)",
+      "name": "pct_from_50mav",
+      "passed": true,
+      "reference": "A+B median: +56.33%",
+      "threshold": 0.36,
+      "threshold_display": "+36.00%"
+    },
+    {
+      "actual": 3.9332,
+      "actual_display": "3.93x",
+      "description": "Recent range expansion (5d TR / 30d TR >= 0.90)",
+      "name": "range_contraction_atr",
+      "passed": true,
+      "reference": "A+B median: 0.98x",
+      "threshold": 0.9,
+      "threshold_display": "0.90x"
+    },
+    {
+      "actual": 0.431973,
+      "actual_display": "0.43",
+      "description": "Prior day closed in upper 27% of range",
+      "name": "prior_day_close_vs_high_pct",
+      "passed": true,
+      "reference": "A+B median: 0.46",
+      "threshold": 0.27,
+      "threshold_display": "0.270"
+    },
+    {
+      "actual": -0.021681,
+      "actual_display": "-2.17%",
+      "description": "Open within 3% of PM high (no severe gap fade)",
+      "name": "gap_from_pm_high",
+      "passed": true,
+      "reference": "A+B median: -1.33%",
+      "threshold": -0.03,
+      "threshold_display": "-3.00%"
+    }
+  ],
+  "max_score": 5,
+  "recommendation": "FULL_SIZE",
+  "score": 5,
+  "setup_type": "D1_news_break",
+  "summary": "High conviction: intensity 72 >= median A+B (50) | Pre-trade criteria: 5/5",
+  "ticker": "DWAC",
+  "warnings": []
+}

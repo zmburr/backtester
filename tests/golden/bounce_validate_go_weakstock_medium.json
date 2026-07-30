@@ -1,0 +1,83 @@
+{
+  "bonuses": [
+    "Closed outside lower Bollinger Band"
+  ],
+  "cap": "Medium",
+  "classification_details": {
+    "classification": "GapFade_weakstock",
+    "pct_from_200mav": -0.736904,
+    "signals": [
+      "Below 200MA by 74% -> WEAK"
+    ]
+  },
+  "items": [
+    {
+      "actual": -0.587245,
+      "actual_display": "-58.7%",
+      "description": "Deep selloff >= 30%",
+      "name": "selloff_total_pct",
+      "passed": true,
+      "reference": "A median: -30%",
+      "threshold": -0.3,
+      "threshold_display": "30%"
+    },
+    {
+      "actual": -0.764746,
+      "actual_display": "-76.5%",
+      "description": "Discount from 30d high >= 53%",
+      "name": "pct_off_30d_high",
+      "passed": true,
+      "reference": "A median: -55%",
+      "threshold": -0.53,
+      "threshold_display": "53%"
+    },
+    {
+      "actual": -0.096426,
+      "actual_display": "-9.6%",
+      "description": "Gap down >= 3%",
+      "name": "gap_pct",
+      "passed": true,
+      "reference": "A median: -7%",
+      "threshold": -0.03,
+      "threshold_display": "3%"
+    },
+    {
+      "actual": 1.601724,
+      "actual_display": "1.60x",
+      "description": "Prior day range >= 1.0x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "A median: 1.5x",
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": -0.418752,
+      "actual_display": "-41.9%",
+      "description": "3-day momentum crash >= 21%",
+      "name": "pct_change_3",
+      "passed": true,
+      "reference": "A median: -26%",
+      "threshold": -0.21,
+      "threshold_display": "21%"
+    },
+    {
+      "actual": -0.86842,
+      "actual_display": "-86.8%",
+      "description": "Discount from 52wk high >= 72%",
+      "name": "pct_off_52wk_high",
+      "passed": true,
+      "reference": "A median: -73%",
+      "threshold": -0.72,
+      "threshold_display": "72%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 6,
+  "setup_type": "GapFade_weakstock",
+  "summary": "PASS: 6/6 criteria met \u2014 matches GapFade_weakstock profile (Medium Cap)",
+  "ticker": "COIN",
+  "timestamp": "<scrubbed>",
+  "warnings": []
+}

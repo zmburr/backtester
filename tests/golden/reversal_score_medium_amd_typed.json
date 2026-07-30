@@ -1,0 +1,67 @@
+{
+  "cap": "Medium",
+  "criteria_details": {
+    "gap_pct": {
+      "actual": 0.048111,
+      "name": "Euphoric gap up",
+      "passed": false,
+      "threshold": 0.05
+    },
+    "pct_change_3": {
+      "actual": 0.181599,
+      "name": "3-day momentum run-up",
+      "passed": true,
+      "threshold": 0.1
+    },
+    "pct_from_9ema": {
+      "actual": 0.17761,
+      "name": "Extended above 9EMA",
+      "passed": true,
+      "threshold": 0.15
+    },
+    "prior_day_range_atr": {
+      "actual": 2.603719,
+      "name": "Range expansion (ATR)",
+      "passed": true,
+      "threshold": 1.2
+    },
+    "reversal_pct": {
+      "actual": -0.030602,
+      "name": "Large reversal",
+      "passed": false,
+      "threshold": -0.05
+    },
+    "rvol_score": {
+      "actual": 2.275649,
+      "name": "Volume expansion (RVOL)",
+      "passed": true,
+      "threshold": 2.0
+    }
+  },
+  "date": "9/5/2018",
+  "failed_criteria": [
+    "gap_pct",
+    "reversal_pct"
+  ],
+  "grade": "B",
+  "intensity": 49.2,
+  "is_true_a": false,
+  "max_score": 6,
+  "momentum_pctile_3": 28.6,
+  "momentum_pctile_passed": true,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "prior_day_range_atr",
+    "rvol_score",
+    "pct_change_3"
+  ],
+  "pretrade_grade": "A",
+  "pretrade_max": 5,
+  "pretrade_recommendation": "GO",
+  "pretrade_score": 4,
+  "readiness_passed": true,
+  "readiness_threshold": 0.1,
+  "recommendation": "CAUTION",
+  "score": 4,
+  "ticker": "AMD"
+}

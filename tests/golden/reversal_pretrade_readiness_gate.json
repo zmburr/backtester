@@ -1,0 +1,70 @@
+{
+  "bonuses": [],
+  "cap": "Medium",
+  "classification_details": {
+    "cap": "Medium",
+    "grade": "A",
+    "setup_type": "3DGapFade"
+  },
+  "items": [
+    {
+      "actual": 0.5,
+      "actual_display": "+50.0%",
+      "description": "Extended above 9EMA >= 44%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.44,
+      "threshold_display": "44%"
+    },
+    {
+      "actual": 1.5,
+      "actual_display": "1.50x",
+      "description": "Range expansion >= 1.1x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "",
+      "threshold": 1.15,
+      "threshold_display": "1.1x"
+    },
+    {
+      "actual": 3.0,
+      "actual_display": "3.00x",
+      "description": "Volume expansion >= 2.8x RVOL",
+      "name": "rvol_score",
+      "passed": true,
+      "reference": "",
+      "threshold": 2.8,
+      "threshold_display": "2.8x"
+    },
+    {
+      "actual": 0.07,
+      "actual_display": "+7.0%",
+      "description": "3-day momentum run-up >= 9%",
+      "name": "pct_change_3",
+      "passed": false,
+      "reference": "",
+      "threshold": 0.09,
+      "threshold_display": "9%"
+    },
+    {
+      "actual": 0.1,
+      "actual_display": "+10.0%",
+      "description": "Euphoric gap up >= 7%",
+      "name": "gap_pct",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.07,
+      "threshold_display": "7%"
+    }
+  ],
+  "max_score": 5,
+  "recommendation": "NO-GO",
+  "score": 4,
+  "setup_type": "3DGapFade",
+  "summary": "READINESS GATE: 3D momentum insufficient for Medium cap (7.0% < 10%)",
+  "ticker": "TEST",
+  "warnings": [
+    "READINESS: 3D momentum 7.0% < 10% min for Medium"
+  ]
+}

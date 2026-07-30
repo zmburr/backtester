@@ -1,0 +1,30 @@
+{
+  "composite": 72.1,
+  "details": {
+    "gap_from_pm_high": {
+      "actual": -0.381,
+      "pctile": 21.4,
+      "weight": 0.2
+    },
+    "pct_from_50mav": {
+      "actual": 30.447,
+      "pctile": 92.9,
+      "weight": 0.2
+    },
+    "pct_from_9ema": {
+      "actual": 14.775,
+      "pctile": 85.7,
+      "weight": 0.25
+    },
+    "prior_day_close_vs_high_pct": {
+      "actual": 0.432,
+      "pctile": 64.3,
+      "weight": 0.2
+    },
+    "range_contraction_atr": {
+      "actual": 3.933,
+      "pctile": 100.0,
+      "weight": 0.15
+    }
+  }
+}

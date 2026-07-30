@@ -1,0 +1,35 @@
+{
+  "composite": 27.5,
+  "details": {
+    "gap_pct": {
+      "actual": -0.04,
+      "pctile": 20.0,
+      "weight": 0.15
+    },
+    "pct_change_15": {
+      "actual": null,
+      "pctile": null,
+      "weight": 0.2
+    },
+    "pct_change_3": {
+      "actual": -0.12,
+      "pctile": 40.0,
+      "weight": 0.3
+    },
+    "pct_off_30d_high": {
+      "actual": -0.25,
+      "pctile": 20.0,
+      "weight": 0.15
+    },
+    "pct_off_52wk_high": {
+      "actual": -0.4,
+      "pctile": 20.0,
+      "weight": 0.05
+    },
+    "selloff_total_pct": {
+      "actual": -0.3,
+      "pctile": 20.0,
+      "weight": 0.15
+    }
+  }
+}

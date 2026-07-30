@@ -1,0 +1,73 @@
+{
+  "cap": "Medium",
+  "criteria_details": {
+    "bounce_pct": {
+      "actual": 0.205192,
+      "name": "Large bounce (open-to-close)",
+      "passed": true,
+      "reference_median": 0.113,
+      "threshold": 0.02
+    },
+    "gap_pct": {
+      "actual": -0.096426,
+      "name": "Capitulation gap down",
+      "passed": true,
+      "reference_median": -0.066,
+      "threshold": -0.03
+    },
+    "pct_change_3": {
+      "actual": -0.418752,
+      "name": "3-day momentum crash",
+      "passed": true,
+      "reference_median": -0.262,
+      "threshold": -0.21
+    },
+    "pct_off_30d_high": {
+      "actual": -0.764746,
+      "name": "Discount from 30d high",
+      "passed": true,
+      "reference_median": -0.546,
+      "threshold": -0.53
+    },
+    "pct_off_52wk_high": {
+      "actual": -0.86842,
+      "name": "Discount from 52wk high",
+      "passed": true,
+      "reference_median": -0.729,
+      "threshold": -0.72
+    },
+    "prior_day_range_atr": {
+      "actual": 1.601724,
+      "name": "Prior day range expansion",
+      "passed": true,
+      "reference_median": 1.545,
+      "threshold": 1.0
+    },
+    "selloff_total_pct": {
+      "actual": -0.587245,
+      "name": "Deep selloff",
+      "passed": true,
+      "reference_median": -0.296,
+      "threshold": -0.3
+    }
+  },
+  "date": "2022-05-12",
+  "failed_criteria": [],
+  "grade": "A+",
+  "is_true_a": true,
+  "max_score": 7,
+  "passed_criteria": [
+    "selloff_total_pct",
+    "pct_off_30d_high",
+    "gap_pct",
+    "prior_day_range_atr",
+    "pct_change_3",
+    "pct_off_52wk_high",
+    "bounce_pct"
+  ],
+  "profile_name": "GapFade_weakstock",
+  "recommendation": "GO",
+  "score": 7,
+  "setup_type": "GapFade_weakstock",
+  "ticker": "COIN"
+}

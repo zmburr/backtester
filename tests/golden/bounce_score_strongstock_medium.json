@@ -1,0 +1,73 @@
+{
+  "cap": "Medium",
+  "criteria_details": {
+    "bounce_pct": {
+      "actual": 0.191236,
+      "name": "Large bounce (open-to-close)",
+      "passed": true,
+      "reference_median": 0.091,
+      "threshold": 0.02
+    },
+    "gap_pct": {
+      "actual": -0.102177,
+      "name": "Capitulation gap down",
+      "passed": true,
+      "reference_median": -0.1,
+      "threshold": -0.04
+    },
+    "pct_change_3": {
+      "actual": -0.268668,
+      "name": "3-day momentum crash",
+      "passed": true,
+      "reference_median": -0.219,
+      "threshold": -0.14
+    },
+    "pct_off_30d_high": {
+      "actual": -0.368909,
+      "name": "Discount from 30d high",
+      "passed": true,
+      "reference_median": -0.327,
+      "threshold": -0.28
+    },
+    "pct_off_52wk_high": {
+      "actual": -0.368909,
+      "name": "Discount from 52wk high",
+      "passed": true,
+      "reference_median": -0.429,
+      "threshold": -0.32
+    },
+    "prior_day_range_atr": {
+      "actual": 1.30826,
+      "name": "Prior day range expansion",
+      "passed": true,
+      "reference_median": 1.337,
+      "threshold": 1.0
+    },
+    "selloff_total_pct": {
+      "actual": -0.185439,
+      "name": "Deep selloff",
+      "passed": true,
+      "reference_median": -0.175,
+      "threshold": -0.16
+    }
+  },
+  "date": "2020-12-02",
+  "failed_criteria": [],
+  "grade": "A+",
+  "is_true_a": true,
+  "max_score": 7,
+  "passed_criteria": [
+    "selloff_total_pct",
+    "pct_off_30d_high",
+    "gap_pct",
+    "prior_day_range_atr",
+    "pct_change_3",
+    "pct_off_52wk_high",
+    "bounce_pct"
+  ],
+  "profile_name": "GapFade_strongstock",
+  "recommendation": "GO",
+  "score": 7,
+  "setup_type": "GapFade_strongstock",
+  "ticker": "XPEV"
+}

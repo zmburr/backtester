@@ -1,0 +1,67 @@
+{
+  "cap": "Micro",
+  "criteria_details": {
+    "gap_pct": {
+      "actual": 0.357769,
+      "name": "Euphoric gap up",
+      "passed": true,
+      "threshold": 0.15
+    },
+    "pct_change_3": {
+      "actual": 4.022016,
+      "name": "3-day momentum run-up",
+      "passed": true,
+      "threshold": 0.5
+    },
+    "pct_from_9ema": {
+      "actual": 1.681372,
+      "name": "Extended above 9EMA",
+      "passed": true,
+      "threshold": 0.8
+    },
+    "prior_day_range_atr": {
+      "actual": 9.538106,
+      "name": "Range expansion (ATR)",
+      "passed": true,
+      "threshold": 3.0
+    },
+    "reversal_pct": {
+      "actual": -0.389479,
+      "name": "Large reversal",
+      "passed": true,
+      "threshold": -0.2
+    },
+    "rvol_score": {
+      "actual": 1.645657,
+      "name": "Volume expansion (RVOL)",
+      "passed": false,
+      "threshold": 2.0
+    }
+  },
+  "date": "2/28/2020",
+  "failed_criteria": [
+    "rvol_score"
+  ],
+  "grade": "A",
+  "intensity": 73.9,
+  "is_true_a": true,
+  "max_score": 6,
+  "momentum_pctile_3": 88.9,
+  "momentum_pctile_passed": true,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "prior_day_range_atr",
+    "pct_change_3",
+    "gap_pct",
+    "reversal_pct"
+  ],
+  "pretrade_grade": "A",
+  "pretrade_max": 5,
+  "pretrade_recommendation": "GO",
+  "pretrade_score": 4,
+  "readiness_passed": true,
+  "readiness_threshold": 0.4,
+  "recommendation": "GO",
+  "score": 5,
+  "ticker": "CODX"
+}

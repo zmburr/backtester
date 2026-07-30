@@ -1,0 +1,66 @@
+{
+  "cap": "ETF",
+  "criteria_details": {
+    "gap_pct": {
+      "actual": 0.022326,
+      "name": "Euphoric gap up",
+      "passed": true,
+      "threshold": 0.005
+    },
+    "pct_change_3": {
+      "actual": 0.16476,
+      "name": "3-day momentum run-up",
+      "passed": true,
+      "threshold": 0.03
+    },
+    "pct_from_9ema": {
+      "actual": 0.102991,
+      "name": "Extended above 9EMA",
+      "passed": true,
+      "threshold": 0.04
+    },
+    "prior_day_range_atr": {
+      "actual": 2.428905,
+      "name": "Range expansion (ATR)",
+      "passed": true,
+      "threshold": 1.0
+    },
+    "reversal_pct": {
+      "actual": -0.017126,
+      "name": "Large reversal",
+      "passed": true,
+      "threshold": -0.015
+    },
+    "rvol_score": {
+      "actual": 1.886474,
+      "name": "Volume expansion (RVOL)",
+      "passed": true,
+      "threshold": 1.5
+    }
+  },
+  "date": "5/30/2023",
+  "failed_criteria": [],
+  "grade": "A+",
+  "intensity": 40.2,
+  "is_true_a": true,
+  "max_score": 6,
+  "momentum_pctile_3": 26.2,
+  "momentum_pctile_passed": true,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "prior_day_range_atr",
+    "rvol_score",
+    "pct_change_3",
+    "gap_pct",
+    "reversal_pct"
+  ],
+  "pretrade_grade": "A+",
+  "pretrade_max": 5,
+  "pretrade_recommendation": "GO",
+  "pretrade_score": 5,
+  "readiness_passed": true,
+  "readiness_threshold": 0.03,
+  "recommendation": "GO",
+  "score": 6,
+  "ticker": "SMH"
+}

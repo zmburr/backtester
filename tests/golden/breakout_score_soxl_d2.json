@@ -1,0 +1,91 @@
+{
+  "criteria_details": {
+    "atr_pct": {
+      "actual": 0.044374,
+      "direction": "gte",
+      "name": "Daily ATR >= 2.5% (cap-neutral floor; mega-caps OK)",
+      "passed": true,
+      "reference_median": 0.0538,
+      "threshold": 0.025
+    },
+    "breakout_open_high_pct": {
+      "actual": 0.830754,
+      "direction": "gte",
+      "name": "Outcome: open-to-high >= 6.4%",
+      "passed": true,
+      "reference_median": null,
+      "threshold": 0.0641
+    },
+    "gap_pct": {
+      "actual": 0.019112,
+      "direction": "gte",
+      "name": "Positive overnight gap",
+      "passed": true,
+      "reference_median": null,
+      "threshold": 0.0
+    },
+    "overnight_gap_d1_to_d2_pct": {
+      "actual": 0.019112,
+      "direction": "gte",
+      "name": "D1->D2 overnight gap up >= 0.8%",
+      "passed": true,
+      "reference_median": 0.018,
+      "threshold": 0.008
+    },
+    "pct_from_9ema": {
+      "actual": 0.109374,
+      "direction": "gte",
+      "name": "Extended above 9 EMA (>= 9%)",
+      "passed": true,
+      "reference_median": 0.16,
+      "threshold": 0.09
+    },
+    "pct_to_52wk_high": {
+      "actual": -0.060207,
+      "direction": "gte",
+      "name": "Within 38% of 52wk high",
+      "passed": true,
+      "reference_median": -0.0513,
+      "threshold": -0.38
+    },
+    "percent_of_premarket_vol": {
+      "actual": 0.080496,
+      "direction": "gte",
+      "name": "Premarket volume >= 3.6% of ADV",
+      "passed": true,
+      "reference_median": null,
+      "threshold": 0.036
+    }
+  },
+  "date": "2024-02-09",
+  "failed_criteria": [],
+  "full_max": 7,
+  "full_score": 7,
+  "grade": "A+",
+  "intensity": 46.8,
+  "intensity_tier": "REDUCED_SIZE",
+  "is_true_a": true,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "pct_to_52wk_high",
+    "atr_pct",
+    "gap_pct",
+    "percent_of_premarket_vol",
+    "overnight_gap_d1_to_d2_pct",
+    "breakout_open_high_pct"
+  ],
+  "pretrade_max": 6,
+  "pretrade_score": 6,
+  "recommendation": "GO",
+  "setup_type": "D2_continuation",
+  "ticker": "SOXL",
+  "tier_thresholds": {
+    "high_conviction_min": 47.7,
+    "min": 23.6,
+    "n": 28,
+    "p25": 43.275,
+    "p50": 47.7,
+    "p75": 64.6,
+    "tradable_min": 23.6
+  }
+}

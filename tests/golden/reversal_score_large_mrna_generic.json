@@ -1,0 +1,67 @@
+{
+  "cap": "Large",
+  "criteria_details": {
+    "gap_pct": {
+      "actual": 0.002126,
+      "name": "Euphoric gap up",
+      "passed": false,
+      "threshold": 0.01
+    },
+    "pct_change_3": {
+      "actual": 0.166338,
+      "name": "3-day momentum run-up",
+      "passed": true,
+      "threshold": 0.05
+    },
+    "pct_from_9ema": {
+      "actual": 0.2086,
+      "name": "Extended above 9EMA",
+      "passed": true,
+      "threshold": 0.08
+    },
+    "prior_day_range_atr": {
+      "actual": 3.616344,
+      "name": "Range expansion (ATR)",
+      "passed": true,
+      "threshold": 0.8
+    },
+    "reversal_pct": {
+      "actual": -0.059197,
+      "name": "Large reversal",
+      "passed": true,
+      "threshold": -0.03
+    },
+    "rvol_score": {
+      "actual": 1.398952,
+      "name": "Volume expansion (RVOL)",
+      "passed": true,
+      "threshold": 1.25
+    }
+  },
+  "date": "8/10/2021",
+  "failed_criteria": [
+    "gap_pct"
+  ],
+  "grade": "A",
+  "intensity": 35.2,
+  "is_true_a": true,
+  "max_score": 6,
+  "momentum_pctile_3": 26.2,
+  "momentum_pctile_passed": true,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "prior_day_range_atr",
+    "rvol_score",
+    "pct_change_3",
+    "reversal_pct"
+  ],
+  "pretrade_grade": "A",
+  "pretrade_max": 5,
+  "pretrade_recommendation": "GO",
+  "pretrade_score": 4,
+  "readiness_passed": true,
+  "readiness_threshold": null,
+  "recommendation": "GO",
+  "score": 5,
+  "ticker": "MRNA"
+}

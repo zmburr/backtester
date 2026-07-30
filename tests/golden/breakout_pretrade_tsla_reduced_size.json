@@ -1,0 +1,71 @@
+{
+  "bonuses": [
+    "ATH breakout flag set"
+  ],
+  "classification_details": {
+    "classification": "D1_news_break",
+    "signals": [
+      "Manually specified"
+    ]
+  },
+  "intensity": 46.3,
+  "items": [
+    {
+      "actual": 0.123108,
+      "actual_display": "+12.31%",
+      "description": "Extended above 9 EMA (>= 18%)",
+      "name": "pct_from_9ema",
+      "passed": false,
+      "reference": "A+B median: +25.47%",
+      "threshold": 0.18,
+      "threshold_display": "+18.00%"
+    },
+    {
+      "actual": 0.457207,
+      "actual_display": "+45.72%",
+      "description": "Extended above 50 MA (>= 36%)",
+      "name": "pct_from_50mav",
+      "passed": true,
+      "reference": "A+B median: +56.33%",
+      "threshold": 0.36,
+      "threshold_display": "+36.00%"
+    },
+    {
+      "actual": 0.891181,
+      "actual_display": "0.89x",
+      "description": "Recent range expansion (5d TR / 30d TR >= 0.90)",
+      "name": "range_contraction_atr",
+      "passed": false,
+      "reference": "A+B median: 0.98x",
+      "threshold": 0.9,
+      "threshold_display": "0.90x"
+    },
+    {
+      "actual": 0.276301,
+      "actual_display": "0.28",
+      "description": "Prior day closed in upper 27% of range",
+      "name": "prior_day_close_vs_high_pct",
+      "passed": true,
+      "reference": "A+B median: 0.46",
+      "threshold": 0.27,
+      "threshold_display": "0.270"
+    },
+    {
+      "actual": -0.001759,
+      "actual_display": "-0.18%",
+      "description": "Open within 3% of PM high (no severe gap fade)",
+      "name": "gap_from_pm_high",
+      "passed": true,
+      "reference": "A+B median: -1.33%",
+      "threshold": -0.03,
+      "threshold_display": "-3.00%"
+    }
+  ],
+  "max_score": 5,
+  "recommendation": "REDUCED_SIZE",
+  "score": 3,
+  "setup_type": "D1_news_break",
+  "summary": "Tradable: intensity 46 above floor (32) but below median | Pre-trade criteria: 3/5 (missed: pct_from_9ema, range_contraction_atr)",
+  "ticker": "TSLA",
+  "warnings": []
+}

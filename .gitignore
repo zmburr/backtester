@@ -45,3 +45,5 @@ data/derived_thresholds_*.json
 
 data/iv_study/*.parquet
 data/iv_study/*.pkl
+
+.coverage

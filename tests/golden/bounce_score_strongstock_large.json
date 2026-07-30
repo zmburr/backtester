@@ -1,0 +1,74 @@
+{
+  "cap": "Large",
+  "criteria_details": {
+    "bounce_pct": {
+      "actual": 0.105259,
+      "name": "Large bounce (open-to-close)",
+      "passed": true,
+      "reference_median": 0.091,
+      "threshold": 0.02
+    },
+    "gap_pct": {
+      "actual": -0.153749,
+      "name": "Capitulation gap down",
+      "passed": true,
+      "reference_median": -0.1,
+      "threshold": -0.09
+    },
+    "pct_change_3": {
+      "actual": -0.192642,
+      "name": "3-day momentum crash",
+      "passed": false,
+      "reference_median": -0.219,
+      "threshold": -0.2
+    },
+    "pct_off_30d_high": {
+      "actual": -0.30811,
+      "name": "Discount from 30d high",
+      "passed": false,
+      "reference_median": -0.327,
+      "threshold": -0.31
+    },
+    "pct_off_52wk_high": {
+      "actual": -0.30811,
+      "name": "Discount from 52wk high",
+      "passed": false,
+      "reference_median": -0.429,
+      "threshold": -0.33
+    },
+    "prior_day_range_atr": {
+      "actual": 1.275106,
+      "name": "Prior day range expansion",
+      "passed": true,
+      "reference_median": 1.337,
+      "threshold": 1.0
+    },
+    "selloff_total_pct": {
+      "actual": -0.09614,
+      "name": "Deep selloff",
+      "passed": false,
+      "reference_median": -0.175,
+      "threshold": -0.1
+    }
+  },
+  "date": "2024-08-05",
+  "failed_criteria": [
+    "selloff_total_pct",
+    "pct_off_30d_high",
+    "pct_change_3",
+    "pct_off_52wk_high"
+  ],
+  "grade": "F",
+  "is_true_a": false,
+  "max_score": 7,
+  "passed_criteria": [
+    "gap_pct",
+    "prior_day_range_atr",
+    "bounce_pct"
+  ],
+  "profile_name": "GapFade_strongstock",
+  "recommendation": "NO-GO",
+  "score": 3,
+  "setup_type": "GapFade_strongstock",
+  "ticker": "TSM"
+}

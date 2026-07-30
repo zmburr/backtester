@@ -1,0 +1,68 @@
+{
+  "bonuses": [],
+  "cap": "Medium",
+  "classification_details": {
+    "cap": "Medium",
+    "grade": "A+",
+    "setup_type": "3DGapFade"
+  },
+  "items": [
+    {
+      "actual": 0.582786,
+      "actual_display": "+58.3%",
+      "description": "Extended above 9EMA >= 44%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.44,
+      "threshold_display": "44%"
+    },
+    {
+      "actual": 1.723593,
+      "actual_display": "1.72x",
+      "description": "Range expansion >= 1.1x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "",
+      "threshold": 1.15,
+      "threshold_display": "1.1x"
+    },
+    {
+      "actual": 4.703757,
+      "actual_display": "4.70x",
+      "description": "Volume expansion >= 2.8x RVOL",
+      "name": "rvol_score",
+      "passed": true,
+      "reference": "",
+      "threshold": 2.8,
+      "threshold_display": "2.8x"
+    },
+    {
+      "actual": 0.93007,
+      "actual_display": "+93.0%",
+      "description": "3-day momentum run-up >= 9%",
+      "name": "pct_change_3",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.09,
+      "threshold_display": "9%"
+    },
+    {
+      "actual": 0.230453,
+      "actual_display": "+23.0%",
+      "description": "Euphoric gap up >= 7%",
+      "name": "gap_pct",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.07,
+      "threshold_display": "7%"
+    }
+  ],
+  "max_score": 5,
+  "recommendation": "GO",
+  "score": 5,
+  "setup_type": "3DGapFade",
+  "summary": "PASS: 5/5 criteria met \u2014 3DGapFade (Medium Cap)",
+  "ticker": "MRNA",
+  "warnings": []
+}

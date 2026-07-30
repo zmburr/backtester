@@ -1,0 +1,69 @@
+{
+  "bonuses": [
+    "Closed outside upper Bollinger Band"
+  ],
+  "cap": "ETF",
+  "is_true_a": true,
+  "items": [
+    {
+      "actual": 0.06,
+      "actual_display": "6.0%",
+      "description": "Extended above 9EMA >= 4%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "threshold": 0.04,
+      "threshold_display": "4%"
+    },
+    {
+      "actual": 2.428905,
+      "actual_display": "2.4x",
+      "description": "Prior day range >= 1x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": 1.886474,
+      "actual_display": "1.9x",
+      "description": "RVOL >= 1.5x",
+      "name": "rvol_score",
+      "passed": true,
+      "threshold": 1.5,
+      "threshold_display": "1.5x"
+    },
+    {
+      "actual": 2,
+      "actual_display": "2",
+      "description": "Consecutive up days >= 1",
+      "name": "consecutive_up_days",
+      "passed": true,
+      "threshold": 1,
+      "threshold_display": "1"
+    },
+    {
+      "actual": 0.022326,
+      "actual_display": "2.2%",
+      "description": "Gap up (any)",
+      "name": "gap_pct",
+      "passed": true,
+      "threshold": 0.0,
+      "threshold_display": "0%"
+    },
+    {
+      "actual": -0.017126,
+      "actual_display": "-1.7%",
+      "description": "Reversal >= 1.5%",
+      "name": "reversal_pct",
+      "passed": true,
+      "threshold": -0.015,
+      "threshold_display": "2%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 6,
+  "summary": "PASS: 6/6 criteria met - TRUE GRADE A setup",
+  "ticker": "SMH",
+  "warnings": []
+}

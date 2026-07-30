@@ -1,0 +1,35 @@
+{
+  "composite": 34.0,
+  "details": {
+    "ema9_atr": {
+      "actual": 4.059,
+      "pctile": 40.0,
+      "weight": 0.2
+    },
+    "gap_atr": {
+      "actual": 0.88,
+      "pctile": 40.0,
+      "weight": 0.15
+    },
+    "mom3_atr": {
+      "actual": 6.494,
+      "pctile": 40.0,
+      "weight": 0.2
+    },
+    "pct_from_50mav": {
+      "actual": 0.19,
+      "pctile": 0.0,
+      "weight": 0.15
+    },
+    "prior_day_range_atr": {
+      "actual": 2.429,
+      "pctile": 40.0,
+      "weight": 0.15
+    },
+    "rvol_score": {
+      "actual": 1.886,
+      "pctile": 40.0,
+      "weight": 0.15
+    }
+  }
+}

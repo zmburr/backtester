@@ -1,0 +1,71 @@
+{
+  "bonuses": [
+    "SPY 5-day <= -1% (weak market = better)",
+    "Closed outside upper Bollinger Band",
+    "Prior day closed green-to-red"
+  ],
+  "cap": "Medium",
+  "is_true_a": true,
+  "items": [
+    {
+      "actual": 0.582786,
+      "actual_display": "58.3%",
+      "description": "Extended above 9EMA >= 15%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "threshold": 0.15,
+      "threshold_display": "15%"
+    },
+    {
+      "actual": 1.723593,
+      "actual_display": "1.7x",
+      "description": "Prior day range >= 1x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": 4.703757,
+      "actual_display": "4.7x",
+      "description": "RVOL >= 1.5x",
+      "name": "rvol_score",
+      "passed": true,
+      "threshold": 1.5,
+      "threshold_display": "1.5x"
+    },
+    {
+      "actual": 3,
+      "actual_display": "3",
+      "description": "Consecutive up days >= 2",
+      "name": "consecutive_up_days",
+      "passed": true,
+      "threshold": 2,
+      "threshold_display": "2"
+    },
+    {
+      "actual": 0.230453,
+      "actual_display": "23.0%",
+      "description": "Gap up >= 5%",
+      "name": "gap_pct",
+      "passed": true,
+      "threshold": 0.05,
+      "threshold_display": "5%"
+    },
+    {
+      "actual": -0.270903,
+      "actual_display": "-27.1%",
+      "description": "Reversal >= 5%",
+      "name": "reversal_pct",
+      "passed": true,
+      "threshold": -0.05,
+      "threshold_display": "5%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 6,
+  "summary": "PASS: 6/6 criteria met - TRUE GRADE A setup",
+  "ticker": "MRNA",
+  "warnings": []
+}

@@ -1,0 +1,42 @@
+{
+  "mav_data": {
+    "pct_from_10mav": 0.020045,
+    "pct_from_20mav": 0.04328,
+    "pct_from_9ema": 0.01775
+  },
+  "pct_data": {
+    "pct_change_120": null,
+    "pct_change_15": 0.070093,
+    "pct_change_3": 0.013274,
+    "pct_change_30": null,
+    "pct_change_90": null
+  },
+  "range_data": {
+    "day_of_range_pct": "(2 / 2) = 1.00",
+    "day_of_vol_pct": "(1,290,000 / 1,195,000) = 1.08",
+    "one_day_before_range_pct": "(2 / 2) = 1.00",
+    "percent_of_vol_one_day_before": "(1,280,000 / 1,185,000) = 1.08",
+    "percent_of_vol_three_day_before": "(1,260,000 / 1,165,000) = 1.08",
+    "percent_of_vol_two_day_before": "(1,270,000 / 1,175,000) = 1.08",
+    "three_day_before_range_pct": "(2 / 2) = 1.00",
+    "two_day_before_range_pct": "(2 / 2) = 1.00"
+  },
+  "volume_data": {
+    "avg_daily_vol": 1195000.0,
+    "percent_of_premarket_vol": null,
+    "percent_of_vol_in_first_10_min": null,
+    "percent_of_vol_in_first_15_min": null,
+    "percent_of_vol_in_first_30_min": null,
+    "percent_of_vol_in_first_5_min": null,
+    "percent_of_vol_on_breakout_day": null,
+    "premarket_vol": null,
+    "vol_in_first_10_min": null,
+    "vol_in_first_15_min": null,
+    "vol_in_first_30_min": null,
+    "vol_in_first_5_min": null,
+    "vol_on_breakout_day": null,
+    "vol_one_day_before": 1280000.0,
+    "vol_three_day_before": 1260000.0,
+    "vol_two_day_before": 1270000.0
+  }
+}

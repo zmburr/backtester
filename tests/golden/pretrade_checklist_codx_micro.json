@@ -1,0 +1,71 @@
+{
+  "bonuses": [
+    "SPY 5-day <= -1% (weak market = better)",
+    "Closed outside upper Bollinger Band",
+    "Prior day closed green-to-red"
+  ],
+  "cap": "Micro",
+  "is_true_a": true,
+  "items": [
+    {
+      "actual": 1.681372,
+      "actual_display": "168.1%",
+      "description": "Extended above 9EMA >= 80%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "threshold": 0.8,
+      "threshold_display": "80%"
+    },
+    {
+      "actual": 9.538106,
+      "actual_display": "9.5x",
+      "description": "Prior day range >= 3x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "threshold": 3.0,
+      "threshold_display": "3.0x"
+    },
+    {
+      "actual": 1.645657,
+      "actual_display": "1.6x",
+      "description": "RVOL >= 2x",
+      "name": "rvol_score",
+      "passed": false,
+      "threshold": 2.0,
+      "threshold_display": "2.0x"
+    },
+    {
+      "actual": 4,
+      "actual_display": "4",
+      "description": "Consecutive up days >= 3",
+      "name": "consecutive_up_days",
+      "passed": true,
+      "threshold": 3,
+      "threshold_display": "3"
+    },
+    {
+      "actual": 0.357769,
+      "actual_display": "35.8%",
+      "description": "Gap up >= 15%",
+      "name": "gap_pct",
+      "passed": true,
+      "threshold": 0.15,
+      "threshold_display": "15%"
+    },
+    {
+      "actual": -0.389479,
+      "actual_display": "-38.9%",
+      "description": "Reversal >= 20%",
+      "name": "reversal_pct",
+      "passed": true,
+      "threshold": -0.2,
+      "threshold_display": "20%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 5,
+  "summary": "PASS: 5/6 criteria met - TRUE GRADE A setup",
+  "ticker": "CODX",
+  "warnings": []
+}

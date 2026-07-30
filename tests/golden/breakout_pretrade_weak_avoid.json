@@ -1,0 +1,80 @@
+{
+  "bonuses": [],
+  "classification_details": {
+    "classification": "D2_continuation",
+    "signals": [
+      "t=1 -> day-after continuation (D2)"
+    ],
+    "t": 1.0
+  },
+  "intensity": 2.7,
+  "items": [
+    {
+      "actual": 0.01,
+      "actual_display": "+1.00%",
+      "description": "Extended above 9 EMA (>= 9%)",
+      "name": "pct_from_9ema",
+      "passed": false,
+      "reference": "A+B median: +16.00%",
+      "threshold": 0.09,
+      "threshold_display": "+9.00%"
+    },
+    {
+      "actual": -0.6,
+      "actual_display": "-60.00%",
+      "description": "Within 38% of 52wk high",
+      "name": "pct_to_52wk_high",
+      "passed": false,
+      "reference": "A+B median: -5.13%",
+      "threshold": -0.38,
+      "threshold_display": "-38.00%"
+    },
+    {
+      "actual": 0.02,
+      "actual_display": "+2.00%",
+      "description": "Daily ATR >= 2.5% (cap-neutral floor; mega-caps OK)",
+      "name": "atr_pct",
+      "passed": false,
+      "reference": "A+B median: +5.38%",
+      "threshold": 0.025,
+      "threshold_display": "+2.50%"
+    },
+    {
+      "actual": -0.02,
+      "actual_display": "-2.00%",
+      "description": "Positive overnight gap",
+      "name": "gap_pct",
+      "passed": false,
+      "reference": "",
+      "threshold": 0.0,
+      "threshold_display": "+0.00%"
+    },
+    {
+      "actual": 0.005,
+      "actual_display": "+0.50%",
+      "description": "Premarket volume >= 3.6% of ADV",
+      "name": "percent_of_premarket_vol",
+      "passed": false,
+      "reference": "",
+      "threshold": 0.036,
+      "threshold_display": "+3.60%"
+    },
+    {
+      "actual": -0.01,
+      "actual_display": "-1.00%",
+      "description": "D1->D2 overnight gap up >= 0.8%",
+      "name": "overnight_gap_d1_to_d2_pct",
+      "passed": false,
+      "reference": "A+B median: +1.80%",
+      "threshold": 0.008,
+      "threshold_display": "+0.80%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "AVOID",
+  "score": 0,
+  "setup_type": "D2_continuation",
+  "summary": "Below tradable floor: intensity 3 < 24 | Pre-trade criteria: 0/6 (missed: pct_from_9ema, pct_to_52wk_high, atr_pct, gap_pct, percent_of_premarket_vol, overnight_gap_d1_to_d2_pct)",
+  "ticker": "WEAK",
+  "warnings": []
+}

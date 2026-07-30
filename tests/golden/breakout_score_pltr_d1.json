@@ -1,0 +1,83 @@
+{
+  "criteria_details": {
+    "breakout_open_high_pct": {
+      "actual": 0.092611,
+      "direction": "gte",
+      "name": "Outcome: open-to-high >= 10.0%",
+      "passed": false,
+      "reference_median": null,
+      "threshold": 0.1002
+    },
+    "gap_from_pm_high": {
+      "actual": -0.001476,
+      "direction": "gte",
+      "name": "Open within 3% of PM high (no severe gap fade)",
+      "passed": true,
+      "reference_median": -0.0133,
+      "threshold": -0.03
+    },
+    "pct_from_50mav": {
+      "actual": 0.267313,
+      "direction": "gte",
+      "name": "Extended above 50 MA (>= 36%)",
+      "passed": false,
+      "reference_median": 0.5633,
+      "threshold": 0.36
+    },
+    "pct_from_9ema": {
+      "actual": 0.252066,
+      "direction": "gte",
+      "name": "Extended above 9 EMA (>= 18%)",
+      "passed": true,
+      "reference_median": 0.2547,
+      "threshold": 0.18
+    },
+    "prior_day_close_vs_high_pct": {
+      "actual": 0.172662,
+      "direction": "gte",
+      "name": "Prior day closed in upper 27% of range",
+      "passed": false,
+      "reference_median": 0.4624,
+      "threshold": 0.27
+    },
+    "range_contraction_atr": {
+      "actual": 1.231207,
+      "direction": "gte",
+      "name": "Recent range expansion (5d TR / 30d TR >= 0.90)",
+      "passed": true,
+      "reference_median": 0.9805,
+      "threshold": 0.9
+    }
+  },
+  "date": "2024-02-06",
+  "failed_criteria": [
+    "pct_from_50mav",
+    "prior_day_close_vs_high_pct",
+    "breakout_open_high_pct"
+  ],
+  "full_max": 6,
+  "full_score": 3,
+  "grade": "C",
+  "intensity": 57.4,
+  "intensity_tier": "FULL_SIZE",
+  "is_true_a": false,
+  "passed_criteria": [
+    "pct_from_9ema",
+    "range_contraction_atr",
+    "gap_from_pm_high"
+  ],
+  "pretrade_max": 5,
+  "pretrade_score": 3,
+  "recommendation": "CAUTION",
+  "setup_type": "D1_news_break",
+  "ticker": "PLTR",
+  "tier_thresholds": {
+    "high_conviction_min": 50.4,
+    "min": 31.5,
+    "n": 14,
+    "p25": 48.55,
+    "p50": 50.4,
+    "p75": 58.775,
+    "tradable_min": 31.5
+  }
+}

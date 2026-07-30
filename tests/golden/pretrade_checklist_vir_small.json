@@ -1,0 +1,71 @@
+{
+  "bonuses": [
+    "SPY 5-day <= -1% (weak market = better)",
+    "Closed outside upper Bollinger Band",
+    "Prior day closed green-to-red"
+  ],
+  "cap": "Small",
+  "is_true_a": true,
+  "items": [
+    {
+      "actual": 1.180802,
+      "actual_display": "118.1%",
+      "description": "Extended above 9EMA >= 40%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "threshold": 0.4,
+      "threshold_display": "40%"
+    },
+    {
+      "actual": 9.369888,
+      "actual_display": "9.4x",
+      "description": "Prior day range >= 2x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "threshold": 2.0,
+      "threshold_display": "2.0x"
+    },
+    {
+      "actual": 2.825791,
+      "actual_display": "2.8x",
+      "description": "RVOL >= 2x",
+      "name": "rvol_score",
+      "passed": true,
+      "threshold": 2.0,
+      "threshold_display": "2.0x"
+    },
+    {
+      "actual": 4,
+      "actual_display": "4",
+      "description": "Consecutive up days >= 2",
+      "name": "consecutive_up_days",
+      "passed": true,
+      "threshold": 2,
+      "threshold_display": "2"
+    },
+    {
+      "actual": 0.181894,
+      "actual_display": "18.2%",
+      "description": "Gap up >= 10%",
+      "name": "gap_pct",
+      "passed": true,
+      "threshold": 0.1,
+      "threshold_display": "10%"
+    },
+    {
+      "actual": -0.346451,
+      "actual_display": "-34.6%",
+      "description": "Reversal >= 10%",
+      "name": "reversal_pct",
+      "passed": true,
+      "threshold": -0.1,
+      "threshold_display": "10%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 6,
+  "summary": "PASS: 6/6 criteria met - TRUE GRADE A setup",
+  "ticker": "VIR",
+  "warnings": []
+}

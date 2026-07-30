@@ -1,0 +1,70 @@
+{
+  "bonuses": [
+    "Closed outside upper Bollinger Band",
+    "Prior day closed green-to-red"
+  ],
+  "cap": "Large",
+  "is_true_a": true,
+  "items": [
+    {
+      "actual": 0.11,
+      "actual_display": "11.0%",
+      "description": "Extended above 9EMA >= 8%",
+      "name": "pct_from_9ema",
+      "passed": true,
+      "threshold": 0.08,
+      "threshold_display": "8%"
+    },
+    {
+      "actual": 4.288175,
+      "actual_display": "4.3x",
+      "description": "Prior day range >= 0.8x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "threshold": 0.8,
+      "threshold_display": "0.8x"
+    },
+    {
+      "actual": 3.752349,
+      "actual_display": "3.8x",
+      "description": "RVOL >= 1x",
+      "name": "rvol_score",
+      "passed": true,
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": 2,
+      "actual_display": "2",
+      "description": "Consecutive up days >= 1",
+      "name": "consecutive_up_days",
+      "passed": true,
+      "threshold": 1,
+      "threshold_display": "1"
+    },
+    {
+      "actual": 0.027549,
+      "actual_display": "2.8%",
+      "description": "Gap up (any)",
+      "name": "gap_pct",
+      "passed": true,
+      "threshold": 0.0,
+      "threshold_display": "0%"
+    },
+    {
+      "actual": -0.038054,
+      "actual_display": "-3.8%",
+      "description": "Reversal >= 3%",
+      "name": "reversal_pct",
+      "passed": true,
+      "threshold": -0.03,
+      "threshold_display": "3%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "GO",
+  "score": 6,
+  "summary": "PASS: 6/6 criteria met - TRUE GRADE A setup",
+  "ticker": "AVGO",
+  "warnings": []
+}

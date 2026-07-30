@@ -1,0 +1,86 @@
+{
+  "bonuses": [
+    "Wide Bollinger Bands \u2014 volatility expansion",
+    "Large range day (>= 1.5x ATR)"
+  ],
+  "cap": "Medium",
+  "classification_details": {
+    "classification": "GapFade_strongstock",
+    "pct_from_200mav": 11.488734,
+    "signals": [
+      "Above 200MA by 1149% -> STRONG"
+    ]
+  },
+  "items": [
+    {
+      "actual": 0.0,
+      "actual_display": "0.0%",
+      "description": "Deep selloff >= 16%",
+      "name": "selloff_total_pct",
+      "passed": false,
+      "reference": "A median: -18%",
+      "threshold": -0.16,
+      "threshold_display": "16%"
+    },
+    {
+      "actual": -0.442174,
+      "actual_display": "-44.2%",
+      "description": "Discount from 30d high >= 28%",
+      "name": "pct_off_30d_high",
+      "passed": true,
+      "reference": "A median: -33%",
+      "threshold": -0.28,
+      "threshold_display": "28%"
+    },
+    {
+      "actual": 0.091252,
+      "actual_display": "9.1%",
+      "description": "Gap down >= 4%",
+      "name": "gap_pct",
+      "passed": false,
+      "reference": "A median: -10%",
+      "threshold": -0.04,
+      "threshold_display": "4%"
+    },
+    {
+      "actual": 1.616497,
+      "actual_display": "1.62x",
+      "description": "Prior day range >= 1.0x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "A median: 1.3x",
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": 0.956077,
+      "actual_display": "95.6%",
+      "description": "3-day momentum crash >= 14%",
+      "name": "pct_change_3",
+      "passed": false,
+      "reference": "A median: -22%",
+      "threshold": -0.14,
+      "threshold_display": "14%"
+    },
+    {
+      "actual": -0.442174,
+      "actual_display": "-44.2%",
+      "description": "Discount from 52wk high >= 32%",
+      "name": "pct_off_52wk_high",
+      "passed": true,
+      "reference": "A median: -43%",
+      "threshold": -0.32,
+      "threshold_display": "32%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "NO-GO",
+  "score": 3,
+  "setup_type": "GapFade_strongstock",
+  "summary": "FAIL: Only 3/6 \u2014 Missing: selloff_total_pct, gap_pct, pct_change_3",
+  "ticker": "GME",
+  "timestamp": "<scrubbed>",
+  "warnings": [
+    "No sustained selloff \u2014 may not be capitulation"
+  ]
+}

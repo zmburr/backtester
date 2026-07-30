@@ -1,0 +1,84 @@
+{
+  "bonuses": [
+    "Closed outside lower Bollinger Band",
+    "Prior day closed near lows \u2014 capitulation signal"
+  ],
+  "cap": "ETF",
+  "classification_details": {
+    "classification": "GapFade_weakstock",
+    "pct_from_200mav": -0.557163,
+    "signals": [
+      "Below 200MA by 56% -> WEAK"
+    ]
+  },
+  "items": [
+    {
+      "actual": -0.295632,
+      "actual_display": "-29.6%",
+      "description": "Deep selloff >= 15%",
+      "name": "selloff_total_pct",
+      "passed": true,
+      "reference": "A median: -30%",
+      "threshold": -0.15,
+      "threshold_display": "15%"
+    },
+    {
+      "actual": -0.500417,
+      "actual_display": "-50.0%",
+      "description": "Discount from 30d high >= 30%",
+      "name": "pct_off_30d_high",
+      "passed": true,
+      "reference": "A median: -55%",
+      "threshold": -0.3,
+      "threshold_display": "30%"
+    },
+    {
+      "actual": -0.027349,
+      "actual_display": "-2.7%",
+      "description": "Gap down >= 4%",
+      "name": "gap_pct",
+      "passed": false,
+      "reference": "A median: -7%",
+      "threshold": -0.04,
+      "threshold_display": "4%"
+    },
+    {
+      "actual": 1.134726,
+      "actual_display": "1.13x",
+      "description": "Prior day range >= 1.0x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "A median: 1.5x",
+      "threshold": 1.0,
+      "threshold_display": "1.0x"
+    },
+    {
+      "actual": -0.126672,
+      "actual_display": "-12.7%",
+      "description": "3-day momentum crash >= 15%",
+      "name": "pct_change_3",
+      "passed": false,
+      "reference": "A median: -26%",
+      "threshold": -0.15,
+      "threshold_display": "15%"
+    },
+    {
+      "actual": -0.728906,
+      "actual_display": "-72.9%",
+      "description": "Discount from 52wk high >= 34%",
+      "name": "pct_off_52wk_high",
+      "passed": true,
+      "reference": "A median: -73%",
+      "threshold": -0.34,
+      "threshold_display": "34%"
+    }
+  ],
+  "max_score": 6,
+  "recommendation": "CAUTION",
+  "score": 4,
+  "setup_type": "GapFade_weakstock",
+  "summary": "MARGINAL: 4/6 \u2014 Missing: gap_pct, pct_change_3",
+  "ticker": "ARKK",
+  "timestamp": "<scrubbed>",
+  "warnings": []
+}

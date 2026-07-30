@@ -1,0 +1,68 @@
+{
+  "bonuses": [],
+  "cap": "ETF",
+  "classification_details": {
+    "cap": "ETF",
+    "grade": "B",
+    "setup_type": "3DGapFade"
+  },
+  "items": [
+    {
+      "actual": 0.06,
+      "actual_display": "+6.0%",
+      "description": "Extended above 9EMA >= 10%",
+      "name": "pct_from_9ema",
+      "passed": false,
+      "reference": "",
+      "threshold": 0.1,
+      "threshold_display": "10%"
+    },
+    {
+      "actual": 2.428905,
+      "actual_display": "2.43x",
+      "description": "Range expansion >= 1.6x ATR",
+      "name": "prior_day_range_atr",
+      "passed": true,
+      "reference": "",
+      "threshold": 1.6,
+      "threshold_display": "1.6x"
+    },
+    {
+      "actual": 1.886474,
+      "actual_display": "1.89x",
+      "description": "Volume expansion >= 2.8x RVOL",
+      "name": "rvol_score",
+      "passed": false,
+      "reference": "",
+      "threshold": 2.75,
+      "threshold_display": "2.8x"
+    },
+    {
+      "actual": 0.16476,
+      "actual_display": "+16.5%",
+      "description": "3-day momentum run-up >= 4%",
+      "name": "pct_change_3",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.04,
+      "threshold_display": "4%"
+    },
+    {
+      "actual": 0.022326,
+      "actual_display": "+2.2%",
+      "description": "Euphoric gap up >= 2%",
+      "name": "gap_pct",
+      "passed": true,
+      "reference": "",
+      "threshold": 0.02,
+      "threshold_display": "2%"
+    }
+  ],
+  "max_score": 5,
+  "recommendation": "CAUTION",
+  "score": 3,
+  "setup_type": "3DGapFade",
+  "summary": "MARGINAL: 3/5 \u2014 Missing: pct_from_9ema, rvol_score",
+  "ticker": "SMH",
+  "warnings": []
+}
