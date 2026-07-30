@@ -1,0 +1,272 @@
+{
+  "generated": "2026-07-28T12:26:31",
+  "source": "ExitMonitor/data/trade_data.csv, news-tagged, one event per symbol-day",
+  "n_events": 1564,
+  "anchor": "ref_time (news break bar) \u2014 NOT position-entry time",
+  "unit": "room left = remaining favorable excursion as a fraction of ref price",
+  "why_not_share": "share of the eventual move is scale-free and ranks stalled trades above extended ones; absolute room does not",
+  "useful_window_min": [
+    2,
+    15
+  ],
+  "min_cell": 30,
+  "global_med_total_move_pct": 0.02694,
+  "cap_bands": [
+    {
+      "cap": "Large",
+      "min_mkt_cap": 50000000000.0,
+      "max_mkt_cap": null,
+      "n": 610,
+      "med_total_move_pct": 0.01739
+    },
+    {
+      "cap": "Mid",
+      "min_mkt_cap": 10000000000.0,
+      "max_mkt_cap": 50000000000.0,
+      "n": 321,
+      "med_total_move_pct": 0.02948
+    },
+    {
+      "cap": "Small",
+      "min_mkt_cap": 2000000000.0,
+      "max_mkt_cap": 10000000000.0,
+      "n": 360,
+      "med_total_move_pct": 0.03933
+    },
+    {
+      "cap": "Micro",
+      "min_mkt_cap": 0.0,
+      "max_mkt_cap": 2000000000.0,
+      "n": 273,
+      "med_total_move_pct": 0.05983
+    }
+  ],
+  "grid": {
+    "5": {
+      "volr_edges": [
+        3.3507,
+        13.1234
+      ],
+      "progress_edges": [
+        0.25,
+        1.0
+      ],
+      "cells": [
+        {
+          "progress": "stalled",
+          "tape": "quiet",
+          "n": 314,
+          "med_room_pct": 0.01174,
+          "q75_room_pct": 0.02197,
+          "p_1pct": 0.548,
+          "p_2pct": 0.29,
+          "readable": true
+        },
+        {
+          "progress": "stalled",
+          "tape": "typical",
+          "n": 124,
+          "med_room_pct": 0.00657,
+          "q75_room_pct": 0.01438,
+          "p_1pct": 0.347,
+          "p_2pct": 0.194,
+          "readable": true
+        },
+        {
+          "progress": "stalled",
+          "tape": "heavy",
+          "n": 38,
+          "med_room_pct": 0.0085,
+          "q75_room_pct": 0.01527,
+          "p_1pct": 0.342,
+          "p_2pct": 0.184,
+          "readable": true
+        },
+        {
+          "progress": "partway",
+          "tape": "quiet",
+          "n": 175,
+          "med_room_pct": 0.01306,
+          "q75_room_pct": 0.02902,
+          "p_1pct": 0.594,
+          "p_2pct": 0.366,
+          "readable": true
+        },
+        {
+          "progress": "partway",
+          "tape": "typical",
+          "n": 299,
+          "med_room_pct": 0.00514,
+          "q75_room_pct": 0.02151,
+          "p_1pct": 0.405,
+          "p_2pct": 0.268,
+          "readable": true
+        },
+        {
+          "progress": "partway",
+          "tape": "heavy",
+          "n": 195,
+          "med_room_pct": 0.00132,
+          "q75_room_pct": 0.01493,
+          "p_1pct": 0.308,
+          "p_2pct": 0.195,
+          "readable": true
+        },
+        {
+          "progress": "extended",
+          "tape": "quiet",
+          "n": 28,
+          "med_room_pct": 0.04455,
+          "q75_room_pct": 0.142,
+          "p_1pct": 0.786,
+          "p_2pct": 0.607,
+          "readable": false
+        },
+        {
+          "progress": "extended",
+          "tape": "typical",
+          "n": 94,
+          "med_room_pct": 0.01348,
+          "q75_room_pct": 0.03969,
+          "p_1pct": 0.553,
+          "p_2pct": 0.404,
+          "readable": true
+        },
+        {
+          "progress": "extended",
+          "tape": "heavy",
+          "n": 284,
+          "med_room_pct": 0.00742,
+          "q75_room_pct": 0.0387,
+          "p_1pct": 0.447,
+          "p_2pct": 0.331,
+          "readable": true
+        }
+      ]
+    },
+    "10": {
+      "volr_edges": [
+        2.6247,
+        9.6044
+      ],
+      "progress_edges": [
+        0.25,
+        1.0
+      ],
+      "cells": [
+        {
+          "progress": "stalled",
+          "tape": "quiet",
+          "n": 258,
+          "med_room_pct": 0.00875,
+          "q75_room_pct": 0.01672,
+          "p_1pct": 0.446,
+          "p_2pct": 0.217,
+          "readable": true
+        },
+        {
+          "progress": "stalled",
+          "tape": "typical",
+          "n": 99,
+          "med_room_pct": 0.00577,
+          "q75_room_pct": 0.01138,
+          "p_1pct": 0.273,
+          "p_2pct": 0.131,
+          "readable": true
+        },
+        {
+          "progress": "stalled",
+          "tape": "heavy",
+          "n": 25,
+          "med_room_pct": 0.00466,
+          "q75_room_pct": 0.00999,
+          "p_1pct": 0.24,
+          "p_2pct": 0.08,
+          "readable": false
+        },
+        {
+          "progress": "partway",
+          "tape": "quiet",
+          "n": 215,
+          "med_room_pct": 0.00979,
+          "q75_room_pct": 0.02378,
+          "p_1pct": 0.488,
+          "p_2pct": 0.312,
+          "readable": true
+        },
+        {
+          "progress": "partway",
+          "tape": "typical",
+          "n": 294,
+          "med_room_pct": 0.00253,
+          "q75_room_pct": 0.01375,
+          "p_1pct": 0.313,
+          "p_2pct": 0.187,
+          "readable": true
+        },
+        {
+          "progress": "partway",
+          "tape": "heavy",
+          "n": 174,
+          "med_room_pct": 0.0,
+          "q75_room_pct": 0.00857,
+          "p_1pct": 0.224,
+          "p_2pct": 0.121,
+          "readable": true
+        },
+        {
+          "progress": "extended",
+          "tape": "quiet",
+          "n": 44,
+          "med_room_pct": 0.02632,
+          "q75_room_pct": 0.08825,
+          "p_1pct": 0.705,
+          "p_2pct": 0.591,
+          "readable": true
+        },
+        {
+          "progress": "extended",
+          "tape": "typical",
+          "n": 124,
+          "med_room_pct": 0.00823,
+          "q75_room_pct": 0.03246,
+          "p_1pct": 0.484,
+          "p_2pct": 0.355,
+          "readable": true
+        },
+        {
+          "progress": "extended",
+          "tape": "heavy",
+          "n": 318,
+          "med_room_pct": 0.0023,
+          "q75_room_pct": 0.02984,
+          "p_1pct": 0.374,
+          "p_2pct": 0.28,
+          "readable": true
+        }
+      ]
+    }
+  },
+  "validation": {
+    "5": {
+      "n_train": 564,
+      "n_test": 987,
+      "mae_base": 0.02153,
+      "mae_tape_1d": 0.0212,
+      "mae_grid_2d": 0.02153,
+      "gain_1d_pct": 1.5,
+      "gain_2d_pct": -0.0,
+      "grid_beats_1d": false
+    },
+    "10": {
+      "n_train": 564,
+      "n_test": 987,
+      "mae_base": 0.01853,
+      "mae_tape_1d": 0.01817,
+      "mae_grid_2d": 0.01824,
+      "gain_1d_pct": 1.9,
+      "gain_2d_pct": 1.5,
+      "grid_beats_1d": false
+    }
+  }
+}

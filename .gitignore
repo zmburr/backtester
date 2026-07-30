@@ -47,3 +47,6 @@ data/iv_study/*.parquet
 data/iv_study/*.pkl
 
 .coverage
+data/despac_study/cache/
+data/despac_study/edgar_cache/
+data/news_move_study/bars/
