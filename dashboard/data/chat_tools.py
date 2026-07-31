@@ -679,6 +679,7 @@ def execute_tool(tool_name: str, tool_input: dict) -> str:
                         atr=exit_data['atr'],
                         prior_close=exit_data.get('prior_close'),
                         prior_high=exit_data.get('prior_high'),
+                        mid_bb=exit_data.get('mid_bb'),
                     )
                 else:
                     targets = calculate_exit_targets(
@@ -703,6 +704,15 @@ def execute_tool(tool_name: str, tool_input: dict) -> str:
                         "note": t.get('note'),
                     })
 
+                mid_bb_out = None
+                mb = targets.get('mid_bb')
+                if mb:
+                    mid_bb_out = {
+                        "price": round(mb['price'], 2),
+                        "pct_from_entry": round(mb['pct_from_entry'] * 100, 1),
+                        "note": "mean-reversion SELL level (mid Bollinger, 20d SMA) — longer-term bounces exit here",
+                    }
+
                 return _dumps({
                     "ticker": ticker,
                     "cap": cap,
@@ -711,6 +721,7 @@ def execute_tool(tool_name: str, tool_input: dict) -> str:
                     "atr": round(exit_data['atr'], 2),
                     "prior_close": round(exit_data['prior_close'], 2) if exit_data.get('prior_close') else None,
                     "tiers": tiers_out,
+                    "mid_bb": mid_bb_out,
                     "time_stop": targets.get('time_stop'),
                     "notes": targets.get('notes'),
                 }, indent=2)

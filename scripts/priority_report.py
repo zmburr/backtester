@@ -1372,8 +1372,13 @@ def generate_priority_report() -> str:
                         atr=exit_data["atr"],
                         prior_close=exit_data.get("prior_close"),
                         prior_high=exit_data.get("prior_high"),
+                        mid_bb=exit_data.get("mid_bb"),
                     )
                     bounce_targets["entry_price_source"] = exit_data.get("open_price_source")
+                    # Stash for the signal JSON — the morning watcher draws this
+                    # as the mean-reversion sell line on the analog bands chart.
+                    if exit_data.get("mid_bb"):
+                        item["mid_bb"] = round(float(exit_data["mid_bb"]), 4)
                     exit_html = "<strong>Bounce Target Levels:</strong>" + format_bounce_exit_targets_html(bounce_targets)
 
             # Upgrade table
@@ -1858,6 +1863,11 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 odds = _lookup_bounce_odds(item.get("score_str", ""), item.get("cap", ""))
                 if odds is not None:
                     signal_entry["odds"] = odds
+                # Mid Bollinger band (20d SMA, prior completed close) — the
+                # mean-reversion sell level for longer-term bounces; the
+                # watcher's analog chart renders it as the MID-BB line.
+                if item.get("mid_bb") is not None:
+                    signal_entry["mid_bb"] = item["mid_bb"]
 
             signals.append(signal_entry)
 

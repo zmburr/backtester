@@ -164,6 +164,9 @@ def build_static(ticker: str, date: str) -> dict | None:
     s = {'prior_close': hist.iloc[-1]['close']}
 
     s['sma200'] = closes.rolling(200).mean().iloc[-1] if len(closes) >= 200 else None
+    # Mid Bollinger band (20d SMA, completed bars) — mean-reversion SELL level
+    # for longer-term bounces ("sell when the bounce hits the mid bollinger band")
+    s['mid_bb'] = closes.rolling(20).mean().iloc[-1] if len(closes) >= 20 else None
     s['close_30_ago'] = hist.iloc[-30]['close'] if len(hist) >= 30 else None
     s['close_15_ago'] = hist.iloc[-15]['close'] if len(hist) >= 15 else None
     s['close_3_ago'] = hist.iloc[-3]['close'] if len(hist) >= 3 else None
@@ -320,6 +323,9 @@ def scan(tickers, statics, caps, checker: BouncePretrade, date: str,
                 'off_52wk': m['pct_off_52wk_high'], 'range_atr': m['prior_day_range_atr'],
                 'pm_low': pm_low, 'pm_low_time': pm_low_time,
                 'off_pm_low': (price - pm_low) / pm_low if pm_low else None,
+                'mid_bb': static.get('mid_bb'),
+                'to_mid_bb': ((static['mid_bb'] - price) / price
+                              if static.get('mid_bb') and price > 0 else None),
                 'result': res,
             })
         except Exception as e:
@@ -346,6 +352,7 @@ def _row_table(rows) -> str:
     body = ''
     for r in rows:
         color = '#22c55e' if r['rec'] == 'GO' else '#f59e0b' if r['rec'] == 'CAUTION' else '#9ca3af'
+        mid_str = f"{r['mid_bb']:.2f}" if r.get('mid_bb') else 'n/a'
         body += (f"<tr><td style='{_TD}color:#e8ecf4;font-weight:600;'>{r['ticker']}</td>"
                  f"<td style='{_TD}color:{color};font-weight:600;'>{r['score']}/6 {r['rec']}</td>"
                  f"<td style='{_TD}'>{r['cap']}</td>"
@@ -354,7 +361,9 @@ def _row_table(rows) -> str:
                  f"<td style='{_TD}'>{_pct(r['selloff'])}</td>"
                  f"<td style='{_TD}'>{_pct(r['off_30d'])}</td>"
                  f"<td style='{_TD}'>{r['pm_low_time']}</td>"
-                 f"<td style='{_TD}'>{_pct(r['off_pm_low'])}</td></tr>")
+                 f"<td style='{_TD}'>{_pct(r['off_pm_low'])}</td>"
+                 f"<td style='{_TD}color:#bc8cff;'>{mid_str}</td>"
+                 f"<td style='{_TD}color:#bc8cff;'>{_pct(r.get('to_mid_bb'))}</td></tr>")
     head_td = 'padding:6px 10px;text-align:left;color:#6b7280;'
     return (f"<table style='border-collapse:collapse;font-size:13px;font-family:monospace;color:#c8cdd8;'>"
             f"<thead><tr>"
@@ -362,13 +371,20 @@ def _row_table(rows) -> str:
             f"<th style='{head_td}'>Cap</th><th style='{head_td}'>Price</th>"
             f"<th style='{head_td}'>Gap</th><th style='{head_td}'>Selloff</th>"
             f"<th style='{head_td}'>Off 30d</th><th style='{head_td}'>PM Low@</th>"
-            f"<th style='{head_td}'>Off PM Low</th></tr></thead><tbody>{body}</tbody></table>")
+            f"<th style='{head_td}'>Off PM Low</th>"
+            f"<th style='{head_td}'>Mid-BB Sell</th><th style='{head_td}'>To Mid</th>"
+            f"</tr></thead><tbody>{body}</tbody></table>")
 
 
 def format_alert_email(row: dict, asof: pd.Timestamp) -> tuple[str, str]:
     res: ChecklistResult = row['result']
     subject = (f"PM BOUNCE {row['rec']}: {row['ticker']} {row['score']}/6 "
                f"@ {row['price']:.2f} (gap {_pct(row['gap_pct'])})")
+    mid_html = ''
+    if row.get('mid_bb'):
+        mid_html = (f'<div style="font-size:13px;margin-bottom:12px;color:#bc8cff;">'
+                    f'Mean-reversion SELL (mid Bollinger, 20d SMA): <strong>{row["mid_bb"]:.2f}</strong> '
+                    f'({_pct(row["to_mid_bb"])} above) — longer-term bounce exits HERE</div>')
     crit = ''
     for item in res.items:
         icon = '&#10003;' if item.passed else '&#10007;'
@@ -387,6 +403,7 @@ Price <strong>{row['price']:.2f}</strong>
 &nbsp;|&nbsp; PM low <strong>{row['pm_low']:.2f}</strong> @ {row['pm_low_time']}
 &nbsp;|&nbsp; now {_pct(row['off_pm_low'])} off the PM low
 </div>
+{mid_html}
 <table style="border-collapse:collapse;font-size:13px;font-family:monospace;">{crit}</table>
 <div style="color:#4b5563;font-size:11px;margin-top:16px;">Premarket Bounce Scanner — score crossings alert once per level per day</div>
 </body></html>"""
@@ -447,14 +464,17 @@ def print_table(rows, asof):
     print(f"\nPremarket bounce scores as of {asof.strftime('%Y-%m-%d %H:%M ET')}"
           f"  (src T=Trillium real-time, P=Polygon 15-min delayed)")
     print(f"{'TICKER':7s}{'CAP':7s}{'SCORE':6s}{'REC':9s}{'PRICE':>9s}{'SRC':>4s}{'GAP':>8s}"
-          f"{'SELLOFF':>9s}{'OFF30D':>8s}{'3D':>8s}{'OFF52W':>8s}{'PMLOW@':>8s}{'OFF LOW':>9s}")
+          f"{'SELLOFF':>9s}{'OFF30D':>8s}{'3D':>8s}{'OFF52W':>8s}{'PMLOW@':>8s}{'OFF LOW':>9s}"
+          f"{'MID-BB':>9s}{'TO MID':>8s}")
     for r in rows:
         if r['score'] < 1:
             continue
+        mid_str = f"{r['mid_bb']:.2f}" if r.get('mid_bb') else 'n/a'
         print(f"{r['ticker']:7s}{r['cap']:7s}{str(r['score'])+'/6':6s}{r['rec']:9s}"
               f"{r['price']:>9.2f}{r.get('src', 'P'):>4s}{_pct(r['gap_pct']):>8s}{_pct(r['selloff']):>9s}"
               f"{_pct(r['off_30d']):>8s}{_pct(r['pct3']):>8s}{_pct(r['off_52wk']):>8s}"
-              f"{r['pm_low_time']:>8s}{_pct(r['off_pm_low']):>9s}")
+              f"{r['pm_low_time']:>8s}{_pct(r['off_pm_low']):>9s}"
+              f"{mid_str:>9s}{_pct(r.get('to_mid_bb')):>8s}")
 
 
 # ---------------------------------------------------------------------------

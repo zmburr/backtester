@@ -743,6 +743,7 @@ def _build_ticker_report(
                 atr=exit_data['atr'],
                 prior_close=exit_data.get('prior_close'),
                 prior_high=exit_data.get('prior_high'),
+                mid_bb=exit_data.get('mid_bb'),
             )
             bounce_targets['entry_price_source'] = exit_data.get('open_price_source')
             report.exit_targets = ExitTargetData(

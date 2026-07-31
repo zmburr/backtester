@@ -258,7 +258,8 @@ def get_bounce_exit_framework(cap: str) -> ExitFramework:
 
 def calculate_bounce_exit_targets(cap: str, entry_price: float, atr: float,
                                   prior_close: float = None,
-                                  prior_high: float = None) -> Dict:
+                                  prior_high: float = None,
+                                  mid_bb: float = None) -> Dict:
     """
     Calculate target PRICE LEVELS for a bounce (long) trade.
 
@@ -271,6 +272,12 @@ def calculate_bounce_exit_targets(cap: str, entry_price: float, atr: float,
         atr: Average True Range
         prior_close: Prior day's close (for gap fill / red-to-green)
         prior_high: Prior day's high
+        mid_bb: Mid Bollinger band (20d SMA as-of prior completed close) —
+            the mean-reversion terminal exit for LONGER-TERM bounces
+            (2026-07-31 debrief: "have to sell when the bounce hits the mid
+            bollinger band - thats mean reversion going back to the mean").
+            Not a scale-out tier: T1-T3 own the day-trade scale; this owns
+            where the multi-day bounce leg ENDS.
 
     Returns:
         Dictionary with target price levels and historical hit rates
@@ -337,6 +344,15 @@ def calculate_bounce_exit_targets(cap: str, entry_price: float, atr: float,
 
     targets['time_stop'] = framework.time_stop
     targets['notes'] = framework.notes
+
+    # Mean-reversion exit (mid Bollinger band) — separate from the tier scale
+    if mid_bb is not None and mid_bb > 0:
+        targets['mid_bb'] = {
+            'price': mid_bb,
+            'pct_from_entry': (mid_bb - entry_price) / entry_price,
+            'atrs_from_entry': (mid_bb - entry_price) / atr,
+            'above_entry': mid_bb > entry_price,
+        }
 
     return targets
 
@@ -420,8 +436,29 @@ def format_bounce_exit_targets_html(targets: Dict) -> str:
         </p>
         '''
 
+    # Mean-reversion exit banner (mid Bollinger band, 20d SMA)
+    mid_html = ""
+    mb = targets.get('mid_bb')
+    if mb:
+        if mb['above_entry']:
+            mid_html = f'''
+        <p style="margin: 8px 0; font-size: 0.85em; background: #241a3d; padding: 6px; border-radius: 4px; color: #d2b8ff; border-left: 3px solid #bc8cff;">
+            <strong>&#9673; MEAN-REVERSION EXIT — Mid Bollinger (20d SMA): ${mb['price']:.2f}
+            (+{mb['pct_from_entry']*100:.1f}% / {mb['atrs_from_entry']:.1f} ATRs)</strong><br>
+            Longer-term bounce: SELL when the bounce tags this — the mean IS the trade. T1&#8211;T3 scale the day trade; this level ends the swing leg.
+        </p>
+        '''
+        else:
+            mid_html = f'''
+        <p style="margin: 8px 0; font-size: 0.85em; background: #241a3d; padding: 6px; border-radius: 4px; color: #a08cc8;">
+            <strong>&#9673; Mid Bollinger (20d SMA): ${mb['price']:.2f} ({mb['pct_from_entry']*100:+.1f}%)</strong> —
+            already at/above the mean: the mean-reversion leg is spent. Day-trade targets only; no swing hold.
+        </p>
+        '''
+
     html += f'''
         </table>
+        {mid_html}
         {dip_html}
         <p style="margin: 10px 0 0 0; font-size: 0.85em; color: #8b949e;">
             <strong>Time:</strong> {targets['time_stop']}<br>

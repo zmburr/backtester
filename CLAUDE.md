@@ -134,6 +134,8 @@ Based on historical hit rates from 36 trades:
 
 **Dip Risk**: Avg dip before bounce is -14% (1.68 ATRs); max observed -25% to -30%
 
+**Mean-reversion exit (longer-term bounces)**: mid Bollinger band (20d SMA, as-of prior completed close) — carried as `mid_bb` through `get_exit_target_data()` → `calculate_bounce_exit_targets()` → report HTML banner, premarket scanner columns, and the bounce signal JSON (morning watcher draws it as the MID-BB sell line). Origin: 2026-07-31 debrief ("have to sell when the bounce hits the mid bollinger band").
+
 ### Bounce Intensity Score
 
 0-100 composite score based on percentile ranking of:

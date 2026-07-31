@@ -912,6 +912,9 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
       - atr: ATR (computed as-of the prior completed daily bar when possible)
       - prior_close, prior_low, prior_high: prior completed daily bar levels
       - ema_4: 4-day EMA as-of prior completed daily bar
+      - mid_bb: mid Bollinger band (20d SMA of close, as-of prior completed bar;
+        matches bounce_collector.get_bounce_bollinger) — mean-reversion exit
+        level for longer-term bounces
 
     Note: For consistency with the historical target framework, targets are measured
     from a single reference price. When the official OPEN is available, using it
@@ -919,8 +922,9 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
     """
     data = {}
     try:
-        # Get historical data for EMA and prior levels
-        df = _pq_module.get_levels_data(ticker, date, 10, 1, 'day')
+        # Get historical data for EMA and prior levels (35 days so the
+        # 20-day mid Bollinger band is computable, not just the 4-day EMA)
+        df = _pq_module.get_levels_data(ticker, date, 35, 1, 'day')
         if df is None or len(df) < 2:
             return data
 
@@ -951,6 +955,15 @@ def get_exit_target_data(ticker: str, date: str, prefer_open: bool = False) -> D
         data['prior_low'] = float(df['low'].iloc[prior_idx])
         data['prior_high'] = float(df['high'].iloc[prior_idx])
         data['ema_4'] = float(df['ema_4'].iloc[prior_idx])  # EMA as of prior completed day
+
+        # Mid Bollinger band (20d SMA) as of the prior completed day — the
+        # mean-reversion exit for longer-term bounces. NaN (short history) -> absent.
+        try:
+            mid_bb = df['close'].rolling(window=20).mean().iloc[prior_idx]
+            if not pd.isna(mid_bb):
+                data['mid_bb'] = float(mid_bb)
+        except Exception:
+            pass
         try:
             data['prior_bar_date'] = df.index[prior_idx].date().strftime('%Y-%m-%d')
         except Exception:
@@ -1950,6 +1963,7 @@ def _build_ticker_html(ticker: str, data: dict, pretrade_metrics: dict = None,
                 atr=exit_data['atr'],
                 prior_close=exit_data.get('prior_close'),
                 prior_high=exit_data.get('prior_high'),
+                mid_bb=exit_data.get('mid_bb'),
             )
             # Let the HTML formatter reflect whether we're using OPEN or a live fallback.
             bounce_targets['entry_price_source'] = exit_data.get('open_price_source')
