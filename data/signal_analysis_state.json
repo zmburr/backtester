@@ -1,39 +1,7 @@
 {
-  "analysis_number": 12,
-  "signal_count_at_last_analysis": 322,
+  "analysis_number": 13,
+  "signal_count_at_last_analysis": 341,
   "past_recommendations": [
-    {
-      "analysis": 4,
-      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status in scanner output (highest-priority) \u2014 reprint-after-tradeable held at 32/34 (94%) this cycle; it remains the single strongest entry filter."
-    },
-    {
-      "analysis": 4,
-      "text": "Re-measure Large-cap reversal performance only after the RVOL veto has actually fired on a live reversal batch (still 10/33 = 30% here, pre-veto data) before pursuing the Analysis #1 breadth/regime gate."
-    },
-    {
-      "analysis": 4,
-      "text": "Keep tracking the 4/5 > 5/5 inversion (now 17/30 vs 6/16, 3rd cycle, 5/5 n=16 < 20) \u2014 do not restructure the score yet."
-    },
-    {
-      "analysis": 4,
-      "text": "Hold all bounce-side conclusions \u2014 18 independent episodes (6/18 tradeable); the GO-vs-CAUTION inversion (0/6 vs 6/12) is suggestive of an inverted bounce score on knife-catches but is n<20. Re-test at n\u226520."
-    },
-    {
-      "analysis": 4,
-      "text": "Leave gap_pct as-is \u2014 flat again this cycle (W 0.012 vs L 0.011); revisit the score-point restructure only at ~100 first-flags (currently 68 reversal first-flags)."
-    },
-    {
-      "analysis": 5,
-      "text": "VETO cohort still empty after 2026-06-10 (all 12 recent reversals have RVOL \u2265 1.25); the deployed veto remains unverified in production \u2014 keep reporting the vetoed tradeable_3d rate each cycle until it actually fires, and only re-examine the veto if a sub-1.25 reversal eventually appears and prints tradeable."
-    },
-    {
-      "analysis": 5,
-      "text": "Large-cap reversal weakness persists at 10/36 (28%) vs Medium 61%, but this is still pre-veto-effect data \u2014 defer the Analysis #1 breadth/regime gate until the RVOL veto has actually suppressed a live Large reversal batch."
-    },
-    {
-      "analysis": 5,
-      "text": "4/5 > 5/5 inversion now in its 4th cycle (58% vs 32%, 5/5 n=19) \u2014 do not restructure the score yet; re-check once 5/5 crosses n=20."
-    },
     {
       "analysis": 5,
       "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output (reprint-after-tradeable held 33/35 = 94%)."
@@ -241,7 +209,39 @@
     {
       "analysis": 12,
       "text": "Track regime \u2014 reversal scanner dark since 07-01 (one July first-flag); Large-reversal regime-gate deferral unchanged (12/38, still predominantly pre-veto data); Large GapFade cell at n=8 (6/8), keep accumulating toward n\u226520."
+    },
+    {
+      "analysis": 13,
+      "text": "VETO cohort empty for a fourth cycle (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle verification; flag instantly if a sub-1.25 reversal fires tradeable."
+    },
+    {
+      "analysis": 13,
+      "text": "REOPEN the bounce selloff-depth question closed in #11 \u2014 sign has reversed (deep 22/24 = 92% vs shallow 29/46 = 63% pooled; 18/20 vs 19/34 ex-wave; this cycle's new first-flags 0/5, all shallow); re-test next cycle on out-of-sample completions before any re-key."
+    },
+    {
+      "analysis": 13,
+      "text": "Escalate the same-session cluster identifier (carried since #11) \u2014 it now blocks two live decisions: the pooled bounce rate (07-03/07-16/07-17 waves are 22/25 of recent wins) and the reopened depth re-key."
+    },
+    {
+      "analysis": 13,
+      "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at 14/19 vs CAUTION 37/51 (74% vs 73%, fully flat); execute at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational."
+    },
+    {
+      "analysis": 13,
+      "text": "Reversal 5/5 inversion persists (7/19 = 37% vs 4/5 at 24/39 = 62%); cell one flag from n=20 \u2014 continue the readiness-gate over-reward investigation trigger at n\u224830."
+    },
+    {
+      "analysis": 13,
+      "text": "Reconcile two counters against this file: (a) reversal first-flag count is 81 here vs the 79 carried for the ~100-flag restructure trigger; (b) the 9EMA \u22640.10 cell is 4/19 here vs the 3/19 carried since #10 (WDC_reversal_2026-06-05 is in-cell and tradeable)."
+    },
+    {
+      "analysis": 13,
+      "text": "Data QA \u2014 the exact-1.00 mfe_atr_3d boundary bug is still unfixed (MU_reversal_2026-05-27 print 1 and MXL_bounce_2026-07-17 print 3 both show mfe_atr_3d = 1.00, tradeable_3d = True, blank days_to_1atr); change the days_to_1atr writer's strict `>` to `>=`."
+    },
+    {
+      "analysis": 13,
+      "text": "Track regime \u2014 reversal scanner dark since 07-01 (third cycle); gap_pct flat a tenth cycle; Large-cap bounce cell now 6/9 tradeable, keep accumulating toward n\u226520 before touching Large GapFade thresholds."
     }
   ],
-  "last_analysis_at": "2026-07-27"
+  "last_analysis_at": "2026-07-31"
 }
