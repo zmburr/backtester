@@ -8,15 +8,7 @@
     },
     {
       "analysis": 5,
-      "text": "Hold all bounce conclusions \u2014 19 independent episodes (6/19 tradeable); GO-vs-CAUTION inversion (0/6 vs 6/13) is still suggestive of an inverted bounce score on knife-catches but GO cell is n=6. Re-test at n\u226520."
-    },
-    {
-      "analysis": 5,
       "text": "Leave gap_pct as-is (flat: W 0.016 vs L 0.013); revisit the score-point restructure only near ~100 reversal first-flags (currently 74)."
-    },
-    {
-      "analysis": 6,
-      "text": "Keep reporting the VETO cohort's tradeable_3d rate every cycle; it is still empty (0 rows, all post-deploy reversals RVOL\u22651.318) \u2014 flag immediately if/when it fires and print tradeable, but do NOT re-derive the veto."
     },
     {
       "analysis": 6,
@@ -24,15 +16,7 @@
     },
     {
       "analysis": 6,
-      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle; adopt behind the RVOL veto only once the \u22640.10 first-flag cell reaches n\u226520 (currently 18)."
-    },
-    {
-      "analysis": 6,
-      "text": "Do not restructure the 5-point reversal score \u2014 4/5>5/5 inversion is in its 5th cycle but 5/5 is still n=19 (<20); re-check when it crosses 20."
-    },
-    {
-      "analysis": 6,
-      "text": "Hold all bounce conclusions \u2014 26 independent episodes (7/26); GO-vs-CAUTION inversion (0/7 vs 7/19) still suggestive of an inverted bounce score on knife-catches but GO cell is n=7. Re-test at n\u226520."
+      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle; adopt only once the \u22640.10 first-flag cell reaches n\u226520 (currently 18)."
     },
     {
       "analysis": 6,
@@ -44,15 +28,7 @@
     },
     {
       "analysis": 7,
-      "text": "VETO cohort still empty (0 rows; min post-06-10 reversal RVOL = 1.318 vs 1.25 floor). Keep reporting its tradeable_3d rate each cycle; flag the instant a sub-1.25 reversal appears and prints tradeable. Do not re-derive."
-    },
-    {
-      "analysis": 7,
-      "text": "Close the 4/5>5/5 inversion as a cap-mix confound, not a scoring defect \u2014 5/5 is 70% Large (weak cap); within-cap the gap is noise. Stop treating the pooled inversion as evidence to restructure the 5-point score; report it cap-stratified going forward."
-    },
-    {
-      "analysis": 7,
-      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle \u2014 direction is strong and stable (17% vs 51%) but the \u22640.10 cell is n=18, one short of the n\u226520 gate. Adopt behind the RVOL veto the moment it reaches 20."
+      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle \u2014 direction is strong and stable (17% vs 51%) but the \u22640.10 cell is n=18, one short of the n\u226520 gate. Adopt the moment it reaches 20."
     },
     {
       "analysis": 7,
@@ -63,28 +39,12 @@
       "text": "Defer the Analysis #1 breadth/regime gate for Large-cap reversal weakness (11/37 = 30%) until the RVOL veto has actually suppressed a live Large reversal batch (still pre-veto data)."
     },
     {
-      "analysis": 7,
-      "text": "Hold all bounce conclusions (29 episodes, 8/29 tradeable; GO 0/8 vs CAUTION 8/21) and leave gap_pct scored as-is (W 0.016 vs L 0.013, flat) \u2014 revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 75)."
-    },
-    {
       "analysis": 8,
-      "text": "Adopt the 9EMA \u22640.10 reversal floor (behind the RVOL veto) the moment its first-flag cell reaches n=20 \u2014 currently 19 (16% vs 53%); one more low-9EMA reversal clears the gate."
-    },
-    {
-      "analysis": 8,
-      "text": "Continue reporting the VETO cohort tradeable_3d rate each cycle \u2014 still empty (min post-deploy RVOL 1.286); flag instantly if a sub-1.25 reversal appears and prints tradeable. Do not re-derive."
+      "text": "Adopt the 9EMA \u22640.10 reversal floor the moment its first-flag cell reaches n=20 \u2014 currently 19 (16% vs 53%); one more low-9EMA reversal clears the gate."
     },
     {
       "analysis": 8,
       "text": "Keep surfacing episode_signal_num + prior-print 1-ATR status as the top scanner output \u2014 reprint-after-tradeable held 50/54 (93%)."
-    },
-    {
-      "analysis": 8,
-      "text": "Report the 4/5-vs-5/5 comparison cap-stratified going forward; do not restructure the 5-point score (pooled inversion is a cap-mix artifact)."
-    },
-    {
-      "analysis": 8,
-      "text": "Hold all bounce conclusions \u2014 38 episodes, 9/38 tradeable; GO 0/12 vs CAUTION 9/26 inversion still suggestive but GO cell n=12 (<20). Re-test at n\u226520."
     },
     {
       "analysis": 8,
@@ -96,15 +56,7 @@
     },
     {
       "analysis": 9,
-      "text": "VETO cohort empty again (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 keep reporting its tradeable_3d rate each cycle; flag instantly if a sub-1.25 reversal fires and prints tradeable."
-    },
-    {
-      "analysis": 9,
-      "text": "9EMA \u22640.10 floor still gated at n=19 (16% vs 53%) \u2014 no new reversal first-flags this cycle; adopt behind the RVOL veto the moment the cell reaches 20."
-    },
-    {
-      "analysis": 9,
-      "text": "NEW \u2014 treat the bounce GO 0/12 inversion as a depth confound (11/12 GO first-flags are \u2264 -35% off 30d high, the 1/24 cell); report bounce results depth-stratified at -0.35 going forward, and evaluate re-keying pct_off_30d_high / pct_off_52wk_high scoring direction once the shallow first-flag cell reaches n\u226520 (currently 16)."
+      "text": "9EMA \u22640.10 floor still gated at n=19 (16% vs 53%) \u2014 no new reversal first-flags this cycle; adopt the moment the cell reaches 20."
     },
     {
       "analysis": 9,
@@ -112,31 +64,19 @@
     },
     {
       "analysis": 9,
-      "text": "Note the regime flip \u2014 zero reversal signals completed after 07-02, 11 bounce first-flags in four sessions; Large-reversal regime-gate deferral unchanged (11/38, still pre-veto-effect data)."
-    },
-    {
-      "analysis": 9,
       "text": "Leave gap_pct scored as-is (sixth flat cycle) and revisit the RVOL-tier restructure at ~100 reversal first-flags (still 78 \u2014 no progress this cycle)."
     },
     {
       "analysis": 10,
-      "text": "Bounce metric re-based by the min(0.5\u00d7ATR, 6%) gate cap \u2014 invalidate/re-baseline all pre-#10 bounce conclusions in docs/signal_findings.md (GO 0/12 inversion does NOT reproduce: now GO 8/13 vs CAUTION 26/36); date-stamp the re-base and restart bounce cell counts from this cycle."
+      "text": "Bounce metric re-based by the min(0.5\u00d7ATR, 6%) gate cap \u2014 invalidate/re-baseline all pre-#10 bounce conclusions (GO 0/12 inversion does NOT reproduce: now GO 8/13 vs CAUTION 26/36); date-stamp the re-base and restart bounce cell counts from this cycle."
     },
     {
       "analysis": 10,
-      "text": "Continue reporting VETO cohort tradeable_3d each cycle \u2014 still 0 rows (min post-06-10 reversal RVOL 1.286); flag instantly if a sub-1.25 reversal fires and prints tradeable."
-    },
-    {
-      "analysis": 10,
-      "text": "Adopt the 9EMA \u2264 0.10 reversal floor (behind the RVOL veto) the moment the first-flag cell reaches n=20 \u2014 held at 3/19 (15.8% vs 55.0%) for a third cycle with no new low-9EMA reversals."
+      "text": "Adopt the 9EMA \u2264 0.10 reversal floor the moment the first-flag cell reaches n=20 \u2014 held at 3/19 (15.8% vs 55.0%) for a third cycle with no new low-9EMA reversals."
     },
     {
       "analysis": 10,
       "text": "Keep episode_signal_num + prior-print-tradeable status as the top scanner output \u2014 reversal reprint-after-tradeable 39/43 (91%) vs 19/41 (46%) without; bounce 51/63 (81%) under the new gate."
-    },
-    {
-      "analysis": 10,
-      "text": "Data QA \u2014 CAR_reversal_2026-04-08 first-flag has mfe_atr_3d=1.22 (\u22651.0 gate) and tradeable_3d=True but blank days_to_1atr; audit the days_to_1atr writer for signals whose MFE hits intraday D0 after a >1.4-ATR adverse run."
     },
     {
       "analysis": 10,
@@ -148,11 +88,7 @@
     },
     {
       "analysis": 11,
-      "text": "VETO cohort remains empty (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle reporting; flag instantly if a sub-1.25 reversal fires and prints tradeable."
-    },
-    {
-      "analysis": 11,
-      "text": "9EMA \u22640.10 reversal floor held at 3/19 for a fourth cycle (no new reversal first-flags anywhere) \u2014 adopt behind the RVOL veto the moment the cell reaches n=20; no re-derivation."
+      "text": "9EMA \u22640.10 reversal floor held at 3/19 for a fourth cycle (no new reversal first-flags anywhere) \u2014 adopt the moment the cell reaches n=20; no re-derivation."
     },
     {
       "analysis": 11,
@@ -161,10 +97,6 @@
     {
       "analysis": 11,
       "text": "Re-test bounce GO-vs-CAUTION at the next bounce GO first-flag (GO cell hits n=20) \u2014 currently 14/19 vs 33/43, score non-separating; if it stays flat at n\u226520, evaluate demoting the bounce score to informational."
-    },
-    {
-      "analysis": 11,
-      "text": "Add a same-session/cluster identifier for cross-ticker correlation \u2014 the 07-17 wave went 19/19 tradeable across correlated semis/storage names and inflates pooled bounce rates; episode chaining does not capture this."
     },
     {
       "analysis": 11,
@@ -180,15 +112,7 @@
     },
     {
       "analysis": 12,
-      "text": "VETO cohort still empty (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle reporting; flag instantly if a sub-1.25 reversal fires and prints tradeable."
-    },
-    {
-      "analysis": 12,
-      "text": "9EMA \u22640.10 reversal floor frozen at 3/19 for a fifth cycle \u2014 adopt behind the RVOL veto the moment the cell reaches n=20; no re-derivation."
-    },
-    {
-      "analysis": 12,
-      "text": "Monitor the reversal score-tier inversion \u2014 5/5 first-flags 8/21 (38%) vs 4/5 21/35 (60%); if it persists past n\u224830 in the 5/5 cell, investigate whether the readiness gate over-rewards climactic (too-early) days."
+      "text": "9EMA \u22640.10 reversal floor frozen at 3/19 for a fifth cycle \u2014 adopt the moment the cell reaches n=20; no re-derivation."
     },
     {
       "analysis": 12,
@@ -200,19 +124,7 @@
     },
     {
       "analysis": 12,
-      "text": "Same-session cluster identifier (carried from #11) \u2014 this cycle's 15/16 tradeable completions all sit inside the correlated 07-14/07-17 bounce wave; pooled bounce rates remain inflated until cross-ticker correlation is tagged."
-    },
-    {
-      "analysis": 12,
-      "text": "Data QA \u2014 the exact-1.00 mfe_atr_3d boundary bug now has a second instance: MXL_bounce_2026-07-17 print 3 (mfe_atr_3d=1.0, days_to_1atr blank) joins MU_reversal_2026-05-27 first-flag; fix the strict `>` to `>=` comparison in the days_to_1atr writer."
-    },
-    {
-      "analysis": 12,
       "text": "Track regime \u2014 reversal scanner dark since 07-01 (one July first-flag); Large-reversal regime-gate deferral unchanged (12/38, still predominantly pre-veto data); Large GapFade cell at n=8 (6/8), keep accumulating toward n\u226520."
-    },
-    {
-      "analysis": 13,
-      "text": "VETO cohort empty for a fourth cycle (0 rows; min post-06-10 reversal RVOL 1.286) \u2014 continue per-cycle verification; flag instantly if a sub-1.25 reversal fires tradeable."
     },
     {
       "analysis": 13,
@@ -220,23 +132,11 @@
     },
     {
       "analysis": 13,
-      "text": "Escalate the same-session cluster identifier (carried since #11) \u2014 it now blocks two live decisions: the pooled bounce rate (07-03/07-16/07-17 waves are 22/25 of recent wins) and the reopened depth re-key."
-    },
-    {
-      "analysis": 13,
       "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at 14/19 vs CAUTION 37/51 (74% vs 73%, fully flat); execute at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational."
     },
     {
       "analysis": 13,
-      "text": "Reversal 5/5 inversion persists (7/19 = 37% vs 4/5 at 24/39 = 62%); cell one flag from n=20 \u2014 continue the readiness-gate over-reward investigation trigger at n\u224830."
-    },
-    {
-      "analysis": 13,
       "text": "Reconcile two counters against this file: (a) reversal first-flag count is 81 here vs the 79 carried for the ~100-flag restructure trigger; (b) the 9EMA \u22640.10 cell is 4/19 here vs the 3/19 carried since #10 (WDC_reversal_2026-06-05 is in-cell and tradeable)."
-    },
-    {
-      "analysis": 13,
-      "text": "Data QA \u2014 the exact-1.00 mfe_atr_3d boundary bug is still unfixed (MU_reversal_2026-05-27 print 1 and MXL_bounce_2026-07-17 print 3 both show mfe_atr_3d = 1.00, tradeable_3d = True, blank days_to_1atr); change the days_to_1atr writer's strict `>` to `>=`."
     },
     {
       "analysis": 13,

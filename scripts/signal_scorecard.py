@@ -88,6 +88,7 @@ COLUMNS = [
     "tradeable_d0", "tradeable_3d",
     "days_available", "complete",
     "episode_id", "episode_signal_num",
+    "cluster_id", "cluster_size",
 ] + METRIC_COLUMNS
 
 
@@ -254,9 +255,12 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
 
     mfe = max(day_mfe)
     mae = max(max(day_mae), 0.0)
-    row["mfe_atr_d0"] = round(day_mfe[0] / atr, 2) if atr else ""
-    row["mfe_atr_3d"] = round(mfe / atr, 2) if atr else ""
-    row["mae_atr_3d"] = round(mae / atr, 2) if atr else ""
+    # 3dp, not 2: at 2dp a raw 0.997 prints as "1.00" while days_to_1atr correctly
+    # declines to fire, which repeatedly read downstream as an off-by-one bug in the
+    # writer below (it has always used >=). The extra digit makes the gate legible.
+    row["mfe_atr_d0"] = round(day_mfe[0] / atr, 3) if atr else ""
+    row["mfe_atr_3d"] = round(mfe / atr, 3) if atr else ""
+    row["mae_atr_3d"] = round(mae / atr, 3) if atr else ""
 
     # earliness: days until 1-ATR favorable hit, and worst adverse run before that day
     days_to, adverse_before = "", ""
@@ -326,6 +330,30 @@ def assign_episodes(outcomes: dict[tuple, dict]):
             r["episode_id"] = f"{r['ticker']}_{r['bucket']}_{ep_start}"
             r["episode_signal_num"] = num
             prev_target = r["target_date"]
+
+
+def assign_clusters(outcomes: dict[tuple, dict]):
+    """Tag same-session cohorts so cross-ticker correlation is visible.
+
+    Episode chaining handles one ticker reprinting across days; it says nothing
+    about ten different tickers flagging on the SAME day off one sector move.
+    Those share a single market event, so their outcomes are one observation
+    dressed up as ten — 2026-07-17 alone contributed 13 bounce first-flags that
+    all resolved tradeable, which inflates any pooled rate that counts them
+    independently.
+
+    cluster_id groups every row by (bucket, target_date); cluster_size counts
+    the DISTINCT first-flags in that cluster, so it measures how much a row is
+    duplicating its neighbours. Re-derived from scratch each run.
+    """
+    sizes: dict[str, int] = {}
+    for row in outcomes.values():
+        cid = f"{row['bucket']}_{row['target_date']}"
+        row["cluster_id"] = cid
+        if str(row.get("episode_signal_num", "")) == "1":
+            sizes[cid] = sizes.get(cid, 0) + 1
+    for row in outcomes.values():
+        row["cluster_size"] = sizes.get(row["cluster_id"], 0)
 
 
 # ── CSV store ────────────────────────────────────────────────────────────────
@@ -404,7 +432,6 @@ def rolling_summary(rows: list[dict]) -> dict:
     groups = {
         "Reversal GO": [r for r in rev if r.get("recommendation") == "GO"],
         "Reversal CAUTION": [r for r in rev if r.get("recommendation") == "CAUTION"],
-        "Reversal · vetoed (RVOL)": [r for r in rev if r.get("recommendation") == "VETO"],
         "Reversal (all)": rev,
         "Bounce GO": [r for r in bnc if r.get("recommendation") == "GO"],
         "Bounce CAUTION": [r for r in bnc if r.get("recommendation") == "CAUTION"],
@@ -419,7 +446,6 @@ def rolling_summary(rows: list[dict]) -> dict:
     timing_groups = {
         "Reversal GO": [r for r in rev if r.get("recommendation") == "GO"],
         "Reversal CAUTION": [r for r in rev if r.get("recommendation") == "CAUTION"],
-        "Reversal · vetoed (RVOL)": [r for r in rev if r.get("recommendation") == "VETO"],
         "Reversal · 1st flag of episode": _first(rev),
         "Reversal · reprint (2nd+ day)": _reprint(rev),
         "Reversal · morning signals": [r for r in rev if r.get("session") == "morning"],
@@ -701,6 +727,7 @@ def main():
         time.sleep(0.12)
 
     assign_episodes(outcomes)
+    assign_clusters(outcomes)  # depends on episode_signal_num — must run after
     if not dry:
         save_outcomes(outcomes)
         logger.info(f"Saved {len(outcomes)} rows to {OUTCOMES_FILE.name} ({updated} updated)")

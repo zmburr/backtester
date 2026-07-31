@@ -104,7 +104,7 @@ This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each sco
 
 ## How signals are scored
 - bucket=reversal means SHORT thesis (favorable = down); bucket=bounce means LONG (favorable = up).
-- recommendation=VETO (from 2026-06-10 on): the signal scored GO/CAUTION but was hard-vetoed by the prior_day_rvol < 1.25 floor you recommended in Analysis #2. These are logged specifically so you can verify the veto: report the vetoed cohort's tradeable_3d rate each cycle, and flag immediately if it drifts toward the GO rate (veto would be discarding edge).
+- recommendation is GO or CAUTION only. There is no VETO cohort: the prior_day_rvol < 1.25 hard veto from Analysis #2 shipped 2026-06-10 and was removed again on 2026-07-30 (commit 32224a7e) without ever firing — it never emitted a single row, because the lowest prior_day_rvol on any post-deploy reversal was 1.286. Do NOT ask for the vetoed cohort's rate and do NOT re-derive the veto; that question is closed as untestable on this data.
 - d0_pct..d3_pct: cumulative close-vs-entry-open raw price move per day.
 - mfe_atr_3d / mae_atr_3d: max favorable / adverse excursion over the window in ATRs.
 - tradeable_3d: MFE hit the per-bucket gate at any point in the window (primary success metric). Bounce gate = min(0.5 x ATR, 6% absolute) — the playbook T1 target, capped because signal-day ATR is inflated by the selloff itself. Reversal gate = 1.0 x ATR.
@@ -112,6 +112,8 @@ This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each sco
 - adverse_before_fav_atr: worst adverse run (ATRs) BEFORE the favorable target hit — this measures how EARLY the scanner fires. Large values on reversals mean the stock kept squeezing up before cracking.
 - Pre-trade criterion features logged per signal (values at alert time): reversal signals carry pct_from_9ema, pct_change_3, gap_pct, prior_day_range_atr, prior_day_rvol, premarket_rvol; bounce signals carry selloff_total_pct, pct_off_30d_high, pct_off_52wk_high, pct_change_3, gap_pct, prior_day_range_atr. Use these for criterion-level threshold analysis: compare feature distributions of tradeable vs non-tradeable signals (first-flags only) and look for cut points that would have filtered losers without dropping winners. Blank = the report didn't emit that metric for that signal.
 - episode_id / episode_signal_num: repeat flags of the same ticker within {EPISODE_GAP} trading days chain into one episode; their outcome windows OVERLAP, so rows within an episode are NOT independent samples. For any statistical claim, use episode_signal_num == 1 rows (or count distinct episode_id) as the sample. Reprints (episode_signal_num >= 2) may be analyzed separately as a persistence feature — "does a 2nd/3rd consecutive flag predict better odds?" — but never mix them into per-signal rates as if independent.
+- cluster_id / cluster_size: the SECOND correlation axis, orthogonal to episodes. cluster_id = (bucket, target_date); cluster_size = how many distinct first-flags fired in that same session. Ten tickers flagging off one sector move share a single market event, so they are closer to one observation than ten — 2026-07-17 alone produced 13 bounce first-flags that ALL resolved tradeable. Episode chaining does not catch this. Whenever you report a pooled rate, also report the cluster-weighted rate (average within each cluster_id, then average those cluster means) and say which one you are drawing the conclusion from. If a cell's result is carried by one or two large clusters, say so explicitly and treat its effective n as the number of clusters, not the number of rows.
+- mfe_atr_3d / mae_atr_3d are stored rounded. Rows written before 2026-07-31 carry 2 decimals, so a displayed "1.0" can be a raw 0.997 — that is why some rows show mfe_atr_3d = 1.00 with a blank days_to_1atr. This is a display artifact, NOT a writer bug (the days_to_1atr comparison has always been >=). Do not raise it as a data-QA item.
 
 ## Signal outcomes (complete windows only)
 {table}
@@ -126,19 +128,25 @@ Bounce SETUP_PROFILES (score >= 5 GO, == 4 CAUTION):
 ## Recommendations from previous analyses (do not repeat unless new data strengthens or reverses them)
 {past_text}
 
-## Settled questions (docs/signal_findings.md) — do not relitigate without new contradicting data
+## Settled questions — do not relitigate without new contradicting data
+(This list is the record. The former docs/signal_findings.md ledger was deleted on 2026-07-30 in commit 32224a7e; do not cite or ask for that file.)
 - D0-close-direction confirmation: REJECTED. Long-first tactics: REJECTED. Entry-delay variants: CLOSED.
-- 1.5-ATR initial stop: AFFIRMED. RVOL >= 1.25 veto: DEPLOYED 2026-06-10 (verify its cohort, don't re-derive it).
+- 1.5-ATR initial stop: AFFIRMED.
+- RVOL >= 1.25 veto: REMOVED 2026-07-30, never fired. Closed — see the recommendation-field note above.
 - gap_pct -> RVOL-tier score restructure: TESTED 2026-06-10, scored WORSE than the plain veto (18/33 = 54.5% vs 59.2%) — deferred until ~100 first-flags.
+- Reversal 5/5-vs-4/5 score inversion: CLOSED in Analysis #7 as a cap-mix confound, then wrongly reopened in #12 and #13. It is a Medium-cap artifact (Medium 4/5 runs 19/23 while Large is ~32% at every tier); within cap there is no inversion. Report score tiers cap-stratified and stop proposing a 5-point-score restructure on the pooled figure.
+- Reversal signal drought from 2026-07 on: EXPLAINED, not a defect. The market is in a broad decline, so almost nothing sets up as a parabolic short and the router sends candidates to the bounce bucket instead. State the reversal first-flag count for the cycle and move on — do not open it as a finding, and do not treat a stalled reversal counter as a reason to defer other work.
 
 ## Statistical guardrails — follow strictly
 - Do NOT recommend a threshold change based on any cell (bucket x cap x criterion) with n < {MIN_CELL_N}. Say "insufficient sample" instead.
-- Prefer pooled-across-cap conclusions at current sample sizes.
+- Prefer pooled-across-cap conclusions at current sample sizes, EXCEPT where cap is itself the variable under test — reversal outcomes differ sharply by cap, so any reversal score-tier claim must be cap-stratified.
+- Count clusters, not rows, when judging whether a cell is really at n >= {MIN_CELL_N}. A cell of 20 first-flags drawn from 3 cluster_ids is 3 observations wearing a costume; say so rather than clearing the gate on the row count.
 - When you cite a rate, include the count (e.g. "4/19"). Note that a 30% vs 50% difference on n<30 is usually noise.
 - Distinguish "the scanner is wrong" from "the scanner is early": use days_to_1atr and adverse_before_fav_atr.
 
 ## Output format
 ### PERFORMANCE SUMMARY
+Give per-bucket first-flag tradeable_3d both ways: pooled (x/y) and cluster-weighted, plus the number of distinct cluster_ids behind each. Name any cluster contributing more than a quarter of a bucket's first-flags.
 ### EARLINESS ANALYSIS
 Is the reversal scanner early? Quantify using days_to_1atr and adverse_before_fav_atr. Would waiting for a confirmation trigger (or a long-first tactic) have helped, based on this data?
 ### CRITERIA EFFECTIVENESS
