@@ -46,6 +46,7 @@ SIGNAL_GATE = 15
 CLAUDE_BIN = "/opt/homebrew/bin/claude"
 MIN_CELL_N = 20
 EPISODE_GAP = 3  # keep in sync with signal_scorecard.EPISODE_GAP
+CLUSTER_DAY_THRESHOLD = 15  # keep in sync with priority_report.CLUSTER_DAY_THRESHOLD
 
 
 def load_state() -> dict:
@@ -202,6 +203,45 @@ def _entry_r_block(bucket_rows: list[dict]) -> list[str]:
     return out
 
 
+def _breadth_block(bucket_rows: list[dict]) -> list[str]:
+    """Realised R by same-session breadth (how many surfaced windows fired).
+
+    This is the table that recalibrates CLUSTER_DAY_THRESHOLD. It reports
+    SESSIONS, not rows, as the effective n — a band can show 168 rows off two
+    sessions, which is how a "+1.72R" market-wide figure drawn from 4 sessions
+    read as solid when it was not. Never quote a band's R without its sessions.
+    """
+    def xr(r):
+        try:
+            return float(r["exit_r"])
+        except (TypeError, ValueError, KeyError):
+            return None
+
+    surfaced_per_session: dict[str, int] = {}
+    for r in bucket_rows:
+        if _cohort(r) == COHORT_SURFACED:
+            d = r.get("target_date", "")
+            surfaced_per_session[d] = surfaced_per_session.get(d, 0) + 1
+
+    scored = [(r, xr(r)) for r in bucket_rows]
+    scored = [(r, v) for r, v in scored if v is not None]
+    if not scored:
+        return []
+
+    out = ["  BREADTH -> REALISED R (windows open that session; sessions = effective n)"]
+    for lo, hi, lab in ((0, 2, "0-2"), (3, 6, "3-6"), (7, 14, "7-14"), (15, 10 ** 9, "15+")):
+        sub = [(r, v) for r, v in scored
+               if lo <= surfaced_per_session.get(r.get("target_date", ""), 0) <= hi]
+        if not sub:
+            continue
+        vals = [v for _, v in sub]
+        sess = len({r.get("target_date") for r, _ in sub})
+        wins = sum(1 for v in vals if v > 0)
+        out.append(f"    {lab:<6} sessions {sess:>3}  rows {len(vals):>4}  "
+                   f"EV {sum(vals)/len(vals):>+6.2f}R  win {wins/len(vals)*100:>5.1f}%")
+    return out
+
+
 def build_cohort_block(rows: list[dict]) -> str:
     """Pre-computed entry-bar tables.
 
@@ -275,6 +315,11 @@ def build_cohort_block(rows: list[dict]) -> str:
 
         # -- Entry-anchored magnitude (the trader's actual rule) --------------
         block = _entry_r_block(b)
+        if block:
+            out.extend(block)
+
+        # -- Breadth: the table that recalibrates the cluster-day threshold ---
+        block = _breadth_block(b)
         if block:
             out.extend(block)
 
@@ -376,6 +421,8 @@ Answer one question per bucket: does clearing the entry bar (score >= 4) actuall
 - Do NOT apply first-flag filtering to control rows or cite a control first-flag count. A ticker that sits below the bar for weeks produces one first-flag dated to whenever the observation window opened; the control tables above are deliberately computed over all rows for this reason.
 - Weigh the ENTRY-ANCHORED MAGNITUDE table most heavily. tradeable_3d measures MFE from the D0 OPEN, which structurally under-credits the core setup: a gap-down that flushes BELOW the open and reverses scores negative even when buying the flush paid. entry_r replays the trader's live 2-min prior-bar-break rule (LOD-recency gate, stop at the low of day) and measures MFE in R from the price that rule would actually have filled at. When entry_r and tradeable_3d disagree, entry_r is the truer read. Report entry_r as a distribution (median, >=1R share), never as a pass/fail rate — it is deliberately a continuous magnitude scale so a bigger bounce rates higher.
 - entry_r caveats to state whenever you cite it: (a) it is MAXIMUM FAVOURABLE EXCURSION, not realised P&L — capturing it still requires an exit rule, so never present median entry_r as expected profit; (b) it is D0-only, and this scanner is known to fire early, so signals that set up on D+1/D+2 are scored as though they produced nothing; (c) no slippage or commission. entry_r_floored applies a 0.5-ATR risk floor, but signal-day atr_pct is inflated by the selloff (median ~16%), so that floor imposes an unrealistically large minimum risk and reads far lower — prefer entry_r and mention the floored figure only as a conservative bound.
+### BREADTH / CLUSTER DAY
+Read the BREADTH -> REALISED R table. The report's CLUSTER DAY banner fires at {CLUSTER_DAY_THRESHOLD} surfaced bounce windows; it was raised from 7 on 2026-08-03 because the 7-14 band measured -0.50R across 10 sessions while firing "outsized opportunity day, lean aggressive". State each band's EV with its SESSION count, never rows alone. If the 15+ band has reached {MIN_CELL_N} sessions, say the threshold can now be recalibrated with real power and give the number; if it has not, say how many sessions it stands at and explicitly withhold a recommendation. Flag it if any band's sign has flipped versus the table in the priority_report comment.
 ### CRITERIA EFFECTIVENESS
 ### THRESHOLD RECOMMENDATIONS
 For each (only if guardrails allow), one line:

@@ -930,14 +930,40 @@ def _build_high_edge_banner_html(priority_list: List[Dict]) -> str:
 # ---------------------------------------------------------------------------
 # Cluster signal — "outsized opportunity day" flag
 # ---------------------------------------------------------------------------
-# Same-day candidate counts in bounce_data.csv are bimodal: normal days carry
-# 1-3 candidates; the historic cluster days carry 7-16 (2/5/18 Volmageddon 7,
-# 5/12/22 growth capitulation 16, 8/5/24 yen-carry unwind 12, 4/7/25 tariff
-# crash 15). There is a clean gap between 3 and 7 — the thresholds sit in it.
-# Cluster-day edge (Bounce Play playbook, n=36): median open-to-high +24.2%
-# vs +9.0% solo; overnight gap-up 11/11 with median +10.6% incremental.
-CLUSTER_DAY_THRESHOLD = 7    # >= this many bounce OPEN windows -> CLUSTER DAY
-CLUSTER_WATCH_THRESHOLD = 4  # >= this -> elevated, worth a heads-up
+# Thresholds re-derived 2026-08-03 against REALISED R (data/signal_outcomes.csv
+# `exit_r`: live 2-min break entry, +1.5-ATR-armed trailing exit).
+#
+#   watchlist windows | sessions | rows |     EV | win%
+#   0-2               |       13 |  358 | -0.77R |  28%
+#   3-6               |       12 |  456 | -0.37R |  34%
+#   7-14              |       10 |  149 | -0.50R |  32%   <- old CLUSTER band
+#   15+               |        2 |  168 | +1.31R |  58%
+#
+# The old thresholds (7 / 4) came from same-day candidate counts in
+# bounce_data.csv — a HINDSIGHT-CURATED count of how many setups the book
+# recorded that day. They were then applied to a different quantity entirely:
+# how many watchlist names score >= 4 live. That unit mismatch is why CLUSTER
+# fired at 7 on a band that measures -0.50R, printing "lean aggressive" on days
+# that lose money.
+#
+# Corroboration from the 4.5-year market-wide screen (data/score_ev_study.csv):
+# 0-2 names +0.08R (536 sessions), 3-10 -0.04R (110 sessions) — low breadth is
+# reliably worth ~zero.
+#
+# CAUTION ON THE UPPER BAND: 15+ rests on just TWO sessions (2026-07-17,
+# 2026-07-28). The defensible claim is "stop firing on a band measured negative
+# across 10 sessions", NOT "15 is the right number". Revisit once 15+ reaches
+# ~20 sessions. Under-firing is the safer error here, but it is still an error.
+CLUSTER_DAY_THRESHOLD = 15   # >= this many bounce OPEN windows -> CLUSTER DAY
+CLUSTER_WATCH_THRESHOLD = 7  # >= this -> elevated breadth, NO measured edge
+
+# Realised-R context per band, surfaced in the banner. Sessions, not rows, is
+# the effective n — quoting an R figure without it is how the market-wide
+# "+1.72R" (4 sessions) read as solid when it was not.
+CLUSTER_BAND_EV = {
+    "CLUSTER": {"ev": "+1.31R", "win": "58%", "sessions": 2},
+    "WATCH":   {"ev": "-0.50R", "win": "32%", "sessions": 10},
+}
 
 
 def compute_cluster_signal(priority_list: List[Dict]) -> Dict:
@@ -946,6 +972,11 @@ def compute_cluster_signal(priority_list: List[Dict]) -> Dict:
     Returns {level: 'CLUSTER'|'WATCH'|None, bounce_open: int, total_open: int}.
     Counts the bounce bucket only — reversal/breakout windows don't carry the
     cluster-day edge (correlated sector capitulation) this flag encodes.
+
+    'CLUSTER' is the only level with a measured positive edge. 'WATCH' means
+    elevated breadth with NO measured edge (-0.50R over 10 sessions) — it exists
+    so an unusually busy morning is visible, not to justify sizing up. Callers
+    must not treat WATCH as a weaker CLUSTER; see CLUSTER_BAND_EV above.
     """
     bounce_open = sum(1 for p in priority_list if p.get("bucket") == "bounce")
     if bounce_open >= CLUSTER_DAY_THRESHOLD:
@@ -959,19 +990,30 @@ def compute_cluster_signal(priority_list: List[Dict]) -> Dict:
 
 def _build_cluster_banner_html(cluster: Optional[Dict]) -> str:
     """Banner injected directly under the report header when the cluster signal
-    fires. CLUSTER = red, playbook reminders inline; WATCH = amber heads-up."""
+    fires.
+
+    CLUSTER (>= CLUSTER_DAY_THRESHOLD) is the only band with a measured positive
+    edge, and it carries the aggressive playbook. WATCH is deliberately NEUTRAL:
+    that band measured -0.50R over 10 sessions, so it must read as "breadth is
+    up, no edge at this level" and never as a weaker buy signal. Every R figure
+    ships with its session count — quoting one without that is how a 4-session
+    "+1.72R" read as solid when it was not.
+    """
     if not cluster or not cluster.get("level"):
         return ""
     n = cluster["bounce_open"]
+    ev = CLUSTER_BAND_EV.get(cluster["level"], {})
     if cluster["level"] == "CLUSTER":
         return (
             f'<div style="background-color: #3d1214; border: 2px solid #f85149; '
             f'border-radius: 6px; padding: 12px 16px; margin-bottom: 16px;">'
             f'<div style="font-size: 1.25em; font-weight: bold; color: #f85149;">'
-            f'&#9873; CLUSTER DAY &mdash; {n} bounce windows open (threshold {CLUSTER_DAY_THRESHOLD})</div>'
-            f'<div style="color: #e6edf3; margin-top: 6px;">Outsized opportunity day. '
-            f'Historical comps: 2/5/18, 5/12/22, 3/13/23, 8/5/24, 4/7/25. '
-            f'Cluster days: median high +24.2% vs +9.0% solo; overnight gap-up 11/11 (median +10.6% incremental).</div>'
+            f'&#9873; CLUSTER DAY &mdash; {n} bounce windows open (fires at {CLUSTER_DAY_THRESHOLD})</div>'
+            f'<div style="color: #e6edf3; margin-top: 6px;">Broad capitulation &mdash; the only band with a '
+            f'measured edge: <b>{ev.get("ev", "n/a")} realised, {ev.get("win", "n/a")} win</b> '
+            f'<span style="color:#8b949e;">(thin: {ev.get("sessions", "?")} sessions &mdash; direction is '
+            f'corroborated market-wide, the magnitude is not calibrated)</span>. '
+            f'Historical comps: 2/5/18, 5/12/22, 3/13/23, 8/5/24, 4/7/25.</div>'
             f'<ul style="color: #c9d1d9; margin: 8px 0 0 0; padding-left: 20px;">'
             f'<li>Single stocks &gt; ETFs for upside (+36.9% vs +7.4% median high)</li>'
             f'<li>Scale out from 1 ATR; stretch target 2&ndash;3 ATR &mdash; do not sell it all into the first push</li>'
@@ -981,12 +1023,14 @@ def _build_cluster_banner_html(cluster: Optional[Dict]) -> str:
             f'</ul></div>'
         )
     return (
-        f'<div style="background-color: #3a2d0e; border: 2px solid #d29922; '
+        f'<div style="background-color: #21262d; border: 1px solid #30363d; '
         f'border-radius: 6px; padding: 10px 16px; margin-bottom: 16px;">'
-        f'<span style="font-weight: bold; color: #d29922;">&#9888; CLUSTER WATCH &mdash; '
+        f'<span style="font-weight: bold; color: #8b949e;">BREADTH &mdash; '
         f'{n} bounce windows open</span>'
-        f'<span style="color: #c9d1d9;"> (cluster day fires at {CLUSTER_DAY_THRESHOLD}). '
-        f'Elevated vs the 0&ndash;3 baseline &mdash; check whether the candidates share a sector/theme.</span></div>'
+        f'<span style="color: #8b949e;"> (cluster day fires at {CLUSTER_DAY_THRESHOLD}). '
+        f'<b>No edge measured at this level</b>: {ev.get("ev", "n/a")} realised, '
+        f'{ev.get("win", "n/a")} win over {ev.get("sessions", "?")} sessions. '
+        f'Trade the individual setup on its own merit &mdash; this count is not a reason to size up.</span></div>'
     )
 
 
@@ -1962,7 +2006,9 @@ def _send_report(html: str, go_count: int, caution_count: int, inline_images=Non
     if cluster and cluster.get("level") == "CLUSTER":
         subject = f"🚨 CLUSTER DAY ({cluster['bounce_open']} bounce) — {subject}"
     elif cluster and cluster.get("level") == "WATCH":
-        subject = f"⚠️ Cluster Watch ({cluster['bounce_open']} bounce) — {subject}"
+        # Plain text, no warning glyph: this band measures -0.50R over 10
+        # sessions. A ⚠️ prefix reads as significance the number does not have.
+        subject = f"Breadth {cluster['bounce_open']} — {subject}"
 
     # Hand the TTS line to run_priority_report.bat so the spoken alert carries
     # the signal, not just "report sent". Non-fatal.
