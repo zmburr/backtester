@@ -159,15 +159,53 @@ def _row_from_entry(entry: Dict, source: str, session: str, date_str: str) -> Di
     return row
 
 
+_CONFLICT_PREFIXES = ("<<<<<<<", "=======", ">>>>>>>")
+
+
+def _has_conflict_markers() -> bool:
+    """True when the ledger holds unresolved git conflict markers.
+
+    Appending onto a conflicted file grows the corruption and silently skews
+    every downstream consumer (2026-08-03: a stash apply left both sides of one
+    day's rows in place, so the file's max date parsed as '>>>>>>> Stashed
+    changes'). Cheap to check, and the alternative is unbounded damage.
+    """
+    if not LEDGER_PATH.exists():
+        return False
+    try:
+        with open(LEDGER_PATH, newline="") as f:
+            return any(line.startswith(_CONFLICT_PREFIXES) for line in f)
+    except Exception as e:  # noqa: BLE001 - a read failure is handled by the caller
+        logger.warning(f"signal_ledger: conflict-marker scan failed: {e}")
+        return False
+
+
 def _load_existing_keys() -> set:
-    """Return the set of identity tuples already present in the ledger."""
+    """Return the set of identity tuples already present in the ledger.
+
+    Also warns on duplicate identity keys. The union merge driver configured in
+    .gitattributes resolves cross-machine appends by keeping every unique LINE,
+    so a row that was outcome-filled on two machines with different
+    outcome_filled_date values survives twice. Consumers dedupe on this same key,
+    but a silent duplicate would inflate any raw row count — so surface it.
+    """
     keys: set = set()
     if not LEDGER_PATH.exists():
         return keys
     try:
+        dupes = 0
         with open(LEDGER_PATH, newline="") as f:
             for r in csv.DictReader(f):
-                keys.add(tuple(r.get(k, "") for k in _IDENTITY_KEYS))
+                key = tuple(r.get(k, "") for k in _IDENTITY_KEYS)
+                if key in keys:
+                    dupes += 1
+                keys.add(key)
+        if dupes:
+            logger.warning(
+                f"signal_ledger: {dupes} duplicate identity key(s) in "
+                f"{LEDGER_PATH.name} — likely a union merge of two machines' "
+                f"appends. Dedupe on {_IDENTITY_KEYS} before counting rows."
+            )
     except Exception as e:  # noqa: BLE001 - never let a read error break logging
         logger.warning(f"signal_ledger: failed to read existing keys: {e}")
     return keys
@@ -194,6 +232,12 @@ def log_signals(source: str, session: str, scored: List[Dict],
     """
     try:
         if not scored:
+            return 0
+        if _has_conflict_markers():
+            logger.warning(
+                f"signal_ledger: {LEDGER_PATH.name} has unresolved conflict markers — "
+                f"refusing to append {len(scored)} rows. Resolve the conflict, then re-run."
+            )
             return 0
         if date_str is None:
             date_str = datetime.datetime.now().strftime("%Y-%m-%d")

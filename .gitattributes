@@ -1,0 +1,17 @@
+# signal_ledger.csv is append-only fact logging, written by cron on more than one
+# machine. When two machines both append, git's default merge produces conflict
+# markers INSIDE the CSV — which parse as data and silently corrupt every
+# downstream consumer (2026-08-03: the file's max date read as ">>>>>>> Stashed
+# changes"). "Keep both sides" is always the correct resolution here, which is
+# exactly what a union merge does automatically.
+#
+# Caveat: union keeps every unique LINE, so if the same row is outcome-filled on
+# two machines with different outcome_filled_date values, both versions survive as
+# duplicate identity keys. That is recoverable (log_signals warns on duplicates and
+# consumers dedupe on date/session/source/ticker/bucket) and is strictly better
+# than the corruption it replaces.
+data/signal_ledger.csv merge=union
+
+# Binary — never attempt a textual merge, and keep diffs out of the log.
+*.parquet binary
+*.pkl binary

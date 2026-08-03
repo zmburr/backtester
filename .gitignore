@@ -33,6 +33,19 @@ data/backscanner_cache/
 data/options_replay_cache/
 data/batch_results/
 
+# Polygon daily-bar cache (regenerable — TickerCache refetches on a miss).
+# Previously tracked: 295 binary parquet files rewritten by every scanner run,
+# which the 30-minute auto-sync could not merge. Every stash/pop across machines
+# conflicted on them and left unrelated files staged, repeatedly contaminating
+# the index (see the Jul 8 autostash recovery and the Aug 3 ledger conflict).
+data/ticker_cache/
+
+# bounce_entry_study 1-min bar cache (regenerable — fetch_bars.fetch_day refetches).
+# Same class as data/iv_study/*.pkl above: 49MB of Polygon bars that grow by ~1
+# file per ticker-day scored. Tracking them repeats the ticker_cache mistake.
+data/bounce_entry_study/*.pkl
+data/bounce_entry_study/daily/*.pkl
+
 # Generated report outputs (PDFs, HTML) — top-level only
 /reports/
 scripts/reports/
