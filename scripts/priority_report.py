@@ -1233,6 +1233,13 @@ def generate_priority_report() -> str:
         # === Phase 3: Filter → keep tradeable tiers (GO + CAUTION = "OPEN"), excluding breakout bucket ===
         priority = [s for s in scored if s["rec"] in ("GO", "CAUTION") and s["bucket"] != "breakout"]
 
+        # Control cohort: everything that FAILED the entry bar. Scored over the
+        # same D0..D+3 window as `priority` so the bar itself becomes testable —
+        # without it the feedback loop only ever measures signals that already
+        # cleared the bar, and "does score >= 4 beat score <= 3?" is unanswerable.
+        control = [s for s in scored
+                   if s["rec"] == "NO-GO" and s["bucket"] in ("bounce", "reversal")]
+
         # Continuous intensity — computed BEFORE sorting/summary/subject so the
         # highest-edge name leads the report instead of hiding mid-list.
         for item in priority:
@@ -1447,6 +1454,9 @@ def generate_priority_report() -> str:
         # === Phase 4.5: Save signals to JSON for Signal Scorecard ===
         _save_signals_to_json(priority, go_ct, cau_ct, comps_map, cluster=cluster,
                               setup_match_map=setup_match_map)
+        # Control lane — separate directory, no enrichment. Never merge this into
+        # the call above: priority_signals/*.json is the morning watcher's input.
+        _save_signals_to_json(control, 0, 0, out_dir=_CONTROL_DIR, enrich=False)
 
         # === Phase 4.75: Render top-3 comp charts for the addendum ===
         # 1-year daily chart ending on each comp's trade date. Deduped across
@@ -1508,6 +1518,15 @@ def generate_priority_report() -> str:
 
 
 _SIGNAL_DIR = _DATA_DIR / "priority_signals"
+
+# Below-bar (NO-GO) signals, written to a SEPARATE directory so the surfaced
+# lane stays byte-identical — the orderPipe morning watcher reads
+# priority_signals/<today>_morning.json and must never see control rows.
+# These exist purely so the scorecard can score the counterfactual: does the
+# score >= 4 entry bar actually select winners out of the watchlist? Until this
+# lane existed the feedback loop only ever saw signals that cleared the bar, so
+# the bar itself was untestable.
+_CONTROL_DIR = _DATA_DIR / "control_signals"
 
 # Metrics to persist per bucket (safe subset of the full metrics dict)
 _REVERSAL_METRIC_KEYS = [
@@ -1771,13 +1790,22 @@ def _safe_int(v):
 def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: int,
                           comps_map: Optional[Dict[str, pd.DataFrame]] = None,
                           cluster: Optional[Dict] = None,
-                          setup_match_map: Optional[Dict] = None):
-    """Save GO/CAUTION signals to a date-stamped JSON file for the Signal Scorecard
+                          setup_match_map: Optional[Dict] = None,
+                          out_dir: Optional[Path] = None,
+                          enrich: bool = True):
+    """Save signals to a date-stamped JSON file for the Signal Scorecard
     and the morning watcher. Bounce signals additionally carry their historical
     analogs (Phase-4a comps) and empirical odds; the payload carries the bounce
-    cohort stats the watcher's live checkpoints compare against."""
+    cohort stats the watcher's live checkpoints compare against.
+
+    ``out_dir`` defaults to _SIGNAL_DIR (the surfaced GO/CAUTION lane). Pass
+    _CONTROL_DIR with ``enrich=False`` to write the below-bar control cohort:
+    the scorecard only reads ticker/bucket/cap/recommendation/score/metrics, and
+    the analogs / odds / setup-stats lookups are expensive and watcher-only.
+    """
+    out_dir = out_dir or _SIGNAL_DIR
     try:
-        _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
         session = current_session(now)
         date_str = now.strftime("%Y-%m-%d")
@@ -1809,13 +1837,13 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
             # the scorecard see the same number the report surfaces (7/17: the
             # 88 lived only in the email HTML — unvalidatable after the fact).
             li = item.get("live_intensity")
-            if li is not None:
+            if enrich and li is not None:
                 signal_entry["intensity"] = round(float(li), 1)
                 signal_entry["high_edge"] = bool(_is_high_edge(item))
 
             # Carry the archetype flag through for scorecard feedback-loop analysis.
             # Only reversals populate this; bounces leave it out.
-            if bucket == "reversal":
+            if enrich and bucket == "reversal":
                 sr = item.get("score_result")
                 if isinstance(sr, dict):
                     signal_entry["archetype_passed"] = sr.get("archetype_passed")
@@ -1855,7 +1883,7 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
 
             # Bounce signals carry their historical analogs + empirical odds so
             # the morning watcher can show "days like this" context live.
-            if bucket == "bounce":
+            if enrich and bucket == "bounce":
                 if comps_map is not None:
                     analogs = _analogs_payload(comps_map.get(item["ticker"]))
                     if analogs is not None:
@@ -1886,12 +1914,12 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
 
         # Cohort stats (curated bounce_data.csv) for the watcher's live
         # low-timing / early-vol checkpoints. Only included when relevant.
-        if any(s["bucket"] == "bounce" for s in signals):
+        if enrich and any(s["bucket"] == "bounce" for s in signals):
             cohort = _bounce_cohort_payload()
             if cohort is not None:
                 payload["bounce_cohort"] = cohort
 
-        out_path = _SIGNAL_DIR / f"{date_str}_{session}.json"
+        out_path = out_dir / f"{date_str}_{session}.json"
         # numpy types (np.bool_, np.float64, etc) sneak in from the scoring
         # pipeline — coerce them to native Python types so json.dumps works.
         out_path.write_text(json.dumps(payload, indent=2, default=_json_default))

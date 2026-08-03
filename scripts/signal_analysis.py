@@ -79,18 +79,228 @@ def _extract_section(filepath: Path, start_marker: str, max_lines: int) -> str:
 
 MAX_PROMPT_ROWS = 400  # keep the prompt bounded as the log grows
 
+COHORT_CONTROL = "control"
+COHORT_SURFACED = "surfaced"
+
+
+def _cohort(row: dict) -> str:
+    return (row.get("cohort") or COHORT_SURFACED).strip() or COHORT_SURFACED
+
+
+def _score_num(row: dict):
+    """Numeric score out of the 'N/M' score string, or None."""
+    head = str(row.get("score") or "").split("/", 1)[0].strip()
+    try:
+        return int(head)
+    except ValueError:
+        return None
+
+
+def _rate(rows: list[dict]) -> dict | None:
+    """tradeable_3d pooled AND cluster-weighted, with the cluster count.
+
+    Cluster-weighting averages within each cluster_id first, then averages those
+    means — so a 19-signal single-session wave counts once, not nineteen times.
+    """
+    if not rows:
+        return None
+    hits = sum(1 for r in rows if str(r.get("tradeable_3d")).lower() == "true")
+    by_cluster: dict[str, list] = {}
+    for r in rows:
+        by_cluster.setdefault(r.get("cluster_id") or "", []).append(r)
+    means = [sum(1 for x in g if str(x.get("tradeable_3d")).lower() == "true") / len(g)
+             for g in by_cluster.values()]
+    return {
+        "n": len(rows), "hits": hits,
+        "pooled": round(hits / len(rows) * 100, 1),
+        "cw": round(sum(means) / len(means) * 100, 1),
+        "clusters": len(by_cluster),
+    }
+
+
+def _fmt_rate(label: str, r: dict | None) -> str:
+    if not r:
+        return f"{label:<34} (no rows)"
+    return (f"{label:<34} {r['hits']:>4}/{r['n']:<5} = {r['pooled']:>5.1f}%   "
+            f"cluster-weighted {r['cw']:>5.1f}%   ({r['clusters']} clusters)")
+
+
+def _paired_sessions(rows: list[dict], bucket: str) -> list[tuple]:
+    """Per-session (surfaced_rate, control_rate) pairs for one bucket.
+
+    Sessions where either cohort is absent are dropped — an unpaired session
+    contributes nothing to a within-session comparison.
+    """
+    by_sess: dict[str, dict] = {}
+    for r in rows:
+        if r.get("bucket") != bucket:
+            continue
+        slot = by_sess.setdefault(r.get("target_date", ""), {COHORT_SURFACED: [], COHORT_CONTROL: []})
+        slot[_cohort(r)].append(r)
+
+    def _hit_rate(g):
+        return sum(1 for x in g if str(x.get("tradeable_3d")).lower() == "true") / len(g)
+
+    out = []
+    for date, slot in sorted(by_sess.items()):
+        s, c = slot[COHORT_SURFACED], slot[COHORT_CONTROL]
+        if s and c:
+            out.append((date, _hit_rate(s), len(s), _hit_rate(c), len(c)))
+    return out
+
+
+def _median(v):
+    v = sorted(v)
+    return v[len(v) // 2] if v else None
+
+
+def _entry_r_block(bucket_rows: list[dict]) -> list[str]:
+    """Entry-anchored magnitude, replayed through the live 2-min entry rule.
+
+    entry_r is a CONTINUOUS scale (MFE in R off the real LOD stop), not a
+    binary — a bigger bounce scores higher. It is the only measure here anchored
+    at a price the rules would actually have filled at, so it is the one to
+    trust when it disagrees with the open-anchored tradeable_3d.
+    """
+    def er(r):
+        try:
+            return float(r["entry_r"])
+        except (TypeError, ValueError, KeyError):
+            return None
+
+    scored = [(r, er(r)) for r in bucket_rows]
+    scored = [(r, v) for r, v in scored if v is not None]
+    if not scored:
+        return []
+
+    out = ["  ENTRY-ANCHORED MAGNITUDE (live 2-min break rule, D0, MFE in R off the LOD stop)"]
+    for label, sel in (("surfaced", COHORT_SURFACED), ("control", COHORT_CONTROL)):
+        vals = [v for r, v in scored if _cohort(r) == sel]
+        if vals:
+            out.append(f"    {label:<10} n={len(vals):<5} median {_median(vals):>5.2f}R   "
+                       f"mean {sum(vals)/len(vals):>5.2f}R   "
+                       f">=1R {sum(1 for v in vals if v >= 1)/len(vals)*100:>4.1f}%")
+
+    # paired within session, on medians
+    by: dict[str, dict] = {}
+    for r, v in scored:
+        slot = by.setdefault(r.get("target_date", ""), {COHORT_SURFACED: [], COHORT_CONTROL: []})
+        slot[_cohort(r)].append(v)
+    diffs = [_median(s[COHORT_SURFACED]) - _median(s[COHORT_CONTROL])
+             for s in by.values() if s[COHORT_SURFACED] and s[COHORT_CONTROL]]
+    if diffs:
+        out.append(f"    PAIRED per-session edge: mean {sum(diffs)/len(diffs):+.2f}R   "
+                   f"median {_median(diffs):+.2f}R   surfaced won "
+                   f"{sum(1 for d in diffs if d > 0)}/{len(diffs)} sessions")
+
+    out.append("    by score (median entry_r):")
+    for s in range(7):
+        vals = [v for r, v in scored if _score_num(r) == s]
+        if vals:
+            out.append(f"      score {s}: n={len(vals):<5} median {_median(vals):>5.2f}R   "
+                       f">=1R {sum(1 for v in vals if v >= 1)/len(vals)*100:>4.1f}%")
+    return out
+
+
+def build_cohort_block(rows: list[dict]) -> str:
+    """Pre-computed entry-bar tables.
+
+    Control rows are NOT sent as raw CSV: they outnumber surfaced rows ~10:1 and
+    would consume the whole MAX_PROMPT_ROWS budget. Aggregating in Python also
+    removes an arithmetic failure mode — the model reads conclusions off exact
+    counts instead of summing hundreds of rows by hand.
+
+    Two deliberate design choices, both of which the prompt explains:
+
+    1. Control rates are computed over ALL rows, not first-flags. Episode
+       chaining assumes a re-flag double-counts one move; a ticker that sits
+       below the bar for a month instead yields exactly ONE first-flag, dated to
+       whenever the observation window happened to open. On the 2026-08-03
+       backfill, 70 of 127 control first-flags landed on the window's opening
+       day. First-flag filtering is right for surfaced signals and meaningless
+       for a persistent cohort.
+    2. The headline test is PAIRED WITHIN SESSION. Surfaced signals concentrate
+       on days when everything worked, so an unpaired pooled comparison mostly
+       measures which days each cohort appeared on, not whether the bar selects.
+    """
+    out: list[str] = []
+
+    for bucket in ("bounce", "reversal"):
+        b = [r for r in rows if r.get("bucket") == bucket]
+        if not b:
+            continue
+        ctrl = [r for r in b if _cohort(r) == COHORT_CONTROL]
+        surf = [r for r in b if _cohort(r) == COHORT_SURFACED]
+        out.append(f"\n{bucket.upper()}")
+
+        if not ctrl:
+            out.append("  No control rows yet for this bucket — the entry bar is NOT testable here.")
+            out.append(_fmt_rate("  surfaced first-flags", _rate(
+                [r for r in surf if str(r.get("episode_signal_num", "")) == "1"])))
+            continue
+
+        # -- Headline: paired within-session comparison -----------------------
+        pairs = _paired_sessions(b, bucket)
+        out.append(f"  PAIRED WITHIN-SESSION TEST ({len(pairs)} sessions with both cohorts present)")
+        if pairs:
+            diffs = [s - c for _, s, _, c, _ in pairs]
+            wins = sum(1 for d in diffs if d > 0)
+            losses = sum(1 for d in diffs if d < 0)
+            mean_d = sum(diffs) / len(diffs)
+            med_d = sorted(diffs)[len(diffs) // 2]
+            out.append(f"    mean per-session edge (surfaced - control): {mean_d * 100:+.1f} pp")
+            out.append(f"    median per-session edge:                    {med_d * 100:+.1f} pp")
+            out.append(f"    sessions surfaced won / lost:               {wins} / {losses}")
+            out.append("    per-session detail (surfaced hits/n vs control hits/n):")
+            for date, sr, sn, cr, cn in pairs:
+                out.append(f"      {date}  surfaced {sr * 100:>5.1f}% (n={sn:<3})  "
+                           f"control {cr * 100:>5.1f}% (n={cn:<3})  {(sr - cr) * 100:>+6.1f} pp")
+
+        # -- Score curve: does tradeable_3d rise with score? ------------------
+        out.append("  SCORE CURVE (all rows, cluster-weighted by session)")
+        for s in range(7):
+            sub = [r for r in b if _score_num(r) == s]
+            if not sub:
+                continue
+            cohorts = "+".join(sorted({_cohort(r) for r in sub}))
+            out.append(_fmt_rate(f"    score {s} [{cohorts}]", _rate(sub)))
+        out.append(_fmt_rate("    BELOW BAR (score <= 3)",
+                             _rate([r for r in b if (_score_num(r) if _score_num(r) is not None else 99) <= 3])))
+        out.append(_fmt_rate("    AT/ABOVE BAR (score >= 4)",
+                             _rate([r for r in b if (_score_num(r) if _score_num(r) is not None else -1) >= 4])))
+
+        # -- Surfaced first-flags, unchanged, for continuity with prior cycles
+        out.append(_fmt_rate("    surfaced first-flags (as in prior analyses)", _rate(
+            [r for r in surf if str(r.get("episode_signal_num", "")) == "1"])))
+
+        # -- Entry-anchored magnitude (the trader's actual rule) --------------
+        block = _entry_r_block(b)
+        if block:
+            out.extend(block)
+
+    if not out:
+        return "(no rows scored yet — entry-bar test not yet possible)"
+    return "\n".join(out)
+
 
 def build_prompt(rows: list[dict], state: dict) -> str:
     analysis_num = state.get("analysis_number", 0) + 1
 
-    recent = sorted(rows, key=lambda r: r.get("target_date", ""))[-MAX_PROMPT_ROWS:]
-    omitted = len(rows) - len(recent)
-    header = list(recent[0].keys())
+    # The raw table stays surfaced-only so the existing analysis is unchanged and
+    # the row budget is not eaten by control rows; control enters via aggregates.
+    surfaced = [r for r in rows if _cohort(r) == COHORT_SURFACED]
+    control = [r for r in rows if _cohort(r) == COHORT_CONTROL]
+
+    recent = sorted(surfaced, key=lambda r: r.get("target_date", ""))[-MAX_PROMPT_ROWS:]
+    omitted = len(surfaced) - len(recent)
+    header = list(recent[0].keys()) if recent else []
     table = ",".join(header) + "\n"
     for r in recent:
         table += ",".join(str(r.get(c, "")) for c in header) + "\n"
     if omitted:
         table += f"\n({omitted} older signals omitted — totals above reflect the full log)\n"
+
+    cohort_block = build_cohort_block(rows)
 
     past = state.get("past_recommendations", [])
     past_text = "None — this is the first analysis on the v2 multi-day data." if not past else "\n".join(
@@ -101,11 +311,14 @@ def build_prompt(rows: list[dict], state: dict) -> str:
     bounce_thresholds = _extract_section(PROJECT_ROOT / "analyzers" / "bounce_scorer.py", "SETUP_PROFILES", 120)
 
     return f"""You are a quantitative trading systems analyst reviewing scanner signal performance.
-This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each scored over a D0..D+3 trading-day window).
+This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each scored over a D0..D+3 trading-day window): {len(surfaced)} surfaced (cleared the entry bar) and {len(control)} control (below-bar counterfactual).
 
 ## How signals are scored
 - bucket=reversal means SHORT thesis (favorable = down); bucket=bounce means LONG (favorable = up).
-- recommendation is GO or CAUTION only. There is no VETO cohort: the prior_day_rvol < 1.25 hard veto from Analysis #2 shipped 2026-06-10 and was removed again on 2026-07-30 (commit 32224a7e) without ever firing — it never emitted a single row, because the lowest prior_day_rvol on any post-deploy reversal was 1.286. Do NOT ask for the vetoed cohort's rate and do NOT re-derive the veto; that question is closed as untestable on this data.
+- There is no VETO cohort: the prior_day_rvol < 1.25 hard veto from Analysis #2 shipped 2026-06-10 and was removed again on 2026-07-30 (commit 32224a7e) without ever firing — it never emitted a single row, because the lowest prior_day_rvol on any post-deploy reversal was 1.286. Do NOT ask for the vetoed cohort's rate and do NOT re-derive the veto; that question is closed as untestable on this data.
+- cohort: 'surfaced' rows cleared the entry bar (recommendation GO or CAUTION, i.e. score >= 4) and are the signals actually acted on. 'control' rows are the below-bar NO-GO signals from the SAME watchlist scan, scored over the same D0..D+3 window purely as a counterfactual. Added 2026-08-03; before that the log contained surfaced rows only, which is why earlier analyses could compare GO vs CAUTION but never test the bar itself.
+- Episodes and clusters are numbered WITHIN cohort, so episode_id/cluster_id never mix the two. Never compare a surfaced row to a control row via episode_id, and never pool the cohorts into a single headline rate — control rows were not traded and are not a performance number. Use them only for the entry-bar question.
+- The signal-outcomes table below is SURFACED ROWS ONLY. The control cohort is supplied pre-aggregated in the 'Entry-bar cohorts' section, because it outnumbers the surfaced rows by ~10:1 and would otherwise crowd out the raw table. Treat those counts as exact — do not attempt to re-derive them.
 - d0_pct..d3_pct: cumulative close-vs-entry-open raw price move per day.
 - mfe_atr_3d / mae_atr_3d: max favorable / adverse excursion over the window in ATRs.
 - tradeable_3d: MFE hit the per-bucket gate at any point in the window (primary success metric). Bounce gate = min(0.5 x ATR, 6% absolute) — the playbook T1 target, capped because signal-day ATR is inflated by the selloff itself. Reversal gate = 1.0 x ATR.
@@ -116,8 +329,11 @@ This is Analysis #{analysis_num} with {len(rows)} fully-scored signals (each sco
 - cluster_id / cluster_size: the SECOND correlation axis, orthogonal to episodes. cluster_id = (bucket, target_date); cluster_size = how many distinct first-flags fired in that same session. Ten tickers flagging off one sector move share a single market event, so they are closer to one observation than ten — 2026-07-17 alone produced 13 bounce first-flags that ALL resolved tradeable. Episode chaining does not catch this. Whenever you report a pooled rate, also report the cluster-weighted rate (average within each cluster_id, then average those cluster means) and say which one you are drawing the conclusion from. If a cell's result is carried by one or two large clusters, say so explicitly and treat its effective n as the number of clusters, not the number of rows.
 - mfe_atr_3d / mae_atr_3d are stored rounded. Rows written before 2026-07-31 carry 2 decimals, so a displayed "1.0" can be a raw 0.997 — that is why some rows show mfe_atr_3d = 1.00 with a blank days_to_1atr. This is a display artifact, NOT a writer bug (the days_to_1atr comparison has always been >=). Do not raise it as a data-QA item.
 
-## Signal outcomes (complete windows only)
+## Signal outcomes (complete windows only) — SURFACED cohort
 {table}
+
+## Entry-bar cohorts (pre-aggregated, exact counts — surfaced + control)
+{cohort_block}
 
 ## Current thresholds (read-only context)
 Reversal CAP_THRESHOLDS (score >= 4 GO, == 3 CAUTION):
@@ -137,6 +353,8 @@ Bounce SETUP_PROFILES (score >= 5 GO, == 4 CAUTION):
 - gap_pct -> RVOL-tier score restructure: TESTED 2026-06-10, scored WORSE than the plain veto (18/33 = 54.5% vs 59.2%) — deferred until ~100 first-flags.
 - Reversal 5/5-vs-4/5 score inversion: CLOSED in Analysis #7 as a cap-mix confound, then wrongly reopened in #12 and #13. It is a Medium-cap artifact (Medium 4/5 runs 19/23 while Large is ~32% at every tier); within cap there is no inversion. Report score tiers cap-stratified and stop proposing a 5-point-score restructure on the pooled figure.
 - Reversal signal drought from 2026-07 on: EXPLAINED, not a defect. The market is in a broad decline, so almost nothing sets up as a parabolic short and the router sends candidates to the bounce bucket instead. State the reversal first-flag count for the cycle and move on — do not open it as a finding, and do not treat a stalled reversal counter as a reason to defer other work.
+- Bounce GO-vs-CAUTION separation: CLOSED as flat after three consecutive retests (#12, #13, #14). Do not re-run it. The open question is now the ENTRY BAR itself (score >= 4 vs <= 3), which the control cohort finally makes testable — that is a different question and it is NOT settled.
+- Control cohort provenance: backfilled 2026-08-03 from signal_ledger.csv for sessions 2026-07-09 onward. Backfilled control rows carry atr_pct, gap_pct, pct_change_3, prior_day_range_atr, pct_from_9ema, prior_day_rvol and premarket_rvol, but NOT the bounce depth features (selloff_total_pct, pct_off_30d_high, pct_off_52wk_high) — the ledger never stored those. So depth-criterion cuts remain surfaced-only until enough forward-logged control rows accumulate; say "control lacks this feature" rather than treating the blanks as data. The ledger holds no reversal rows for that period (the drought), so the reversal control cohort starts empty and fills going forward.
 
 ## Statistical guardrails — follow strictly
 - Do NOT recommend a threshold change based on any cell (bucket x cap x criterion) with n < {MIN_CELL_N}. Say "insufficient sample" instead.
@@ -150,6 +368,14 @@ Bounce SETUP_PROFILES (score >= 5 GO, == 4 CAUTION):
 Give per-bucket first-flag tradeable_3d both ways: pooled (x/y) and cluster-weighted, plus the number of distinct cluster_ids behind each. Name any cluster contributing more than a quarter of a bucket's first-flags.
 ### EARLINESS ANALYSIS
 Is the reversal scanner early? Quantify using days_to_1atr and adverse_before_fav_atr. Would waiting for a confirmation trigger (or a long-first tactic) have helped, based on this data?
+### ENTRY BAR
+Answer one question per bucket: does clearing the entry bar (score >= 4) actually predict a better outcome than failing it?
+- Draw your verdict from the PAIRED WITHIN-SESSION TEST, not from any pooled surfaced-vs-control number. Surfaced signals concentrate on days when everything worked, so a pooled comparison largely measures which days each cohort appeared on. Report the mean and median per-session edge and the win/loss session split, and treat the number of PAIRED SESSIONS as the effective n — if it is below {MIN_CELL_N}, say the question remains open and report the running numbers without a verdict.
+- A split near half the sessions is a coin flip no matter how large the pp gap looks; say so explicitly rather than reporting the gap alone.
+- Also report whether the rate is MONOTONIC in score across the SCORE CURVE table. A bar that selects should show tradeable_3d rising with score. If it is flat, say plainly that the score is not selecting and that its only defensible role is as a quantity limiter — then name which individual criteria DO separate, since a flat total built from two good criteria and four noisy ones is a weighting problem, not proof the features are worthless.
+- Do NOT apply first-flag filtering to control rows or cite a control first-flag count. A ticker that sits below the bar for weeks produces one first-flag dated to whenever the observation window opened; the control tables above are deliberately computed over all rows for this reason.
+- Weigh the ENTRY-ANCHORED MAGNITUDE table most heavily. tradeable_3d measures MFE from the D0 OPEN, which structurally under-credits the core setup: a gap-down that flushes BELOW the open and reverses scores negative even when buying the flush paid. entry_r replays the trader's live 2-min prior-bar-break rule (LOD-recency gate, stop at the low of day) and measures MFE in R from the price that rule would actually have filled at. When entry_r and tradeable_3d disagree, entry_r is the truer read. Report entry_r as a distribution (median, >=1R share), never as a pass/fail rate — it is deliberately a continuous magnitude scale so a bigger bounce rates higher.
+- entry_r caveats to state whenever you cite it: (a) it is MAXIMUM FAVOURABLE EXCURSION, not realised P&L — capturing it still requires an exit rule, so never present median entry_r as expected profit; (b) it is D0-only, and this scanner is known to fire early, so signals that set up on D+1/D+2 are scored as though they produced nothing; (c) no slippage or commission. entry_r_floored applies a 0.5-ATR risk floor, but signal-day atr_pct is inflated by the selloff (median ~16%), so that floor imposes an unrealistically large minimum risk and reads far lower — prefer entry_r and mention the floored figure only as a conservative bound.
 ### CRITERIA EFFECTIVENESS
 ### THRESHOLD RECOMMENDATIONS
 For each (only if guardrails allow), one line:

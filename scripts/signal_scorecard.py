@@ -41,7 +41,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("signal_scorecard")
 
 SIGNAL_DIR = PROJECT_ROOT / "data" / "priority_signals"
+# Below-bar signals (rec == NO-GO) written by priority_report to a separate
+# directory. Scored identically, but held in their own cohort so the surfaced
+# lane's episode/cluster numbering — which the analysis carries forward across
+# cycles — is bit-for-bit unaffected.
+CONTROL_DIR = PROJECT_ROOT / "data" / "control_signals"
 OUTCOMES_FILE = PROJECT_ROOT / "data" / "signal_outcomes.csv"
+
+COHORT_SURFACED = "surfaced"
+COHORT_CONTROL = "control"
 EMAIL_TO = "zmburr@gmail.com"
 
 HORIZON_DAYS = 4          # D0..D+3
@@ -80,6 +88,7 @@ METRIC_COLUMNS = [
 
 COLUMNS = [
     "signal_date", "session", "target_date", "ticker", "bucket", "cap",
+    "cohort",
     "recommendation", "score", "atr_pct",
     "entry_open", "d0_pct", "d1_pct", "d2_pct", "d3_pct",
     "mfe_atr_d0", "mfe_atr_3d", "mae_atr_3d",
@@ -89,6 +98,10 @@ COLUMNS = [
     "days_available", "complete",
     "episode_id", "episode_signal_num",
     "cluster_id", "cluster_size",
+    # Entry-anchored magnitude, filled by scripts/backfill_entry_r.py. Declared
+    # here so save_outcomes preserves them — this writer drops any column not in
+    # COLUMNS, so omitting them would silently erase the backfill on the next run.
+    "entry_r", "entry_r_floored", "entry_signals", "entry_price", "entry_stop",
 ] + METRIC_COLUMNS
 
 
@@ -174,43 +187,52 @@ def fetch_daily_bars(client, ticker: str, start: str, end: str) -> dict[str, dic
 
 
 def collect_signals() -> dict[tuple, dict]:
-    """All signals from priority_signals/, keyed by (target_date, ticker, bucket).
+    """All signals, keyed by (target_date, ticker, bucket, cohort).
+
+    Two lanes are read: priority_signals/ holds the surfaced GO/CAUTION signals,
+    control_signals/ holds the below-bar NO-GO cohort. They are kept in separate
+    cohorts (never merged) so the entry bar can be tested — "does score >= 4 beat
+    score <= 3?" — while every surfaced-cohort statistic stays untouched.
 
     Morning file for date D targets D; evening file targets the next trading day.
     When both sessions flag the same ticker for the same target day, the morning
     signal wins (fresher premarket data).
     """
     signals: dict[tuple, dict] = {}
-    for path in sorted(SIGNAL_DIR.glob("*.json")):
-        try:
-            data = json.loads(path.read_text())
-        except Exception as e:
-            logger.warning(f"Failed to parse {path.name}: {e}")
+    for directory, cohort in ((SIGNAL_DIR, COHORT_SURFACED), (CONTROL_DIR, COHORT_CONTROL)):
+        if not directory.exists():
             continue
-        date, session = path.stem.rsplit("_", 1)
-        # morning files target their own day (pushed to next trading day if the
-        # cron fired on a holiday); evening files target the next trading day
-        target = on_or_next_trading_day(date) if session == "morning" else next_trading_day(date)
-        if target is None:
-            continue
-        for s in data.get("signals", []):
-            if s.get("bucket") not in ("bounce", "reversal"):
+        for path in sorted(directory.glob("*.json")):
+            try:
+                data = json.loads(path.read_text())
+            except Exception as e:
+                logger.warning(f"Failed to parse {path.name}: {e}")
                 continue
-            key = (target, s["ticker"], s["bucket"])
-            if key in signals and signals[key]["session"] == "morning":
-                continue  # morning beats evening for the same target
-            signals[key] = {
-                "signal_date": date,
-                "session": session,
-                "target_date": target,
-                "ticker": s["ticker"],
-                "bucket": s["bucket"],
-                "cap": s.get("cap", ""),
-                "recommendation": s.get("recommendation", ""),
-                "score": s.get("score", ""),
-                "atr_pct": s.get("metrics", {}).get("atr_pct"),
-                "metrics": s.get("metrics", {}),
-            }
+            date, session = path.stem.rsplit("_", 1)
+            # morning files target their own day (pushed to next trading day if the
+            # cron fired on a holiday); evening files target the next trading day
+            target = on_or_next_trading_day(date) if session == "morning" else next_trading_day(date)
+            if target is None:
+                continue
+            for s in data.get("signals", []):
+                if s.get("bucket") not in ("bounce", "reversal"):
+                    continue
+                key = (target, s["ticker"], s["bucket"], cohort)
+                if key in signals and signals[key]["session"] == "morning":
+                    continue  # morning beats evening for the same target
+                signals[key] = {
+                    "signal_date": date,
+                    "session": session,
+                    "target_date": target,
+                    "ticker": s["ticker"],
+                    "bucket": s["bucket"],
+                    "cohort": cohort,
+                    "cap": s.get("cap", ""),
+                    "recommendation": s.get("recommendation", ""),
+                    "score": s.get("score", ""),
+                    "atr_pct": s.get("metrics", {}).get("atr_pct"),
+                    "metrics": s.get("metrics", {}),
+                }
     return signals
 
 
@@ -316,10 +338,17 @@ def assign_episodes(outcomes: dict[tuple, dict]):
     overlap). Re-derived from scratch every run so labels stay deterministic.
     episode_signal_num == 1 marks the independent, first-flag observation;
     2+ are reprints whose windows double-count the same underlying move.
+
+    Grouping includes cohort: control rows must never chain into a surfaced
+    episode, because that would renumber episode_signal_num on existing rows and
+    retroactively change the first-flag counts the analysis carries forward
+    across cycles (the "81 of ~100" restructure trigger).
     """
     by_group: dict[tuple, list[dict]] = {}
     for row in outcomes.values():
-        by_group.setdefault((row["ticker"], row["bucket"]), []).append(row)
+        by_group.setdefault(
+            (row["ticker"], row["bucket"], row.get("cohort") or COHORT_SURFACED), []
+        ).append(row)
     for rows in by_group.values():
         rows.sort(key=lambda r: r["target_date"])
         prev_target, ep_start, num = None, None, 0
@@ -327,7 +356,11 @@ def assign_episodes(outcomes: dict[tuple, dict]):
             if prev_target is None or _tindex(r["target_date"]) - _tindex(prev_target) > EPISODE_GAP:
                 ep_start, num = r["target_date"], 0
             num += 1
-            r["episode_id"] = f"{r['ticker']}_{r['bucket']}_{ep_start}"
+            cohort = r.get("cohort") or COHORT_SURFACED
+            # Surfaced ids keep their historical form (no cohort segment) so
+            # existing episode_id values in signal_outcomes.csv stay identical.
+            suffix = "" if cohort == COHORT_SURFACED else f"_{cohort}"
+            r["episode_id"] = f"{r['ticker']}_{r['bucket']}{suffix}_{ep_start}"
             r["episode_signal_num"] = num
             prev_target = r["target_date"]
 
@@ -348,7 +381,10 @@ def assign_clusters(outcomes: dict[tuple, dict]):
     """
     sizes: dict[str, int] = {}
     for row in outcomes.values():
-        cid = f"{row['bucket']}_{row['target_date']}"
+        cohort = row.get("cohort") or COHORT_SURFACED
+        # As with episode_id, surfaced cluster_ids keep their historical form.
+        suffix = "" if cohort == COHORT_SURFACED else f"_{cohort}"
+        cid = f"{row['bucket']}{suffix}_{row['target_date']}"
         row["cluster_id"] = cid
         if str(row.get("episode_signal_num", "")) == "1":
             sizes[cid] = sizes.get(cid, 0) + 1
@@ -360,10 +396,21 @@ def assign_clusters(outcomes: dict[tuple, dict]):
 
 
 def load_outcomes() -> dict[tuple, dict]:
+    """Load stored outcomes keyed by (target_date, ticker, bucket, cohort).
+
+    Rows written before the control cohort existed carry no ``cohort`` field;
+    they default to 'surfaced' so the historical file loads unchanged.
+    """
     if not OUTCOMES_FILE.exists():
         return {}
     with open(OUTCOMES_FILE, newline="") as f:
-        return {(r["target_date"], r["ticker"], r["bucket"]): r for r in csv.DictReader(f)}
+        rows = {}
+        for r in csv.DictReader(f):
+            r.setdefault("cohort", COHORT_SURFACED)
+            if not r["cohort"]:
+                r["cohort"] = COHORT_SURFACED
+            rows[(r["target_date"], r["ticker"], r["bucket"], r["cohort"])] = r
+        return rows
 
 
 def save_outcomes(rows: dict[tuple, dict]):
@@ -396,7 +443,10 @@ def timing_curve(group: list[dict]) -> dict | None:
     n = len(group)
     if n == 0:
         return None
-    days = [int(float(r["days_to_1atr"])) for r in group if r.get("days_to_1atr") != ""]
+    # .get() on both sides: a row missing the key entirely would otherwise clear
+    # the != "" guard and then KeyError on the lookup.
+    days = [int(float(r["days_to_1atr"])) for r in group
+            if r.get("days_to_1atr") not in ("", None)]
     cum = {}
     for k in range(HORIZON_DAYS):
         cum[k] = sum(1 for d in days if d <= k)
@@ -423,8 +473,13 @@ def timing_curve(group: list[dict]) -> dict | None:
 
 def rolling_summary(rows: list[dict]) -> dict:
     cutoff = (datetime.now() - timedelta(days=ROLLING_WINDOW)).strftime("%Y-%m-%d")
+    # Control (below-bar) rows are excluded from every summary group: they are a
+    # research cohort, not signals that were acted on. Including them would drag
+    # the headline tradeable rate toward the ~27% base rate and trip the
+    # ALERT_WARN/ALERT_BAD banner every single day.
     recent = [r for r in rows if r.get("target_date", "") >= cutoff and _is_true(r.get("complete"))
-              and str(r.get("days_available") or "0") != "0"]  # exclude no-data (delisted) rows
+              and str(r.get("days_available") or "0") != "0"  # exclude no-data (delisted) rows
+              and (r.get("cohort") or COHORT_SURFACED) != COHORT_CONTROL]
     rev = [r for r in recent if r.get("bucket") == "reversal"]
     bnc = [r for r in recent if r.get("bucket") == "bounce"]
     # Bucket-first: reversal (5 criteria) and bounce (6 criteria) are different
@@ -667,7 +722,11 @@ def main():
     signals = collect_signals()
     outcomes = load_outcomes()
     last_day = last_completed_trading_day()
-    logger.info(f"{len(signals)} signals on file, {len(outcomes)} already scored, last completed day {last_day}")
+    n_ctrl = sum(1 for s in signals.values() if s.get("cohort") == COHORT_CONTROL)
+    logger.info(
+        f"{len(signals)} signals on file ({len(signals) - n_ctrl} surfaced, {n_ctrl} control), "
+        f"{len(outcomes)} already scored, last completed day {last_day}"
+    )
 
     reflagged = refresh_tradeable_flags(outcomes)
     if reflagged:
@@ -716,7 +775,10 @@ def main():
                 logger.warning(f"  {sig['ticker']} {target}: no price data, recording empty row")
         outcomes[key] = row
         updated += 1
-        if target == last_day:
+        # Control rows are scored and stored but never shown in the daily email:
+        # they are not signals anyone acted on, and ~75/session would bury the
+        # handful of surfaced ones and make the subject-line rate meaningless.
+        if target == last_day and (row.get("cohort") or COHORT_SURFACED) != COHORT_CONTROL:
             new_today.append(row)
         if row["days_available"] > 0:
             logger.info(

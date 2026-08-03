@@ -1,0 +1,1110 @@
+{
+  "date": "2026-07-29",
+  "session": "evening",
+  "generated_at": "2026-07-29T00:00:00",
+  "go_count": 0,
+  "caution_count": 0,
+  "backfilled_from": "signal_ledger.csv",
+  "signals": [
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.154933,
+        "gap_pct": 0.000567,
+        "prior_day_rvol": 0.877274,
+        "premarket_rvol": 0.039662,
+        "pct_change_3": -0.171643,
+        "prior_day_range_atr": 0.918832
+      }
+    },
+    {
+      "ticker": "ALAB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.120026,
+        "gap_pct": 3.8e-05,
+        "prior_day_rvol": 0.718413,
+        "premarket_rvol": 0.017377,
+        "pct_change_3": -0.068215,
+        "prior_day_range_atr": 0.536029
+      }
+    },
+    {
+      "ticker": "AMAT",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.087919,
+        "gap_pct": -0.027369,
+        "prior_day_rvol": 1.003771,
+        "premarket_rvol": 0.04688,
+        "pct_change_3": -0.134354,
+        "prior_day_range_atr": 0.685827
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.085365,
+        "gap_pct": -0.004278,
+        "prior_day_rvol": 0.50864,
+        "premarket_rvol": 0.014539,
+        "pct_change_3": -0.137904,
+        "prior_day_range_atr": 0.793507
+      }
+    },
+    {
+      "ticker": "APP",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.062322,
+        "gap_pct": -0.011202,
+        "prior_day_rvol": 0.888213,
+        "premarket_rvol": 0.006515,
+        "pct_change_3": 0.049956,
+        "prior_day_range_atr": 1.005678
+      }
+    },
+    {
+      "ticker": "ARM",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.094897,
+        "gap_pct": -0.013239,
+        "prior_day_rvol": 0.63181,
+        "premarket_rvol": 0.020689,
+        "pct_change_3": -0.07842,
+        "prior_day_range_atr": 0.581814
+      }
+    },
+    {
+      "ticker": "AVGO",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.038875,
+        "gap_pct": -0.000722,
+        "prior_day_rvol": 0.68941,
+        "premarket_rvol": 0.021643,
+        "pct_change_3": 0.006998,
+        "prior_day_range_atr": 0.955123
+      }
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.1758,
+        "gap_pct": 0.028999,
+        "prior_day_rvol": 0.973603,
+        "premarket_rvol": 0.03607,
+        "pct_change_3": -0.14567,
+        "prior_day_range_atr": 0.618873
+      }
+    },
+    {
+      "ticker": "BABA",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.030867,
+        "gap_pct": -0.004167,
+        "prior_day_rvol": 0.673217,
+        "premarket_rvol": 0.006859,
+        "pct_change_3": 0.048511,
+        "prior_day_range_atr": 0.672291
+      }
+    },
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.140443,
+        "gap_pct": 0.099856,
+        "prior_day_rvol": 1.490571,
+        "premarket_rvol": 0.252188,
+        "pct_change_3": -0.031803,
+        "prior_day_range_atr": 0.763512
+      }
+    },
+    {
+      "ticker": "BOT",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.118895,
+        "gap_pct": -0.043149,
+        "prior_day_rvol": 0.32686,
+        "premarket_rvol": 0.045493,
+        "pct_change_3": 0.092113,
+        "prior_day_range_atr": 2.200824
+      }
+    },
+    {
+      "ticker": "BRUN",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.154845,
+        "gap_pct": -0.025764,
+        "prior_day_rvol": 1.497632,
+        "premarket_rvol": 0.007719,
+        "pct_change_3": -0.232751,
+        "prior_day_range_atr": 1.031433
+      }
+    },
+    {
+      "ticker": "CBRS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.12846,
+        "gap_pct": -0.011519,
+        "prior_day_rvol": 0.688693,
+        "premarket_rvol": 0.014143,
+        "pct_change_3": -0.083568,
+        "prior_day_range_atr": 0.833572
+      }
+    },
+    {
+      "ticker": "CRDO",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.108773,
+        "gap_pct": -0.014198,
+        "prior_day_rvol": 0.780424,
+        "premarket_rvol": 0.017837,
+        "pct_change_3": -0.114004,
+        "prior_day_range_atr": 0.702957
+      }
+    },
+    {
+      "ticker": "CRML",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.099764,
+        "gap_pct": -0.001767,
+        "prior_day_rvol": 0.4598,
+        "premarket_rvol": 0.007828,
+        "pct_change_3": -0.062823,
+        "prior_day_range_atr": 0.828218
+      }
+    },
+    {
+      "ticker": "CRWD",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.057131,
+        "gap_pct": 0.004538,
+        "prior_day_rvol": 1.792557,
+        "premarket_rvol": 0.04641,
+        "pct_change_3": -0.002946,
+        "prior_day_range_atr": 1.008133
+      }
+    },
+    {
+      "ticker": "CRWV",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.092734,
+        "gap_pct": -0.009361,
+        "prior_day_rvol": 0.675863,
+        "premarket_rvol": 0.027949,
+        "pct_change_3": -0.093489,
+        "prior_day_range_atr": 0.752496
+      }
+    },
+    {
+      "ticker": "DGXX",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.108198,
+        "gap_pct": -0.00545,
+        "prior_day_rvol": 1.447447,
+        "premarket_rvol": 0.008968,
+        "pct_change_3": -0.105528,
+        "prior_day_range_atr": 1.012499
+      }
+    },
+    {
+      "ticker": "DRAM",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.100009,
+        "gap_pct": -0.002931,
+        "prior_day_rvol": 1.761486,
+        "premarket_rvol": 0.197541,
+        "pct_change_3": -0.094363,
+        "prior_day_range_atr": 0.576952
+      }
+    },
+    {
+      "ticker": "DXYZ",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.082707,
+        "gap_pct": -0.046501,
+        "prior_day_rvol": 0.542922,
+        "premarket_rvol": 0.02594,
+        "pct_change_3": -0.06073,
+        "prior_day_range_atr": 0.591149
+      }
+    },
+    {
+      "ticker": "ETHE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.033201,
+        "gap_pct": -0.008398,
+        "prior_day_rvol": 0.453362,
+        "premarket_rvol": 0.016371,
+        "pct_change_3": 0.030626,
+        "prior_day_range_atr": 1.109236
+      }
+    },
+    {
+      "ticker": "EWY",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.061133,
+        "gap_pct": -0.017299,
+        "prior_day_rvol": 1.635937,
+        "premarket_rvol": 0.11031,
+        "pct_change_3": -0.057192,
+        "prior_day_range_atr": 0.703221
+      }
+    },
+    {
+      "ticker": "FCEL",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.131335,
+        "gap_pct": 0.035605,
+        "prior_day_rvol": 3.72471,
+        "premarket_rvol": 0.126785,
+        "pct_change_3": -0.06397,
+        "prior_day_range_atr": 0.497406
+      }
+    },
+    {
+      "ticker": "FIG",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.076628,
+        "gap_pct": -0.001641,
+        "prior_day_rvol": 1.115411,
+        "premarket_rvol": 0.021405,
+        "pct_change_3": 0.201941,
+        "prior_day_range_atr": 0.992179
+      }
+    },
+    {
+      "ticker": "FJET",
+      "bucket": "bounce",
+      "cap": "Micro",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.101827,
+        "gap_pct": -0.01087,
+        "prior_day_rvol": 0.270856,
+        "premarket_rvol": 0.002917,
+        "pct_change_3": 0.067055,
+        "prior_day_range_atr": 0.858632
+      }
+    },
+    {
+      "ticker": "GLW",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.104859,
+        "gap_pct": 0.002301,
+        "prior_day_rvol": 1.517398,
+        "premarket_rvol": 0.028289,
+        "pct_change_3": -0.112956,
+        "prior_day_range_atr": 0.850407
+      }
+    },
+    {
+      "ticker": "GOOGL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.034849,
+        "gap_pct": 0.002862,
+        "prior_day_rvol": 0.806807,
+        "premarket_rvol": 0.024232,
+        "pct_change_3": 0.068431,
+        "prior_day_range_atr": 0.960941
+      }
+    },
+    {
+      "ticker": "HQ",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.240409,
+        "gap_pct": 0.019675,
+        "prior_day_rvol": 0.50563,
+        "premarket_rvol": 0.013454,
+        "pct_change_3": 0.018803,
+        "prior_day_range_atr": 0.579269
+      }
+    },
+    {
+      "ticker": "HYLN",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.110169,
+        "gap_pct": -0.011299,
+        "prior_day_rvol": 1.013281,
+        "premarket_rvol": 0.027497,
+        "pct_change_3": -0.091398,
+        "prior_day_range_atr": 0.980204
+      }
+    },
+    {
+      "ticker": "IBIT",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.025045,
+        "gap_pct": 0.004704,
+        "prior_day_rvol": 0.538321,
+        "premarket_rvol": 0.056104,
+        "pct_change_3": 0.004129,
+        "prior_day_range_atr": 0.875137
+      }
+    },
+    {
+      "ticker": "INOD",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.066182,
+        "gap_pct": -0.004517,
+        "prior_day_rvol": 0.505696,
+        "premarket_rvol": 0.056112,
+        "pct_change_3": 0.035874,
+        "prior_day_range_atr": 1.051786
+      }
+    },
+    {
+      "ticker": "INTC",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.085952,
+        "gap_pct": 0.003129,
+        "prior_day_rvol": 1.230231,
+        "premarket_rvol": 0.038604,
+        "pct_change_3": -0.060005,
+        "prior_day_range_atr": 0.694457
+      }
+    },
+    {
+      "ticker": "IONQ",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.076168,
+        "gap_pct": -0.004723,
+        "prior_day_rvol": 1.147898,
+        "premarket_rvol": 0.043626,
+        "pct_change_3": 0.038977,
+        "prior_day_range_atr": 0.97351
+      }
+    },
+    {
+      "ticker": "IREN",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.114121,
+        "gap_pct": 0.004274,
+        "prior_day_rvol": 0.969137,
+        "premarket_rvol": 0.027388,
+        "pct_change_3": -0.143305,
+        "prior_day_range_atr": 0.703597
+      }
+    },
+    {
+      "ticker": "KEEL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.127242,
+        "gap_pct": -0.009371,
+        "prior_day_rvol": 0.600855,
+        "premarket_rvol": 0.013217,
+        "pct_change_3": -0.188967,
+        "prior_day_range_atr": 0.773393
+      }
+    },
+    {
+      "ticker": "KWEB",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.020903,
+        "gap_pct": 0.009886,
+        "prior_day_rvol": 1.071135,
+        "premarket_rvol": 0.018718,
+        "pct_change_3": 0.070369,
+        "prior_day_range_atr": 0.688533
+      }
+    },
+    {
+      "ticker": "LWLG",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.101325,
+        "gap_pct": 0.003472,
+        "prior_day_rvol": 0.691885,
+        "premarket_rvol": 0.012637,
+        "pct_change_3": -0.046281,
+        "prior_day_range_atr": 0.837263
+      }
+    },
+    {
+      "ticker": "META",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.043558,
+        "gap_pct": -0.00027,
+        "prior_day_rvol": 0.726948,
+        "premarket_rvol": 0.023176,
+        "pct_change_3": 0.004175,
+        "prior_day_range_atr": 0.537771
+      }
+    },
+    {
+      "ticker": "MP",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.068897,
+        "gap_pct": -0.009932,
+        "prior_day_rvol": 0.48776,
+        "premarket_rvol": 0.015802,
+        "pct_change_3": -0.032688,
+        "prior_day_range_atr": 1.006387
+      }
+    },
+    {
+      "ticker": "MRVL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.095552,
+        "gap_pct": -0.002522,
+        "prior_day_rvol": 0.880427,
+        "premarket_rvol": 0.036431,
+        "pct_change_3": -0.094089,
+        "prior_day_range_atr": 0.842213
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.029209,
+        "gap_pct": 0.000127,
+        "prior_day_rvol": 0.983508,
+        "premarket_rvol": 0.033236,
+        "pct_change_3": 0.045939,
+        "prior_day_range_atr": 0.773491
+      }
+    },
+    {
+      "ticker": "MSTR",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.056156,
+        "gap_pct": 0.002288,
+        "prior_day_rvol": 1.401872,
+        "premarket_rvol": 0.025454,
+        "pct_change_3": 0.08367,
+        "prior_day_range_atr": 0.942003
+      }
+    },
+    {
+      "ticker": "MU",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.097664,
+        "gap_pct": 0.015197,
+        "prior_day_rvol": 1.862569,
+        "premarket_rvol": 0.086585,
+        "pct_change_3": -0.13903,
+        "prior_day_range_atr": 0.765381
+      }
+    },
+    {
+      "ticker": "NOK",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.080437,
+        "gap_pct": -0.00224,
+        "prior_day_rvol": 1.772657,
+        "premarket_rvol": 0.053704,
+        "pct_change_3": -0.042857,
+        "prior_day_range_atr": 0.676556
+      }
+    },
+    {
+      "ticker": "NVDA",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.039473,
+        "gap_pct": -0.005913,
+        "prior_day_rvol": 0.478808,
+        "premarket_rvol": 0.010581,
+        "pct_change_3": -0.052698,
+        "prior_day_range_atr": 0.770595
+      }
+    },
+    {
+      "ticker": "NVTS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.110439,
+        "gap_pct": -0.014985,
+        "prior_day_rvol": 0.683545,
+        "premarket_rvol": 0.016482,
+        "pct_change_3": -0.038462,
+        "prior_day_range_atr": 0.82355
+      }
+    },
+    {
+      "ticker": "OKLO",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.079797,
+        "gap_pct": -0.014907,
+        "prior_day_rvol": 0.522993,
+        "premarket_rvol": 0.010875,
+        "pct_change_3": -0.026584,
+        "prior_day_range_atr": 0.912758
+      }
+    },
+    {
+      "ticker": "ON",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.062797,
+        "gap_pct": -0.016163,
+        "prior_day_rvol": 0.855641,
+        "premarket_rvol": 0.010668,
+        "pct_change_3": -0.039051,
+        "prior_day_range_atr": 0.620399
+      }
+    },
+    {
+      "ticker": "OPEN",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.087905,
+        "gap_pct": -0.01269,
+        "prior_day_rvol": 0.268842,
+        "premarket_rvol": 0.005516,
+        "pct_change_3": 0.016923,
+        "prior_day_range_atr": 0.758412
+      }
+    },
+    {
+      "ticker": "ORCL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.057175,
+        "gap_pct": -0.004502,
+        "prior_day_rvol": 1.538354,
+        "premarket_rvol": 0.0252,
+        "pct_change_3": 0.057048,
+        "prior_day_range_atr": 1.126677
+      }
+    },
+    {
+      "ticker": "PENG",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.161228,
+        "gap_pct": 0.000416,
+        "prior_day_rvol": 1.281144,
+        "premarket_rvol": 0.023817,
+        "pct_change_3": -0.126927,
+        "prior_day_range_atr": 0.526376
+      }
+    },
+    {
+      "ticker": "PL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.084223,
+        "gap_pct": -0.000979,
+        "prior_day_rvol": 0.589098,
+        "premarket_rvol": 0.016461,
+        "pct_change_3": 0.01319,
+        "prior_day_range_atr": 0.801472
+      }
+    },
+    {
+      "ticker": "PLTR",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.055449,
+        "gap_pct": 0.003805,
+        "prior_day_rvol": 0.630015,
+        "premarket_rvol": 0.010934,
+        "pct_change_3": 0.032989,
+        "prior_day_range_atr": 1.320893
+      }
+    },
+    {
+      "ticker": "POET",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.096777,
+        "gap_pct": -0.007396,
+        "prior_day_rvol": 0.661865,
+        "premarket_rvol": 0.017981,
+        "pct_change_3": -1.5e-05,
+        "prior_day_range_atr": 0.779861
+      }
+    },
+    {
+      "ticker": "QCOM",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.045108,
+        "gap_pct": -0.001873,
+        "prior_day_rvol": 1.010401,
+        "premarket_rvol": 0.022689,
+        "pct_change_3": -0.017848,
+        "prior_day_range_atr": 0.778672
+      }
+    },
+    {
+      "ticker": "RGTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.078164,
+        "gap_pct": -0.013774,
+        "prior_day_rvol": 0.7081,
+        "premarket_rvol": 0.012253,
+        "pct_change_3": -0.008481,
+        "prior_day_range_atr": 0.966501
+      }
+    },
+    {
+      "ticker": "RKLB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.085854,
+        "gap_pct": -0.006026,
+        "prior_day_rvol": 0.680907,
+        "premarket_rvol": 0.019589,
+        "pct_change_3": -0.019089,
+        "prior_day_range_atr": 0.910407
+      }
+    },
+    {
+      "ticker": "RVI",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.072409,
+        "gap_pct": 0.000785,
+        "prior_day_rvol": 0.411174,
+        "premarket_rvol": 0.011765,
+        "pct_change_3": -0.020801,
+        "prior_day_range_atr": 0.531381
+      }
+    },
+    {
+      "ticker": "RXT",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.154441,
+        "gap_pct": 0.0,
+        "prior_day_rvol": 0.598431,
+        "premarket_rvol": 0.014519,
+        "pct_change_3": -0.006345,
+        "prior_day_range_atr": 0.520975
+      }
+    },
+    {
+      "ticker": "SMR",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.078176,
+        "gap_pct": -0.026764,
+        "prior_day_rvol": 1.294806,
+        "premarket_rvol": 0.034636,
+        "pct_change_3": -0.005562,
+        "prior_day_range_atr": 0.985804
+      }
+    },
+    {
+      "ticker": "SPCE",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.068289,
+        "gap_pct": -0.004016,
+        "prior_day_rvol": 0.511797,
+        "premarket_rvol": 0.011912,
+        "pct_change_3": 0.026104,
+        "prior_day_range_atr": 0.745077
+      }
+    },
+    {
+      "ticker": "SPCX",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.067958,
+        "gap_pct": -0.01731,
+        "prior_day_rvol": 3.612663,
+        "premarket_rvol": 0.097756,
+        "pct_change_3": 0.006865,
+        "prior_day_range_atr": 1.412321
+      }
+    },
+    {
+      "ticker": "STM",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.083816,
+        "gap_pct": -0.015949,
+        "prior_day_rvol": 1.732746,
+        "premarket_rvol": 0.06964,
+        "pct_change_3": -0.012029,
+        "prior_day_range_atr": 0.569367
+      }
+    },
+    {
+      "ticker": "STX",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.095743,
+        "gap_pct": 0.052924,
+        "prior_day_rvol": 1.092142,
+        "premarket_rvol": 0.092581,
+        "pct_change_3": -0.04949,
+        "prior_day_range_atr": 1.007766
+      }
+    },
+    {
+      "ticker": "TEAM",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.069747,
+        "gap_pct": 0.0002,
+        "prior_day_rvol": 1.446912,
+        "premarket_rvol": 0.019057,
+        "pct_change_3": 0.210348,
+        "prior_day_range_atr": 0.823529
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "1/6",
+      "metrics": {
+        "atr_pct": 0.05293,
+        "gap_pct": -0.000976,
+        "prior_day_rvol": 0.45711,
+        "premarket_rvol": 0.010192,
+        "pct_change_3": -0.017826,
+        "prior_day_range_atr": 0.643385
+      }
+    },
+    {
+      "ticker": "UMC",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.082592,
+        "gap_pct": -0.017857,
+        "prior_day_rvol": 1.449333,
+        "premarket_rvol": 0.052033,
+        "pct_change_3": -0.075719,
+        "prior_day_range_atr": 0.78006
+      }
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.099928,
+        "gap_pct": 0.036429,
+        "prior_day_rvol": 0.744305,
+        "premarket_rvol": 0.048361,
+        "pct_change_3": -0.044825,
+        "prior_day_range_atr": 0.91002
+      }
+    },
+    {
+      "ticker": "WOLF",
+      "bucket": "bounce",
+      "cap": "Small",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.145286,
+        "gap_pct": -0.005484,
+        "prior_day_rvol": 0.187937,
+        "premarket_rvol": 0.001019,
+        "pct_change_3": -0.071026,
+        "prior_day_range_atr": 0.728406
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "0/6",
+      "metrics": {
+        "atr_pct": 0.022998,
+        "gap_pct": 0.005352,
+        "pct_change_3": 0.009172,
+        "prior_day_range_atr": 0.923347
+      }
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.181489,
+        "gap_pct": -0.002121,
+        "pct_change_3": -0.119201,
+        "prior_day_range_atr": 0.534325
+      }
+    },
+    {
+      "ticker": "SIMO",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.112445,
+        "gap_pct": 0.09214,
+        "pct_change_3": -0.063203,
+        "prior_day_range_atr": 0.978641
+      }
+    },
+    {
+      "ticker": "SKHY",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "NO-GO",
+      "score": "3/6",
+      "metrics": {
+        "atr_pct": 0.1531,
+        "gap_pct": -0.008045,
+        "pct_change_3": -0.120613,
+        "prior_day_range_atr": 0.643452
+      }
+    },
+    {
+      "ticker": "U",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "NO-GO",
+      "score": "2/6",
+      "metrics": {
+        "atr_pct": 0.053091,
+        "gap_pct": 0.001873,
+        "pct_change_3": 0.054534,
+        "prior_day_range_atr": 1.009263
+      }
+    }
+  ]
+}
