@@ -1,6 +1,6 @@
 {
-  "analysis_number": 13,
-  "signal_count_at_last_analysis": 341,
+  "analysis_number": 14,
+  "signal_count_at_last_analysis": 362,
   "past_recommendations": [
     {
       "analysis": 5,
@@ -141,7 +141,39 @@
     {
       "analysis": 13,
       "text": "Track regime \u2014 reversal scanner dark since 07-01 (third cycle); gap_pct flat a tenth cycle; Large-cap bounce cell now 6/9 tradeable, keep accumulating toward n\u226520 before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 14,
+      "text": "Bounce GO-vs-CAUTION retest EXECUTED at GO n=29 (from 8 clusters): 24/29 vs 46/60 pooled, 67.5% vs 69.2% cluster-weighted \u2014 flat/inverted; demote the bounce score to informational (keep logging it), and stop carrying this retest forward."
+    },
+    {
+      "analysis": 14,
+      "text": "Depth question stays OPEN \u2014 deep (\u2264 -25%) 22/24 (92%, 16 clusters) vs shallow cluster-weighted 57%; this cycle's OOS test was contaminated by the 19-signal 07-28 cluster (all shallow, all tradeable = one observation); re-test on the next non-wave completions and require \u226520 clusters in the deep cell before any re-key."
+    },
+    {
+      "analysis": 14,
+      "text": "Adopt the reversal pct_from_9ema \u2264 0.10 floor the moment the cell reaches n=20 \u2014 confirmed at 4/19 (14 clusters), unchanged for a sixth cycle."
+    },
+    {
+      "analysis": 14,
+      "text": "Counter reconciliation from #13 complete \u2014 official reversal first-flag count is 81 (81 distinct reversal episodes verified); 9EMA cell is 4/19 with WDC_reversal_2026-06-05 in-cell and tradeable; carry these values forward."
+    },
+    {
+      "analysis": 14,
+      "text": "Watch bounce gap_pct \u2264 -0.04 as a criterion-level cut (36/40 vs 14/23, but only 11 vs 16 clusters) \u2014 flag for testing once it spans \u226520 clusters outside the July waves."
+    },
+    {
+      "analysis": 14,
+      "text": "pct_change_3 \u2265 0.20 evidence strengthened (63% vs 37%, holds cluster-weighted 61% vs 39%) \u2014 keep it bundled with the RVOL-tier/score restructure at the ~100 reversal first-flag trigger (counter: 81)."
+    },
+    {
+      "analysis": 14,
+      "text": "Regime note \u2014 one reversal first-flag since 07-01 (FCEL); bounce bucket carried the cycle including the 19-flag 07-28 wave; Large-cap bounce cell now 13/16 tradeable but from only 5 clusters (7 rows from 07-28) \u2014 keep accumulating toward n\u226520 by clusters before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 14,
+      "text": "Keep episode_signal_num + prior-print-tradeable as the top scanner output \u2014 reversal 39/42 (93%) vs 21/46 (46%); bounce 62/77 (81%) vs 18/27 (67%) this file."
     }
   ],
-  "last_analysis_at": "2026-07-31"
+  "last_analysis_at": "2026-08-03"
 }
