@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -158,14 +159,48 @@ For each actionable follow-up, one line:
 ACTION_ITEM: <concise description>"""
 
 
+ROUTING_FILE = "/Users/zacharyburr/PycharmProjects/dispatcher/model_routing.json"
+USAGE_LOG = os.path.expanduser("~/logs/claude_usage.jsonl")
+JOB_NAME = "signal_analysis"
+FALLBACK_MODEL = "claude-sonnet-5"
+
+
+def _resolve_model() -> str:
+    """Read the shared model_routing.json; never allow fable/mythos on API billing."""
+    try:
+        with open(ROUTING_FILE) as f:
+            routing = json.load(f)
+        route = routing.get("jobs", {}).get(JOB_NAME, routing.get("default", {}))
+        model = route.get("model", FALLBACK_MODEL)
+        banned = routing.get("banned_model_substrings", ["fable", "mythos"])
+        if any(b in model.lower() for b in banned):
+            model = FALLBACK_MODEL
+        return model
+    except (OSError, json.JSONDecodeError):
+        return FALLBACK_MODEL
+
+
+def _log_usage(record: dict) -> None:
+    try:
+        os.makedirs(os.path.dirname(USAGE_LOG), exist_ok=True)
+        with open(USAGE_LOG, "a") as f:
+            f.write(json.dumps(record) + "\n")
+    except OSError as e:
+        logger.warning(f"Could not write usage log: {e}")
+
+
 def run_claude(prompt: str) -> str:
     """Run claude -p in its own process group so a timeout kills MCP children too."""
     import signal as _signal
+    from datetime import timezone
 
+    model = _resolve_model()
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    started = time.time()
     try:
         proc = subprocess.Popen(
-            [CLAUDE_BIN, "-p", prompt, "--permission-mode", "bypassPermissions"],
+            [CLAUDE_BIN, "-p", prompt, "--permission-mode", "bypassPermissions",
+             "--model", model, "--output-format", "stream-json", "--verbose"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             env=env, cwd="/tmp", start_new_session=True,
         )
@@ -176,7 +211,6 @@ def run_claude(prompt: str) -> str:
         stdout, stderr = proc.communicate(timeout=1800)
         if proc.returncode != 0:
             logger.error(f"Claude CLI exited {proc.returncode}: {(stderr or '')[:300]}")
-        return (stdout or "").strip()
     except subprocess.TimeoutExpired:
         logger.error("Claude CLI timed out after 30 minutes — killing process group")
         try:
@@ -184,6 +218,45 @@ def run_claude(prompt: str) -> str:
         except Exception:
             proc.kill()
         return ""
+
+    # Parse the stream-json events: the final "result" event carries text + usage
+    result_event = None
+    text_parts = []
+    for line in (stdout or "").splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "result":
+            result_event = event
+        elif event.get("type") == "assistant":
+            for block in (event.get("message") or {}).get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+
+    u = (result_event or {}).get("usage", {})
+    _log_usage({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "job": JOB_NAME,
+        "provider": "claude-cli",
+        "model": model,
+        "input_tokens": u.get("input_tokens", 0),
+        "output_tokens": u.get("output_tokens", 0),
+        "cache_read_tokens": u.get("cache_read_input_tokens", 0),
+        "cache_write_tokens": u.get("cache_creation_input_tokens", 0),
+        "cost_usd": (result_event or {}).get("total_cost_usd"),
+        "num_turns": (result_event or {}).get("num_turns"),
+        "session_id": (result_event or {}).get("session_id"),
+        "duration_s": round(time.time() - started, 1),
+        "complete": result_event is not None,
+    })
+
+    if result_event and result_event.get("result"):
+        return result_event["result"].strip()
+    return "\n\n".join(p for p in text_parts if p).strip()
 
 
 def parse_lines(output: str, tag: str) -> list[str]:
