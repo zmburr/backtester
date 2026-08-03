@@ -54,6 +54,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from bounce_entry_study.detectors import build_2min  # noqa: E402
+from bounce_entry_study.exits import ExitSpec, simulate_day_exits  # noqa: E402
 from bounce_entry_study.fetch_bars import fetch_day  # noqa: E402
 
 OUTCOMES_FILE = PROJECT_ROOT / "data" / "signal_outcomes.csv"
@@ -71,7 +72,13 @@ RISK_FLOOR_ATR = 0.5       # study's robustness floor
 #                  the floor materially moves the scale — the entry study reported
 #                  +3.2R/day raw vs +1.9R/day floored — and which one is the right
 #                  lens is a judgement for the analysis, not for this script.
-NEW_COLUMNS = ["entry_r", "entry_r_floored", "entry_signals", "entry_price", "entry_stop"]
+# exit_r = REALISED R under the trader's live exit rule (trail_exit_rules.py):
+#   LOD disaster stop first, arm at entry + 1.5 ATR, then trail the prior 2-min
+#   bar's low. This is the number that answers "what would I actually have
+#   banked", as opposed to entry_r's best-case excursion.
+ARM_ATR = 1.5
+NEW_COLUMNS = ["entry_r", "entry_r_floored", "exit_r", "entry_signals",
+               "entry_price", "entry_stop"]
 
 
 def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
@@ -80,10 +87,12 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
     Returns best MFE in R across the day's attempts (the "how big was the
     bounce" scale), plus the first attempt's fill and stop for traceability.
     """
-    out = {"entry_r": "", "entry_r_floored": "", "entry_signals": 0,
+    out = {"entry_r": "", "entry_r_floored": "", "exit_r": "", "entry_signals": 0,
            "entry_price": "", "entry_stop": ""}
     if two is None or two.empty or len(two) < 2:
         return out
+    fire_times = []          # every LOD-gated break, for the exit simulator
+    ends = two.index + pd.Timedelta(minutes=2)
 
     highs, lows, closes = two["high"].values, two["low"].values, two["close"].values
     n = len(two)
@@ -108,9 +117,16 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
         cooled = (i - last_confirm) >= COOLDOWN_BARS
         in_time = starts[i].time() < LAST_ENTRY
 
-        if not (armed and lod_recent and cooled and in_time):
+        if not (lod_recent and in_time):
             continue
         if closes[i] <= highs[i - 1]:      # must CLOSE above the prior bar's high
+            continue
+        # Every qualifying break feeds the exit simulator, which models the
+        # position lifecycle itself (re-arm after a losing exit). The arming /
+        # cooldown gates below are the ALERT protocol and only shape entry_r.
+        fire_times.append(ends[i])
+
+        if not (armed and cooled):
             continue
 
         entry = float(closes[i])
@@ -143,6 +159,18 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
         out["entry_r_floored"] = round(max(a["r_floored"] for a in attempts), 3)
         out["entry_price"] = round(attempts[0]["entry"], 4)
         out["entry_stop"] = round(attempts[0]["stop"], 4)
+
+    # Realised R under the live exit rule. Capped at MAX_ENTRY_SIGNALS attempts
+    # to match the alert protocol's one-re-entry limit.
+    if fire_times:
+        try:
+            res = simulate_day_exits(two, fire_times,
+                                     ExitSpec(kind="trail", arm_atr=ARM_ATR), atr_abs)
+            taken = res.attempts[:MAX_ENTRY_SIGNALS]
+            if taken:
+                out["exit_r"] = round(sum(a.r for a in taken), 3)
+        except Exception:  # noqa: BLE001 - exit sim must not sink the row's MFE
+            pass
     return out
 
 
@@ -151,6 +179,8 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int, help="only process the first N bounce rows")
     ap.add_argument("--dry-run", action="store_true", help="report only, write nothing")
+    ap.add_argument("--refresh", action="store_true",
+                    help="re-score rows that already have entry_r (bars are cached, so cheap)")
     args = ap.parse_args()
 
     with open(OUTCOMES_FILE, newline="") as f:
@@ -159,7 +189,7 @@ def main() -> int:
 
     todo = [r for r in rows if r.get("bucket") == "bounce"
             and str(r.get("complete")).lower() == "true"
-            and not str(r.get("entry_r") or "").strip()]
+            and (args.refresh or not str(r.get("entry_r") or "").strip())]
     if args.limit:
         todo = todo[:args.limit]
     print(f"{len(todo)} bounce rows to score (of {len(rows)} total)\n")

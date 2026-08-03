@@ -101,7 +101,7 @@ COLUMNS = [
     # Entry-anchored magnitude, filled by scripts/backfill_entry_r.py. Declared
     # here so save_outcomes preserves them — this writer drops any column not in
     # COLUMNS, so omitting them would silently erase the backfill on the next run.
-    "entry_r", "entry_r_floored", "entry_signals", "entry_price", "entry_stop",
+    "entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop",
 ] + METRIC_COLUMNS
 
 
