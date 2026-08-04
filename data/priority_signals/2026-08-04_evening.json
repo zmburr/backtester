@@ -1,0 +1,260 @@
+{
+  "date": "2026-08-04",
+  "session": "evening",
+  "generated_at": "2026-08-04T15:16:26.142373",
+  "go_count": 3,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "ALAB",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.192461,
+        "pct_change_3": 0.285537,
+        "gap_pct": 0.128703,
+        "prior_day_range_atr": 1.346747,
+        "atr_pct": 0.091799,
+        "prior_day_rvol": 0.934704,
+        "premarket_rvol": 0.087738
+      },
+      "intensity": 19.8,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.7390242301787195,
+        "pct_change_30": -0.23022514206248348,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 210%)",
+      "odds": {
+        "n": 751,
+        "p_fade": 0.5806,
+        "p_fade5": 0.3955,
+        "p_close_low": 0.3302,
+        "med_return": -0.0229,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVAX",
+            "date": "2024-06-06",
+            "open_low_pct": -0.1879,
+            "open_close_pct": -0.1763,
+            "distance": 0.1327
+          },
+          {
+            "ticker": "RIVN",
+            "date": "2023-07-10",
+            "open_low_pct": -0.076,
+            "open_close_pct": -0.0004,
+            "distance": 0.2289
+          },
+          {
+            "ticker": "BBBY",
+            "date": "2021-01-25",
+            "open_low_pct": -0.13,
+            "open_close_pct": -0.1194,
+            "distance": 0.2817
+          },
+          {
+            "ticker": "BILI",
+            "date": "2022-12-05",
+            "open_low_pct": -0.1334,
+            "open_close_pct": -0.1186,
+            "distance": 0.2904
+          },
+          {
+            "ticker": "SPCE",
+            "date": "2021-02-02",
+            "open_low_pct": -0.1927,
+            "open_close_pct": -0.1708,
+            "distance": 0.2914
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.1334,
+        "med_open_close": -0.1194
+      }
+    },
+    {
+      "ticker": "NBIS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.185217,
+        "pct_change_3": 0.434219,
+        "gap_pct": 0.069315,
+        "prior_day_range_atr": 1.686622,
+        "atr_pct": 0.118468,
+        "prior_day_rvol": 1.34971,
+        "premarket_rvol": 0.110532
+      },
+      "intensity": 19.2,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.6051978710111251,
+        "pct_change_30": -0.2585022149359935,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 140%)",
+      "odds": {
+        "n": 751,
+        "p_fade": 0.5806,
+        "p_fade5": 0.3955,
+        "p_close_low": 0.3302,
+        "med_return": -0.0229,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "PLTR",
+            "date": "2020-11-27",
+            "open_low_pct": -0.1626,
+            "open_close_pct": -0.1132,
+            "distance": 0.0774
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-11-24",
+            "open_low_pct": -0.1302,
+            "open_close_pct": -0.0213,
+            "distance": 0.1939
+          },
+          {
+            "ticker": "CAR",
+            "date": "2026-04-22",
+            "open_low_pct": -0.4477,
+            "open_close_pct": -0.4272,
+            "distance": 0.2034
+          },
+          {
+            "ticker": "GME",
+            "date": "2022-03-29",
+            "open_low_pct": -0.1341,
+            "open_close_pct": -0.0443,
+            "distance": 0.2341
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2024-06-06",
+            "open_low_pct": -0.1879,
+            "open_close_pct": -0.1763,
+            "distance": 0.2604
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.1626,
+        "med_open_close": -0.1132
+      }
+    },
+    {
+      "ticker": "AMD",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.083537,
+        "pct_change_3": 0.128224,
+        "gap_pct": 0.090651,
+        "prior_day_range_atr": 0.857438,
+        "atr_pct": 0.078652,
+        "prior_day_rvol": 0.877809,
+        "premarket_rvol": 0.064635
+      },
+      "intensity": 11.4,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.6878895720234137,
+        "pct_change_30": -0.09812605839551895,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 207%)",
+      "odds": {
+        "n": 402,
+        "p_fade": 0.5199,
+        "p_fade5": 0.194,
+        "p_close_low": 0.2662,
+        "med_return": -0.0028,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Large"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AMD",
+            "date": "2024-01-18",
+            "open_low_pct": -0.048,
+            "open_close_pct": -0.0212,
+            "distance": 2.4359
+          },
+          {
+            "ticker": "AMD",
+            "date": "2024-01-25",
+            "open_low_pct": -0.0315,
+            "open_close_pct": -0.0168,
+            "distance": 2.7714
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-06-20",
+            "open_low_pct": -0.0735,
+            "open_close_pct": -0.0645,
+            "distance": 2.845
+          },
+          {
+            "ticker": "MU",
+            "date": "2024-06-20",
+            "open_low_pct": -0.0898,
+            "open_close_pct": -0.0817,
+            "distance": 2.9959
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-03-08",
+            "open_low_pct": -0.0907,
+            "open_close_pct": -0.08,
+            "distance": 3.0189
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.0735,
+        "med_open_close": -0.0645
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 3
+  }
+}
