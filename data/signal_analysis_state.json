@@ -1,6 +1,6 @@
 {
-  "analysis_number": 14,
-  "signal_count_at_last_analysis": 362,
+  "analysis_number": 15,
+  "signal_count_at_last_analysis": 381,
   "past_recommendations": [
     {
       "analysis": 5,
@@ -173,7 +173,47 @@
     {
       "analysis": 14,
       "text": "Keep episode_signal_num + prior-print-tradeable as the top scanner output \u2014 reversal 39/42 (93%) vs 21/46 (46%); bounce 62/77 (81%) vs 18/27 (67%) this file."
+    },
+    {
+      "analysis": 15,
+      "text": "Restate the pct_from_9ema \u22640.10 adoption trigger in clusters, not rows \u2014 cell is 19 rows but only 14 clusters (max single cluster 3/19); the row-count trigger fires ~6 clusters early and would breach the cluster guardrail."
+    },
+    {
+      "analysis": 15,
+      "text": "Promote reversal persistence (episode_signal_num \u22652 + prior-print-tradeable) from \"top scanner output\" to a scored/gated input \u2014 39/42, cw 87.5% on 20 clusters vs 21/46, cw 44.6% on 22 clusters against a 48.5% first-flag baseline; first reversal-side discriminator to clear \u226520 clusters on both cells."
+    },
+    {
+      "analysis": 15,
+      "text": "Close the bounce gap_pct \u2264 \u22120.04 watch item from #14 as a cluster artifact \u2014 90.2% vs 60.9% pooled collapses to cw 70.8% vs 66.7% on 12 vs 16 clusters; stop carrying it."
+    },
+    {
+      "analysis": 15,
+      "text": "Stage bounce pct_change_3 \u2192 \u22120.15 for adoption; execute at the next non-wave bounce completion landing in the >\u22120.15 cell (FAIL cell needs 1 more cluster to reach 20)."
+    },
+    {
+      "analysis": 15,
+      "text": "Open a watch on bounce pct_off_30d_high \u2014 inverted at its shallow end (deeper \u2264\u22120.35 cw 61.2%/22cl vs shallower cw 84.4%/15cl); test for demotion once the shallow cell spans \u226520 clusters."
+    },
+    {
+      "analysis": 15,
+      "text": "Bounce depth question gained zero new evidence this cycle (the lone new first-flag AMAT was shallow) \u2014 keep OPEN at 22/24, 16 clusters; do not re-report it as if it moved."
+    },
+    {
+      "analysis": 15,
+      "text": "Carry gap_pct into the ~100-first-flag RVOL-tier/score restructure as the primary reversal demotion candidate \u2014 eleventh cycle flat, now actively inverted (cw 41.2% pass vs 57.8% fail); add premarket_rvol as a second null-signal note."
+    },
+    {
+      "analysis": 15,
+      "text": "Large-cap bounce cell now 14/17 but from only **6 clusters** (7 rows from 07-28 alone) \u2014 keep accumulating toward 20 clusters before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 15,
+      "text": "Reversal first-flag counter unchanged at 81; three first-flags since 07-01. Regime-explained, no finding."
+    },
+    {
+      "analysis": 15,
+      "text": "Close the #11 days_to_1atr boundary item \u2014 the two blank-days_to_1atr/mfe=1.00 rows (MU@2026-05-27 reversal, MXL@2026-07-21 bounce) are the documented pre-07-31 2-decimal display artifact, not a comparison bug; stop carrying it as QA."
     }
   ],
-  "last_analysis_at": "2026-08-03"
+  "last_analysis_at": "2026-08-04"
 }
