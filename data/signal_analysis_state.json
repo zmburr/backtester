@@ -1,6 +1,6 @@
 {
-  "analysis_number": 15,
-  "signal_count_at_last_analysis": 381,
+  "analysis_number": 16,
+  "signal_count_at_last_analysis": 396,
   "past_recommendations": [
     {
       "analysis": 5,
@@ -213,7 +213,35 @@
     {
       "analysis": 15,
       "text": "Close the #11 days_to_1atr boundary item \u2014 the two blank-days_to_1atr/mfe=1.00 rows (MU@2026-05-27 reversal, MXL@2026-07-21 bounce) are the documented pre-07-31 2-decimal display artifact, not a comparison bug; stop carrying it as QA."
+    },
+    {
+      "analysis": 16,
+      "text": "Retire the reversal `pct_from_9ema \u2264 0.10` floor as an adoption candidate \u2014 it is a cap-mix confound (14/19 in-cell rows are Large-cap; within-cap gaps are 8pp cw on 11 clusters and n=4). Stop carrying it forward and add it to the settled-questions record alongside the score-tier inversion."
+    },
+    {
+      "analysis": 16,
+      "text": "Open a Medium-cap-only watch on reversal `pct_from_9ema` in the opposite direction \u2014 Medium \u22640.20 cw 46% (14 cl) vs >0.20 cw 76% (14 cl); revisit once either cell reaches 20 clusters."
+    },
+    {
+      "analysis": 16,
+      "text": "Promote reversal `prior_day_rvol \u2265 1.5` to primary candidate inside the ~100-first-flag RVOL-tier restructure; require \u226520 clusters *within Large and within Medium separately* before any re-key, since the pooled result is cap-confounded (counter: 81 reversal first-flags)."
+    },
+    {
+      "analysis": 16,
+      "text": "Keep bounce `pct_change_3` \u2192 \u22120.15 staged; execute on the next non-wave bounce first-flag landing in the >\u22120.15 cell (needs exactly 1 more cluster)."
+    },
+    {
+      "analysis": 16,
+      "text": "Report bounce rates cluster-weighted by default in the next cycle \u2014 `bounce_2026-07-28` and `bounce_2026-07-17` supply 35% of first-flags and 44% of winners, and the pooled figure overstates the bucket by 9.3pp."
+    },
+    {
+      "analysis": 16,
+      "text": "Re-affirm the 1.5-ATR stop with this cycle's earliness numbers (36/38 reversal winners and 73/73 bounce winners survive it); no confirmation-trigger or entry-delay work is warranted."
+    },
+    {
+      "analysis": 16,
+      "text": "No first-flags added since #15 \u2014 before the next analysis, confirm whether the pipeline is producing signals at all or only reprints, since three consecutive staged items are now blocked purely on sample arrival."
     }
   ],
-  "last_analysis_at": "2026-08-04"
+  "last_analysis_at": "2026-08-07"
 }
