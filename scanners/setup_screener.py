@@ -368,7 +368,7 @@ class SetupScreener:
             (score, max_score, grade, recommendation, criteria_details, setup_type)
         """
         # --- Try typed classification first ---
-        setup_type = classify_reversal_setup(metrics)
+        setup_type = classify_reversal_setup(metrics, cap=cap)
 
         if setup_type:
             result = self.reversal_pretrade.validate(

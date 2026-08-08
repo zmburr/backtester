@@ -10,21 +10,21 @@ Starting setup type: 3DGapFade
   - "Up day" = close > prior_close (a red candle that closes above prior close counts)
   - 33 historical trades (24 A, 8 B, 1 C) in reversal_data.csv
 
-Classification gate (all must be true):
-  - consecutive_up_days >= 2
-  - gap_pct >= 0.04 (4%+ gap up on fade day)
-  - pct_from_9ema >= 0.30 (30%+ above 9EMA — truly parabolic)
-  - pct_from_50mav >= 0.4 (40%+ above 50SMA — not just grinding at ATH)
-  - atr_pct between 0.04 and 0.20 (sufficient volatility, not penny-stock noise)
+Classification gate (all must be true, thresholds per-cap — see GATE_THRESHOLDS):
+  - consecutive_up_days >= up_days (2, or 1 for ETF)
+  - gap_pct >= gap_min (euphoric gap up on fade day)
+  - pct_from_9ema >= ema9_min (extended above 9EMA — truly parabolic)
+  - pct_from_50mav >= ma50_min (extended above trend, not grinding at ATH)
+  - atr_pct within [atr_lo, atr_hi] (sufficient volatility, not penny-stock noise)
   - Reversal confirmation: NOT (closed 2%+ green AND top 25% of range)
     Rejects continuations where the gap-up just kept running
 
-Thresholds derived from 2021 backscanner labeling (32 Y vs 129 N):
-  - pct_from_9ema >= 0.30: keeps 88% Y, removes 50% N
-  - gap_pct >= 0.04: keeps 91% Y, removes 40% N
-  - pct_from_50mav >= 0.4: keeps 100% Y, removes 29% N
-  - atr_pct bounds: keeps 100% Y, removes ~8% N
-  - Combined: keeps ~81% Y, removes ~66% N (precision 20% -> 37%)
+Gate history:
+  - Original flat gate derived from 2021 backscanner labeling (32 Y vs 129 N):
+    gap>=4%, 9EMA>=30%, 50MA>=40%, ATR 4-20% — kept ~81% Y, removed ~66% N.
+  - 2026-07-03: made per-cap (GATE_THRESHOLDS). The flat gate was calibrated
+    on Medium/Small volatility and missed 18/36 labeled 3DGapFade trades —
+    all ETF and 5/6 Large trades. Per-cap recall: 32/36.
 
 Usage:
     from analyzers.reversal_pretrade import ReversalPretrade, classify_reversal_setup
@@ -132,24 +132,58 @@ REVERSAL_CRITERIA_NAMES = {
 # Classification — auto-detect reversal setup type from metrics
 # ---------------------------------------------------------------------------
 
-def classify_reversal_setup(metrics: Dict) -> Optional[str]:
+# Per-cap classification gate thresholds for 3DGapFade.
+# Re-derived 2026-07-03 from the 36 labeled 3DGapFade trades in
+# reversal_data.csv (per-cap min/p10 with margin). The original flat gate
+# (gap >= 4%, 9EMA >= 30%, 50MA >= 40%, ATR 4-20%) was calibrated on the 2021
+# Medium/Small backscanner labeling and missed 18/36 labeled trades — all 6
+# ETF trades and 5/6 Large trades — because large liquid names cannot gap 4%
+# or trade 30% above their 9EMA. With this table, recall on the labeled
+# trades is 32/36 (remaining misses: 2 rows with bad/missing data, BBBY with
+# 1 up day, SOXL with no cap recorded). Typed-gate passes on the 2024-25
+# universe scan rise 0.66 -> 1.10/day; Small/Micro gates are tightened to
+# their historical floors so their false positives drop, and the increase is
+# the previously-invisible Large/ETF pool.
+# ETF allows up_days >= 1: half the labeled ETF trades (VXX, SLV, KWEB) had a
+# single up close before the fade day — index/commodity products compress
+# multi-day euphoria into fewer, larger sessions.
+GATE_THRESHOLDS = {
+    'ETF':    {'up_days': 1, 'gap_min':  0.000, 'ema9_min': 0.04, 'ma50_min': 0.12, 'atr_lo': 0.008, 'atr_hi': 0.20},
+    'Large':  {'up_days': 2, 'gap_min':  0.000, 'ema9_min': 0.07, 'ma50_min': 0.20, 'atr_lo': 0.025, 'atr_hi': 0.20},
+    'Medium': {'up_days': 2, 'gap_min': -0.010, 'ema9_min': 0.25, 'ma50_min': 0.40, 'atr_lo': 0.040, 'atr_hi': 0.25},
+    'Small':  {'up_days': 2, 'gap_min':  0.100, 'ema9_min': 0.40, 'ma50_min': 0.40, 'atr_lo': 0.040, 'atr_hi': 0.30},
+    'Micro':  {'up_days': 2, 'gap_min':  0.150, 'ema9_min': 0.80, 'ma50_min': 0.40, 'atr_lo': 0.040, 'atr_hi': 0.30},
+    # Unknown cap: original flat gate values
+    '_default': {'up_days': 2, 'gap_min': 0.040, 'ema9_min': 0.30, 'ma50_min': 0.40, 'atr_lo': 0.040, 'atr_hi': 0.20},
+}
+
+
+def classify_reversal_setup(metrics: Dict, cap: Optional[str] = None) -> Optional[str]:
     """
     Auto-detect reversal setup type from computed metrics.
 
-    3DGapFade classification gate (all required):
-      - consecutive_up_days >= 2
-      - gap_pct >= 0.04 (4%+ gap up on fade day)
-      - pct_from_9ema >= 0.30 (30%+ above 9EMA)
+    3DGapFade classification gate (all required, thresholds per-cap from
+    GATE_THRESHOLDS):
+      - consecutive_up_days >= up_days
+      - gap_pct >= gap_min (euphoric gap up on fade day)
+      - pct_from_9ema >= ema9_min (extended above 9EMA)
 
     Supplementary filters (applied if data available):
-      - pct_from_50mav >= 0.4 (must be extended above trend, not grinding ATH)
-      - atr_pct between 0.04 and 0.20 (no ultra-low-vol or penny-stock noise)
+      - pct_from_50mav >= ma50_min (extended above trend, not grinding ATH)
+      - atr_pct within [atr_lo, atr_hi] (no ultra-low-vol or penny-stock noise)
       - Reversal confirmation: reject if closed 2%+ green AND in top 25% of range
         (stock just kept running — continuation, not a reversal)
+
+    Args:
+        metrics: Dictionary of computed metrics
+        cap: Market cap category (ETF/Large/Medium/Small/Micro). Falls back
+             to metrics['cap'], then to the flat _default gate.
 
     Returns:
         Setup type string (e.g. '3DGapFade') or None if no match.
     """
+    gate = GATE_THRESHOLDS.get(cap or metrics.get('cap'), GATE_THRESHOLDS['_default'])
+
     consecutive_up = metrics.get('consecutive_up_days')
     gap = metrics.get('gap_pct')
     pct_9ema = metrics.get('pct_from_9ema')
@@ -164,12 +198,13 @@ def classify_reversal_setup(metrics: Dict) -> Optional[str]:
 
     # Core gate: all three required
     if _valid(consecutive_up) and _valid(gap) and _valid(pct_9ema):
-        if consecutive_up >= 2 and gap >= 0.04 and pct_9ema >= 0.30:
+        if (consecutive_up >= gate['up_days'] and gap >= gate['gap_min']
+                and pct_9ema >= gate['ema9_min']):
             # Supplementary: must be extended above 50MA (not grinding at ATH)
-            if _valid(pct_50ma) and pct_50ma < 0.4:
+            if _valid(pct_50ma) and pct_50ma < gate['ma50_min']:
                 return None
             # Supplementary: ATR volatility bounds
-            if _valid(atr_pct) and (atr_pct < 0.04 or atr_pct > 0.20):
+            if _valid(atr_pct) and (atr_pct < gate['atr_lo'] or atr_pct > gate['atr_hi']):
                 return None
             # Reversal confirmation: reject if closed green at highs (continuation)
             if _valid(fade_return) and _valid(close_pos):
