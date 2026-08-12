@@ -1,0 +1,96 @@
+{
+  "date": "2026-08-12",
+  "session": "evening",
+  "generated_at": "2026-08-12T15:16:12.538362",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "SPCX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.18268,
+        "pct_change_3": 0.15985,
+        "gap_pct": 0.109873,
+        "prior_day_range_atr": 0.934287,
+        "atr_pct": 0.068589,
+        "prior_day_rvol": 1.081882,
+        "premarket_rvol": 0.062272
+      },
+      "intensity": 16.8,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 2.0922245763763643,
+        "pct_change_30": -0.18819660149826425,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 50%)",
+      "odds": {
+        "n": 402,
+        "p_fade": 0.5199,
+        "p_fade5": 0.194,
+        "p_close_low": 0.2662,
+        "med_return": -0.0028,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Large"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AMD",
+            "date": "2024-01-18",
+            "open_low_pct": -0.048,
+            "open_close_pct": -0.0212,
+            "distance": 3.4155
+          },
+          {
+            "ticker": "SMCI",
+            "date": "2024-02-12",
+            "open_low_pct": -0.0214,
+            "open_close_pct": 0.0153,
+            "distance": 3.7168
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-03-08",
+            "open_low_pct": -0.0907,
+            "open_close_pct": -0.08,
+            "distance": 3.8052
+          },
+          {
+            "ticker": "AMD",
+            "date": "2024-01-25",
+            "open_low_pct": -0.0315,
+            "open_close_pct": -0.0168,
+            "distance": 3.8223
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-06-20",
+            "open_low_pct": -0.0735,
+            "open_close_pct": -0.0645,
+            "distance": 3.9012
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.048,
+        "med_open_close": -0.0212
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 1
+  }
+}
