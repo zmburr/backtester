@@ -1,43 +1,7 @@
 {
-  "analysis_number": 16,
-  "signal_count_at_last_analysis": 396,
+  "analysis_number": 17,
+  "signal_count_at_last_analysis": 414,
   "past_recommendations": [
-    {
-      "analysis": 5,
-      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output (reprint-after-tradeable held 33/35 = 94%)."
-    },
-    {
-      "analysis": 5,
-      "text": "Leave gap_pct as-is (flat: W 0.016 vs L 0.013); revisit the score-point restructure only near ~100 reversal first-flags (currently 74)."
-    },
-    {
-      "analysis": 6,
-      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output \u2014 reprint-after-tradeable held at 41/45 (91%) this cycle."
-    },
-    {
-      "analysis": 6,
-      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle; adopt only once the \u22640.10 first-flag cell reaches n\u226520 (currently 18)."
-    },
-    {
-      "analysis": 6,
-      "text": "Defer the Analysis #1 breadth/regime gate for Large-cap reversal (10/36, 28%) until the RVOL veto has actually suppressed a live Large reversal batch."
-    },
-    {
-      "analysis": 6,
-      "text": "Leave gap_pct scored as-is; revisit the RVOL-tier restructure near ~100 reversal first-flags (currently 74)."
-    },
-    {
-      "analysis": 7,
-      "text": "Re-test the 9EMA \u22640.10 secondary floor next cycle \u2014 direction is strong and stable (17% vs 51%) but the \u22640.10 cell is n=18, one short of the n\u226520 gate. Adopt the moment it reaches 20."
-    },
-    {
-      "analysis": 7,
-      "text": "Continue surfacing episode_signal_num + prior-print 1-ATR status as highest-priority scanner output (reprint-after-tradeable 48/51 = 94%)."
-    },
-    {
-      "analysis": 7,
-      "text": "Defer the Analysis #1 breadth/regime gate for Large-cap reversal weakness (11/37 = 30%) until the RVOL veto has actually suppressed a live Large reversal batch (still pre-veto data)."
-    },
     {
       "analysis": 8,
       "text": "Adopt the 9EMA \u22640.10 reversal floor the moment its first-flag cell reaches n=20 \u2014 currently 19 (16% vs 53%); one more low-9EMA reversal clears the gate."
@@ -241,7 +205,43 @@
     {
       "analysis": 16,
       "text": "No first-flags added since #15 \u2014 before the next analysis, confirm whether the pipeline is producing signals at all or only reprints, since three consecutive staged items are now blocked purely on sample arrival."
+    },
+    {
+      "analysis": 17,
+      "text": "reversal | Large | GO eligibility (all score tiers) | GO at score >= 4/5 | suspend Large-cap reversal GO; route to CAUTION/no-trade pending a Large-specific discriminator | Large 12/37 pooled, cw 27.2% over 23 clusters vs Medium 25/38, cw 64.4% over 22 clusters \u2014 both cells clear the 20-cluster gate; within Large the scorer is flat (5/5 5/15 cw 26.9%/13cl, 4/5 5/14 cw 34.4%/8cl, 3/5 2/8 cw 26.7%/5cl), so no score-tier restructure recovers it"
+    },
+    {
+      "analysis": 17,
+      "text": "Execute the Large-cap reversal suspension above; it is the only change this cycle clearing both the 20-cluster gate and cap-stratification."
+    },
+    {
+      "analysis": 17,
+      "text": "Kill the staged bounce pct_change_3 \u2192 \u22120.15 item and move it to the settled-questions record as \"knife-edge at \u22120.15, no separation at \u22120.12/\u22120.17/\u22120.20; cap-mix driven\" \u2014 do not re-stage it on a row-count trigger."
+    },
+    {
+      "analysis": 17,
+      "text": "Add a neighborhood-sweep requirement to the guardrails \u2014 before adopting any threshold, report the pass/fail cluster-weighted rates at the candidate cut and at two nearby cuts on each side; reject cuts whose separation does not degrade monotonically."
+    },
+    {
+      "analysis": 17,
+      "text": "Hold #15's promotion of reversal persistence to a scored input for one more cycle \u2014 the prior-print-tradeable cell fell from 20 to 19 clusters as new episodes chained; re-check at the next analysis."
+    },
+    {
+      "analysis": 17,
+      "text": "Downgrade the #16 Medium-cap reversal pct_from_9ema watch from 30pp to 11pp (cw 69.0%/14cl vs 57.7%/13cl); keep it open but stop treating it as a promotion candidate."
+    },
+    {
+      "analysis": 17,
+      "text": "Keep accumulating bounce Large toward 20 clusters before touching Large GapFade thresholds \u2014 now 10 clusters (18/21, cw 85.0%), up from 6 at #15."
+    },
+    {
+      "analysis": 17,
+      "text": "Track the reversal gap_pct inversion toward its own adoption test \u2014 the negative-gap cell is now 15 clusters (cw 64.4% vs 37.4%); at 20 clusters it becomes the strongest demotion candidate in the reversal criteria set, ahead of the RVOL re-key."
+    },
+    {
+      "analysis": 17,
+      "text": "Re-affirm the 1.5-ATR stop in the playbook with this cycle's numbers (35/37 reversal and 41/41 bounce first-flag winners survive it) and close the confirmation-trigger question again \u2014 D0 confirmation forfeits 34% of reversal and 46% of bounce winners."
     }
   ],
-  "last_analysis_at": "2026-08-07"
+  "last_analysis_at": "2026-08-13"
 }
