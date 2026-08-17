@@ -83,13 +83,14 @@ def load_reversal_csv_lookup() -> set:
 def scan_universe_date(scanner: HistoricalBackscanner, date: str,
                        pretrade: ReversalPretrade, scorer: ReversalScorer,
                        reversal_lookup: set,
-                       min_ema_pct: float = 0.04,
+                       min_ema_pct: float = 0.03,
                        cap_filter: Optional[List[str]] = None) -> List[Dict]:
     """
     Scan all tickers on a single date with loose pre-filters.
 
-    Pre-filter: pct_from_9ema > min_ema_pct AND gap_pct > 0
-    Then classify → score → record outcome.
+    Pre-filter: pct_from_9ema > min_ema_pct AND gap_pct >= -1%
+    (must stay looser than the loosest per-cap gate: ETF ema9_min=0.04,
+    Medium gap_min=-0.01). Then classify → score → record outcome.
     """
     scanner._ensure_ticker_index()
 
@@ -131,11 +132,12 @@ def scan_universe_date(scanner: HistoricalBackscanner, date: str,
         if avg_vol < MIN_AVG_VOLUME:
             continue
 
-        # Quick pre-filters (loose):
-        # 1. Gap up check (any positive gap)
+        # Quick pre-filters (loose — must stay looser than the loosest
+        # per-cap gate in GATE_THRESHOLDS: Medium allows gap >= -1%)
+        # 1. Gap check (allow small gap-down / flat opens)
         today_open = history.iloc[-1]['open']
         prior_close = hist_only.iloc[-1]['close']
-        if prior_close <= 0 or today_open <= prior_close:
+        if prior_close <= 0 or today_open < prior_close * 0.99:
             continue
 
         # 2. 9EMA extension check (>= min_ema_pct)
@@ -151,10 +153,11 @@ def scan_universe_date(scanner: HistoricalBackscanner, date: str,
         if metrics is None:
             continue
 
-        # Estimate cap
+        # Estimate cap (KNOWN_ETFS-aware so ETFs get the ETF gate/thresholds)
         cap = HistoricalBackscanner.estimate_cap(
             metrics.get('current_price', 0),
             metrics.get('avg_daily_vol', 0),
+            ticker=ticker,
         )
 
         # Cap filter
@@ -162,7 +165,7 @@ def scan_universe_date(scanner: HistoricalBackscanner, date: str,
             continue
 
         # --- Scoring pipeline ---
-        setup_type = classify_reversal_setup(metrics)
+        setup_type = classify_reversal_setup(metrics, cap=cap)
         score = None
         grade = None
         recommendation = None
