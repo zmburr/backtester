@@ -63,3 +63,7 @@ data/iv_study/*.pkl
 data/despac_study/cache/
 data/despac_study/edgar_cache/
 data/news_move_study/bars/
+
+# checkpoint_study: Trillium 5s bar cache + panels (regenerable: fetch_bars / panel)
+data/checkpoint_study/bars5s/
+data/checkpoint_study/panels/
