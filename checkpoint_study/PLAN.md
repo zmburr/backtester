@@ -147,7 +147,39 @@ USO 4/30/25 11:42:00 in the harness).
 ## Status
 - [x] population, bar cache (Trillium 5s), rule_sim, shared features, parity 30/30
 - [x] unit tests: `tests/unit/test_checkpoint_rule_sim.py`; orderPipe `tests/test_checkpoint_features.py`
-- [ ] full fetch (~1,500 ticker-days, after the close)
+- [x] full fetch 2026-09-29 16:05–16:31 ET (1,506 ticker-days; 2 missing: GBTC 2023-07-13, PTPI 2024-02-14)
 - [x] amendment 1: delayed rule co-primary + `switch` policy; parity quick 30/30, delayed 60/60
-- [ ] panels: 2 primaries (quick, delayed) + 11 variants each
-- [ ] `analyze.py` → `report/`, verdict
+- [x] panels: 2 primaries + 22 variants (the anchor_m30 pair crashed on an empty pre-entry window,
+      was fixed in orderPipe d311f10 and rebuilt; variants are only consulted for Stage-B passes)
+- [x] `analyze.py` → `data/checkpoint_study/report/` (verdict.json, candidates.csv, cells_train.csv)
+
+## Result — 2026-09-29: **KILL**
+Survivors, of 1,691 simulated (88 dropped for price mismatch, 2 for missing bars):
+
+| Rule | 6 min | 17 min | 30 min |
+|---|---|---|---|
+| quick | 726 | 101 | 9 |
+| delayed | 1,083 | 357 | 88 |
+
+Eligible checkpoints: quick 6m; delayed 6m and 17m. 144 train cells.
+
+**Stage A (train).** Only 4 of 144 cells had CI lower bound > 0, which is about what chance gives
+(144 × 2.5% ≈ 3.6). Three became candidates, and all three are the same idea: the top tercile of
+`giveback_R` at 6m → exit or tighten.
+
+| Cell | Train n, mean | Test n, mean | Test 95% CI | p | Holm p |
+|---|---|---|---|---|---|
+| [quick] 6m giveback_R > 0.54 → exit_now | 166, +0.28R | 73, +0.09R | [−0.27, +0.42] | 0.29 | 0.54 |
+| [quick] 6m giveback_R > 0.54 → trail_1m | 166, +0.16R | 73, +0.08R | [−0.20, +0.31] | 0.27 | 0.54 |
+| [delayed] 6m giveback_R > 0.67 → exit_now | 249, +0.25R | 115, +0.21R | [−0.07, +0.47] | 0.075 | 0.22 |
+
+**Stage B: 0 passes. Placebo: 0/20.** Decision: the checkpoint stays orderPipe's neutral timer.
+
+**Descriptive (post-verdict, not a finding).**
+- **Every action is a wash on average.** Unconditionally (train), exit / tighten / switch vs hold are
+  all within ±0.03R, with CIs about ±0.1R. Holding past the checkpoint adds ~0R on average under
+  either rule.
+- **Giveback is the only idea with a consistent sign.** Big giveback by 6m → get out kept a positive
+  sign out of sample, but is unproven. Per §10, re-test only once the test population has grown ≥ 50%
+  (≥ 834 test episodes; 556 now).
+

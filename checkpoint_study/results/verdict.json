@@ -1,0 +1,88 @@
+{
+  "git": "4b614098",
+  "run": "2026-09-29T17:59:42.793152-04:00",
+  "survivors": {
+    "quick": [
+      {
+        "k": 6,
+        "split": "test",
+        "n": 228
+      },
+      {
+        "k": 6,
+        "split": "train",
+        "n": 498
+      },
+      {
+        "k": 17,
+        "split": "test",
+        "n": 34
+      },
+      {
+        "k": 17,
+        "split": "train",
+        "n": 67
+      },
+      {
+        "k": 30,
+        "split": "test",
+        "n": 2
+      },
+      {
+        "k": 30,
+        "split": "train",
+        "n": 7
+      }
+    ],
+    "delayed": [
+      {
+        "k": 6,
+        "split": "test",
+        "n": 336
+      },
+      {
+        "k": 6,
+        "split": "train",
+        "n": 747
+      },
+      {
+        "k": 17,
+        "split": "test",
+        "n": 108
+      },
+      {
+        "k": 17,
+        "split": "train",
+        "n": 249
+      },
+      {
+        "k": 30,
+        "split": "test",
+        "n": 22
+      },
+      {
+        "k": 30,
+        "split": "train",
+        "n": 66
+      }
+    ]
+  },
+  "eligible_k": {
+    "quick": [
+      6
+    ],
+    "delayed": [
+      6,
+      17
+    ]
+  },
+  "n_cells": 144,
+  "n_candidates": 3,
+  "n_stage_b_pass": 0,
+  "n_robust": 0,
+  "robust_cells": [],
+  "panels_missing": [],
+  "placebo_hits": 0,
+  "passed": false,
+  "decision": "KILL \u2014 checkpoint stays a neutral timer"
+}
