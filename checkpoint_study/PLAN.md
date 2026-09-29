@@ -68,7 +68,8 @@ Committed before any forward outcome is inspected. `analyze.py` stamps the git h
 1. **Split.** Train: date ≤ 2025-06-30. Test: after.
 2. **Eligible checkpoints.** k is analysed only if train survivors ≥ 150 **and** test survivors ≥ 90.
    Decided from counts alone.
-3. **Outcome.** `edge_x = fwd_R(x) − fwd_R(hold)`, winsorized at ±5R, for x ∈ {exit_now, trail_1m}.
+3. **Outcome.** `edge_x = fwd_R(x) − fwd_R(hold)`, winsorized at ±5R, for x ∈ {exit_now, trail_1m}
+   (+ `switch`, amendment 1).
    One-sided: we only look for actions that BEAT holding.
 4. **Cells.**
    - Per eligible k, per feature: terciles from **train** quantiles (1/3, 2/3). Coinciding edges
@@ -106,6 +107,36 @@ Committed before any forward outcome is inspected. `analyze.py` stamps the git h
     text. Live goes through `trader/checkpoint_policy.py` in shadow mode (speech off) for 4 weeks
     or 40 eligible checkpoints before `OP_CHECKPOINT_SPEAK=1`.
 
+## Amendment 1 — two co-primary exit rules (2026-09-29, before any outcome was inspected)
+**Trigger:** the trader uses the 2-min **delayed** rule (`2_min_close`) as well as quick, and quick
+kills most trades early. Survivor counts only, on the 214 cached episodes:
+
+| Rule | 6 min | 17 min | 30 min |
+|---|---|---|---|
+| quick | 50% | 13% | 1% |
+| delayed | 71% | 31% | 8% |
+
+**Changes** (these supersede the matching points of the frozen protocol):
+- **Rules.** `quick` (panel `primary`) and `delayed` (panel `delayed`) each get the full protocol on
+  their own panel: eligibility (§2), cells (§4), Stage A (§6) and robustness (§8).
+- **New policy.** `switch` means using the OTHER 2-min rule from t_k on (the exit chart's
+  Quick/Delayed toggle). Tested policies are now exit_now, trail_1m and switch.
+- **Selection.** Stage A keeps ≤ 6 candidates **per rule**. **One Holm correction spans the
+  candidates of both rules** (§7).
+- **Variants.** 11 sensitivity knobs per rule (`d_` prefix for delayed). The `trail_close` variant is
+  dropped, because delayed is now a primary.
+- **Placebo.** The null is applied to both rule panels together (§9).
+- **Live.** The Phase 3 table is keyed by rule; live uses the table matching `trade.profit_strategy`.
+
+**Found while doing it (a live bug).** On the delayed rule, an entry exactly on an even-minute
+boundary means that at 2:00 elapsed the 5s tick lands before that minute's 2-min bar. The manager
+then holds only the on-connect snapshot, so "the bar before" is `None`, and
+`execute_close_strategy` raised TypeError, silently killing the manager thread (HMC 2/04/25 12:52:00,
+USO 4/30/25 11:42:00 in the harness).
+- Fixed on orderPipe `feat/checkpoint-silence`: it stays on the ref stop until a prior bar exists.
+- rule_sim mirrors the fix.
+- Parity: quick 30/30, delayed 60/60.
+
 ## Deviations from the approved plan (2026-09-29)
 - **Volume feature** is `vol_decay` (post-entry volume decay), not a Polygon time-of-day baseline
   ratio. It is computable from the same 5s bars live and in history, with no ~2k Polygon calls.
@@ -117,5 +148,6 @@ Committed before any forward outcome is inspected. `analyze.py` stamps the git h
 - [x] population, bar cache (Trillium 5s), rule_sim, shared features, parity 30/30
 - [x] unit tests: `tests/unit/test_checkpoint_rule_sim.py`; orderPipe `tests/test_checkpoint_features.py`
 - [ ] full fetch (~1,500 ticker-days, after the close)
-- [ ] panels: primary + 12 variants
+- [x] amendment 1: delayed rule co-primary + `switch` policy; parity quick 30/30, delayed 60/60
+- [ ] panels: 2 primaries (quick, delayed) + 11 variants each
 - [ ] `analyze.py` → `report/`, verdict

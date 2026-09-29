@@ -9,8 +9,9 @@ Mirrors trader/trade_manager.py + trade_watcher.run_stop_watcher exactly:
                COMPLETED 2-min bar — label strictly < t (the 2-min bar ending T
                arrives just after the 5s bar ending T) — bad-print filtered.
                Not a ratchet. Breach = 5s close strictly through the level.
-               2_min_close (sensitivity): latest completed 2-min CLOSE through
-               the bar before it.
+               2_min_close (delayed, co-primary): latest completed 2-min CLOSE
+               through the bar before it — only once a bar has completed after
+               the on-connect snapshot; until then the ref stop holds.
   * checkpoint first 5s bar with elapsed >= k min. check_time_alerts runs BEFORE
                the stop check in the same loop pass, so a survivor at k has no
                breach strictly before the checkpoint bar.
@@ -18,7 +19,9 @@ Mirrors trader/trade_manager.py + trade_watcher.run_stop_watcher exactly:
 Policies from checkpoint k (forward R from the checkpoint close px_k):
   hold      keep the rule; exit at its first breach at/after t_k
   trail_1m  from t_k the level is the TIGHTER of the latest completed 1-min
-            bar's low/high and the 2-min level
+            bar's low/high and the 2-min level (quick-style trade-through)
+  switch    from t_k use the OTHER 2-min rule (quick <-> delayed) — the exit
+            chart's toggle
   exit_now  flatten at t_k
   trim_half 0.5 * hold + 0.5 * exit_now  (identity — reported, not tested)
 Fills: close of the first 5s bar at/after trigger + latency (manual close).
@@ -111,16 +114,26 @@ def simulate(day: DayBars, *, anchor: pd.Timestamp, side: int, ref: float, r_ps:
     ok2 = i2 >= 0
     lvl2 = np.full(len(t), np.nan)
     lvl2[ok2] = (lo2 if side > 0 else hi2)[i2[ok2]]
-    ref_phase = (elapsed_s < p.min_hold_s) | np.isnan(lvl2)
-
+    quick_breach = side * (c - lvl2) < 0
+    # 'close' (delayed): latest completed bar's close through the bar before it.
+    # Live holds only the on-connect snapshot (latest 2-min bar <= anchor) plus
+    # bars completed since, so "the bar before" exists only once a post-snapshot
+    # bar has completed; until then TradeManager stays on the ref stop.
+    snap = max(int(np.searchsorted(L2, a_ns, side="right")) - 1, 0)
+    prev = np.clip(i2 - 1, 0, None)
+    prior = (lo2 if side > 0 else hi2)[prev]
+    latest_close = cl2[np.clip(i2, 0, None)]
+    close_breach = side * (latest_close - prior) < 0
+    ref_q = (elapsed_s < p.min_hold_s) | np.isnan(lvl2)
+    ref_c = ref_q | (i2 < snap + 1)
+    ref_breach = side * (c - stop) < 0
+    breach_q = np.where(ref_q, ref_breach, quick_breach)
+    breach_c = np.where(ref_c, ref_breach, close_breach)
     if p.trail == "quick":
-        trail_breach = side * (c - lvl2) < 0
-    else:  # 'close': latest completed bar's close through the bar before it
-        prev = np.clip(i2 - 1, 0, None)
-        prior = (lo2 if side > 0 else hi2)[prev]
-        latest_close = cl2[np.clip(i2, 0, None)]
-        trail_breach = (i2 >= 1) & (side * (latest_close - prior) < 0)
-    breach = np.where(ref_phase, side * (c - stop) < 0, trail_breach)
+        breach, breach_switch, ref_phase = breach_q, breach_c, ref_q
+    else:
+        breach, breach_switch, ref_phase = breach_c, breach_q, ref_c
+    # breach_switch = the other rule from the checkpoint on (the chart's Quick/Delayed toggle)
 
     L1 = day.ones.index.asi8
     lo1, hi1 = day.ones["low"].to_numpy(dtype=float), day.ones["high"].to_numpy(dtype=float)
@@ -159,6 +172,7 @@ def simulate(day: DayBars, *, anchor: pd.Timestamp, side: int, ref: float, r_ps:
 
         hold_px, hold_j, hold_capped = policy(breach)
         t1m_px, t1m_j, t1m_capped = policy(breach_1m)
+        sw_px, sw_j, sw_capped = policy(breach_switch)
         now_j, now_px = _fill(t, c, ik, lat)
         R = lambda x: side * (x - px) / r_ps
         row = {
@@ -169,6 +183,8 @@ def simulate(day: DayBars, *, anchor: pd.Timestamp, side: int, ref: float, r_ps:
             "hold_capped": hold_capped,
             "fwd_trail_1m": R(t1m_px), "trail_1m_exit_min": (t[t1m_j] - t[ik]) / NS / 60,
             "trail_1m_capped": t1m_capped,
+            "fwd_switch": R(sw_px), "switch_exit_min": (t[sw_j] - t[ik]) / NS / 60,
+            "switch_capped": sw_capped,
             "fwd_exit_now": R(now_px),
         }
         row["fwd_trim_half"] = 0.5 * row["fwd_hold"] + 0.5 * row["fwd_exit_now"]

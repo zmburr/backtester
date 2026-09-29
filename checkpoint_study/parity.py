@@ -38,7 +38,8 @@ def _messages(fives: pd.DataFrame, twos: pd.DataFrame, anchor, end, symbol):
     return out
 
 
-def live_first_breach(fives, twos, *, symbol, anchor, side, entry, ref, horizon_min=120):
+def live_first_breach(fives, twos, *, symbol, anchor, side, entry, ref, horizon_min=120,
+                      strategy="2_min_quick"):
     config.orderpipe_on_path()
     import trader.trade_manager as tm
     import trader.trade_watcher as tw
@@ -49,12 +50,12 @@ def live_first_breach(fives, twos, *, symbol, anchor, side, entry, ref, horizon_
     quiet = lambda *a, **k: None
     tm.play_sounds_in_thread = tw.play_sounds_in_thread = tw.play_reward = quiet
     headline = anchor.strftime("%Y-%m-%d %H:%M:%S")
-    trade = Trade(headline, symbol, "BUY" if side > 0 else "SELL", "2_min_quick")
+    trade = Trade(headline, symbol, "BUY" if side > 0 else "SELL", strategy)
     trade.position_size = 100 if side > 0 else -100
     trade.avg_price = entry
     trade.ref_price = ref
     trade.stop_multiplier = get_stop_offset(ref)
-    manager = tm.TradeManager(trade, "2_min_quick")
+    manager = tm.TradeManager(trade, strategy)
     manager.data_handler.trade_watcher = None          # no ADV fetch / volume alerts
     end = min(anchor + pd.Timedelta(minutes=horizon_min),
               anchor.normalize() + pd.Timedelta(hours=16))
@@ -74,7 +75,7 @@ def live_first_breach(fives, twos, *, symbol, anchor, side, entry, ref, horizon_
     return None
 
 
-def run(n: int = 30, seed: int = 7) -> pd.DataFrame:
+def run(n: int = 30, seed: int = 7, trail: str = "quick") -> pd.DataFrame:
     from checkpoint_study.fetch_bars import load_day
     from checkpoint_study.panel import _shared
     from checkpoint_study.population import build_episodes, live_ref
@@ -91,10 +92,11 @@ def run(n: int = 30, seed: int = 7) -> pd.DataFrame:
         side, entry = int(e.side), float(e.entry)
         ref, _, _ = live_ref(fives, e.anchor, side, entry, ref_fn)
         sim = simulate(DayBars.build(fives, feats.minute_bars, extremes), anchor=e.anchor,
-                       side=side, ref=ref, r_ps=1.0, p=SimParams())
+                       side=side, ref=ref, r_ps=1.0, p=SimParams(trail=trail))
         raw_twos = feats.minute_bars(fives, 2)      # "official" bars; DataHandler filters itself
         live = live_first_breach(fives, raw_twos, symbol=e.symbol, anchor=e.anchor,
-                                 side=side, entry=entry, ref=ref)
+                                 side=side, entry=entry, ref=ref,
+                                 strategy="2_min_quick" if trail == "quick" else "2_min_close")
         s = sim["path"]["first_breach_ts"] if sim["path"] else None
         rows.append({"episode": e.episode_id, "sim": s, "live": live,
                      "match": (s is None and live is None) or
@@ -106,7 +108,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=30)
+    ap.add_argument("--trail", default="quick", choices=["quick", "close"])
     a = ap.parse_args()
-    df = run(a.n)
+    df = run(a.n, trail=a.trail)
     print(df.to_string(index=False))
     print(f"\nmatch {int(df.match.sum())}/{len(df)} = {df.match.mean():.0%}")

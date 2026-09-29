@@ -1,5 +1,9 @@
-"""Frozen-protocol analysis (PLAN.md §"Frozen protocol"). Stage A selects on
-TRAIN; test outcomes are only computed for Stage-A candidates.
+"""Frozen-protocol analysis (PLAN.md §"Frozen protocol" + amendment 1).
+
+Two co-primary exit rules, each analysed on its own panel: `quick`
+(2_min_quick, panel "primary") and `delayed` (2_min_close, panel "delayed").
+Stage A selects on TRAIN per rule; test outcomes are only computed for
+Stage-A candidates; one Holm correction spans the candidates of BOTH rules.
 
     orderPipe\\venv\\Scripts\\python -m checkpoint_study.analyze
 """
@@ -16,17 +20,19 @@ import pandas as pd
 from checkpoint_study import config
 
 FEATURES = ("open_R", "giveback_R", "stall_min", "cushion_R", "vol_decay")
-POLICIES = ("exit_now", "trail_1m")
+POLICIES = ("exit_now", "trail_1m", "switch")
 ELIG_TRAIN, ELIG_TEST = 150, 90
-A_MIN_N, B_MIN_N, MIN_EDGE, MAX_CANDIDATES = 50, 30, 0.10, 6
+A_MIN_N, B_MIN_N, MIN_EDGE, MAX_CANDIDATES = 50, 30, 0.10, 6      # MAX_CANDIDATES per rule
 ALPHA = 0.05
 B = 10_000
 SEED = 20260929
 N_PLACEBO, PLACEBO_MAX_HITS = 20, 1
 QUARTER_MIN_N, QUARTER_SHARE = 5, 0.75
 ONE_R_DOLLARS = 3000.0
-VARIANTS = ("floor_010", "floor_025", "atr_0", "atr_1", "anchor_m30", "anchor_p30", "no_filter",
-            "ref_logged", "latency_30", "horizon_60", "horizon_240", "trail_close")
+_VARIANT_KNOBS = ("floor_010", "floor_025", "atr_0", "atr_1", "anchor_m30", "anchor_p30",
+                  "no_filter", "ref_logged", "latency_30", "horizon_60", "horizon_240")
+RULES = {"quick": ("primary", _VARIANT_KNOBS),
+         "delayed": ("delayed", tuple(f"d_{v}" for v in _VARIANT_KNOBS))}
 
 
 @dataclass(frozen=True)
@@ -37,12 +43,12 @@ class Cell:
     bucket: Optional[int] = None
     lo: float = -np.inf                 # (lo, hi] in the feature, from TRAIN quantiles
     hi: float = np.inf
+    rule: str = "quick"
 
     @property
     def name(self) -> str:
-        if self.feature is None:
-            return f"{self.k}m all -> {self.policy}"
-        return f"{self.k}m {self.feature} ({self.lo:.3g}, {self.hi:.3g}] -> {self.policy}"
+        cond = "all" if self.feature is None else f"{self.feature} ({self.lo:.3g}, {self.hi:.3g}]"
+        return f"[{self.rule}] {self.k}m {cond} -> {self.policy}"
 
     def mask(self, df: pd.DataFrame) -> pd.Series:
         m = df["k"] == self.k
@@ -83,16 +89,16 @@ def tercile_edges(train_vals: pd.Series) -> list:
     return [-np.inf] + q + [np.inf]
 
 
-def build_cells(train: pd.DataFrame, ks) -> list:
+def build_cells(train: pd.DataFrame, ks, rule: str = "quick") -> list:
     cells = []
     for k in ks:
         tk = train[train["k"] == k]
         for pol in POLICIES:
-            cells.append(Cell(k, pol))
+            cells.append(Cell(k, pol, rule=rule))
             for f in FEATURES:
                 e = tercile_edges(tk[f])
                 for bkt in range(len(e) - 1):
-                    cells.append(Cell(k, pol, f, bkt, e[bkt], e[bkt + 1]))
+                    cells.append(Cell(k, pol, f, bkt, e[bkt], e[bkt + 1], rule))
     return cells
 
 
@@ -120,10 +126,11 @@ def stage_a(train: pd.DataFrame, cells: list) -> tuple:
     return rows, cand
 
 
-def stage_b(test: pd.DataFrame, cand: list) -> list:
+def stage_b(tests: dict, cand: list) -> list:
+    """tests: rule -> test panel. One Holm correction across all candidates."""
     out = []
     for r in cand:
-        s = stat(test, r["cell"])
+        s = stat(tests[r["cell"].rule], r["cell"])
         out.append({**r, **{f"test_{k}": v for k, v in s.items()}})
     adj = holm([r["test_p"] for r in out]) if out else []
     for r, a in zip(out, adj):
@@ -150,44 +157,51 @@ def robustness(test: pd.DataFrame, r: dict, variant_panels: dict) -> dict:
         if c.feature is not None:
             e = tercile_edges(vtrain[vtrain["k"] == c.k][c.feature])
             b = min(c.bucket, len(e) - 2)
-            vc = Cell(c.k, c.policy, c.feature, b, e[b], e[b + 1])
+            vc = Cell(c.k, c.policy, c.feature, b, e[b], e[b + 1], c.rule)
         vx = vtest[vc.mask(vtest)][f"edge_{c.policy}"].dropna()
         checks[f"variant_{name}"] = bool(len(vx) and vx.mean() > 0)
     checks["all"] = all(checks.values())
     return checks
 
 
-def run_protocol(panel: pd.DataFrame) -> dict:
-    ks = eligible(panel)
-    train, test = panel[panel["split"] == "train"], panel[panel["split"] == "test"]
-    if not ks:
-        return {"eligible_k": [], "cells": [], "candidates": [], "passed": []}
-    cells = build_cells(train, ks)
-    rows, cand = stage_a(train, cells)
-    tested = stage_b(test, cand) if cand else []
-    return {"eligible_k": ks, "cells": rows, "candidates": tested,
+def run_protocol(panels: dict) -> dict:
+    """panels: rule -> panel. Stage A per rule, pooled Stage B."""
+    rows, cand, elig, tests = [], [], {}, {}
+    for rule, panel in panels.items():
+        train, tests[rule] = panel[panel["split"] == "train"], panel[panel["split"] == "test"]
+        elig[rule] = eligible(panel)
+        if not elig[rule]:
+            continue
+        r_rows, r_cand = stage_a(train, build_cells(train, elig[rule], rule))
+        rows += r_rows
+        cand += r_cand
+    tested = stage_b(tests, cand) if cand else []
+    return {"eligible_k": elig, "cells": rows, "candidates": tested,
             "passed": [r for r in tested if r["stage_b_pass"]]}
 
 
-def placebo(panel: pd.DataFrame, n: int = N_PLACEBO) -> int:
-    """Runs of the full protocol under a TRUE null that produce any pass.
+def null_panel(panel: pd.DataFrame, rng) -> pd.DataFrame:
+    """Features permuted within k AND edges demeaned within (k, split): no feature
+    carries information and no action beats holding on average."""
+    p = panel.copy()
+    for k in p["k"].unique():
+        m = (p["k"] == k).to_numpy()
+        perm = rng.permutation(m.sum())
+        p.loc[m, list(FEATURES)] = p.loc[m, list(FEATURES)].to_numpy()[perm]
+    for pol in POLICIES:
+        col = f"edge_{pol}"
+        p[col] = p[col] - p.groupby(["k", "split"])[col].transform("mean")
+    return p
 
-    Features are permuted within k (no feature carries information) AND each
-    edge is demeaned within (k, split) (no action beats holding on average).
-    Shuffling alone isn't a null when the unconditional edge is real — every
-    random bucket inherits it — so any pass here is a pipeline false positive."""
+
+def placebo(panels: dict, n: int = N_PLACEBO) -> int:
+    """Runs of the full protocol under a TRUE null that produce any pass. (Shuffling
+    alone isn't a null when the unconditional edge is real — every random bucket
+    inherits it.)"""
     hits = 0
     for i in range(n):
         rng = np.random.default_rng(SEED + 1 + i)
-        p = panel.copy()
-        for k in p["k"].unique():
-            m = (p["k"] == k).to_numpy()
-            perm = rng.permutation(m.sum())
-            p.loc[m, list(FEATURES)] = p.loc[m, list(FEATURES)].to_numpy()[perm]
-        for pol in POLICIES:
-            col = f"edge_{pol}"
-            p[col] = p[col] - p.groupby(["k", "split"])[col].transform("mean")
-        hits += bool(run_protocol(p)["passed"])
+        hits += bool(run_protocol({r: null_panel(p, rng) for r, p in panels.items()})["passed"])
     return hits
 
 
@@ -205,30 +219,36 @@ def git_hash() -> str:
 
 
 def main() -> dict:
-    panel = load("primary")
-    res = run_protocol(panel)
-    variants = {v: load(v) for v in VARIANTS}
-    missing = [v for v, p in variants.items() if p is None]
+    panels = {rule: load(name) for rule, (name, _) in RULES.items()}
+    missing = [RULES[r][0] for r, p in panels.items() if p is None]
+    panels = {r: p for r, p in panels.items() if p is not None}
+    res = run_protocol(panels)
     for r in res["passed"]:
-        r["robust"] = robustness(panel[panel["split"] == "test"], r,
+        rule = r["cell"].rule
+        variants = {v: load(v) for v in RULES[rule][1]}
+        missing += [v for v, p in variants.items() if p is None]
+        pan = panels[rule]
+        r["robust"] = robustness(pan[pan["split"] == "test"], r,
                                  {k: v for k, v in variants.items() if v is not None})
     shipped = [r for r in res["passed"] if r.get("robust", {}).get("all")]
-    placebo_hits = placebo(panel) if res["candidates"] else 0
+    placebo_hits = placebo(panels) if res["candidates"] else 0
     verdict = {
         "git": git_hash(), "run": pd.Timestamp.now(tz="US/Eastern").isoformat(),
-        "survivors": panel.groupby(["k", "split"]).size().rename("n").reset_index().to_dict("records"),
+        "survivors": {r: p.groupby(["k", "split"]).size().rename("n").reset_index().to_dict("records")
+                      for r, p in panels.items()},
         "eligible_k": res["eligible_k"],
         "n_cells": len(res["cells"]), "n_candidates": len(res["candidates"]),
         "n_stage_b_pass": len(res["passed"]), "n_robust": len(shipped),
-        "variants_missing": missing, "placebo_hits": placebo_hits,
+        "robust_cells": [r["cell"].name for r in shipped],
+        "panels_missing": sorted(set(missing)), "placebo_hits": placebo_hits,
         "passed": bool(shipped) and placebo_hits <= PLACEBO_MAX_HITS and not missing,
     }
     verdict["decision"] = ("SHIP to shadow mode" if verdict["passed"] else
                            "KILL — checkpoint stays a neutral timer")
     out = config.REPORT_DIR
     out.mkdir(parents=True, exist_ok=True)
-    flat = lambda r: {"cell": r["cell"].name, **{k: v for k, v in r.items()
-                                                  if k not in ("cell", "robust")},
+    flat = lambda r: {"cell": r["cell"].name, "rule": r["cell"].rule,
+                      **{k: v for k, v in r.items() if k not in ("cell", "robust")},
                       **{f"robust_{k}": v for k, v in (r.get("robust") or {}).items()}}
     pd.DataFrame([flat(r) for r in res["cells"]]).to_csv(out / "cells_train.csv", index=False)
     pd.DataFrame([flat(r) for r in res["candidates"]]).to_csv(out / "candidates.csv", index=False)

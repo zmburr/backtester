@@ -16,7 +16,6 @@ import logging
 from collections import Counter
 from dataclasses import asdict, dataclass, replace
 
-import numpy as np
 import pandas as pd
 
 from checkpoint_study import config
@@ -25,7 +24,6 @@ from checkpoint_study.population import build_episodes, live_ref
 from checkpoint_study.rule_sim import DayBars, SimParams, simulate
 
 log = logging.getLogger(__name__)
-ONE_R_DOLLARS = 3000.0     # ExitMonitor ONE_R today; no per-date vintage available here
 WINSOR_R = 5.0
 
 
@@ -40,7 +38,7 @@ class Variant:
     sim: SimParams = SimParams()
 
 
-VARIANTS = {v.name: v for v in [
+_QUICK = [
     Variant(),
     Variant("floor_010", floor_pct=0.0010),
     Variant("floor_025", floor_pct=0.0025),
@@ -53,8 +51,13 @@ VARIANTS = {v.name: v for v in [
     Variant("latency_30", sim=SimParams(latency_s=30)),
     Variant("horizon_60", sim=SimParams(horizon_min=60)),
     Variant("horizon_240", sim=SimParams(horizon_min=240)),
-    Variant("trail_close", sim=SimParams(trail="close")),
-]}
+]
+# The delayed rule (2_min_close) is a co-primary baseline (PLAN.md amendment 1):
+# "delayed" is its primary panel, "d_<name>" its sensitivity variants.
+_DELAYED = [replace(v, name="delayed" if v.name == "primary" else f"d_{v.name}",
+                    sim=replace(v.sim, trail="close")) for v in _QUICK]
+VARIANTS = {v.name: v for v in _QUICK + _DELAYED}
+POLICIES = ("hold", "trail_1m", "switch", "exit_now", "trim_half")
 
 
 def _shared():
@@ -133,13 +136,11 @@ def build_panel(v: Variant = Variant(), limit_days: int = 0) -> tuple:
                              "tod_min": anchor.hour * 60 + anchor.minute, **row})
     panel = pd.DataFrame(rows)
     if not panel.empty:
-        for pol in ("hold", "trail_1m", "exit_now", "trim_half"):
+        for pol in POLICIES:
             panel[f"fwd_{pol}"] = panel[f"fwd_{pol}"].clip(-WINSOR_R * 3, WINSOR_R * 3)
-        for pol in ("trail_1m", "exit_now", "trim_half"):
+        for pol in POLICIES[1:]:
             panel[f"edge_{pol}"] = (panel[f"fwd_{pol}"] - panel["fwd_hold"]).clip(-WINSOR_R, WINSOR_R)
-        # Account-R: the same forward move on the position actually held, in 1R units.
-        panel["acct_edge_exit_now"] = (panel["edge_exit_now"] * panel["r_ps"]
-                                       * panel["max_size"] / ONE_R_DOLLARS)
+        panel["rule"] = v.sim.trail
     info = {"variant": v.name, "params": json.loads(json.dumps(asdict(v), default=str)),
             "feature_version": feats.FEATURE_VERSION, "checkpoint_features_sha": _sha("calculators/checkpoint_features.py"),
             "print_filter_sha": _sha("calculators/print_filter.py"), "funnel": dict(funnel),
