@@ -12,6 +12,8 @@ Replaces dispatcher.signal_scorecard. Key differences from v1:
 - Holiday-aware trading calendar; backfills any signal dates it missed.
 - Idempotent: re-runs update incomplete rows (signals whose 4-day window is
   still open) and skip everything already final.
+- Email is sent only when today's refreshed surfaced rows include a tradeable
+  signal; outcome storage and rolling analysis still run on quiet days.
 
 Usage:
     python scripts/signal_scorecard.py            # validate/refresh + email
@@ -743,7 +745,8 @@ def main():
             f"<=D3 {t['le3']['pct']}% | never {t['never']['pct']}% (n={t['n']})"
         )
 
-    if not no_email:
+    n_tradeable = sum(1 for r in new_today if _is_true(r.get("tradeable_3d")))
+    if not no_email and n_tradeable:
         html = format_email(new_today, updated, summary, last_day)
         parts = []
         for b, label in (("reversal", "rev"), ("bounce", "bnc")):
@@ -755,6 +758,8 @@ def main():
         subject = f"Signal Scorecard — {last_day} — {', '.join(parts) or '0 signals'} tradeable (3d{open_note})"
         send_email(EMAIL_TO, subject, html, is_html=True)
         logger.info("Scorecard email sent.")
+    elif not no_email:
+        logger.info("Scorecard email skipped: 0 tradeable signals in today's refreshed rows.")
 
     logger.info("Signal Scorecard v2 complete.")
 

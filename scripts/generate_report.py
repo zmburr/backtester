@@ -2556,13 +2556,17 @@ def generate_report() -> str:
         # Persist a copy of the report locally before (or even if) e-mailing
         _save_report_pdf(html_report)
 
-        # Send email as HTML
-        send_email(
-            to_email="zburr@trlm.com",
-            subject="Daily Watchlist Report",
-            body=html_report,
-            is_html=True,
-        )
+        # Keep the local report and signal ledger on quiet days; email only
+        # when at least one scored setup is actionable.
+        if any(r.get("rec") in ("GO", "CAUTION") for r in _ledger_rows):
+            send_email(
+                to_email="zburr@trlm.com",
+                subject="Daily Watchlist Report",
+                body=html_report,
+                is_html=True,
+            )
+        else:
+            logging.info("Daily watchlist email skipped: no GO/CAUTION setups.")
 
     finally:
         # Always restore original functions
@@ -2592,4 +2596,4 @@ if __name__ == "__main__":
     # project_choice()
     # Print plain-text fallback (strip HTML tags) if desired
     print("Report generated, saved, and (attempted) e-mailed.")
-    cleanup_charts() 
+    cleanup_charts()
