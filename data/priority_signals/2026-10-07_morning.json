@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-07",
+  "session": "morning",
+  "generated_at": "2026-10-07T05:45:42.473249",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "PENG",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.167236,
+        "pct_change_3": 0.167879,
+        "gap_pct": 0.059237,
+        "prior_day_range_atr": 2.268413,
+        "atr_pct": 0.051723,
+        "prior_day_rvol": 10.017942,
+        "premarket_rvol": 0.0
+      },
+      "intensity": 42.4,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.6937017477125589,
+        "pct_change_30": 0.26696921862667705,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 162%)",
+      "odds": {
+        "n": 751,
+        "p_fade": 0.5806,
+        "p_fade5": 0.3955,
+        "p_close_low": 0.3302,
+        "med_return": -0.0229,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RIVN",
+            "date": "2023-07-10",
+            "open_low_pct": -0.076,
+            "open_close_pct": -0.0004,
+            "distance": 0.1488
+          },
+          {
+            "ticker": "GME",
+            "date": "2022-03-29",
+            "open_low_pct": -0.1341,
+            "open_close_pct": -0.0443,
+            "distance": 0.2623
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2024-06-06",
+            "open_low_pct": -0.1879,
+            "open_close_pct": -0.1763,
+            "distance": 0.2761
+          },
+          {
+            "ticker": "TEM",
+            "date": "2024-08-20",
+            "open_low_pct": -0.0183,
+            "open_close_pct": 0.0122,
+            "distance": 0.2904
+          },
+          {
+            "ticker": "COIN",
+            "date": "2023-07-12",
+            "open_low_pct": -0.0511,
+            "open_close_pct": -0.0343,
+            "distance": 0.2948
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.076,
+        "med_open_close": -0.0343
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 1
+  }
+}
