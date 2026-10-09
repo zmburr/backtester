@@ -160,11 +160,59 @@ def test_ledger_label_carries_close_price_and_tier():
     assert 'px50.00' in e['label'] and 'brd60' in e['label']
 
 
+# ---------------------------------------------------------------- gate
+
+def _report(path, signals, bom=False):
+    import json
+    text = json.dumps({'signals': signals})
+    path.write_text(('﻿' if bom else '') + text, encoding='utf-8')
+
+
+def _sig(ticker, rec, score, bucket='bounce'):
+    return {'ticker': ticker, 'bucket': bucket, 'recommendation': rec, 'score': score}
+
+
+def test_gate_takes_go_bounces_from_today_and_the_prior_two_sessions(tmp_path, monkeypatch):
+    # The SNDK case: GO in both 7/28 reports, only CAUTION on the 7/29 morning.
+    monkeypatch.setattr(dl, 'PRIORITY_DIR', tmp_path)
+    monkeypatch.setattr(dl, 'sessions_before', lambda d, n: ['2026-07-27', '2026-07-28'][-n:])
+    _report(tmp_path / '2026-07-29_morning.json',
+            [_sig('SNDK', 'CAUTION', '4/6'), _sig('LITE', 'GO', '5/6')], bom=True)
+    _report(tmp_path / '2026-07-29_evening.json', [_sig('LATE', 'GO', '6/6')])   # after the close
+    _report(tmp_path / '2026-07-28_evening.json', [_sig('SNDK', 'GO', '5/6')])
+    _report(tmp_path / '2026-07-28_morning.json',
+            [_sig('SNDK', 'GO', '5/6'), _sig('SOXL', 'GO', '6/6'), _sig('MU', 'CAUTION', '4/6')])
+    _report(tmp_path / '2026-07-27_morning.json', [_sig('GLD', 'GO', '6/6', bucket='reversal')])
+    _report(tmp_path / '2026-07-24_morning.json', [_sig('OLD', 'GO', '6/6')])     # out of window
+
+    assert dl.high_conf_bounces('2026-07-29') == {
+        'LITE': 'GO 5/6 · 2026-07-29 morning',
+        'SNDK': 'GO 5/6 · 2026-07-28 evening',     # most recent GO wins the label
+        'SOXL': 'GO 6/6 · 2026-07-28 morning',
+    }
+
+
+def test_gate_is_empty_without_reports(tmp_path, monkeypatch):
+    monkeypatch.setattr(dl, 'PRIORITY_DIR', tmp_path)
+    monkeypatch.setattr(dl, 'sessions_before', lambda d, n: ['2026-07-27', '2026-07-28'])
+    assert dl.high_conf_bounces('2026-07-29') == {}
+
+
+def test_gated_rows_are_always_spoken():
+    f = dl.day_features(prior(adv20=4e8, streak_prior=1, down4_prior=3), 76.0, 80.0, 75.8)
+    assert dl.qualify(f) and dl.tier(f) == 'EMAIL'           # ungated: email tier
+    r = dl.build_row('MXL', f, 40, 'Medium', 3000.0, 'T', gate='GO 5/6 · 2026-07-28 evening')
+    assert r['tier'] == 'SPEAK' and r['gate'].startswith('GO 5/6')
+
+
 # ---------------------------------------------------------------- main loop
 
 class FakeSession:
-    def __init__(self, date, persist):
+    built = []
+
+    def __init__(self, date, persist, gate=None):
         self.cache, self.watchlist, self.rechecked = {}, set(), {}
+        FakeSession.built.append(gate)
 
     def shortlist(self, loose=None):
         return ['A', 'B']
@@ -173,12 +221,18 @@ class FakeSession:
         pass
 
 
-def run_main(monkeypatch, passes_rows, close='2026-10-09 16:00', now='2026-10-09 12:30'):
+GATE = {'A': 'GO 6/6 · 2026-10-09 morning', 'B': 'GO 5/6 · 2026-10-08 evening'}
+
+
+def run_main(monkeypatch, passes_rows, close='2026-10-09 16:00', now='2026-10-09 12:30',
+             gate=GATE):
     monkeypatch.setattr(dl.argparse.ArgumentParser, 'parse_args',
-                        lambda self: Mock(once=False, dry=False, asof=None))
+                        lambda self: Mock(once=False, dry=False, asof=None, no_gate=False))
     monkeypatch.setattr(dl, '_now_et', lambda: pd.Timestamp(now, tz=dl.TZ))
     monkeypatch.setattr(dl, '_market_close',
                         lambda date: pd.Timestamp(close, tz=dl.TZ) if close else None)
+    monkeypatch.setattr(dl, 'high_conf_bounces', lambda date: dict(gate))
+    FakeSession.built = []
     monkeypatch.setattr(dl, 'Session', FakeSession)
     monkeypatch.setattr(dl, 'sessions_before', lambda d, n: [])
     monkeypatch.setattr(dl, 'live_pass', Mock(side_effect=passes_rows))
@@ -215,6 +269,20 @@ def test_main_is_silent_when_nothing_qualifies(monkeypatch):
     mail.assert_not_called()
     voice.assert_not_called()
     ledger.assert_not_called()
+
+
+def test_main_does_no_market_work_without_a_go_bounce(monkeypatch):
+    mail, voice, ledger, _, passes = run_main(monkeypatch, [], gate={})
+    assert FakeSession.built == []                # no history fetch, no snapshot
+    passes.assert_not_called()
+    mail.assert_not_called()
+    voice.assert_not_called()
+    ledger.assert_not_called()
+
+
+def test_main_hands_the_gate_to_the_session(monkeypatch):
+    run_main(monkeypatch, [(60, []), (60, [])])
+    assert FakeSession.built == [GATE]
 
 
 def test_main_exits_on_holidays_and_after_the_last_pass(monkeypatch):

@@ -14,15 +14,23 @@ Why this exists (SNDK 2026-07-29, overnight study 2026-10-09):
     - holding past day 1 only paid on broad flushes (>=51 names; 7/29 had
       225) or 5+ red days.
 
-What it does: at launch (Task Scheduler, 12:30 ET) it builds daily context for
-the whole market (rolling grouped-daily cache) and a shortlist re-checked per
-ticker; at close-13 and close-8 it counts breadth and checks the shortlist
-with real-time Trillium bars, alerting names that qualify:
+Gate (user, 2026-10-09: "only if the priority report recognizes a bounce that
+is high confidence"): a name is eligible only if the priority report rated it
+a GO bounce today (morning) or in either report of the prior 2 sessions. The
+look-back is what catches the motivating case: SNDK was GO 5/6 in both 7/28
+reports, then CAUTION 4/6 on the 7/29 morning it closed at dead lows. No GO
+bounce in the window -> the scanner exits at launch without touching the market.
+In the 2026 archive (3/31-8/07) the gate fired on 4 days (6/09, 6/10, 7/16, 7/29).
+
+What it does: at launch (Task Scheduler, 12:30 ET) it reads the gate, builds
+daily context (rolling grouped-daily cache) and re-checks the gated names per
+ticker; at close-13 and close-8 it counts breadth and checks them with
+real-time Trillium bars, alerting names that qualify:
     ADV20 >= $250M, red, 4+ straight lower closes (or 4 of the last 5 down),
     >= 25% below the 30-session high close, last in the bottom 15% of range.
-  SPEAK tier (ADV >= $1B and 4+ straight): one spoken line + the email.
-  EMAIL tier: everything else that qualifies, one ranked email per pass.
+Every gated name that qualifies is spoken (max 3 lines) and emailed.
 Silent when nothing new qualifies. Each name alerts once per day.
+`--asof D --no-gate` replays the whole market (research only).
 
 Breadth = names with ADV20 >= $9M that are red, 3+ straight lower closes and
 >= 25% off the 30-session high close (the study's cluster definition), from
@@ -36,7 +44,8 @@ Usage:
     python -m scanners.dead_lows_scanner                  # wait for the close, alert, log (Task Scheduler)
     python -m scanners.dead_lows_scanner --dry            # same timing, print only
     python -m scanners.dead_lows_scanner --once [--dry]   # one pass now (no ledger)
-    python -m scanners.dead_lows_scanner --asof 2026-07-29   # replay a past close from daily bars
+    python -m scanners.dead_lows_scanner --asof 2026-07-29   # replay a past close (gated)
+    python -m scanners.dead_lows_scanner --asof 2026-07-29 --no-gate   # whole market
 """
 
 import argparse
@@ -90,7 +99,10 @@ FALLBACK_ONE_R = 3000.0
 
 PASS_BEFORE_CLOSE_MIN = (13, 8)   # live checks; context is built at launch (12:30)
 
+GATE_LOOKBACK = 2            # prior sessions whose GO bounce still counts
+
 _DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+PRIORITY_DIR = _DATA_DIR / 'priority_signals'
 CACHE_DIR = _DATA_DIR / 'dead_lows'
 CACHE_FILE = CACHE_DIR / 'grouped_daily_rolling.pkl'
 STATE_FILE = _DATA_DIR / 'dead_lows_state.json'
@@ -217,10 +229,14 @@ def rank_rows(rows: list[dict], watchlist: set) -> list[dict]:
                                        -r['adv20']))
 
 
-def build_row(ticker: str, f: dict, breadth: int, cap: str, one_r: float, src: str) -> dict:
+def build_row(ticker: str, f: dict, breadth: int, cap: str, one_r: float, src: str,
+              gate: str | None = None) -> dict:
+    """`gate` = why the priority report put this name in scope. Gated names are
+    all spoken; ungated rows (--no-gate research replays) keep the ADV tiers."""
     shares, stop = starter(f['last'], f['atr'], one_r)
     return {
-        'ticker': ticker, 'tier': tier(f), 'cap': cap, 'src': src,
+        'ticker': ticker, 'tier': 'SPEAK' if gate else tier(f), 'gate': gate or '',
+        'cap': cap, 'src': src,
         'adv20': f['adv20'], 'streak': f['streak'], 'down5': f.get('down5'),
         'dd30': f['dd30'], 'clv': f['clv'], 'ret0': f['ret0'],
         'last': f['last'], 'atr': f['atr'], 'shares': shares, 'stop': stop,
@@ -250,6 +266,42 @@ def next_trading_day(after: datetime.date) -> datetime.date:
     sched = _nyse().schedule(start_date=after + datetime.timedelta(days=1),
                              end_date=after + datetime.timedelta(days=10))
     return sched.index[0].date()
+
+
+# ---------------------------------------------------------------------------
+# Gate: only names the priority report rated a GO bounce
+# ---------------------------------------------------------------------------
+
+def _gate_files(date: str, lookback: int) -> list[tuple[str, str]]:
+    """(date, session) report files that count for `date`, newest first.
+    Today's evening report is excluded: it's written after the close (and in a
+    replay it would be lookahead)."""
+    prior = sessions_before(datetime.date.fromisoformat(date), lookback)
+    files: list[tuple[str, str]] = [(date, 'morning')]
+    for d in reversed(prior):
+        files += [(d, 'evening'), (d, 'morning')]
+    return files
+
+
+def high_conf_bounces(date: str, lookback: int = GATE_LOOKBACK) -> dict[str, str]:
+    """{ticker: why} for bounce signals the priority report rated GO in today's
+    morning report or either report of the prior `lookback` sessions. The most
+    recent GO wins the label, e.g. 'GO 5/6 · 2026-07-28 evening'."""
+    gate: dict[str, str] = {}
+    for d, sess in _gate_files(date, lookback):
+        path = PRIORITY_DIR / f'{d}_{sess}.json'
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding='utf-8-sig'))
+        except Exception as e:
+            logger.warning(f'gate: unreadable {path.name}: {e}')
+            continue
+        for s in payload.get('signals', []):
+            if s.get('bucket') == 'bounce' and s.get('recommendation') == 'GO':
+                gate.setdefault(str(s['ticker']).upper(),
+                                f"GO {s.get('score', '')} · {d} {sess}".replace('  ', ' '))
+    return gate
 
 
 def load_cache() -> dict:
@@ -437,9 +489,10 @@ class Session:
     """Daily context built once: priors for the breadth universe, the alert
     shortlist re-checked per ticker, watchlist, caps, 1R."""
 
-    def __init__(self, date: str, persist: bool):
+    def __init__(self, date: str, persist: bool, gate: dict | None = None):
         self.date = date
         self.persist = persist
+        self.gate = gate              # {ticker: why}; None = whole market (research)
         d = datetime.date.fromisoformat(date)
         self.dates = sessions_before(d, HIST_SESSIONS)
         cache = load_cache()
@@ -460,6 +513,8 @@ class Session:
         `loose` (replay) = {ticker: day_features} to pre-screen by today's bar."""
         out = []
         for t, p in self.priors.items():
+            if self.gate is not None and t not in self.gate:
+                continue
             if p['adv20'] < ALERT_ADV * 0.8:
                 continue
             if loose is not None:
@@ -505,8 +560,11 @@ class Session:
             f = day_features(prior, v['last'], v['high'], v['low'])
             if not qualify(f):
                 continue
+            if self.gate is not None and t not in self.gate:
+                continue
             cap = lookup_cap(t, self.cap_cache, self.persist)
-            rows.append(build_row(t, f, breadth, cap, self.one_r, src_of.get(t, 'P')))
+            rows.append(build_row(t, f, breadth, cap, self.one_r, src_of.get(t, 'P'),
+                                  gate=(self.gate or {}).get(t)))
         return rank_rows(rows, self.watchlist)
 
 
@@ -526,10 +584,15 @@ def live_pass(sess: Session) -> tuple[int, list[dict]]:
     return breadth, sess.candidates(values, breadth, src)
 
 
-def replay(date: str) -> tuple[int, list[dict]]:
+def replay(date: str, use_gate: bool = True) -> tuple[int, list[dict]]:
     """Score a past close from daily bars: the full-day bar stands in for 15:50.
+    Gated by the archived priority reports unless use_gate=False.
     No alerts, no ledger, no state."""
-    sess = Session(date, persist=False)
+    gate = high_conf_bounces(date) if use_gate else None
+    if gate is not None:
+        logger.info(f'gate: {len(gate)} GO bounce(s) in scope: '
+                    + (', '.join(f'{t} ({w})' for t, w in gate.items()) or 'none'))
+    sess = Session(date, persist=False, gate=gate)
     ensure_history(sess.cache, [date])
     save_cache(sess.cache)
     d0 = sess.cache.get(date)
@@ -618,10 +681,11 @@ def format_email(rows: list[dict], breadth: int, asof: pd.Timestamp) -> tuple[st
             f"<td style='{cell}'>{r['last']:.2f}</td><td style='{cell}'>{r['atr']:.2f}</td>"
             f"<td style='{cell}'><b>{r['shares']}</b></td><td style='{cell}'>{r['stop']:.2f}</td>"
             f"<td style='{cell}'>{r['add_below']:.2f}</td><td style='{cell}'>{mid}</td>"
-            f"<td style='{cell}'>{r['hold']}</td><td style='{cell}'>{r['breadth']}</td></tr>")
+            f"<td style='{cell}'>{r['hold']}</td><td style='{cell}'>{r['breadth']}</td>"
+            f"<td style='{cell}'>{r.get('gate') or '—'}</td></tr>")
     head = ''.join(f"<th style='{cell}text-align:left;color:#9ca3af;'>{h}</th>" for h in (
         'Ticker', 'Tier', 'ADV', 'Streak', 'Off high', 'CLV', 'Last', 'ATR', 'Starter',
-        'Stop', 'Add if open ≤', 'Mid-BB', 'Hold plan', 'Breadth'))
+        'Stop', 'Add if open ≤', 'Mid-BB', 'Hold plan', 'Breadth', 'Priority report'))
     body = f"""<html><body style="background:#0b0f17;color:#e8ecf4;font-family:Segoe UI,Arial;font-size:13px;">
 <h2 style="color:#e8ecf4;margin:0 0 4px 0;">Dead-lows close</h2>
 <div style="color:#6b7280;font-size:12px;margin-bottom:12px;">{asof.strftime('%Y-%m-%d %H:%M ET')} —
@@ -632,7 +696,7 @@ Plan: buy the starter at the close (1R at a 1-ATR stop). If it opens at or below
 tomorrow, add on the normal 2-min signal; if not, you're already in.<br>
 Why: after a dead-lows close a ≥2% gap-down came only 18% of the time in ≥$1B names
 (2021-2026); starter + gap-down add was positive in every period.</div>
-<div style="color:#4b5563;font-size:11px;margin-top:16px;">Dead-lows Close Scanner — once per name per day; silent when nothing qualifies.</div>
+<div style="color:#4b5563;font-size:11px;margin-top:16px;">Dead-lows Close Scanner — only names the priority report rated a GO bounce (today or the prior 2 sessions); once per name per day; silent otherwise.</div>
 </body></html>"""
     return subject, body
 
@@ -714,10 +778,12 @@ def main():
     ap.add_argument('--once', action='store_true', help='one pass now (alerts unless --dry; no ledger)')
     ap.add_argument('--dry', action='store_true', help='print only: no speech, email, ledger or state')
     ap.add_argument('--asof', metavar='YYYY-MM-DD', help='replay a past close from daily bars')
+    ap.add_argument('--no-gate', action='store_true',
+                    help='with --asof: whole market, ignore the priority-report gate (research)')
     args = ap.parse_args()
 
     if args.asof:
-        breadth, rows = replay(args.asof)
+        breadth, rows = replay(args.asof, use_gate=not args.no_gate)
         print_table(rows, breadth, f'replay {args.asof} (full-day bar)')
         return
 
@@ -727,6 +793,12 @@ def main():
     if close is None:
         logger.info(f'{date}: market closed — nothing to do')
         return
+    gate = high_conf_bounces(date)
+    if not gate:
+        logger.info(f'{date}: no GO bounce in the priority report (today or the prior '
+                    f'{GATE_LOOKBACK} sessions) — nothing to watch')
+        return
+    logger.info(f'gate: {", ".join(f"{t} ({w})" for t, w in gate.items())}')
     if args.once:
         passes = [now]
     else:
@@ -737,7 +809,7 @@ def main():
             return
 
     # Daily context needs no live data: build it at launch, well before the close.
-    sess = Session(date, persist=not args.dry)
+    sess = Session(date, persist=not args.dry, gate=gate)
     keep = sessions_before(datetime.date.fromisoformat(date), ROLLING_KEEP)
     if keep:
         prune_cache(sess.cache, keep[0])
