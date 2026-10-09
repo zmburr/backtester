@@ -1,0 +1,96 @@
+{
+  "date": "2026-08-11",
+  "session": "morning",
+  "generated_at": "2026-08-11T05:46:38.944033",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "SPCX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.114658,
+        "pct_change_3": 0.281426,
+        "gap_pct": -0.011532,
+        "prior_day_range_atr": 0.895221,
+        "atr_pct": 0.074041,
+        "prior_day_rvol": 1.775178,
+        "premarket_rvol": 0.0
+      },
+      "intensity": 12.5,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.8994922431764014,
+        "pct_change_30": -0.09456372772955675,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 135%)",
+      "odds": {
+        "n": 522,
+        "p_fade": 0.546,
+        "p_fade5": 0.1743,
+        "p_close_low": 0.2471,
+        "med_return": -0.0055,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 4-4 \u00b7 Large"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MU",
+            "date": "2026-05-12",
+            "open_low_pct": -0.0879,
+            "open_close_pct": -0.0105,
+            "distance": 1.4154
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2024-11-12",
+            "open_low_pct": -0.0567,
+            "open_close_pct": -0.0416,
+            "distance": 1.9395
+          },
+          {
+            "ticker": "SNDK",
+            "date": "2026-05-06",
+            "open_low_pct": -0.0715,
+            "open_close_pct": -0.0191,
+            "distance": 2.1834
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2021-08-10",
+            "open_low_pct": -0.0649,
+            "open_close_pct": -0.0592,
+            "distance": 2.4463
+          },
+          {
+            "ticker": "INTC",
+            "date": "2026-05-12",
+            "open_low_pct": -0.0753,
+            "open_close_pct": -0.0302,
+            "distance": 2.4568
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.0715,
+        "med_open_close": -0.0302
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 1
+  }
+}

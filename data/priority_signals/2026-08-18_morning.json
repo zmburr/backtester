@@ -1,0 +1,119 @@
+{
+  "date": "2026-08-18",
+  "session": "morning",
+  "generated_at": "2026-08-18T05:46:26.505935",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "ALAB",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.03073,
+        "pct_off_30d_high": -0.304809,
+        "gap_pct": -0.052285,
+        "pct_change_3": -0.059948,
+        "prior_day_range_atr": 1.056561,
+        "pct_off_52wk_high": -0.392504,
+        "atr_pct": 0.10833
+      },
+      "intensity": 17.8,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NIO",
+            "date": "2021-02-23",
+            "open_high_pct": 0.0888,
+            "open_low_pct": -0.0868,
+            "open_close_pct": 0.0765,
+            "time_of_low_bucket": 1,
+            "distance": 0.4145
+          },
+          {
+            "ticker": "MRNA",
+            "date": "2021-08-16",
+            "open_high_pct": 0.0008,
+            "open_low_pct": -0.0798,
+            "open_close_pct": -0.0143,
+            "time_of_low_bucket": 2,
+            "distance": 0.4776
+          },
+          {
+            "ticker": "GL",
+            "date": "2024-04-11",
+            "open_high_pct": 0.001,
+            "open_low_pct": -0.6045,
+            "open_close_pct": -0.5007,
+            "time_of_low_bucket": 4,
+            "distance": 0.6095
+          },
+          {
+            "ticker": "LI",
+            "date": "2022-10-24",
+            "open_high_pct": 0.0002,
+            "open_low_pct": -0.2229,
+            "open_close_pct": -0.0888,
+            "time_of_low_bucket": 2,
+            "distance": 0.6721
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2025-02-20",
+            "open_high_pct": 0.0436,
+            "open_low_pct": -0.0691,
+            "open_close_pct": 0.0326,
+            "time_of_low_bucket": 1,
+            "distance": 0.7901
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.001,
+        "med_open_low": -0.0868,
+        "med_open_close": -0.0143,
+        "n_low_by_10": 2
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 312.6023
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 1,
+    "total_open": 1
+  },
+  "bounce_cohort": {
+    "n": 103,
+    "low_by_10_pct": 0.7573,
+    "low_by_10_med_open_close": 0.0985,
+    "low_after_10_med_open_close": -0.0216,
+    "vol15_q25": 0.1201,
+    "vol15_med": 0.1824,
+    "vol15_q75": 0.285,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}

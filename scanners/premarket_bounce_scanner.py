@@ -14,7 +14,12 @@ Why this exists (premarket-bottom study, July 2026, n=93 bounce_data.csv trades)
     CROSSINGS (a name reaching GO fires immediately, once).
 
 Alerts are EMAIL ONLY by design — this is meant to run unattended on a
-remote machine where popups/TTS are useless.
+remote machine where popups/TTS are useless. The brief is only sent when at
+least one name scores GO or CAUTION: from 08:00 it is HELD each scan until
+something turns actionable, and if nothing ever does it is never sent. A
+NO-GO-only morning therefore sends nothing, so an email in the inbox always
+means there's a trade to look at — without losing names that cross after
+08:00 (CAUTION never fires the score-crossing alert path).
 
 Scoring is identical to the priority report path: BouncePretrade's six V3
 criteria with cap-specific thresholds — but "current price" is the latest
@@ -63,8 +68,9 @@ logger = logging.getLogger('premarket_bounce_scanner')
 
 EMAIL_TO = 'zmburr@gmail.com'
 ALERT_SCORE = 5              # >= this (GO) fires an immediate alert email
-BRIEF_TIME = '08:00'         # daily leaderboard email (desk arrival)
-BRIEF_MIN_SCORE = 3          # names at/above this appear in the brief
+BRIEF_TIME = '08:00'         # earliest the daily leaderboard email may go out (desk arrival)
+BRIEF_MIN_SCORE = 3          # minimum score for actionable names in the brief
+BRIEF_ACTIONABLE_RECS = ('GO', 'CAUTION')   # brief only mails if a name hits one of these
 SCAN_START = '04:15'         # ET
 SCAN_END = '09:30'           # ET
 EARLY_INTERVAL_S = 600       # poll cadence before 07:00 (lows are sparse here)
@@ -410,15 +416,30 @@ Price <strong>{row['price']:.2f}</strong>
     return subject, body
 
 
+def brief_rows(rows: list[dict]) -> list[dict]:
+    """Return the actionable names that can appear in the brief."""
+    return [r for r in rows
+            if r['rec'] in BRIEF_ACTIONABLE_RECS and r['score'] >= BRIEF_MIN_SCORE]
+
+
+def brief_is_actionable(rows: list[dict]) -> bool:
+    """True only if at least one displayed name is a GO or CAUTION.
+
+    A brief with nothing but NO-GO names carries no decision, so it isn't mailed —
+    the morning inbox should mean 'there is something to look at'.
+    """
+    return bool(brief_rows(rows))
+
+
 def format_brief_email(rows: list[dict], asof: pd.Timestamp) -> tuple[str, str]:
-    top = [r for r in rows if r['score'] >= BRIEF_MIN_SCORE]
-    n_go = sum(1 for r in rows if r['rec'] == 'GO')
-    n_caution = sum(1 for r in rows if r['rec'] == 'CAUTION')
+    top = brief_rows(rows)
+    n_go = sum(1 for r in top if r['rec'] == 'GO')
+    n_caution = sum(1 for r in top if r['rec'] == 'CAUTION')
     subject = f"Premarket Bounce Brief — {n_go} GO / {n_caution} CAUTION ({asof.strftime('%H:%M ET')})"
     body = f"""<html><body style="font-family:-apple-system,Segoe UI,sans-serif;background:#0a0c10;color:#c8cdd8;padding:16px;">
 <h2 style="color:#e8ecf4;margin:0 0 4px 0;">Premarket Bounce Brief</h2>
 <div style="color:#6b7280;font-size:12px;margin-bottom:12px;">{asof.strftime('%Y-%m-%d %H:%M ET')} —
-watchlist scored with live premarket prices (score >= {BRIEF_MIN_SCORE} shown)</div>
+watchlist scored with live premarket prices (GO/CAUTION only, score >= {BRIEF_MIN_SCORE})</div>
 {_row_table(top) if top else "<p style='color:#6b7280;'>Nothing scoring above threshold.</p>"}
 <div style="color:#4b5563;font-size:11px;margin-top:16px;">Premarket Bounce Scanner — GO crossings alert in real time; this is the 8 AM landscape.</div>
 </body></html>"""
@@ -443,7 +464,7 @@ def save_state(state: dict):
 def process_alerts(rows, state, asof, do_email: bool):
     """Email on score crossings: fires when a ticker sets a new high score >= ALERT_SCORE."""
     for r in rows:
-        if r['score'] < ALERT_SCORE:
+        if r['score'] < ALERT_SCORE or r['rec'] not in BRIEF_ACTIONABLE_RECS:
             continue
         prev = state['alerted'].get(r['ticker'], 0)
         if r['score'] <= prev:
@@ -550,12 +571,20 @@ def main():
         process_alerts(rows, state, asof, do_email=do_email)
 
         if not state['brief_sent'] and asof >= brief_at:
-            subject, body = format_brief_email(rows, asof)
-            logger.info(f'BRIEF: {subject}')
-            if do_email:
-                send_email(EMAIL_TO, subject, body, is_html=True)
-            state['brief_sent'] = True
-            save_state(state)
+            # The brief is held, not fired-and-forgotten, until something is actionable.
+            # Scores are a decaying spike that can cross well after 08:00 (AXTI went
+            # 3/6 NO-GO -> 4/6 CAUTION at 08:33 on 2026-08-04), and CAUTION names never
+            # trigger the score-crossing alert path, so a one-shot 08:00 snapshot plus
+            # suppression would silently drop them.
+            if brief_is_actionable(rows):
+                subject, body = format_brief_email(rows, asof)
+                logger.info(f'BRIEF: {subject}')
+                if do_email:
+                    send_email(EMAIL_TO, subject, body, is_html=True)
+                state['brief_sent'] = True
+                save_state(state)
+            else:
+                logger.info('BRIEF held — no GO/CAUTION yet, re-checking next scan')
 
         interval = EARLY_INTERVAL_S if asof.hour < 7 else LATE_INTERVAL_S
         time.sleep(interval)

@@ -1,0 +1,96 @@
+{
+  "date": "2026-08-13",
+  "session": "evening",
+  "generated_at": "2026-08-13T15:16:16.385005",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "NBIS",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "4/5",
+      "metrics": {
+        "pct_from_9ema": 0.203642,
+        "pct_change_3": 0.378943,
+        "gap_pct": -0.036275,
+        "prior_day_range_atr": 1.559782,
+        "atr_pct": 0.111208,
+        "prior_day_rvol": 2.651819,
+        "premarket_rvol": 0.079738
+      },
+      "intensity": 21.3,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 0.7226751454211328,
+        "pct_change_30": -0.06144765905058488,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 236%)",
+      "odds": {
+        "n": 2521,
+        "p_fade": 0.5581,
+        "p_fade5": 0.2642,
+        "p_close_low": 0.2967,
+        "med_return": -0.0088,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "GME",
+            "date": "2022-03-29",
+            "open_low_pct": -0.1341,
+            "open_close_pct": -0.0443,
+            "distance": 0.117
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-11-24",
+            "open_low_pct": -0.1302,
+            "open_close_pct": -0.0213,
+            "distance": 0.2008
+          },
+          {
+            "ticker": "RIVN",
+            "date": "2023-07-10",
+            "open_low_pct": -0.076,
+            "open_close_pct": -0.0004,
+            "distance": 0.2469
+          },
+          {
+            "ticker": "DJT",
+            "date": "2024-10-30",
+            "open_low_pct": -0.1803,
+            "open_close_pct": -0.1578,
+            "distance": 0.249
+          },
+          {
+            "ticker": "PLTR",
+            "date": "2020-11-27",
+            "open_low_pct": -0.1626,
+            "open_close_pct": -0.1132,
+            "distance": 0.2809
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.1341,
+        "med_open_close": -0.0443
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 1
+  }
+}

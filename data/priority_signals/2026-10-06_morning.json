@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-06",
+  "session": "morning",
+  "generated_at": "2026-10-06T05:45:46.256023",
+  "go_count": 1,
+  "caution_count": 0,
+  "signals": [
+    {
+      "ticker": "SPCX",
+      "bucket": "reversal",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.114689,
+        "pct_change_3": 0.134098,
+        "gap_pct": 0.010306,
+        "prior_day_range_atr": 2.04233,
+        "atr_pct": 0.039233,
+        "prior_day_rvol": 1.437289,
+        "premarket_rvol": 0.0
+      },
+      "intensity": 23.3,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": false,
+        "pct_from_200mav": 1.4348838741774477,
+        "pct_change_30": 0.24910564357158504,
+        "passed_by_52wk": false,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 341%)",
+      "odds": {
+        "n": 402,
+        "p_fade": 0.5199,
+        "p_fade5": 0.194,
+        "p_close_low": 0.2662,
+        "med_return": -0.0028,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Large"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "NVDA",
+            "date": "2024-02-06",
+            "open_low_pct": -0.0478,
+            "open_close_pct": -0.0202,
+            "distance": 0.6574
+          },
+          {
+            "ticker": "MU",
+            "date": "2024-06-20",
+            "open_low_pct": -0.0898,
+            "open_close_pct": -0.0817,
+            "distance": 0.7213
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2024-06-06",
+            "open_low_pct": -0.0462,
+            "open_close_pct": -0.0246,
+            "distance": 0.8674
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2023-06-21",
+            "open_low_pct": -0.0631,
+            "open_close_pct": -0.057,
+            "distance": 0.939
+          },
+          {
+            "ticker": "AMD",
+            "date": "2024-01-25",
+            "open_low_pct": -0.0315,
+            "open_close_pct": -0.0168,
+            "distance": 1.0083
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.0478,
+        "med_open_close": -0.0246
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 1
+  }
+}

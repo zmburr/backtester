@@ -6,7 +6,7 @@ both surfaced as OPEN with the underlying score for nuance), then adds:
   2. Setup-strengthening analysis (what would tighten the score)
   3. Charts + exit targets
 
-Sent via email to zmburr@gmail.com morning + evening.
+Sent via email to zmburr@gmail.com morning + evening only when a window is OPEN.
 """
 
 from pathlib import Path
@@ -1311,7 +1311,7 @@ def generate_priority_report() -> str:
                   f"{float(top_edge['live_intensity']):.0f}/100 ({top_edge['bucket']})")
 
         if not priority:
-            print("No OPEN windows found. Sending empty report.")
+            _save_signals_to_json([], 0, 0, cluster=cluster)
             html = build_priority_report_html([], {})
             _send_report(html, 0, 0)
             return html
@@ -1989,7 +1989,7 @@ def _json_default(obj):
 
 def _send_report(html: str, go_count: int, caution_count: int, inline_images=None,
                  cluster: Optional[Dict] = None, top_edge: Optional[Dict] = None):
-    """Send the priority report email.
+    """Send the priority report email only when at least one window is OPEN.
 
     go_count + caution_count are the underlying tier counts (kept for backward
     compatibility with callers); the subject surfaces the unified OPEN total.
@@ -2000,6 +2000,16 @@ def _send_report(html: str, go_count: int, caution_count: int, inline_images=Non
     """
     date_str = datetime.datetime.now().strftime("%m/%d/%Y")
     open_total = go_count + caution_count
+    if open_total == 0:
+        log.info("Priority report email skipped: no OPEN windows.")
+        # Clear the previous run's spoken alert so an empty run stays quiet.
+        try:
+            _SIGNAL_DIR.mkdir(parents=True, exist_ok=True)
+            (_SIGNAL_DIR / "latest_tts.txt").write_text("")
+        except Exception as e:
+            log.debug(f"TTS line clear failed (non-fatal): {e}")
+        return
+
     subject = f"Priority Report — {open_total} Window{'s' if open_total != 1 else ''} Open | {date_str}"
     if top_edge is not None:
         subject = f"⚡ {top_edge['ticker']} {float(top_edge['live_intensity']):.0f} — {subject}"
@@ -2040,4 +2050,4 @@ def _send_report(html: str, go_count: int, caution_count: int, inline_images=Non
 if __name__ == "__main__":
     generate_priority_report()
     cleanup_charts()
-    print("Priority report generated and sent.")
+    print("Priority report generated.")
