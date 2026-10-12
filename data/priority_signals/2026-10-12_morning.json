@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-12",
+  "session": "morning",
+  "generated_at": "2026-10-12T05:45:52.036358",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.23053,
+        "pct_off_30d_high": -0.242417,
+        "gap_pct": -0.022203,
+        "pct_change_3": -0.161048,
+        "prior_day_range_atr": 1.095247,
+        "pct_off_52wk_high": -0.532411,
+        "atr_pct": 0.099433
+      },
+      "intensity": 36.9,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AAOI",
+            "date": "2026-07-06",
+            "open_high_pct": 0.0799,
+            "open_low_pct": -0.0308,
+            "open_close_pct": 0.0262,
+            "time_of_low_bucket": 1,
+            "distance": 0.4717
+          },
+          {
+            "ticker": "LINE",
+            "date": "2025-04-09",
+            "open_high_pct": 0.1197,
+            "open_low_pct": -0.0474,
+            "open_close_pct": 0.1179,
+            "time_of_low_bucket": 1,
+            "distance": 0.5073
+          },
+          {
+            "ticker": "CRDO",
+            "date": "2026-07-17",
+            "open_high_pct": 0.0849,
+            "open_low_pct": -0.0396,
+            "open_close_pct": 0.0473,
+            "time_of_low_bucket": 1,
+            "distance": 0.5248
+          },
+          {
+            "ticker": "ENTG",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1399,
+            "open_low_pct": -0.0406,
+            "open_close_pct": 0.0556,
+            "time_of_low_bucket": 1,
+            "distance": 0.5526
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-25",
+            "open_high_pct": 0.0901,
+            "open_low_pct": -0.0992,
+            "open_close_pct": 0.0472,
+            "time_of_low_bucket": 1,
+            "distance": 0.5833
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0901,
+        "med_open_low": -0.0406,
+        "med_open_close": 0.0473,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 74.4975
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 1,
+    "total_open": 1
+  },
+  "bounce_cohort": {
+    "n": 103,
+    "low_by_10_pct": 0.7573,
+    "low_by_10_med_open_close": 0.0985,
+    "low_after_10_med_open_close": -0.0216,
+    "vol15_q25": 0.1201,
+    "vol15_med": 0.1824,
+    "vol15_q75": 0.285,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}
