@@ -124,14 +124,20 @@ def get_bounce_stats(row, analysis_type):
         day_before_data = _get_daily(ticker, adjust_date_to_market(date, 1))
         prev_close = day_before_data.close
 
-        day_after_data = _get_daily(ticker, adjust_date_forward(date, 1))
-        day_after_open = day_after_data.open
-
         row['gap_pct'] = (open_price - prev_close) / prev_close
         row['bounce_open_high_pct'] = (high_price - open_price) / open_price
         row['bounce_open_close_pct'] = (close_price - open_price) / open_price
         row['bounce_open_low_pct'] = (low_price - open_price) / open_price
-        row['bounce_open_to_day_after_open_pct'] = (day_after_open - open_price) / open_price
+
+        # Day-after open is unavailable when the row is added on the bounce day
+        # itself; leave it NA so the next collector run fills it, instead of
+        # losing the same-day stats above.
+        day_after_data = _get_daily(ticker, adjust_date_forward(date, 1))
+        if day_after_data is not None:
+            row['bounce_open_to_day_after_open_pct'] = (day_after_data.open - open_price) / open_price
+        else:
+            logging.warning(f"Day-after bar not available yet for {ticker} on {date}; "
+                            f"bounce_open_to_day_after_open_pct left NA")
 
     except Exception as e:
         logging.error(f"Error in get_bounce_stats for {ticker} on {date}: {e}")
