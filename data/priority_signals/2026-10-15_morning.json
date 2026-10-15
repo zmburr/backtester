@@ -1,0 +1,443 @@
+{
+  "date": "2026-10-15",
+  "session": "morning",
+  "generated_at": "2026-10-15T05:45:44.239583",
+  "go_count": 2,
+  "caution_count": 3,
+  "signals": [
+    {
+      "ticker": "NBIS",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.257129,
+        "pct_off_30d_high": -0.294316,
+        "gap_pct": -0.032203,
+        "pct_change_3": -0.143007,
+        "prior_day_range_atr": 1.007885,
+        "pct_off_52wk_high": -0.399653,
+        "atr_pct": 0.085373
+      },
+      "intensity": 40.4,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "BE",
+            "date": "2025-11-14",
+            "open_high_pct": 0.2375,
+            "open_low_pct": -0.021,
+            "open_close_pct": 0.167,
+            "time_of_low_bucket": 1,
+            "distance": 0.2379
+          },
+          {
+            "ticker": "MARA",
+            "date": "2024-01-03",
+            "open_high_pct": 0.1473,
+            "open_low_pct": -0.015,
+            "open_close_pct": 0.1321,
+            "time_of_low_bucket": 1,
+            "distance": 0.2847
+          },
+          {
+            "ticker": "CRDO",
+            "date": "2026-07-17",
+            "open_high_pct": 0.0849,
+            "open_low_pct": -0.0396,
+            "open_close_pct": 0.0473,
+            "time_of_low_bucket": 1,
+            "distance": 0.3342
+          },
+          {
+            "ticker": "HUT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0991,
+            "open_low_pct": -0.0143,
+            "open_close_pct": 0.0538,
+            "time_of_low_bucket": 1,
+            "distance": 0.4594
+          },
+          {
+            "ticker": "AXSM",
+            "date": "2025-04-07",
+            "open_high_pct": 0.0818,
+            "open_low_pct": -0.0206,
+            "open_close_pct": 0.0427,
+            "time_of_low_bucket": 1,
+            "distance": 0.5073
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.0991,
+        "med_open_low": -0.0206,
+        "med_open_close": 0.0538,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "mid_bb": 228.0687
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.364469,
+        "pct_off_30d_high": -0.395042,
+        "gap_pct": -0.070563,
+        "pct_change_3": -0.199844,
+        "prior_day_range_atr": 0.974651,
+        "pct_off_52wk_high": -0.659801,
+        "atr_pct": 0.118839
+      },
+      "intensity": 39.0,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "KWEB",
+            "date": "2022-03-15",
+            "open_high_pct": 0.1,
+            "open_low_pct": -0.0187,
+            "open_close_pct": 0.0663,
+            "time_of_low_bucket": 1,
+            "distance": 1.5525
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1286,
+            "open_low_pct": -0.0228,
+            "open_close_pct": 0.0855,
+            "time_of_low_bucket": 1,
+            "distance": 1.6355
+          },
+          {
+            "ticker": "SOXL",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0159,
+            "open_low_pct": -0.1027,
+            "open_close_pct": -0.0319,
+            "time_of_low_bucket": 2,
+            "distance": 2.9611
+          },
+          {
+            "ticker": "SOXL",
+            "date": "2026-07-17",
+            "open_high_pct": 0.1577,
+            "open_low_pct": -0.0662,
+            "open_close_pct": 0.0861,
+            "time_of_low_bucket": 1,
+            "distance": 3.0134
+          },
+          {
+            "ticker": "NVDA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1634,
+            "open_low_pct": -0.0096,
+            "open_close_pct": 0.1164,
+            "time_of_low_bucket": 1,
+            "distance": 3.1441
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1286,
+        "med_open_low": -0.0228,
+        "med_open_close": 0.0855,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 467,
+        "p_green": 0.5096,
+        "p_bounce5": 0.6381,
+        "med_return": 0.0053,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6"
+      },
+      "mid_bb": 143.359
+    },
+    {
+      "ticker": "CRWV",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.318547,
+        "pct_off_30d_high": -0.412468,
+        "gap_pct": -0.065825,
+        "pct_change_3": -0.234363,
+        "prior_day_range_atr": 1.597674,
+        "pct_off_52wk_high": -0.591423,
+        "atr_pct": 0.082606
+      },
+      "intensity": 43.1,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "ENTG",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1399,
+            "open_low_pct": -0.0406,
+            "open_close_pct": 0.0556,
+            "time_of_low_bucket": 1,
+            "distance": 0.1978
+          },
+          {
+            "ticker": "HUT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0991,
+            "open_low_pct": -0.0143,
+            "open_close_pct": 0.0538,
+            "time_of_low_bucket": 1,
+            "distance": 0.3179
+          },
+          {
+            "ticker": "VERU",
+            "date": "2022-05-04",
+            "open_high_pct": 0.1574,
+            "open_low_pct": -0.0262,
+            "open_close_pct": 0.0741,
+            "time_of_low_bucket": 2,
+            "distance": 0.3369
+          },
+          {
+            "ticker": "VFC",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1253,
+            "open_low_pct": -0.0198,
+            "open_close_pct": 0.0378,
+            "time_of_low_bucket": 1,
+            "distance": 0.4141
+          },
+          {
+            "ticker": "UPST",
+            "date": "2025-04-07",
+            "open_high_pct": 0.2607,
+            "open_low_pct": -0.0066,
+            "open_close_pct": 0.1881,
+            "time_of_low_bucket": 1,
+            "distance": 0.5162
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1399,
+        "med_open_low": -0.0198,
+        "med_open_close": 0.0556,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 84.4715
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.278766,
+        "pct_off_30d_high": -0.328206,
+        "gap_pct": -0.035778,
+        "pct_change_3": -0.145971,
+        "prior_day_range_atr": 0.93952,
+        "pct_off_52wk_high": -0.407638,
+        "atr_pct": 0.111465
+      },
+      "intensity": 38.5,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "BE",
+            "date": "2025-11-14",
+            "open_high_pct": 0.2375,
+            "open_low_pct": -0.021,
+            "open_close_pct": 0.167,
+            "time_of_low_bucket": 1,
+            "distance": 0.266
+          },
+          {
+            "ticker": "MARA",
+            "date": "2024-01-03",
+            "open_high_pct": 0.1473,
+            "open_low_pct": -0.015,
+            "open_close_pct": 0.1321,
+            "time_of_low_bucket": 1,
+            "distance": 0.2975
+          },
+          {
+            "ticker": "HUT",
+            "date": "2024-01-03",
+            "open_high_pct": 0.0991,
+            "open_low_pct": -0.0143,
+            "open_close_pct": 0.0538,
+            "time_of_low_bucket": 1,
+            "distance": 0.3359
+          },
+          {
+            "ticker": "CRDO",
+            "date": "2026-07-17",
+            "open_high_pct": 0.0849,
+            "open_low_pct": -0.0396,
+            "open_close_pct": 0.0473,
+            "time_of_low_bucket": 1,
+            "distance": 0.4392
+          },
+          {
+            "ticker": "ENTG",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1399,
+            "open_low_pct": -0.0406,
+            "open_close_pct": 0.0556,
+            "time_of_low_bucket": 1,
+            "distance": 0.4932
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1399,
+        "med_open_low": -0.021,
+        "med_open_close": 0.0556,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 91.6265
+    },
+    {
+      "ticker": "BE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.166455,
+        "pct_off_30d_high": -0.240956,
+        "gap_pct": -0.041113,
+        "pct_change_3": -0.124981,
+        "prior_day_range_atr": 1.081465,
+        "pct_off_52wk_high": -0.346675,
+        "atr_pct": 0.091943
+      },
+      "intensity": 26.5,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AXSM",
+            "date": "2025-04-07",
+            "open_high_pct": 0.0818,
+            "open_low_pct": -0.0206,
+            "open_close_pct": 0.0427,
+            "time_of_low_bucket": 1,
+            "distance": 0.2214
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2021-02-17",
+            "open_high_pct": 0.1034,
+            "open_low_pct": -0.0088,
+            "open_close_pct": 0.0994,
+            "time_of_low_bucket": 1,
+            "distance": 0.2812
+          },
+          {
+            "ticker": "LINE",
+            "date": "2025-04-09",
+            "open_high_pct": 0.1197,
+            "open_low_pct": -0.0474,
+            "open_close_pct": 0.1179,
+            "time_of_low_bucket": 1,
+            "distance": 0.3119
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2020-08-12",
+            "open_high_pct": 0.003,
+            "open_low_pct": -0.2401,
+            "open_close_pct": -0.1597,
+            "time_of_low_bucket": 2,
+            "distance": 0.3553
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.377
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1034,
+        "med_open_low": -0.0213,
+        "med_open_close": 0.0994,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 275.8145
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 5,
+    "total_open": 5
+  },
+  "bounce_cohort": {
+    "n": 103,
+    "low_by_10_pct": 0.7573,
+    "low_by_10_med_open_close": 0.0985,
+    "low_after_10_med_open_close": -0.0216,
+    "vol15_q25": 0.1201,
+    "vol15_med": 0.1824,
+    "vol15_q75": 0.285,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}
