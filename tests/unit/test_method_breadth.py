@@ -178,6 +178,11 @@ def test_the_open_count_locks_and_stays(bdir):
     later = B.evaluate("2026-10-15", "market", at("10:30"), {"B": {"price": 80.0, "open": 85.0}}, prev=mb, snap_prices={})
     assert later["names"] == ["A"] and later["n"] == 1                       # the open's count is fixed
     assert B.watch_names(later) == []
+    t = json.loads(B.EDGE_FILE.read_text())
+    t["states"]["normal"]["mean_r"] = 0.5                                    # the table is rebuilt mid-day
+    B.EDGE_FILE.write_text(json.dumps(t))
+    again = B.evaluate("2026-10-15", "market", at("10:32"), {}, prev=later, snap_prices={})
+    assert again["n"] == 1 and again["edge"]["mean_r"] == 0.5 and "by_score" not in again["edge"]
 
 
 def test_one_push_a_day_and_only_once_a_phone_got_it(bdir):
@@ -187,7 +192,7 @@ def test_one_push_a_day_and_only_once_a_phone_got_it(bdir):
     assert B.breadth_push(mb, lambda *a, **k: 0) is False and "pushed" not in mb        # no phone: not recorded
     sent = []
     assert B.breadth_push(mb, lambda title, body, url, tag: sent.append((title, body, tag)) or 1)
-    assert sent[0][0] == "Breadth day · 12 names" and "+1.2R a name, 57% win" in sent[0][1]
+    assert sent[0][0] == "Breadth day · 12 names" and "+1.2R a name with the re-entry, 57% of names green" in sent[0][1]
     assert sent[0][2] == "breadth-2026-10-15"
     nxt = B.evaluate("2026-10-15", "premarket", at("08:05"), {}, prev=mb)
     assert nxt["pushed"] and B.breadth_push(nxt, lambda *a, **k: sent.append(1) or 1) is False
@@ -210,6 +215,9 @@ def test_the_committed_edge_table_has_every_state():
     assert set(t["states"]) == {"normal", "elevated", "breadth"}
     assert t["states"]["breadth"]["mean_r"] > t["states"]["normal"]["mean_r"]
     assert all(set(s["by_score"]) == {"4", "5", "6", "low"} for s in t["states"].values())
+    b = t["states"]["breadth"]       # a name gets a first entry + one re-entry: more entries than names
+    assert b["entry_n"] > b["n"] and b["entry_mean_r"] < b["mean_r"] and 0 < b["entry_win"] < b["win"]
+    assert all(s["entry_mean_r"] is not None for st in t["states"].values() for s in st["by_score"].values())
 
 
 def test_board_and_watch_names():

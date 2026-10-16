@@ -525,7 +525,7 @@ def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
         score = r.get("score_open") if r.get("score_open") is not None else r.get("score")
         e = breadth.edge_for(table, state, score, relaxed=r.get("breadth_flag") == "relaxed")
         if e:
-            r["edge"] = {k: e.get(k) for k in ("mean_r", "win", "n", "shrunk")}
+            r["edge"] = {k: e.get(k) for k in ("mean_r", "win", "n", "shrunk", "entry_mean_r", "entry_win")}
     return rows
 
 

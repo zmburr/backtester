@@ -243,7 +243,9 @@ function renderSideList(side) {
 const STATE_WORD = { normal: 'Normal day', elevated: 'Elevated', breadth: 'Breadth day' };
 const STATE_CLS = { normal: 'nogo', elevated: 'caution', breadth: 'go' };
 const STATE_DAY = { normal: 'a normal day', elevated: 'an elevated day', breadth: 'a breadth day' };
-const edgeText = e => e?.mean_r == null ? null : `${rr(e.mean_r)} a name · ${upct(e.win)} win`;
+const entryText = e => e?.entry_mean_r == null ? '' : `a single entry ${rr(e.entry_mean_r)}, ${upct(e.entry_win)}`;
+const edgeText = e => e?.mean_r == null ? null
+  : [`${rr(e.mean_r)} a name, re‑entry included`, `${upct(e.win)} of names green`, entryText(e)].filter(Boolean).join(' · ');
 function breadthCard(s) {
   const mb = s.market_breadth;
   if (!mb) return '';
@@ -603,7 +605,7 @@ function gradeCard(r) {
   const now = r.grade_open && r.grade !== r.grade_open ? `<div class="muted" style="margin-top:6px">Now ${gradeLabel(r.grade)} at ${px(r.price)}.</div>` : '';
   const mb = S.snap.market_breadth;
   const edge = r.edge?.mean_r != null && mb?.state
-    ? `On ${STATE_DAY[mb.state]} (${mb.n} names market-wide), ${score >= 4 ? `${Math.min(score, 6)}/6` : '3/6-or-lower'} names averaged ${rr(r.edge.mean_r)} with ${upct(r.edge.win)} wins under your rules (${r.edge.n} names${r.edge.shrunk ? ', a small sample pulled toward the day average' : ''}).`
+    ? `On ${STATE_DAY[mb.state]} (${mb.n} names market-wide), ${score >= 4 ? `${Math.min(score, 6)}/6` : '3/6-or-lower'} names across the market averaged ${rr(r.edge.mean_r)} a name with the re‑entry, ${upct(r.edge.win)} green${entryText(r.edge) ? `; ${entryText(r.edge)}` : ''}, under your rules (${r.edge.n} names${r.edge.shrunk ? ', a small sample pulled toward the day average' : ''}).`
     : '';
   const mkt = r.market ? `Flagged by the market-wide breadth scan, not on your watchlist${r.counted === false ? ' (outside the counted universe)' : ''}.` : '';
   return `<div class="card callout"><div class="eyebrow">Grade ${esc(lead)}</div>

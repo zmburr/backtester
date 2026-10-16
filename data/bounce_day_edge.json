@@ -1,6 +1,6 @@
 {
  "built": "2026-10-16",
- "unit": "R per name-day under the live rules, when the rules entered",
+ "unit": "R per name-day under the live rules (first entry + one re-entry after a stop-out), when the rules entered; entry_* = each single entry",
  "population": "bounce_population_2022_2026.csv",
  "shrink_n": 30,
  "thresholds": {
@@ -13,6 +13,9 @@
    "mean_r": 0.14,
    "median_r": -1.0,
    "win": 0.386,
+   "entry_n": 1167,
+   "entry_mean_r": 0.088,
+   "entry_win": 0.27,
    "days": 1080,
    "day_mean_r": 0.225,
    "traded_days": 455,
@@ -22,25 +25,37 @@
      "n": 490,
      "mean_r": 0.215,
      "median_r": -1.0,
-     "win": 0.396
+     "win": 0.396,
+     "entry_n": 768,
+     "entry_mean_r": 0.137,
+     "entry_win": 0.281
     },
     "5": {
      "n": 204,
      "mean_r": -0.007,
      "median_r": -1.0,
-     "win": 0.358
+     "win": 0.358,
+     "entry_n": 336,
+     "entry_mean_r": -0.004,
+     "entry_win": 0.244
     },
     "6": {
      "n": 39,
      "mean_r": -0.032,
      "median_r": -0.667,
-     "win": 0.41
+     "win": 0.41,
+     "entry_n": 63,
+     "entry_mean_r": -0.02,
+     "entry_win": 0.27
     },
     "low": {
      "n": 491,
      "mean_r": -0.067,
      "median_r": -2.0,
-     "win": 0.367
+     "win": 0.367,
+     "entry_n": 810,
+     "entry_mean_r": -0.041,
+     "entry_win": 0.236
     }
    }
   },
@@ -49,6 +64,9 @@
    "mean_r": 0.14,
    "median_r": -2.0,
    "win": 0.374,
+   "entry_n": 344,
+   "entry_mean_r": 0.082,
+   "entry_win": 0.238,
    "days": 29,
    "day_mean_r": 0.322,
    "traded_days": 29,
@@ -58,24 +76,36 @@
      "n": 137,
      "mean_r": 0.226,
      "median_r": -2.0,
-     "win": 0.38
+     "win": 0.38,
+     "entry_n": 234,
+     "entry_mean_r": 0.133,
+     "entry_win": 0.231
     },
     "5": {
      "n": 56,
      "mean_r": -0.031,
      "median_r": -1.0,
-     "win": 0.339
+     "win": 0.339,
+     "entry_n": 93,
+     "entry_mean_r": -0.018,
+     "entry_win": 0.247
     },
     "6": {
      "n": 10,
      "mean_r": 0.081,
      "median_r": -0.896,
      "win": 0.405,
+     "entry_n": 17,
+     "entry_mean_r": 0.047,
+     "entry_win": 0.252,
      "raw": {
       "n": 10,
       "mean_r": -0.097,
       "median_r": -0.896,
-      "win": 0.5
+      "win": 0.5,
+      "entry_n": 17,
+      "entry_mean_r": -0.057,
+      "entry_win": 0.294
      },
      "shrunk": true
     },
@@ -83,7 +113,10 @@
      "n": 49,
      "mean_r": -0.193,
      "median_r": -2.0,
-     "win": 0.286
+     "win": 0.286,
+     "entry_n": 80,
+     "entry_mean_r": -0.118,
+     "entry_win": 0.175
     }
    }
   },
@@ -92,6 +125,9 @@
    "mean_r": 1.202,
    "median_r": 0.7,
    "win": 0.566,
+   "entry_n": 433,
+   "entry_mean_r": 0.819,
+   "entry_win": 0.388,
    "days": 17,
    "day_mean_r": 0.979,
    "traded_days": 17,
@@ -101,30 +137,45 @@
      "n": 167,
      "mean_r": 0.914,
      "median_r": 0.438,
-     "win": 0.533
+     "win": 0.533,
+     "entry_n": 249,
+     "entry_mean_r": 0.613,
+     "entry_win": 0.357
     },
     "5": {
      "n": 97,
      "mean_r": 1.479,
      "median_r": 0.712,
-     "win": 0.567
+     "win": 0.567,
+     "entry_n": 144,
+     "entry_mean_r": 0.996,
+     "entry_win": 0.389
     },
     "6": {
      "n": 31,
      "mean_r": 1.894,
      "median_r": 1.338,
-     "win": 0.742
+     "win": 0.742,
+     "entry_n": 40,
+     "entry_mean_r": 1.468,
+     "entry_win": 0.575
     },
     "low": {
      "n": 26,
      "mean_r": 1.842,
      "median_r": 2.022,
      "win": 0.678,
+     "entry_n": 35,
+     "entry_mean_r": 1.329,
+     "entry_win": 0.5,
      "raw": {
       "n": 26,
       "mean_r": 2.581,
       "median_r": 2.022,
-      "win": 0.808
+      "win": 0.808,
+      "entry_n": 35,
+      "entry_mean_r": 1.917,
+      "entry_win": 0.629
      },
      "shrunk": true
     }
@@ -137,6 +188,9 @@
    "mean_r": 1.051,
    "median_r": 0.611,
    "win": 0.588,
+   "entry_n": 318,
+   "entry_mean_r": 0.73,
+   "entry_win": 0.418,
    "day_mean_r": 0.519,
    "traded_days": 17,
    "pos_days": 10

@@ -490,7 +490,6 @@ def evaluate(session: str, mode: str, now: datetime.datetime, feed: dict | None,
         "asof": now.isoformat(timespec="seconds"),
         "trillium": sum(v == "T" for v in src.values()),
         "built_at": built.get("built_at"), "last_day": built.get("last_day"),
-        "edge": edge_for(table, res["state"], None),
         "poly": poly,
         "detail": {t: {**{k: cands[t].get(k) for k in ("prior_close", "cap", "setup", "counted", "etf",
                                                           "flag_price", "relaxed_price", "failing")},
@@ -501,9 +500,11 @@ def evaluate(session: str, mode: str, now: datetime.datetime, feed: dict | None,
     if done:
         res["pushed"] = done.get("at")
     if at_open and prev and prev.get("session") == session and prev.get("locked") and prev.get("basis") == "open":
-        keep = {k: prev[k] for k in ("n", "n_etf", "state", "names", "relaxed", "edge", "detail") if k in prev}
+        keep = {k: prev[k] for k in ("n", "n_etf", "state", "names", "relaxed", "detail") if k in prev}
         res.update(keep)                       # the count at the open stays fixed for the day
         res["locked"] = True
+    e = edge_for(table, res["state"], None)    # from the table each pass, so a rebuilt table shows at once
+    res["edge"] = {k: v for k, v in e.items() if k != "by_score"} if e else None
     return res
 
 
@@ -540,7 +541,7 @@ def breadth_push(mb: dict, send, state_path: Path | None = None) -> bool:
     when = "at the open" if mb.get("basis") == "open" else "premarket"
     etfs = f" ({mb['n_etf']} ETFs)" if mb.get("n_etf") else ""
     body = (f"{mb['n']} names B or better {when}{etfs}: {top}."
-            + (f" Days like this: {e['mean_r']:+.1f}R a name, {e['win'] * 100:.0f}% win."
+            + (f" Days like this: {e['mean_r']:+.1f}R a name with the re-entry, {e['win'] * 100:.0f}% of names green."
                if e.get("mean_r") is not None else ""))
     try:
         n = send(f"Breadth day · {mb['n']} names", body, url="/#/bounce", tag=f"breadth-{mb['session']}")
