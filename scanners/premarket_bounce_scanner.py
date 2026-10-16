@@ -55,7 +55,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyzers.bounce_scorer import BouncePretrade, ChecklistResult
+from analyzers.bounce_scorer import BouncePretrade, ChecklistResult, classify_stock
 from data_queries import polygon_queries as pq
 from support.config import send_email
 
@@ -148,12 +148,8 @@ def get_cap(ticker: str, cache: dict) -> str:
 # Static daily context (fetched once per session — completed bars only)
 # ---------------------------------------------------------------------------
 
-def build_static(ticker: str, date: str) -> dict | None:
-    """Everything score-relevant that does NOT move during the premarket.
-
-    Mirrors setup_screener.compute_metrics using completed daily bars
-    (today's partial bar, if Polygon returns one, is excluded).
-    """
+def completed_daily(ticker: str, date: str) -> pd.DataFrame | None:
+    """~310 completed daily bars before `date` (its partial bar, if Polygon returns one, is excluded)."""
     levels = pq.get_levels_data(ticker, date, 310, 1, 'day')
     if levels is None or levels.empty:
         return None
@@ -165,7 +161,39 @@ def build_static(ticker: str, date: str) -> dict | None:
     hist = levels.iloc[:-1] if has_today and len(levels) > 1 else levels
     if len(hist) < 5:
         return None
+    return hist
 
+
+def build_static(ticker: str, date: str) -> dict | None:
+    """Everything score-relevant that does NOT move during the premarket.
+
+    Mirrors setup_screener.compute_metrics using completed daily bars
+    (today's partial bar, if Polygon returns one, is excluded).
+    """
+    hist = completed_daily(ticker, date)
+    return static_from_hist(hist) if hist is not None else None
+
+
+def setup_type_at_close(s: dict) -> str:
+    """Weak/strong setup type classified ONCE, at the prior close.
+
+    The setup type describes the trend going INTO the bounce day. Classifying
+    at the live price let a deeper gap push a stock under its 200-day (or past
+    -25% over 30 days when it has no 200-day history) into the stricter
+    weakstock profile and LOWER its score: SKHY 2026-10-15 fell from 5/6 to
+    3/6 below $123.20.
+    """
+    pc = s['prior_close']
+    m = {}
+    if s.get('sma200'):
+        m['pct_from_200mav'] = (pc - s['sma200']) / s['sma200']
+    if s.get('close_30_ago'):
+        m['pct_change_30'] = (pc - s['close_30_ago']) / s['close_30_ago']
+    return classify_stock(m)[0]
+
+
+def static_from_hist(hist: pd.DataFrame) -> dict:
+    """build_static's computation on completed daily bars (oldest first)."""
     closes = hist['close']
     s = {'prior_close': hist.iloc[-1]['close']}
 
@@ -211,6 +239,7 @@ def build_static(ticker: str, date: str) -> dict | None:
     # the prior day's open (a premarket price below prior close extends/starts the leg)
     leg_start = start_idx - consec + 1 if consec > 0 else len(hist) - 1
     s['selloff_first_open'] = hist.iloc[leg_start]['open']
+    s['setup_type'] = setup_type_at_close(s)
     return s
 
 
@@ -320,7 +349,8 @@ def scan(tickers, statics, caps, checker: BouncePretrade, date: str,
             pm_low_time = str(pm['low'].idxmin().time())[:5] if not pm.empty else ''
 
             m = metrics_from_price(static, price)
-            res: ChecklistResult = checker.validate(ticker, m, cap=caps[ticker])
+            res: ChecklistResult = checker.validate(ticker, m, cap=caps[ticker],
+                                                    force_setup=static.get('setup_type'))
             rows.append({
                 'ticker': ticker, 'cap': caps[ticker], 'setup': res.setup_type,
                 'score': res.score, 'rec': res.recommendation, 'price': price, 'src': src,
@@ -382,6 +412,26 @@ def _row_table(rows) -> str:
             f"</tr></thead><tbody>{body}</tbody></table>")
 
 
+def gameplan_reminder_html(tickers) -> str:
+    """Pointer to the gap-ladder chart (scanners/bounce_gameplan.py), carried on every bounce
+    email so the tool is remembered when a bounce is actually on (asked for 2026-10-15)."""
+    cmd = 'python -m scanners.bounce_gameplan ' + ' '.join(dict.fromkeys(tickers))
+    return (f'<div style="font-size:13px;margin-top:14px;padding:8px 10px;border:1px solid #374151;'
+            f'border-radius:6px;background:#111827;color:#e8ecf4;">'
+            f'<strong>Game plan:</strong> what grade each name is at every possible open (A+/A/B/C), '
+            f'next-grade prices, targets — run from the backtester folder:<br>'
+            f'<code style="color:#7dd3fc;">{cmd}</code></div>')
+
+
+def add_gameplan_reminder(html_doc: str, tickers) -> str:
+    """Insert the game plan pointer before the closing </body> (or append when there is none)."""
+    if not tickers:
+        return html_doc
+    note = gameplan_reminder_html(tickers)
+    i = html_doc.rfind('</body>')
+    return html_doc[:i] + note + html_doc[i:] if i != -1 else html_doc + note
+
+
 def format_alert_email(row: dict, asof: pd.Timestamp) -> tuple[str, str]:
     res: ChecklistResult = row['result']
     subject = (f"PM BOUNCE {row['rec']}: {row['ticker']} {row['score']}/6 "
@@ -411,6 +461,7 @@ Price <strong>{row['price']:.2f}</strong>
 </div>
 {mid_html}
 <table style="border-collapse:collapse;font-size:13px;font-family:monospace;">{crit}</table>
+{gameplan_reminder_html([row['ticker']])}
 <div style="color:#4b5563;font-size:11px;margin-top:16px;">Premarket Bounce Scanner — score crossings alert once per level per day</div>
 </body></html>"""
     return subject, body
@@ -441,6 +492,7 @@ def format_brief_email(rows: list[dict], asof: pd.Timestamp) -> tuple[str, str]:
 <div style="color:#6b7280;font-size:12px;margin-bottom:12px;">{asof.strftime('%Y-%m-%d %H:%M ET')} —
 watchlist scored with live premarket prices (GO/CAUTION only, score >= {BRIEF_MIN_SCORE})</div>
 {_row_table(top) if top else "<p style='color:#6b7280;'>Nothing scoring above threshold.</p>"}
+{gameplan_reminder_html([r['ticker'] for r in top]) if top else ''}
 <div style="color:#4b5563;font-size:11px;margin-top:16px;">Premarket Bounce Scanner — GO crossings alert in real time; this is the 8 AM landscape.</div>
 </body></html>"""
     return subject, body

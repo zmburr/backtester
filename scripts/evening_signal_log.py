@@ -109,7 +109,7 @@ def go_gap_trigger(ticker: str, static: dict, cap: str, checker: BouncePretrade)
         g = g10 / 1000.0
         price = static["prior_close"] * (1 - g)
         m = metrics_from_price(static, price)
-        r = checker.validate(ticker, m, cap=cap)
+        r = checker.validate(ticker, m, cap=cap, force_setup=static.get("setup_type"))
         if r.score >= 5:
             return -g
     return None
@@ -179,7 +179,7 @@ def run(dry: bool = False, asof: str | None = None) -> list[dict]:
                 price = float(intra.iloc[-1]["close"])
                 src = "P"
             m = metrics_from_price(static, price)
-            res = checker.validate(t, m, cap=get_cap(t, cap_cache))
+            res = checker.validate(t, m, cap=get_cap(t, cap_cache), force_setup=static.get("setup_type"))
             i = intensity(m, ref)
             go = go_gap_trigger(t, static, get_cap(t, cap_cache), checker)
             lo = ah_low(t, today_str)

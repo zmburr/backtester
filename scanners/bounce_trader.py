@@ -292,6 +292,27 @@ MARKET_OPEN = dt_time(9, 30)
 MARKET_CLOSE = dt_time(16, 0)
 
 
+EARLY_LOW_BY = dt_time(9, 50)   # a low that has held 10+ minutes by the 10:00 check
+
+
+def early_low_message(low_time) -> str:
+    """10:00 AM low-of-day check, from WHEN the low printed.
+
+    The old check said 'LOW NOT IN FIRST 30 MIN — 50% win rate' whenever price
+    had traded below the open at all. That is nearly every bounce day (all 8
+    watched names on 2026-10-15), and it fired at 10:00 just as the morning
+    watcher's re-entry calls did. The win rates it quoted depend on where the
+    day's FINAL low lands, which isn't known at 10:00, so they are dropped.
+    """
+    if low_time is None:
+        return 'EARLY LOW IN — the open has held as the low of day'
+    t = low_time.time() if hasattr(low_time, 'time') else low_time
+    hhmm = f'{t.hour}:{t.minute:02d}'
+    if t <= EARLY_LOW_BY:
+        return f'EARLY LOW IN at {hhmm} — held 10 plus minutes'
+    return f'LOW NOT CONFIRMED — new low at {hhmm}, still testing'
+
+
 def is_market_open() -> bool:
     """Check if US market is currently open (9:30 AM - 4:00 PM ET)."""
     now_et = datetime.now(EASTERN).time()
@@ -540,6 +561,7 @@ class BounceTradeManager:
         # ---- 15. State ----
         self.high_water_mark = self.open_price
         self.low_water_mark = self.open_price
+        self.low_water_time = None   # bar time of the last new low below the open (None = open is the low)
         self.trade_df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume', 'vwap'])
         self.trade_df.index = pd.to_datetime(self.trade_df.index)
 
@@ -1146,6 +1168,7 @@ class BounceTradeManager:
         # Reset watermarks to official open
         self.high_water_mark = self.open_price
         self.low_water_mark = self.open_price
+        self.low_water_time = None
 
         # Log and announce
         self.logger.info(f'OPEN PRICE LOCKED: ${self.open_price:.2f} (was ${old_price:.2f} premarket)')
@@ -1191,6 +1214,7 @@ class BounceTradeManager:
                             self.high_water_mark = high
                         if low < self.low_water_mark:
                             self.low_water_mark = low
+                            self.low_water_time = series.name
 
                         # Check alerts
                         self._check_target_alerts(high)
@@ -1257,10 +1281,7 @@ class BounceTradeManager:
         # 10:00 AM — early low check
         if not self.time_alerts_fired['10:00'] and t >= dt_time(10, 0):
             self.time_alerts_fired['10:00'] = True
-            if self.low_water_mark < self.open_price:
-                self._alert('LOW NOT IN FIRST 30 MIN — late lows: 50 percent historical win rate on curated trades', priority=1)
-            else:
-                self._alert('EARLY LOW CONFIRMED — 99 percent close green historically', priority=1)
+            self._alert(early_low_message(self.low_water_time), priority=1)
 
         # 2:30 PM — scale reminder
         if not self.time_alerts_fired['14:30'] and t >= dt_time(14, 30):
@@ -1396,6 +1417,7 @@ def _simulate_dry_run(manager: BounceTradeManager):
                 manager.high_water_mark = series['high']
             if series['low'] < manager.low_water_mark:
                 manager.low_water_mark = series['low']
+                manager.low_water_time = series.name
 
             manager._check_target_alerts(series['high'])
             manager._check_drawdown_alerts(series['low'])

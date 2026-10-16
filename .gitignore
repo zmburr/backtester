@@ -63,3 +63,12 @@ data/iv_study/*.pkl
 data/despac_study/cache/
 data/despac_study/edgar_cache/
 data/news_move_study/bars/
+
+# Overnight bounce tracker sample log (regenerable; one row per ticker per scan),
+# plus logs rotated aside when the column set changes
+data/overnight_tracker_log*.csv
+# Hand-entered overnight quotes for the tracker / game plan (per-night scratch)
+data/overnight_prices.json
+
+# Bounce game plan charts (scanners/bounce_gameplan.py) — regenerated on demand
+charts/gameplan/

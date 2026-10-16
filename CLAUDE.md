@@ -144,11 +144,19 @@ Based on historical hit rates from 36 trades:
 - Consecutive down days
 - Volume climax
 
+### Bounce Grades (gap ladder)
+
+`analyzers/bounce_ladder.py` grades a price: GO (5+/6) with intensity 75+ = **A+**, 60-75 = **A**, under 60 = **B**; 4/6 = **B**; 3/6 = **C**; 2/6 or less = no trade. On bounce_data.csv re-graded at the open, median open→close ran A+ +18%, A +12%, B +9%, C +6% (partly in-sample). The weak/strong setup type is classified once at the **prior close** (`setup_type_at_close` in `premarket_bounce_scanner.py`, used by the premarket scanner, evening signal log, overnight tracker and ladder) so a deeper gap can never lower the score.
+
 ### Key Bounce Files
 
 | File | Purpose |
 |------|---------|
 | `scanners/bounce_trader.py` | Live monitor with real-time TTS alerts |
+| `scanners/premarket_bounce_scanner.py` | Continuous 4:15-9:30 ET premarket re-scoring of the watchlist with email alerts |
+| `scanners/overnight_bounce_tracker.py` | Score a few names on live Blue Ocean overnight prints via Yahoo (8 PM-4 AM, invisible to Polygon); hands off to Polygon at 4 AM; logs each sample with its grade and the next grade's price |
+| `analyzers/bounce_ladder.py` | Gap ladder: score, intensity and grade at every hypothetical open price; the exact price where each criterion/grade flips |
+| `scanners/bounce_gameplan.py` | Interactive HTML game plan (charts/gameplan/): daily candles with grade zones + score/intensity profiles by price + key-levels table |
 | `analyzers/bounce_scorer.py` | Pre-trade checklist & setup classification |
 | `analyzers/bounce_exit_targets.py` | ATR-based exit framework |
 | `data_collectors/bounce_collector.py` | Data enrichment (50+ metrics) |
@@ -385,6 +393,19 @@ python scanners/bounce_trader.py NVDA Medium --dry-run
 
 # Score historical bounce trades
 python analyzers/bounce_scorer.py
+
+# Overnight / premarket tracker for a few names. Polygon has no 8 PM-4 AM data; the
+# tracker pulls the live Blue Ocean overnight print from Yahoo's quote API (overnightPrice=true,
+# needs yfinance) and switches to Polygon at 4 AM (newest timestamp wins). --price overrides by hand.
+python -m scanners.overnight_bounce_tracker                   # default KORU SOXL SKHY, one pass
+python -m scanners.overnight_bounce_tracker NVDA SMH --watch 300   # loop to 09:30 ET
+python -m scanners.overnight_bounce_tracker --watch 300 --chart     # + game plan chart that reloads each pass
+# log: data/overnight_tracker_log.csv (git-ignored, one row per ticker per scan)
+
+# Game plan: what grade each name is at every possible open price (needs plotly)
+python -m scanners.bounce_gameplan KORU SOXL SKHY DRAM               # tonight / this morning
+python -m scanners.bounce_gameplan SOXL --price SOXL=95              # manual quote
+python -m scanners.bounce_gameplan SNDK SOXL DRAM --date 2026-07-28  # review a past day at its actual open
 
 # Fill bounce_data.csv with missing metrics
 python data_collectors/bounce_collector.py

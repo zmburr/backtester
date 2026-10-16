@@ -63,7 +63,7 @@ import pandas as pd
 
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
-    CAP_CACHE_FILE, KNOWN_ETFS, _load_json, get_cap, load_watchlist,
+    CAP_CACHE_FILE, KNOWN_ETFS, _load_json, gameplan_reminder_html, get_cap, load_watchlist,
 )
 from support import risk_source
 from support.config import send_email
@@ -696,6 +696,7 @@ Plan: buy the starter at the close (1R at a 1-ATR stop). If it opens at or below
 tomorrow, add on the normal 2-min signal; if not, you're already in.<br>
 Why: after a dead-lows close a ≥2% gap-down came only 18% of the time in ≥$1B names
 (2021-2026); starter + gap-down add was positive in every period.</div>
+{gameplan_reminder_html([r['ticker'] for r in rows])}
 <div style="color:#4b5563;font-size:11px;margin-top:16px;">Dead-lows Close Scanner — only names the priority report rated a GO bounce (today or the prior 2 sessions); once per name per day; silent otherwise.</div>
 </body></html>"""
     return subject, body

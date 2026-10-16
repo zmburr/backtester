@@ -1542,6 +1542,10 @@ def generate_priority_report() -> str:
         t0 = time.time()
         html_report = build_priority_report_html(priority, ticker_html_map, addendum_html=addendum_html,
                                                  cluster=cluster)
+        # Bounce morning: point at the gap-ladder game plan chart for the bounce names
+        from scanners.premarket_bounce_scanner import add_gameplan_reminder
+        html_report = add_gameplan_reminder(
+            html_report, [i["ticker"] for i in priority if i.get("bucket") == "bounce"])
         _send_report(html_report, go_ct, cau_ct, inline_images=chart_images, cluster=cluster,
                      top_edge=top_edge)
         timings["email"] = time.time() - t0
