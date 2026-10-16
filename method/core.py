@@ -16,7 +16,8 @@ from pathlib import Path
 PREMARKET = (datetime.time(4, 0), datetime.time(9, 30))
 MARKET = (datetime.time(9, 30), datetime.time(16, 0))
 EVENING = (datetime.time(16, 30), datetime.time(20, 0))   # daily bars settle after the close
-CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15}
+OVERNIGHT = (datetime.time(20, 0), datetime.time(4, 0))     # Blue Ocean: Sun-Thu nights
+CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15, "overnight": 15}
 
 MIN_GO = 2                      # same episode gate as the playbook email
 REVERSAL_GAP_GATE = 0.04        # 3DGapFade gap gate (analyzers/reversal_pretrade.py)
@@ -40,6 +41,17 @@ def mode_for(now: datetime.datetime, session_day: bool) -> str:
         if start <= t < end:
             return name
     return "closed"
+
+
+def is_overnight(now: datetime.datetime) -> bool:
+    """8 PM-4 AM on the nights Blue Ocean trades: Sunday through Thursday evenings and
+    the early hours of Monday through Friday."""
+    t, wd = now.time(), now.weekday()           # Monday = 0 ... Sunday = 6
+    if t >= OVERNIGHT[0]:
+        return wd in (6, 0, 1, 2, 3)
+    if t < OVERNIGHT[1]:
+        return wd in (0, 1, 2, 3, 4)
+    return False
 
 
 def session_for(mode: str, today: datetime.date, next_trading_day) -> datetime.date:

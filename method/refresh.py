@@ -126,6 +126,38 @@ def _failing(res) -> list[dict]:
             for i in res.items if not i.passed]
 
 
+def score_row(t: str, s: dict, cap: str, price: float, bar_time: str) -> dict:
+    """One bounce row at `price`: the game plan's scoring (weak/strong fixed at the
+    prior close, SKHY 10/15), its grade, the next better grade and the context."""
+    g = grade_at(s, cap, price, t)
+    res, m = g["result"], g["metrics"]
+    go_gap = s.get("go_gap")
+    prior = s["prior_close"]
+    return {
+        "ticker": t, "cap": cap, "setup": res.setup_type,
+        "score": res.score, "max_score": res.max_score, "rec": res.recommendation,
+        "grade": g["grade"], "intensity": g["intensity"],
+        "next": next_better(s["ladder"]["levels"], price, g["grade"]), "ladder": s["ladder"],
+        "odds_pop": lookup_bounce_odds(res.score, cap),
+        "price": price, "prior_close": prior, "gap": m.get("gap_pct"),
+        "go_gap": go_gap, "go_price": prior * (1 + go_gap) if go_gap is not None else None,
+        "down_days": s.get("consecutive_down_days"), "off_30d": m.get("pct_off_30d_high"),
+        "selloff": m.get("selloff_total_pct"), "atr": s.get("atr"),
+        "atr_pct": s["atr"] / price if price else None,
+        "mid_bb": s.get("mid_bb"),
+        "to_mid_bb": (s["mid_bb"] / price - 1) if s.get("mid_bb") and price else None,
+        "failing": _failing(res), "warnings": list(res.warnings or []),
+        "bonuses": list(res.bonuses or []), "principal": PRINCIPALS.get(t),
+        "bar_time": bar_time,
+    }
+
+
+def _sort_rows(rows: list[dict]) -> list[dict]:
+    order = {"GO": 0, "CAUTION": 1}
+    rows.sort(key=lambda r: (order.get(r["rec"], 2), -(r["score"] or 0), r["gap"] or 0))
+    return rows
+
+
 def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
                 now: datetime.datetime, session: str) -> tuple[list[dict], str | None]:
     """Score every watchlist name off its latest Polygon minute bar. Returns
@@ -165,29 +197,8 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
             price = float(bars["close"].iloc[-1])
             last_bar = bars.index[-1]
             newest = max(newest, last_bar) if newest is not None else last_bar
-            # the game plan's scoring: weak/strong fixed at the prior close (SKHY 10/15)
-            g = grade_at(s, caps[t], price, t)
-            res, m = g["result"], g["metrics"]
-            go_gap = s.get("go_gap")
             prior = s["prior_close"]
-            levels = s["ladder"]["levels"]
-            row = {
-                "ticker": t, "cap": caps[t], "setup": res.setup_type,
-                "score": res.score, "max_score": res.max_score, "rec": res.recommendation,
-                "grade": g["grade"], "intensity": g["intensity"],
-                "next": next_better(levels, price, g["grade"]), "ladder": s["ladder"],
-                "odds_pop": lookup_bounce_odds(res.score, caps[t]),
-                "price": price, "prior_close": prior, "gap": m.get("gap_pct"),
-                "go_gap": go_gap, "go_price": prior * (1 + go_gap) if go_gap is not None else None,
-                "down_days": s.get("consecutive_down_days"), "off_30d": m.get("pct_off_30d_high"),
-                "selloff": m.get("selloff_total_pct"), "atr": s.get("atr"),
-                "atr_pct": s["atr"] / price if price else None,
-                "mid_bb": s.get("mid_bb"),
-                "to_mid_bb": (s["mid_bb"] / price - 1) if s.get("mid_bb") and price else None,
-                "failing": _failing(res), "warnings": list(res.warnings or []),
-                "bonuses": list(res.bonuses or []), "principal": PRINCIPALS.get(t),
-                "bar_time": last_bar.strftime("%H:%M"),
-            }
+            row = score_row(t, s, caps[t], price, last_bar.strftime("%H:%M"))
             if not pm.empty and mode != "evening":      # today's PM low means nothing for tomorrow
                 row["pm_low"] = float(pm["low"].min())
                 row["pm_low_time"] = pm["low"].idxmin().strftime("%H:%M")
@@ -207,9 +218,71 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
         time.sleep(0.05)
     if rebuilt:
         core.write_json(_statics_path(session), statics)
-    order = {"GO": 0, "CAUTION": 1}
-    rows.sort(key=lambda r: (order.get(r["rec"], 2), -r["score"], r["gap"] or 0))
-    return rows, newest.strftime("%H:%M") if newest is not None else None
+    return _sort_rows(rows), newest.strftime("%H:%M") if newest is not None else None
+
+
+# ---------------------------------------------------------------------------
+# Overnight (8 PM-4 AM): Polygon has no trades, Yahoo has the Blue Ocean print
+# ---------------------------------------------------------------------------
+
+SRC_LABEL = {"Y": "Blue Ocean", "M": "your quote", "P": "after hours"}
+
+
+def overnight_prices(tickers: list[str], prev: dict | None) -> dict:
+    """{ticker: (price, asof, src)}: the overnight tracker's sources, newest wins
+    (scanners/overnight_bounce_tracker.choose_price): your data/overnight_prices.json
+    quotes, Yahoo's Blue Ocean print, else the evening snapshot's after-hours price."""
+    from scanners.overnight_bounce_tracker import choose_price, load_prices_file, yahoo_overnight_prices
+    yahoo = yahoo_overnight_prices(tickers)
+    manual = load_prices_file()
+    last = {}
+    if prev and prev.get("generated_at"):
+        asof = pd.Timestamp(prev["generated_at"])
+        for side in ("bounce", "reversal"):
+            for r in (prev.get(side) or {}).get("rows", []):
+                if r.get("price") is not None:
+                    last[r["ticker"]] = (float(r["price"]), asof)
+    out = {}
+    for t in tickers:
+        chosen = choose_price(manual.get(t), last.get(t), yahoo.get(t))
+        if chosen:
+            out[t] = chosen
+    return out
+
+
+def overnight_pass(tickers, statics, caps, prices: dict) -> tuple[list[dict], str | None]:
+    rows, newest = [], None
+    for t in tickers:
+        s = statics.get(t)
+        if not s or t not in prices:
+            continue
+        price, asof, src = prices[t]
+        try:
+            if "ladder" not in s:
+                s["ladder"] = ladder_payload(s, caps[t], t)
+            row = score_row(t, s, caps[t], float(price), asof.strftime("%H:%M"))
+            row.update(src=src, src_label=SRC_LABEL.get(src, src))
+            rows.append(row)
+            if src != "P":
+                newest = max(newest, asof) if newest is not None else asof
+        except Exception as e:
+            logger.warning(f"{t}: overnight pass failed: {e}")
+    return _sort_rows(rows), newest.strftime("%H:%M") if newest is not None else None
+
+
+def overnight_reversal(prev: dict | None, prices: dict) -> list[dict]:
+    """Reversal rows keep their evening score; the overnight print moves price, gap, scenario."""
+    rows = []
+    for r in ((prev or {}).get("reversal") or {}).get("rows", []):
+        r = dict(r)
+        hit = prices.get(r["ticker"])
+        if hit and hit[2] != "P" and r.get("prior_close"):
+            r["price"] = float(hit[0])
+            r["gap"] = r["price"] / r["prior_close"] - 1
+            r["scenario"] = core.reversal_scenario(r["gap"])
+            r.update(src=hit[2], src_label=SRC_LABEL.get(hit[2]), bar_time=hit[1].strftime("%H:%M"))
+        rows.append(r)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +367,7 @@ def recent_reports(today: datetime.date, mode: str) -> list[dict]:
         date_str, _, session = f.stem.partition("_")
         if session not in ("morning", "evening") or date_str > today.isoformat():
             continue
-        if mode != "evening" and date_str == today.isoformat() and session == "evening":
+        if mode not in ("evening", "overnight") and date_str == today.isoformat() and session == "evening":
             continue          # today's 3:15 run doesn't plan today's open
         found.append(((date_str, session == "evening"), f))
     out = []
@@ -380,7 +453,10 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         dry: bool = False) -> dict | None:
     now = now or now_et()
     today = now.date()
-    mode = mode or core.mode_for(now, is_session_day(today))
+    if mode is None:
+        mode = core.mode_for(now, is_session_day(today))
+        if mode == "closed" and core.is_overnight(now):
+            mode = "overnight"
     if mode == "closed":
         logger.info("closed; nothing to refresh")
         return None
@@ -390,20 +466,30 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         if not core.due(mode, last, now):
             return None
 
-    session = core.session_for(mode, today, next_trading_day).isoformat()
+    if mode == "overnight":       # before midnight: tomorrow's session; after: today's, if it trades
+        session = (next_trading_day(today) if now.time() >= core.OVERNIGHT[0] or not is_session_day(today)
+                   else today).isoformat()
+    else:
+        session = core.session_for(mode, today, next_trading_day).isoformat()
     tickers = load_watchlist()
     caps_cache = _load_json(CAP_CACHE_FILE)
     caps = {t: get_cap(t, caps_cache) for t in tickers}
     checker = BouncePretrade()
     statics = load_statics(session, tickers, caps, checker)
 
-    bounce, data_time = bounce_pass(tickers, statics, caps, checker, mode,
-                                    today.isoformat(), now, session)
     reports = recent_reports(today, mode)
-    setups = {s["ticker"]: s.get("setup_type") or "" for rep in reports
-              for s in rep.get("signals", []) if s.get("bucket") == "reversal"}
-    reversal = reversal_pass(reversal_candidates(reports, statics), caps,
-                             today.isoformat(), setups)
+    if mode == "overnight":
+        held = [r["ticker"] for r in ((prev or {}).get("reversal") or {}).get("rows", [])]
+        prices = overnight_prices(list(dict.fromkeys(tickers + held)), prev)
+        bounce, data_time = overnight_pass(tickers, statics, caps, prices)
+        reversal = overnight_reversal(prev, prices)
+    else:
+        bounce, data_time = bounce_pass(tickers, statics, caps, checker, mode,
+                                        today.isoformat(), now, session)
+        setups = {s["ticker"]: s.get("setup_type") or "" for rep in reports
+                  for s in rep.get("signals", []) if s.get("bucket") == "reversal"}
+        reversal = reversal_pass(reversal_candidates(reports, statics), caps,
+                                 today.isoformat(), setups)
 
     report_views = [_report_view(r) for r in reports]
     latest = report_views[0] if report_views else None
@@ -426,7 +512,8 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
              "reversal_go": rc["GO"], "reversal_caution": rc["CAUTION"]}
     snapshot = {
         "generated_at": now.isoformat(timespec="seconds"), "mode": mode,
-        "session": session, "data_time": data_time, "source": "Polygon, 15-min delayed",
+        "session": session, "data_time": data_time,
+        "source": "Blue Ocean overnight via Yahoo" if mode == "overnight" else "Polygon, 15-min delayed",
         "bounce": {"rows": bounce, "counts": bc},
         "reversal": {"rows": reversal, "counts": rc},
         "reports": report_views,
@@ -448,7 +535,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
 def main():
     ap = argparse.ArgumentParser(description="Method refresh pass")
     ap.add_argument("--force", action="store_true", help="run whatever the clock and cadence say")
-    ap.add_argument("--mode", choices=["premarket", "market", "evening"])
+    ap.add_argument("--mode", choices=["premarket", "market", "evening", "overnight"])
     ap.add_argument("--dry", action="store_true", help="score and log, write nothing but caches")
     args = ap.parse_args()
     run(force=args.force or bool(args.mode), mode=args.mode, dry=args.dry)

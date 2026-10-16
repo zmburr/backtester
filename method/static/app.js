@@ -24,7 +24,8 @@ const rr = x => x == null ? '–' : `${x >= 0 ? '+' : '−'}${Math.abs(Number(x)
 const wide = () => matchMedia('(min-width: 1024px)').matches;
 const recCls = r => r === 'GO' ? 'go' : r === 'CAUTION' ? 'caution' : 'nogo';
 const isActive = r => r.rec === 'GO' || r.rec === 'CAUTION';
-const MODE_WORD = { premarket: 'Premarket', market: 'Market hours', evening: 'Evening' };
+const MODE_WORD = { premarket: 'Premarket', market: 'Market hours', evening: 'Evening', overnight: 'Overnight' };
+const MOVE_WORD = { evening: 'after hours', overnight: 'overnight' };
 const GRADE_CLS = { 'A+': 'gAp', A: 'gA', B: 'gB', C: 'gC', '-': 'gN' };
 const GRADE_LINE = { 'A+': '#3ddc97', A: '#8fe3b8', B: '#ffb547', C: '#ff8a4c', '-': '#6f7873' };
 const gradeLabel = g => g === '-' ? 'No trade' : g;
@@ -54,10 +55,12 @@ function etToday() {
   const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   return `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, '0')}-${String(et.getDate()).padStart(2, '0')}`;
 }
-function activeNow() {     // ET weekday 04:00-20:00, when refreshes should be landing
+function activeNow() {     // when refreshes should be landing: weekdays 4 AM-8 PM, Blue Ocean nights
   const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const h = et.getHours() + et.getMinutes() / 60;
-  return et.getDay() >= 1 && et.getDay() <= 5 && h >= 4 && h < 20;
+  const h = et.getHours() + et.getMinutes() / 60, d = et.getDay();    // Sunday = 0
+  if (d >= 1 && d <= 5 && h >= 4 && h < 20) return true;
+  if (h >= 20) return d <= 4;                                          // Sun-Thu evenings
+  return h < 4 && d >= 1 && d <= 5;                                    // Mon-Fri early hours
 }
 const recBadge = r => `<span class="badge ${recCls(r.rec)}">${esc(r.score)}/${esc(r.max_score)} ${esc(r.rec)}</span>`;
 function scenBadges(r) {           // reversal names keep the gap scenarios
@@ -206,10 +209,11 @@ function renderSideList(side) {
   if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });
 }
 function nameCard(side, r) {
-  const mode = S.snap.mode, move = `${pct(r.gap)} ${mode === 'evening' ? 'after hours' : 'vs close'}`;
+  const mode = S.snap.mode, move = `${pct(r.gap)} ${MOVE_WORD[mode] || 'vs close'}`;
+  const src = r.src_label && r.src !== 'Y' ? `${r.src_label} ${r.bar_time || ''}` : (r.src === 'Y' ? `Blue Ocean ${r.bar_time}` : null);
   const nxt = r.next ? `next ${gradeLabel(r.next.grade)} at ${px(r.next.price)} (${pct(r.next.pct_away)})` : (side === 'bounce' && r.grade ? 'best grade reached' : null);
   const l2 = side === 'bounce'
-    ? [move, nxt, r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
+    ? [move, nxt, src, r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
        r.down_days != null ? `down ${r.down_days}d` : null]
     : [move, r.pct_from_9ema != null ? `${pct(r.pct_from_9ema, 0)} vs 9EMA` : null, `+4% at ${px(r.gap_level)}`];
   return `<div class="card name${wide() && S.sel[side] === r.ticker ? ' sel' : ''}" role="button" tabindex="0" data-side="${side}" data-tk="${esc(r.ticker)}">` +
@@ -333,7 +337,8 @@ function linesCard(title, rows, extra = '') {
 function gradeCard(r) {
   const mode = S.snap.mode, stats = S.snap.grade_stats || {};
   const g = r.grade_open || r.grade, inten = r.grade_open ? r.intensity_open : r.intensity, score = r.grade_open ? r.score_open : r.score;
-  const lead = mode === 'market' ? 'at the open' : mode === 'evening' ? "at tonight's after-hours price" : 'at the premarket price';
+  const lead = mode === 'market' ? 'at the open' : mode === 'evening' ? "at tonight's after-hours price"
+    : mode === 'overnight' ? `at the overnight price (${r.src_label || 'after hours'} ${r.bar_time || ''})` : 'at the premarket price';
   const better = [];
   let seen = { '-': 0, C: 1, B: 2, A: 3, 'A+': 4 }[g] ?? 0;
   for (const lv of r.ladder?.levels || []) {

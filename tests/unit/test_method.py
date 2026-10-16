@@ -205,7 +205,7 @@ def test_cadence_skip_and_closed(env):
     assert rf.run(now=at("10:00")) is not None
     assert rf.run(now=at("10:05")) is None                       # market cadence 15 min
     assert rf.run(now=at("10:05"), force=True) is not None
-    assert rf.run(now=at("03:00")) is None                       # closed
+    assert rf.run(now=at("03:00", day="2026-10-17")) is None     # Saturday 3 AM: closed
 
 
 def test_market_pass_grades_the_open_and_now(env):
@@ -237,6 +237,56 @@ def test_evening_plans_tomorrow_and_rebuilds_a_stale_static(env):
     assert soxl["prior_close"] == 90.0                           # rebuilt from the tape
     assert soxl["gap"] == pytest.approx(88 / 90 - 1)
     assert soxl["ah_low"] == 87
+
+
+@pytest.mark.parametrize("day,hhmm,expected", [
+    ("2026-10-15", "20:00", True), ("2026-10-15", "19:59", False),   # Thu evening
+    ("2026-10-16", "03:59", True), ("2026-10-16", "04:00", False),   # Fri early hours
+    ("2026-10-16", "21:00", False),                                  # Fri night: no Blue Ocean
+    ("2026-10-17", "02:00", False), ("2026-10-18", "21:00", True),   # Sat early / Sun evening
+    ("2026-10-19", "01:00", True)])                                  # Mon early hours
+def test_blue_ocean_nights(day, hhmm, expected):
+    assert core.is_overnight(at(hhmm, day=day)) is expected
+
+
+def _overnight_feeds(monkeypatch, yahoo=None, manual=None):
+    import scanners.overnight_bounce_tracker as ot
+    monkeypatch.setattr(ot, "yahoo_overnight_prices", lambda tickers: dict(yahoo or {}))
+    monkeypatch.setattr(ot, "load_prices_file", lambda *a: dict(manual or {}))
+
+
+def test_overnight_grades_the_newest_print_for_tomorrow(env):
+    mp = env["monkeypatch"]
+    ts = lambda hhmm, day="2026-10-15": pd.Timestamp(f"{day} {hhmm}", tz=ET)
+    core.write_json(rf.SNAPSHOT, {"generated_at": ts("19:59").isoformat(), "mode": "evening",
+                                  "bounce": {"rows": [{"ticker": "SOXL", "price": 99.0},
+                                                      {"ticker": "MXL", "price": 98.0}]},
+                                  "reversal": {"rows": [{"ticker": "PENG", "price": 50.0, "prior_close": 50.0,
+                                                         "gap": 0.0, "scenario": "B", "rec": "GO",
+                                                         "score": 5}]}})
+    _overnight_feeds(mp, yahoo={"SOXL": (91.0, ts("23:20")), "MXL": (97.5, ts("22:00")),
+                                "PENG": (52.5, ts("23:10"))},
+                     manual={"MXL": (97.0, ts("23:25"))})
+    snap = rf.run(now=at("23:30"))
+    assert snap["mode"] == "overnight" and snap["session"] == "2026-10-16"
+    assert snap["source"] == "Blue Ocean overnight via Yahoo" and snap["data_time"] == "23:25"
+    rows = {r["ticker"]: r for r in snap["bounce"]["rows"]}
+    assert (rows["SOXL"]["price"], rows["SOXL"]["src"], rows["SOXL"]["grade"]) == (91.0, "Y", "A")
+    assert (rows["MXL"]["price"], rows["MXL"]["src_label"]) == (97.0, "your quote")    # newer than Yahoo
+    peng = snap["reversal"]["rows"][0]
+    assert peng["price"] == 52.5 and peng["gap"] == pytest.approx(0.05) and peng["scenario"] == "A"
+
+
+def test_overnight_falls_back_to_the_evening_price(env):
+    mp = env["monkeypatch"]
+    core.write_json(rf.SNAPSHOT, {"generated_at": pd.Timestamp("2026-10-15 19:59", tz=ET).isoformat(),
+                                  "mode": "evening", "bounce": {"rows": [{"ticker": "SOXL", "price": 99.0}]}})
+    _overnight_feeds(mp)                                         # Yahoo down, no quotes
+    snap = rf.run(now=at("01:00", day="2026-10-16"))
+    assert snap["session"] == "2026-10-16"                       # after midnight: today's session
+    soxl = snap["bounce"]["rows"][0]
+    assert (soxl["ticker"], soxl["price"], soxl["src"]) == ("SOXL", 99.0, "P")
+    assert snap["data_time"] is None                             # nothing new overnight
 
 
 def test_reversal_candidates_from_reports_and_9ema_stretch():
