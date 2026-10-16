@@ -1,5 +1,5 @@
 """
-Setup Board — pure pieces shared by the refresh job and the server: the clock
+Method — pure pieces shared by the refresh job and the server: the clock
 (which mode, which session), the open scenarios, the history episodes and
 JSON cleaning. No network, no heavy imports.
 """
@@ -48,7 +48,7 @@ def mode_for(now: datetime.datetime, session_day: bool) -> str:
 
 
 def session_for(mode: str, today: datetime.date, next_trading_day) -> datetime.date:
-    """The session the board is planning: tomorrow's in the evening, else today's."""
+    """The session Method is planning: tomorrow's in the evening, else today's."""
     return next_trading_day(today) if mode == "evening" else today
 
 

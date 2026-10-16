@@ -57,7 +57,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("playbook_email")
 
 EMAIL_TO = "zmburr@gmail.com"
-BOARD_URL = "https://zacharys-mac-mini.tailca90a1.ts.net:8445/"   # Setup Board (board/server.py)
+METHOD_URL = "https://zacharys-mac-mini.tailca90a1.ts.net:8445/"   # Method (method/server.py)
 MIN_GO = 2           # GO names on one side before the email goes out
 MAX_ROWS = 12         # names table cap (GO first); 7/28 had 19 windows open
 SIDES = ("bounce", "reversal")
@@ -360,8 +360,8 @@ def render(side: str, session: str, report: dict, target: datetime.date, rows: l
              f'<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;'
              f'font-size:14px;line-height:1.45;color:#1f2328;max-width:760px">',
              f'<div style="font-size:15px;margin-bottom:6px">{html.escape(lead)}</div>',
-             f'<div style="margin:0 0 8px"><a href="{BOARD_URL}" style="font-weight:600">'
-             f'Open the Setup Board</a> <span style="color:#666;font-size:13px">'
+             f'<div style="margin:0 0 8px"><a href="{METHOD_URL}" style="font-weight:600">'
+             f'Open Method</a> <span style="color:#666;font-size:13px">'
              f'(live scores, scenarios and charts)</span></div>',
              names_html(side, rows)]
 

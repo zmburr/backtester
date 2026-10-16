@@ -1,13 +1,13 @@
 """
-Setup Board server: one page for bounce and reversal setups, always current.
+Method server: one page for bounce and reversal setups, always current.
 
-It serves what board/refresh.py writes (data/board/snapshot.json) plus the
+It serves what method/refresh.py writes (data/method/snapshot.json) plus the
 lessons notes, past setup days, chart bars and the day's shot counter. It
 does no scoring itself. Tailnet only: launchd runs it on 127.0.0.1:8505 and
 `tailscale serve` puts it on https://zacharys-mac-mini.<tailnet>.ts.net:8445.
 
-Run:  python -m board.server [--port 8505]
-With BOARD_AUTORESTART=1 (launchd) it exits when the repo's HEAD moves, so a
+Run:  python -m method.server [--port 8505]
+With METHOD_AUTORESTART=1 (launchd) it exits when the repo's HEAD moves, so a
 git pull goes live on the next KeepAlive restart.
 """
 
@@ -26,19 +26,19 @@ from pathlib import Path
 import pandas as pd
 from flask import Flask, abort, jsonify, request, send_from_directory
 
-from board import core
-from board.refresh import BOARD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, read_breadth
+from method import core
+from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, read_breadth
 from data_queries import polygon_queries as pq
 from scripts import playbook_email as pe
 from scripts.evening_signal_log import next_trading_day
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("board.server")
+logger = logging.getLogger("method.server")
 
 STATIC = Path(__file__).resolve().parent / "static"
 REPO = Path(__file__).resolve().parents[1]
 OUTCOMES = DATA_DIR / "signal_outcomes.csv"
-SHOTS = BOARD_DIR / "shots.json"
+SHOTS = METHOD_DIR / "shots.json"
 BARS_TTL_S = 300
 TZ = "US/Eastern"
 
@@ -119,7 +119,12 @@ def create_app() -> Flask:
 
     @app.get("/manifest.webmanifest")
     def manifest():
-        return send_from_directory(STATIC, "manifest.webmanifest")
+        return send_from_directory(STATIC, "manifest.webmanifest", mimetype="application/manifest+json")
+
+    @app.get("/apple-touch-icon.png")
+    @app.get("/apple-touch-icon-precomposed.png")
+    def touch_icon():
+        return send_from_directory(STATIC / "icons", "apple-touch-icon.png")
 
     @app.get("/api/health")
     def health():
@@ -206,11 +211,11 @@ def _watch_head(start: str):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Setup Board server")
+    ap = argparse.ArgumentParser(description="Method server")
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=int(os.environ.get("BOARD_PORT", "8505")))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("METHOD_PORT", "8505")))
     args = ap.parse_args()
-    if os.environ.get("BOARD_AUTORESTART") == "1":
+    if os.environ.get("METHOD_AUTORESTART") == "1":
         threading.Thread(target=_watch_head, args=(git_head(),), daemon=True).start()
     create_app().run(host=args.host, port=args.port, threaded=True)
 

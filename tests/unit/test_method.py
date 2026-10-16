@@ -1,4 +1,4 @@
-"""Setup Board: the clock, open scenarios, history episodes, a refresh pass on
+"""Method: the clock, open scenarios, history episodes, a refresh pass on
 stubbed market data, and the server's routes. No network."""
 
 import datetime
@@ -9,8 +9,8 @@ import types
 import pandas as pd
 import pytest
 
-from board import core
-from board import refresh as rf
+from method import core
+from method import refresh as rf
 
 ET = "US/Eastern"
 
@@ -124,11 +124,11 @@ def _bars(day, rows):
 
 
 @pytest.fixture
-def board(tmp_path, monkeypatch):
+def env(tmp_path, monkeypatch):
     sig = tmp_path / "priority_signals"
     sig.mkdir()
-    monkeypatch.setattr(rf, "BOARD_DIR", tmp_path / "board")
-    monkeypatch.setattr(rf, "SNAPSHOT", tmp_path / "board" / "snapshot.json")
+    monkeypatch.setattr(rf, "METHOD_DIR", tmp_path / "method")
+    monkeypatch.setattr(rf, "SNAPSHOT", tmp_path / "method" / "snapshot.json")
     monkeypatch.setattr(rf, "SIGNALS_DIR", sig)
     monkeypatch.setattr(rf, "load_watchlist", lambda: ["SOXL", "MXL"])
     monkeypatch.setattr(rf, "_load_json", lambda p: {})
@@ -153,9 +153,9 @@ def board(tmp_path, monkeypatch):
     return {"dir": tmp_path, "built": built, "rev": rev, "monkeypatch": monkeypatch}
 
 
-def test_premarket_pass_scores_scenarios_and_tracks_breadth(board):
+def test_premarket_pass_scores_scenarios_and_tracks_breadth(env):
     day = "2026-10-15"
-    board["monkeypatch"].setattr(rf.pq, "get_intraday", lambda t, d, m, s: _bars(day, [
+    env["monkeypatch"].setattr(rf.pq, "get_intraday", lambda t, d, m, s: _bars(day, [
         ("04:00", 99, 99, 95, 96), ("07:06", 96, 96, 90, 91 if t == "SOXL" else 98)]))
     snap = rf.run(now=at("08:35"))
     assert snap["mode"] == "premarket" and snap["session"] == day
@@ -170,14 +170,14 @@ def test_premarket_pass_scores_scenarios_and_tracks_breadth(board):
     assert soxl["principal"] and not mxl.get("principal")
     assert json.loads(rf.SNAPSHOT.read_text())["breadth"][0]["t"] == "08:35"
     # statics are cached for the session: a second pass doesn't rebuild them
-    n_built = len(board["built"])
+    n_built = len(env["built"])
     rf.run(now=at("08:41"))
-    assert len(board["built"]) == n_built
+    assert len(env["built"]) == n_built
     assert len(rf.read_breadth(day)) == 2
 
 
-def test_cadence_skip_and_closed(board):
-    board["monkeypatch"].setattr(rf.pq, "get_intraday",
+def test_cadence_skip_and_closed(env):
+    env["monkeypatch"].setattr(rf.pq, "get_intraday",
                                  lambda *a: _bars("2026-10-15", [("10:00", 99, 99, 95, 96)]))
     assert rf.run(now=at("10:00")) is not None
     assert rf.run(now=at("10:05")) is None                       # market cadence 15 min
@@ -185,8 +185,8 @@ def test_cadence_skip_and_closed(board):
     assert rf.run(now=at("03:00")) is None                       # closed
 
 
-def test_market_pass_locks_the_scenario_at_the_open(board):
-    board["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
+def test_market_pass_locks_the_scenario_at_the_open(env):
+    env["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
         ("09:00", 99, 99, 97, 98), ("09:30", 94, 95, 93, 94), ("10:30", 99, 101, 98, 101)]))
     snap = rf.run(now=at("10:45"))
     soxl = next(r for r in snap["bounce"]["rows"] if r["ticker"] == "SOXL")
@@ -195,17 +195,17 @@ def test_market_pass_locks_the_scenario_at_the_open(board):
     assert soxl["day_low"] == 93
 
 
-def test_evening_plans_tomorrow_and_rebuilds_a_stale_static(board):
+def test_evening_plans_tomorrow_and_rebuilds_a_stale_static(env):
     calls = []
 
     def daily(t, session):
         calls.append(session)
         return pd.DataFrame({"close": [100.0] * 20})
     # first build saw yesterday's close; the tape closed at 90
-    board["monkeypatch"].setattr(rf, "completed_daily", daily)
-    board["monkeypatch"].setattr(rf, "static_from_hist", lambda hist: dict(
+    env["monkeypatch"].setattr(rf, "completed_daily", daily)
+    env["monkeypatch"].setattr(rf, "static_from_hist", lambda hist: dict(
         STATIC, prior_close=100.0 if len(calls) <= 2 else 90.0))
-    board["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
+    env["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
         ("15:59", 91, 91, 90, 90), ("17:30", 89, 89, 87, 88)]))
     snap = rf.run(now=at("17:45"))
     assert snap["mode"] == "evening" and snap["session"] == "2026-10-16"
@@ -245,11 +245,11 @@ def test_reversal_pass_uses_the_report_scorer(monkeypatch):
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    from board import server as sv
+    from method import server as sv
     sig = tmp_path / "priority_signals"
     sig.mkdir()
-    bdir = tmp_path / "board"
-    monkeypatch.setattr(rf, "BOARD_DIR", bdir)
+    bdir = tmp_path / "method"
+    monkeypatch.setattr(rf, "METHOD_DIR", bdir)
     monkeypatch.setattr(sv, "SNAPSHOT", bdir / "snapshot.json")
     monkeypatch.setattr(sv, "SHOTS", bdir / "shots.json")
     monkeypatch.setattr(sv, "SIGNALS_DIR", sig)
@@ -275,7 +275,7 @@ def test_snapshot_route_adds_breadth(client):
 
 def test_index_and_health(client):
     c = client["c"]
-    assert b"Setup Board" in c.get("/").data
+    assert b"Method" in c.get("/").data
     assert c.get("/static/app.js").status_code == 200
     assert c.get("/api/health").get_json()["ok"] is True
 

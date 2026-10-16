@@ -1,0 +1,14 @@
+{
+  "name": "Method",
+  "short_name": "Method",
+  "description": "Bounce and reversal setups: live scores, open scenarios, your playbook.",
+  "start_url": "/#/bounce",
+  "display": "standalone",
+  "background_color": "#060708",
+  "theme_color": "#060708",
+  "icons": [
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

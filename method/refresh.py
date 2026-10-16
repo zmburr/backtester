@@ -1,5 +1,5 @@
 """
-Setup Board refresh: one scoring pass into data/board/snapshot.json.
+Method refresh: one scoring pass into data/method/snapshot.json.
 
 Cron runs it every 5 min, 04:00-20:00 ET on weekdays. It picks the mode from
 the clock and skips passes the mode doesn't need:
@@ -21,9 +21,9 @@ priority report's own: get_pretrade_metrics + score_pretrade_setup, run on
 the report's reversal names plus watchlist names closing 15%+ above the 9EMA.
 
 Usage:
-    python -m board.refresh              # from cron
-    python -m board.refresh --force      # run now whatever the clock says
-    python -m board.refresh --force --mode premarket --dry
+    python -m method.refresh              # from cron
+    python -m method.refresh --force      # run now whatever the clock says
+    python -m method.refresh --force --mode premarket --dry
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from pathlib import Path
 import pandas as pd
 
 from analyzers.bounce_scorer import BouncePretrade
-from board import core
+from method import core
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
     CAP_CACHE_FILE, _load_json, completed_daily, get_cap, load_watchlist, metrics_from_price,
@@ -49,13 +49,13 @@ from scripts.evening_signal_log import go_gap_trigger, next_trading_day
 from scripts.playbook_email import PRINCIPALS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("board.refresh")
+logger = logging.getLogger("method.refresh")
 
 TZ = "US/Eastern"
 DATA_DIR = CAP_CACHE_FILE.parent
 SIGNALS_DIR = DATA_DIR / "priority_signals"
-BOARD_DIR = Path(os.environ.get("BOARD_DIR") or DATA_DIR / "board")
-SNAPSHOT = BOARD_DIR / "snapshot.json"
+METHOD_DIR = Path(os.environ.get("METHOD_DIR") or DATA_DIR / "method")
+SNAPSHOT = METHOD_DIR / "snapshot.json"
 REVERSAL_9EMA_MIN = 0.15        # watchlist names this far above the 9EMA get reversal-scored
 STATIC_DRIFT = 0.01             # evening: rebuild a static whose close disagrees with the tape
 
@@ -74,7 +74,7 @@ def is_session_day(day: datetime.date) -> bool:
 # ---------------------------------------------------------------------------
 
 def _statics_path(session: str):
-    return BOARD_DIR / f"statics_{session}.json"
+    return METHOD_DIR / f"statics_{session}.json"
 
 
 def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
@@ -317,15 +317,15 @@ def _counts(rows):
 
 
 def append_breadth(session: str, entry: dict) -> list[dict]:
-    path = BOARD_DIR / f"breadth_{session}.jsonl"
-    BOARD_DIR.mkdir(parents=True, exist_ok=True)
+    path = METHOD_DIR / f"breadth_{session}.jsonl"
+    METHOD_DIR.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(core.clean(entry)) + "\n")
     return read_breadth(session)
 
 
 def read_breadth(session: str) -> list[dict]:
-    path = BOARD_DIR / f"breadth_{session}.jsonl"
+    path = METHOD_DIR / f"breadth_{session}.jsonl"
     try:
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
     except (OSError, ValueError):
@@ -399,7 +399,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Setup Board refresh pass")
+    ap = argparse.ArgumentParser(description="Method refresh pass")
     ap.add_argument("--force", action="store_true", help="run whatever the clock and cadence say")
     ap.add_argument("--mode", choices=["premarket", "market", "evening"])
     ap.add_argument("--dry", action="store_true", help="score and log, write nothing but caches")

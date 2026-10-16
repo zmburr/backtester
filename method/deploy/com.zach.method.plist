@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Setup Board web server (board/server.py) on the Mac mini. Runs from the
+<!-- Method web server (method/server.py) on the Mac mini. Runs from the
      cron jobs' backtester clone so it reads the same data/. Installed by
-     board/deploy/install_mini.sh; tailscale serve puts it on :8445. -->
+     method/deploy/install_mini.sh; tailscale serve puts it on :8445. -->
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.zach.board</string>
+	<string>com.zach.method</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/Users/zacharyburr/.venvs/cron312/bin/python3</string>
 		<string>-m</string>
-		<string>board.server</string>
+		<string>method.server</string>
 		<string>--host</string>
 		<string>127.0.0.1</string>
 		<string>--port</string>
@@ -27,7 +27,7 @@
 		<string>/Users/zacharyburr/.openclaw/workspace/backtester</string>
 		<key>PYTHONUNBUFFERED</key>
 		<string>1</string>
-		<key>BOARD_AUTORESTART</key>
+		<key>METHOD_AUTORESTART</key>
 		<string>1</string>
 		<key>EXITMONITOR_RISK_MODEL_PATH</key>
 		<string>/Users/zacharyburr/.openclaw/workspace/Intrinsic/journal/risk_model.py</string>
@@ -39,8 +39,8 @@
 	<key>ThrottleInterval</key>
 	<integer>10</integer>
 	<key>StandardOutPath</key>
-	<string>/Users/zacharyburr/Library/Logs/board.log</string>
+	<string>/Users/zacharyburr/Library/Logs/method.log</string>
 	<key>StandardErrorPath</key>
-	<string>/Users/zacharyburr/Library/Logs/board.log</string>
+	<string>/Users/zacharyburr/Library/Logs/method.log</string>
 </dict>
 </plist>

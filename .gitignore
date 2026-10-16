@@ -73,5 +73,5 @@ data/overnight_prices.json
 # Bounce game plan charts (scanners/bounce_gameplan.py) — regenerated on demand
 charts/gameplan/
 
-# Setup Board snapshots, caches and shot counter (board/refresh.py, board/server.py)
-data/board/
+# Method snapshots, caches and shot counter (method/refresh.py, method/server.py)
+data/method/
