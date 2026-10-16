@@ -208,13 +208,23 @@ function renderSideList(side) {
 
   const rep = (s.reports || [])[0];
   if (rep) {
-    const v = rep[side];
-    const chip = (t, cls) => rows.some(r => r.ticker === t)       // a name on the board opens its detail and chart
-      ? `<button class="badge ${cls} pick" data-pick="${side}" data-tk="${esc(t)}">${esc(t)}</button>`
-      : `<span class="badge ${cls}">${esc(t)}</span>`;
-    const chips = [...v.GO.map(t => chip(t, 'go')), ...v.CAUTION.map(t => chip(t, 'caution'))];
+    // Grouped by what the report called; each chip is coloured by the name's live status and
+    // carries its live grade, so a report GO that has since faded doesn't still read green.
+    const v = rep[side], byTk = Object.fromEntries(rows.map(r => [r.ticker, r]));
+    const chip = t => {
+      const r = byTk[t];
+      if (!r) return `<span class="badge nogo">${esc(t)}</span>`;          // off the board: no live read
+      const g = side === 'bounce' ? r.grade_open || r.grade : null;
+      return `<button class="badge ${recCls(r.rec)} pick" data-pick="${side}" data-tk="${esc(t)}">${esc(t)}` +
+        `${g ? `<small>${g === '-' ? '–' : esc(g)}</small>` : ''}</button>`;
+    };
+    const group = (call, tks) => tks.length
+      ? `<div class="rep-group"><div class="rep-call">Called ${call}</div><div class="tickers">${tks.map(chip).join('')}</div></div>` : '';
+    const n = v.GO.length + v.CAUTION.length;
     h += `<div class="card"><div class="eyebrow">Priority report · ${esc(clock12(rep.time))} ${esc(dayLabel(rep.date))}</div>` +
-      (chips.length ? `<div class="tickers">${chips.join('')}</div>` : `<div class="muted" style="margin-top:6px;font-size:13px">No ${side} windows</div>`) + '</div>';
+      (n ? group('GO', v.GO) + group('CAUTION', v.CAUTION) +
+        `<div class="rep-note">Colors and grades are live, for ${esc(dayLabel(s.session))}. Tap a name for its chart.</div>`
+        : `<div class="muted" style="margin-top:6px;font-size:13px">No ${side} windows</div>`) + '</div>';
   }
   if (!active.length) h += `<div class="empty">No GO or CAUTION ${side} names right now.</div>`;
   h += active.map(r => nameCard(side, r)).join('');
