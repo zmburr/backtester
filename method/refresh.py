@@ -11,8 +11,11 @@ the clock and skips passes the mode doesn't need:
 A fresh process per pass keeps stock_screener's import-time date and the
 report module's heavy imports out of the long-running server.
 
-Data is Polygon (15-min delayed); the mini can't reach Trillium. Every
-snapshot carries the time of the newest bar it used.
+Data is Polygon (15-min delayed) unless the PC is posting Trillium bars
+(method/live.py, method/pc_pusher.py): a name posted in the last 2 minutes is
+scored off the PC's bars instead, and the server re-grades it on each post.
+Overnight, Yahoo's Blue Ocean print. Every snapshot carries the time of the
+newest bar it used and which feed it came from.
 
 Bounce scoring is the bounce game plan's (analyzers/bounce_ladder.py), which
 is the premarket scanner's checklist plus intensity: completed_daily +
@@ -42,6 +45,7 @@ import pandas as pd
 from analyzers.bounce_ladder import GRADE_RANK, historical_grade_stats, lookup_bounce_odds
 from analyzers.bounce_scorer import BouncePretrade
 from method import core
+from method import live
 from method import push
 from method.ladder import grade_at, ladder_payload, next_better
 from data_queries import polygon_queries as pq
@@ -59,6 +63,7 @@ DATA_DIR = CAP_CACHE_FILE.parent
 SIGNALS_DIR = DATA_DIR / "priority_signals"
 METHOD_DIR = Path(os.environ.get("METHOD_DIR") or DATA_DIR / "method")
 SNAPSHOT = METHOD_DIR / "snapshot.json"
+LIVE = METHOD_DIR / "live.json"
 REVERSAL_9EMA_MIN = 0.15        # watchlist names this far above the 9EMA get reversal-scored
 STATIC_DRIFT = 0.01             # evening: rebuild a static whose close disagrees with the tape
 
@@ -158,13 +163,32 @@ def _sort_rows(rows: list[dict]) -> list[dict]:
     return rows
 
 
+def row_from_summary(t: str, s: dict, cap: str, b: dict, mode: str, src: str) -> dict:
+    """A bounce row from one name's bar summary (method/live.summarize_bars), whichever
+    feed it came from: the grade at the last price, plus the premarket low before the
+    open and the open's own grade once the session is running."""
+    row = score_row(t, s, cap, b["price"], b["bar_time"])
+    row.update(src=src, src_label=live.SRC_LABEL.get(src, src))
+    if b.get("pm_low") is not None and mode != "evening":    # today's PM low means nothing for tomorrow
+        row.update(pm_low=b["pm_low"], pm_low_time=b.get("pm_low_time"), pm_high=b.get("pm_high"))
+    if mode == "market" and b.get("open") is not None:
+        at_open = grade_at(s, cap, b["open"], t)
+        row.update(open=b["open"], open_gap=b["open"] / s["prior_close"] - 1, day_low=b.get("day_low"),
+                   day_low_time=b.get("day_low_time"), grade_open=at_open["grade"],
+                   score_open=at_open["score"], intensity_open=at_open["intensity"])
+    if mode == "evening" and b.get("ah_low") is not None:
+        row["ah_low"] = b["ah_low"]
+    return row
+
+
 def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
-                now: datetime.datetime, session: str) -> tuple[list[dict], str | None]:
-    """Score every watchlist name off its latest Polygon minute bar. Returns
-    rows and the time of the newest bar used."""
-    open_ts = pd.Timestamp(f"{today} 09:30", tz=TZ)
-    close_ts = pd.Timestamp(f"{today} 16:00", tz=TZ)
+                now: datetime.datetime, session: str,
+                feed: dict | None = None) -> tuple[list[dict], str | None]:
+    """Score every watchlist name off its latest minute bar: the PC's Trillium bars
+    when `feed` has the name fresh, else Polygon's. Returns rows and the time of the
+    newest bar used."""
     asof = pd.Timestamp(now)
+    feed = feed or {}
     rows, newest = [], None
     rebuilt = False
     for t in tickers:
@@ -175,50 +199,56 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
             if "ladder" not in s:                  # statics cached before the ladder existed
                 s["ladder"] = ladder_payload(s, caps[t], t)
                 rebuilt = True
-            bars = pq.get_intraday(t, today, 1, "minute")
-            if bars is None or bars.empty:
+            src = "T" if t in feed else "P"
+            if src == "T":
+                b = feed[t]
+            else:
+                b = live.summarize_bars(pq.get_intraday(t, today, 1, "minute"), today, asof)
+                time.sleep(0.05)
+            if not b:
                 continue
-            bars = bars[bars.index <= asof]
-            if bars.empty:
-                continue
-            pm = bars[bars.index < open_ts]
-            rth = bars[(bars.index >= open_ts) & (bars.index < close_ts)]
-            ah = bars[bars.index >= close_ts]
 
-            if mode == "evening" and not rth.empty:
-                tape_close = float(rth["close"].iloc[-1])
-                if abs(s["prior_close"] / tape_close - 1) > STATIC_DRIFT:
+            if mode == "evening" and b.get("rth_close"):
+                if abs(s["prior_close"] / b["rth_close"] - 1) > STATIC_DRIFT:
                     # daily bar wasn't final when the statics were built
                     fresh = board_static(t, session, caps[t], checker)
                     if fresh:
                         statics[t] = s = fresh
                         rebuilt = True
 
-            price = float(bars["close"].iloc[-1])
-            last_bar = bars.index[-1]
+            last_bar = pd.Timestamp(b["bar_ts"])
             newest = max(newest, last_bar) if newest is not None else last_bar
-            prior = s["prior_close"]
-            row = score_row(t, s, caps[t], price, last_bar.strftime("%H:%M"))
-            if not pm.empty and mode != "evening":      # today's PM low means nothing for tomorrow
-                row["pm_low"] = float(pm["low"].min())
-                row["pm_low_time"] = pm["low"].idxmin().strftime("%H:%M")
-                row["pm_high"] = float(pm["high"].max())
-            if mode == "market" and not rth.empty:
-                open_px = float(rth["open"].iloc[0])
-                at_open = grade_at(s, caps[t], open_px, t)
-                row.update(open=open_px, open_gap=open_px / prior - 1, day_low=float(rth["low"].min()),
-                           day_low_time=rth["low"].idxmin().strftime("%H:%M"),
-                           grade_open=at_open["grade"], score_open=at_open["score"],
-                           intensity_open=at_open["intensity"])
-            if mode == "evening" and not ah.empty:
-                row["ah_low"] = float(ah["low"].min())
-            rows.append(row)
+            rows.append(row_from_summary(t, s, caps[t], b, mode, src))
         except Exception as e:
             logger.warning(f"{t}: bounce pass failed: {e}")
-        time.sleep(0.05)
     if rebuilt:
         core.write_json(_statics_path(session), statics)
     return _sort_rows(rows), newest.strftime("%H:%M") if newest is not None else None
+
+
+def live_reversal(rows: list[dict], feed: dict) -> list[dict]:
+    """Premarket: a reversal row's gap and open scenario follow the PC's live price."""
+    for r in rows:
+        b = feed.get(r["ticker"])
+        if b and r.get("prior_close"):
+            r["price"] = b["price"]
+            r["gap"] = b["price"] / r["prior_close"] - 1
+            r["scenario"] = core.reversal_scenario(r["gap"])
+            r.update(src="T", src_label=live.SRC_LABEL["T"], bar_time=b["bar_time"])
+    return rows
+
+
+def set_source(snap: dict) -> dict:
+    """The page's headline feed: Blue Ocean overnight, Trillium when the PC posted at
+    least half the board, else Polygon. Rows on another feed say so themselves."""
+    rows = snap["bounce"]["rows"]
+    if snap["mode"] == "overnight":
+        snap["src"], snap["source"] = "Y", "Blue Ocean overnight via Yahoo"
+    elif rows and sum(r.get("src") == "T" for r in rows) * 2 >= len(rows):
+        snap["src"], snap["source"] = "T", "Trillium, live from the PC"
+    else:
+        snap["src"], snap["source"] = "P", "Polygon, 15-min delayed"
+    return snap
 
 
 # ---------------------------------------------------------------------------
@@ -449,6 +479,44 @@ def read_breadth(session: str) -> list[dict]:
         return []
 
 
+def apply_live(day: str, names: dict, now: datetime.datetime | None = None, alerts: bool = True) -> dict:
+    """The server's half of the PC feed: store the post, re-grade those rows in the
+    snapshot on the spot (statics come from the session's cache: no Polygon calls,
+    ~4 ms a name) and push any grade upgrade. generated_at is left alone so the cron's
+    cadence still runs the full pass."""
+    now = now or now_et()
+    feed = live.merge_feed(core.read_json(LIVE), day, names, now)
+    core.write_json(LIVE, feed)
+    snap = core.read_json(SNAPSHOT)
+    if (not snap or snap.get("mode") not in ("premarket", "market", "evening")
+            or (snap.get("generated_at") or "")[:10] != day):
+        return {"stored": len(names), "regraded": 0}
+    mode, session = snap["mode"], snap["session"]
+    statics = core.read_json(_statics_path(session), {}) or {}
+    fresh = live.fresh_names(feed, day, now)
+    rows, n = [], 0
+    for r in snap["bounce"]["rows"]:
+        b, s = fresh.get(r["ticker"]), statics.get(r["ticker"])
+        if b and s and "ladder" in s:
+            try:
+                r = {**r, **row_from_summary(r["ticker"], s, r["cap"], b, mode, "T")}
+                n += 1
+            except Exception as e:
+                logger.warning(f"{r['ticker']}: live re-grade failed: {e}")
+        rows.append(r)
+    if mode == "premarket":
+        live_reversal(snap["reversal"]["rows"], fresh)
+        snap["reversal"]["counts"] = _counts(snap["reversal"]["rows"])
+    snap["bounce"] = {"rows": _sort_rows(rows), "counts": _counts(rows)}
+    times = [snap.get("data_time") or ""] + [b["bar_time"] for b in fresh.values()]
+    snap["data_time"] = max(times) or None
+    snap["live_at"] = now.isoformat(timespec="seconds")
+    set_source(snap)
+    core.write_json(SNAPSHOT, snap)
+    sent = grade_alerts(rows, session, mode) if alerts else []
+    return {"stored": len(names), "regraded": n, "alerts": sent}
+
+
 def run(now: datetime.datetime | None = None, force: bool = False, mode: str | None = None,
         dry: bool = False) -> dict | None:
     now = now or now_et()
@@ -478,6 +546,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     statics = load_statics(session, tickers, caps, checker)
 
     reports = recent_reports(today, mode)
+    feed = live.fresh_names(core.read_json(LIVE), today.isoformat(), now) if mode != "overnight" else {}
     if mode == "overnight":
         held = [r["ticker"] for r in ((prev or {}).get("reversal") or {}).get("rows", [])]
         prices = overnight_prices(list(dict.fromkeys(tickers + held)), prev)
@@ -485,11 +554,13 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         reversal = overnight_reversal(prev, prices)
     else:
         bounce, data_time = bounce_pass(tickers, statics, caps, checker, mode,
-                                        today.isoformat(), now, session)
+                                        today.isoformat(), now, session, feed)
         setups = {s["ticker"]: s.get("setup_type") or "" for rep in reports
                   for s in rep.get("signals", []) if s.get("bucket") == "reversal"}
         reversal = reversal_pass(reversal_candidates(reports, statics), caps,
                                  today.isoformat(), setups)
+        if mode == "premarket":
+            live_reversal(reversal, feed)
 
     report_views = [_report_view(r) for r in reports]
     latest = report_views[0] if report_views else None
@@ -513,13 +584,13 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     snapshot = {
         "generated_at": now.isoformat(timespec="seconds"), "mode": mode,
         "session": session, "data_time": data_time,
-        "source": "Blue Ocean overnight via Yahoo" if mode == "overnight" else "Polygon, 15-min delayed",
         "bounce": {"rows": bounce, "counts": bc},
         "reversal": {"rows": reversal, "counts": rc},
         "reports": report_views,
         "scenario_text": core.SCENARIO_TEXT,
         "grade_stats": historical_grade_stats(),
     }
+    set_source(snapshot)
     if dry:
         logger.info(f"--dry {mode} for {session}: bounce {bc}, reversal {rc}, data {data_time}")
         for r in bounce[:8] + reversal[:5]:

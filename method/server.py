@@ -2,14 +2,16 @@
 Method server: one page for bounce and reversal setups, always current.
 
 It serves what method/refresh.py writes (data/method/snapshot.json) plus the
-lessons notes, past setup days, chart bars and the day's shot counter. It
-does no scoring itself. Tailnet only: launchd runs it on 127.0.0.1:8506 and
+lessons notes, past setup days, chart bars and the day's shot counter. Its only
+scoring is the PC's Trillium posts (/api/live): those rows are re-graded on the
+spot from the session's cached statics (refresh.apply_live). Tailnet only: launchd runs it on 127.0.0.1:8506 and
 `tailscale serve` puts it on https://zacharys-mac-mini.<tailnet>.ts.net:8445.
 
 Only the owner's tailnet login gets in (as Intrinsic): tailscale serve adds a
 Tailscale-User-Login header; METHOD_ALLOWED_LOGINS lists who may pass (default the
 owner) and METHOD_DEV_LOGIN stands in for the header on local runs. Writes must be
-JSON with X-Method: 1.
+JSON with X-Method: 1. Price posts also need the token in ~/.method/live_token
+(the PC keeps a copy; see method/pc_pusher.py).
 
 Run:  python -m method.server [--port 8506]
 With METHOD_AUTORESTART=1 (launchd) it exits when the repo's HEAD moves, so a
@@ -32,9 +34,10 @@ import pandas as pd
 from flask import Flask, abort, jsonify, make_response, request, send_from_directory
 
 from method import core
+from method import live
 from method import push
 from method import review as rv
-from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, read_breadth
+from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, apply_live, read_breadth
 from data_queries import polygon_queries as pq
 from scripts import playbook_email as pe
 from scripts.evening_signal_log import next_trading_day
@@ -55,6 +58,7 @@ _bars_cache: dict[str, tuple[float, dict]] = {}
 _history_cache: dict = {"key": None, "data": None}
 _outcomes_cache: dict = {"mtime": None, "rows": [], "index": {}}
 _shots_lock = threading.Lock()
+_live_lock = threading.Lock()
 
 
 def git_head() -> str:
@@ -175,6 +179,18 @@ def create_app() -> Flask:
         sent = push.send("Method", "Notifications are on. Setups forming and grade upgrades arrive here.",
                          url="/#/bounce", tag="method-test")
         return jsonify(sent=sent)
+
+    @app.post("/api/live")
+    def live_post():
+        if not live.token_ok(push.home() / "live_token", request.headers.get("X-Method-Token")):
+            return jsonify(error="bad token"), 403
+        try:
+            day, names = live.clean_post(request.get_json(silent=True) or {})
+        except (TypeError, ValueError) as e:
+            return jsonify(error=str(e)), 400
+        with _live_lock:
+            out = apply_live(day, names)
+        return jsonify(ok=True, **out)
 
     @app.get("/")
     def index():
@@ -318,6 +334,7 @@ def main():
     args = ap.parse_args()
     if os.environ.get("METHOD_AUTORESTART") == "1":
         threading.Thread(target=_watch_head, args=(git_head(),), daemon=True).start()
+    live.ensure_token(push.home() / "live_token")
     create_app().run(host=args.host, port=args.port, threaded=True)
 
 

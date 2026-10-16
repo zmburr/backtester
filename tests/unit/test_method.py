@@ -142,6 +142,7 @@ def env(tmp_path, monkeypatch):
     sig.mkdir()
     monkeypatch.setattr(rf, "METHOD_DIR", tmp_path / "method")
     monkeypatch.setattr(rf, "SNAPSHOT", tmp_path / "method" / "snapshot.json")
+    monkeypatch.setattr(rf, "LIVE", tmp_path / "method" / "live.json")
     monkeypatch.setattr(rf, "SIGNALS_DIR", sig)
     monkeypatch.setattr(rf, "load_watchlist", lambda: ["SOXL", "MXL"])
     monkeypatch.setattr(rf, "_load_json", lambda p: {})
@@ -405,3 +406,63 @@ def test_bars_route_validates_and_caches(client, monkeypatch):
     assert c.get("/api/bars?ticker=soxl").get_json()["ticker"] == "SOXL"
     c.get("/api/bars?ticker=SOXL")
     assert calls == ["SOXL"]
+
+
+# ---------------------------------------------------------------- the PC's Trillium feed
+
+def _feed(received, **names):
+    return {"day": "2026-10-15", "received_at": received,
+            "names": {t: dict(s, received_at=received) for t, s in names.items()}}
+
+
+def test_premarket_pass_prefers_a_fresh_pc_feed(env):
+    mp, polygon = env["monkeypatch"], []
+    mp.setattr(rf.pq, "get_intraday", lambda t, d, m, s: polygon.append(t) or _bars("2026-10-15", [
+        ("04:00", 99, 99, 95, 96), ("08:20", 96, 96, 97, 98)]))
+    soxl = {"price": 91.0, "bar_time": "08:34", "bar_ts": "2026-10-15T08:34:00-04:00",
+            "pm_low": 90.5, "pm_low_time": "08:31", "pm_high": 99.0}
+    core.write_json(rf.LIVE, _feed("2026-10-15T08:34:50-04:00", SOXL=soxl))
+    snap = rf.run(now=at("08:35"))
+    rows = {r["ticker"]: r for r in snap["bounce"]["rows"]}
+    assert polygon == ["MXL"]                                    # SOXL came from the PC
+    assert (rows["SOXL"]["src"], rows["SOXL"]["price"], rows["SOXL"]["grade"]) == ("T", 91.0, "A")
+    assert rows["SOXL"]["pm_low"] == 90.5 and rows["MXL"]["src"] == "P"
+    assert snap["data_time"] == "08:34"
+    assert (snap["src"], snap["source"]) == ("T", "Trillium, live from the PC")
+
+
+def test_a_stale_pc_feed_falls_back_to_polygon(env):
+    mp = env["monkeypatch"]
+    mp.setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [("08:20", 96, 96, 97, 98)]))
+    core.write_json(rf.LIVE, _feed("2026-10-15T08:32:00-04:00", SOXL={"price": 91.0, "bar_time": "08:31",
+                                                                     "bar_ts": "2026-10-15T08:31:00-04:00"}))
+    snap = rf.run(now=at("08:35"))                               # 3 min old: past FRESH_S
+    assert {r["src"] for r in snap["bounce"]["rows"]} == {"P"}
+    assert snap["source"] == "Polygon, 15-min delayed"
+
+
+def test_a_post_regrades_on_the_spot_and_pushes_the_upgrade(env):
+    mp = env["monkeypatch"]
+    mp.setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [("08:20", 99, 99, 97, 98)]))
+    first = rf.run(now=at("08:35"))
+    assert next(r for r in first["bounce"]["rows"] if r["ticker"] == "SOXL")["grade"] == "C"
+    sent = []
+    mp.setattr(rf.push, "send", lambda title, body, url, tag: sent.append(title) or 1)
+    out = rf.apply_live("2026-10-15", {"SOXL": {"price": 91.0, "bar_time": "08:36",
+                                                "bar_ts": "2026-10-15T08:36:00-04:00"}}, now=at("08:37"))
+    assert out == {"stored": 1, "regraded": 1, "alerts": ["SOXL"]} and sent == ["SOXL is an A"]
+    snap = json.loads(rf.SNAPSHOT.read_text())
+    soxl = next(r for r in snap["bounce"]["rows"] if r["ticker"] == "SOXL")
+    assert (soxl["grade"], soxl["src"], soxl["report_rec"]) == ("A", "T", "GO")   # report fields kept
+    assert soxl["odds"]["p_bounce5"] == 0.64
+    assert snap["generated_at"] == first["generated_at"]         # the cron's cadence is untouched
+    assert snap["live_at"].startswith("2026-10-15T08:37") and snap["data_time"] == "08:36"
+    assert snap["bounce"]["rows"][0]["ticker"] == "SOXL"
+
+
+def test_a_post_only_stores_when_the_snapshot_is_overnight(env):
+    core.write_json(rf.SNAPSHOT, {"generated_at": "2026-10-15T03:45:00-04:00", "mode": "overnight",
+                                  "session": "2026-10-15", "bounce": {"rows": []}})
+    out = rf.apply_live("2026-10-15", {"SOXL": {"price": 91.0, "bar_time": "03:59"}}, now=at("03:59"))
+    assert out == {"stored": 1, "regraded": 0}
+    assert "SOXL" in json.loads(rf.LIVE.read_text())["names"]

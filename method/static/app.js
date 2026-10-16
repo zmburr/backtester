@@ -45,6 +45,7 @@ function clock12(t) {
   const [h, m] = (t || '0:00').split(':').map(Number);
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
+const lastUpdate = s => [s.generated_at, s.live_at].filter(Boolean).sort().pop();
 function ago(iso) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
   if (s < 90) return 'just now';
@@ -109,7 +110,7 @@ function renderStatus() {
   let short = 'Connecting…', dot = '';
   if (!S.reachable) { short = 'Offline'; dot = 'off'; }
   else if (s && !s.empty) {
-    const stale = Date.now() - new Date(s.generated_at).getTime() > 30 * 60e3 && activeNow();
+    const stale = Date.now() - new Date(lastUpdate(s)).getTime() > 30 * 60e3 && activeNow();
     short = `${MODE_WORD[s.mode] || s.mode} · ${s.data_time || '–'}`;
     dot = stale ? 'warn' : 'ok';
   } else if (s?.empty) { short = 'No data yet'; dot = 'warn'; }
@@ -181,7 +182,7 @@ function renderSideList(side) {
   const c = s[side].counts, rows = s[side].rows || [];
   const active = rows.filter(isActive), rest = rows.filter(r => !isActive(r));
   let h = listHead(`${esc(MODE_WORD[s.mode] || s.mode)} · plan for`, esc(dayLabel(s.session)),
-    `Data ${esc(s.data_time || '–')} ET · ${esc(s.source)} · updated ${esc(ago(s.generated_at))}`);
+    `Data ${esc(s.data_time || '–')} ET · ${esc(s.source)} · updated ${esc(ago(lastUpdate(s)))}`);
 
   const b = s.breadth || [], goN = b.map(e => e[`${side}_go`] || 0), ca = b.map(e => e[`${side}_caution`] || 0);
   const runDay = (s.generated_at || '').slice(0, 10);
@@ -210,7 +211,8 @@ function renderSideList(side) {
 }
 function nameCard(side, r) {
   const mode = S.snap.mode, move = `${pct(r.gap)} ${MOVE_WORD[mode] || 'vs close'}`;
-  const src = r.src_label && r.src !== 'Y' ? `${r.src_label} ${r.bar_time || ''}` : (r.src === 'Y' ? `Blue Ocean ${r.bar_time}` : null);
+  const src = r.src === 'Y' ? `Blue Ocean ${r.bar_time}`
+    : r.src && r.src !== (S.snap.src || 'P') ? `${r.src_label || r.src} ${r.bar_time || ''}` : null;
   const nxt = r.next ? `next ${gradeLabel(r.next.grade)} at ${px(r.next.price)} (${pct(r.next.pct_away)})` : (side === 'bounce' && r.grade ? 'best grade reached' : null);
   const l2 = side === 'bounce'
     ? [move, nxt, src, r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
@@ -368,7 +370,7 @@ function ladderCard(r) {
   if (!placed) rows.push(['<b>Now</b>', '', `<b class="num">${px(r.price)}</b>`]);
   return linesCard('Ladder · where it changes', rows);
 }
-function renderDetail(side) {
+function renderDetail(side, soft = false) {
   const reader = $('#reader');
   const r = (S.snap?.[side]?.rows || []).find(x => x.ticker === S.sel[side]);
   if (!r) {
@@ -410,11 +412,17 @@ function renderDetail(side) {
   const flags = [...(r.warnings || []).map(w => ['Warning', esc(w), '']), ...(r.bonuses || []).map(b => ['Bonus', esc(b), ''])];
   const comps = (r.analogs?.comps || []).slice(0, 3).map(c => [`${esc(c.ticker)} · ${esc(c.date)}`, '',
     `<span class="muted">${side === 'bounce' ? `high ${pct(c.open_high_pct, 0)}` : `low ${pct(c.open_low_pct, 0)}`} · close ${pct(c.open_close_pct, 0)}</span>`]);
-  reader.innerHTML = `<div class="col">${lead}${lev}${kpis(pairs)}
+  const top = $('#detail-top');
+  if (soft && top && top.dataset.tk === r.ticker) {      // live price tick: keep the chart as it is
+    top.innerHTML = `${lead}${lev}${kpis(pairs)}`;
+    if (side === 'bounce') $('#ladder-slot').innerHTML = ladderCard(r);
+    return;
+  }
+  reader.innerHTML = `<div class="col"><div id="detail-top" data-tk="${esc(r.ticker)}">${lead}${lev}${kpis(pairs)}</div>
     <div class="card chart-card"><div class="card-head"><span class="eyebrow">Chart${mode === 'market' ? ' · rules so far' : ''}</span>
       <div class="seg small"><button data-tf="intraday" class="${S.chartTf === 'intraday' ? 'on' : ''}">1-min</button><button data-tf="day" class="${S.chartTf === 'day' ? 'on' : ''}">Daily</button></div></div>
       <div class="chart" id="chart"></div><div class="off-chart" id="chart-off"></div><div id="live-rules"></div></div>
-    ${side === 'bounce' ? ladderCard(r) : ''}
+    <div id="ladder-slot">${side === 'bounce' ? ladderCard(r) : ''}</div>
     ${shotsCard(side, r.ticker)}
     ${linesCard("What's missing", misses)}${linesCard('Flags', flags)}${linesCard('Closest past setups', comps)}</div>`;
   drawDetailChart(side, r);
@@ -689,8 +697,12 @@ async function poll() {
     await loadShots();
     S.reachable = true;
     const changed = !S.snap || snap.generated_at !== S.snap.generated_at;
+    const ticked = !changed && snap.live_at !== S.snap.live_at;      // the PC posted new prices
     S.snap = snap;
-    if (changed && S.route !== 'history' && S.route !== 'playbook') render(); else renderStatus();
+    const board = S.route === 'bounce' || S.route === 'reversal';
+    if (changed && board) render();
+    else if (ticked && board) { renderStatus(); renderSideList(S.route); renderDetail(S.route, true); }
+    else renderStatus();
   } catch (e) {
     S.reachable = false;
     renderStatus();
@@ -699,6 +711,8 @@ async function poll() {
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 applyRoute();
-poll();
-setInterval(poll, 60e3);
+(async function pollLoop() {        // every 15 s while the PC streams Trillium, else every minute
+  await poll();
+  setTimeout(pollLoop, S.snap?.src === 'T' ? 15e3 : 60e3);
+})();
 setInterval(renderStatus, 30e3);
