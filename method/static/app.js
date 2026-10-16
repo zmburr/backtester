@@ -224,7 +224,7 @@ function snapTime(t, times) {        // markers must sit on a bar that exists
   for (const x of times) { if (x <= t) best = x; else break; }
   return best;
 }
-function makeChart(el, bars, { daily = false, lines = [], markers = [], segments = [], fitDays = 90 } = {}) {
+function makeChart(el, bars, { daily = false, lines = [], markers = [], segments = [], fitDays = 90, offEl = null } = {}) {
   if (S.chart) { S.chart.remove(); S.chart = null; }
   el.innerHTML = '';
   if (!bars?.length) { el.innerHTML = '<div class="empty">No bars.</div>'; return null; }
@@ -234,16 +234,27 @@ function makeChart(el, bars, { daily = false, lines = [], markers = [], segments
     grid: { vertLines: { visible: false }, horzLines: { color: CH.grid } },
     rightPriceScale: { borderVisible: false, minimumWidth: 58 },
     // 960 one-minute bars (4 AM-8 PM) must fit a phone-width chart
-    timeScale: { borderVisible: false, timeVisible: !daily, secondsVisible: false, rightOffset: 2, minBarSpacing: 0.05 },
+    timeScale: { borderVisible: false, timeVisible: !daily, secondsVisible: false, rightOffset: daily ? 2 : 8, minBarSpacing: 0.05 },
     crosshair: { mode: 0, vertLine: { color: '#3a434b', labelBackgroundColor: '#1a1f24' }, horzLine: { color: '#3a434b', labelBackgroundColor: '#1a1f24' } },
     handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
   });
-  // stretch the price scale to the levels that matter (grade lines, stops) within 30% of the last price
+  // Intraday charts scale to the candles: a level outside the day's range is listed under the
+  // chart instead of stretching the scale (a squashed strip of candles reads as nothing, 10/15).
+  // The daily view is the big picture, so it stretches to levels within 30% of the last close.
   const last = bars[bars.length - 1].close;
-  const extra = [...lines.map(l => l.price), ...segments.map(s => s.price)]
-    .filter(p => p != null && Math.abs(p / last - 1) <= 0.3);
+  const lo = Math.min(...bars.map(b => b.low)), hi = Math.max(...bars.map(b => b.high));
+  const pad = Math.max((hi - lo) * 0.25, last * 0.025);    // near levels (prior close, PM low) stay on
+  const fits = p => daily ? Math.abs(p / last - 1) <= 0.3 : p >= lo - pad && p <= hi + pad;
+  const shown = lines.filter(l => l.price != null && fits(l.price));
+  const off = lines.filter(l => l.price != null && !fits(l.price));
+  const extra = [...shown.map(l => l.price), ...segments.map(s => s.price).filter(fits)];
+  if (offEl) {
+    offEl.innerHTML = off.length ? `Off chart: ${off.sort((a, b) => b.price - a.price)
+      .map(l => `<span style="color:${l.color}">${esc(l.title)}</span> ${px(l.price)} (${pct(l.price / last - 1, 0)})`).join(' · ')}` : '';
+  }
   const candles = c.addCandlestickSeries({
-    upColor: CH.up, downColor: CH.down, wickUpColor: CH.up, wickDownColor: CH.down, borderVisible: false, priceLineVisible: false,
+    upColor: CH.up, downColor: CH.down, wickUpColor: CH.up, wickDownColor: CH.down, borderVisible: false,
+    priceLineVisible: false, lastValueVisible: false,
     autoscaleInfoProvider: original => {
       const res = original();
       if (!res || !extra.length) return res;
@@ -254,8 +265,8 @@ function makeChart(el, bars, { daily = false, lines = [], markers = [], segments
   c.priceScale('vol').applyOptions({ scaleMargins: { top: 0.88, bottom: 0 } });
   candles.setData(bars.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
   vol.setData(bars.map(b => ({ time: b.time, value: b.value })));
-  for (const l of lines) {
-    if (l.price != null) candles.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: l.title || '' });
+  for (const l of shown) {
+    candles.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: l.title || '' });
   }
   const times = bars.map(b => b.time);
   if (!daily) {
@@ -281,17 +292,16 @@ function gradeLines(ladder) {        // where each better grade starts, moving d
 }
 function tradeMarks(trades, side) {
   const long = side === 'bounce', markers = [], segments = [];
-  const exitWord = { stop: 'stop', trail: 'trail', close: 'close', open: 'open', tripwire: 'tripwire' };
-  for (const t of trades || []) {
+  (trades || []).forEach((t, i) => {
     markers.push({ time: t.entry_t, position: long ? 'belowBar' : 'aboveBar', color: long ? '#3ddc97' : '#ff6363',
-      shape: long ? 'arrowUp' : 'arrowDown', text: `${long ? 'buy' : 'short'} ${px(t.entry)}` });
-    if (t.half) markers.push({ time: t.half.t, position: 'belowBar', color: '#a594ff', shape: 'circle', text: 'half' });
+      shape: long ? 'arrowUp' : 'arrowDown', text: String(i + 1) });
+    if (t.half) markers.push({ time: t.half.t, position: 'belowBar', color: '#a594ff', shape: 'circle', text: '½' });
     if (t.kind !== 'open') {
       markers.push({ time: t.exit_t, position: long ? 'aboveBar' : 'belowBar', color: t.r >= 0 ? '#a594ff' : '#ff6363',
-        shape: long ? 'arrowDown' : 'arrowUp', text: `${exitWord[t.kind] || t.kind} ${rr(t.r)}` });
+        shape: long ? 'arrowDown' : 'arrowUp', text: rr(t.r) });
     }
     segments.push({ from: t.entry_t, to: t.exit_t, price: t.stop, color: '#ff6363' });
-  }
+  });
   return { markers, segments };
 }
 function tradeLines(trades, side) {
@@ -397,7 +407,7 @@ function renderDetail(side) {
   reader.innerHTML = `<div class="col">${lead}${lev}${kpis(pairs)}
     <div class="card chart-card"><div class="card-head"><span class="eyebrow">Chart${mode === 'market' ? ' · rules so far' : ''}</span>
       <div class="seg small"><button data-tf="intraday" class="${S.chartTf === 'intraday' ? 'on' : ''}">1-min</button><button data-tf="day" class="${S.chartTf === 'day' ? 'on' : ''}">Daily</button></div></div>
-      <div class="chart" id="chart"></div><div id="live-rules"></div></div>
+      <div class="chart" id="chart"></div><div class="off-chart" id="chart-off"></div><div id="live-rules"></div></div>
     ${side === 'bounce' ? ladderCard(r) : ''}
     ${shotsCard(side, r.ticker)}
     ${linesCard("What's missing", misses)}${linesCard('Flags', flags)}${linesCard('Closest past setups', comps)}</div>`;
@@ -425,7 +435,7 @@ async function drawDetailChart(side, r) {
     if (live?.trades) marks = tradeMarks(live.trades, side);
     if (!$('#chart') || S.sel[side] !== tk) return;
   }
-  makeChart($('#chart'), daily ? data.daily : data.intraday, { daily, lines, ...marks });
+  makeChart($('#chart'), daily ? data.daily : data.intraday, { daily, lines, ...marks, offEl: $('#chart-off') });
   const box = $('#live-rules');
   if (box && live) {
     box.innerHTML = live.trades?.length
@@ -516,8 +526,8 @@ async function renderReview() {
   if (!ep || !tk) return renderEpisode();
   const side = ep.side, key = `${side}:${tk}:${ep.target}`;
   const name = ep.names.find(n => n.ticker === tk) || { ticker: tk };
-  setTitle(`${esc(tk)} ${name.rec ? `<span class="badge ${recCls(name.rec)}">${esc(name.score || '')} ${esc(name.rec)}</span>` : ''}`,
-    `${dayLabel(ep.target)} · ${side === 'bounce' ? 'Bounce' : 'Reversal'} replay`);
+  setTitle(esc(tk), [`${dayLabel(ep.target)} · ${side === 'bounce' ? 'bounce' : 'reversal'} replay`,
+    name.rec ? `report: ${name.score || ''} ${name.rec} the night before` : null].filter(Boolean).join(' · '));
   let d = S.reviews[key];
   if (!d) {
     reader.innerHTML = '<div class="col"><div class="empty">Replaying the day…</div></div>';
@@ -554,9 +564,9 @@ async function renderReview() {
     out.d1_pct != null ? ['Next day', '', pct(out.d1_pct)] : null,
   ].filter(Boolean);
   reader.innerHTML = `<div class="col"><button class="btn ghost small" data-back="1" style="margin-bottom:12px">‹ ${esc(dayLabel(ep.target))}</button>${head}
-    <div class="card chart-card"><div class="card-head"><span class="eyebrow">${S.reviewTf === 'daily' ? 'Daily, with the night-before ladder' : '2-min · entries ▲ exits ▼ · stops dashed'}</span>
+    <div class="card chart-card"><div class="card-head"><span class="eyebrow">${S.reviewTf === 'daily' ? 'Daily · night-before ladder' : '2-min · 9:00–16:00'}</span>
       <div class="seg small"><button data-rtf="day2" class="${S.reviewTf === 'day2' ? 'on' : ''}">2-min</button><button data-rtf="daily" class="${S.reviewTf === 'daily' ? 'on' : ''}">Daily</button></div></div>
-      <div class="chart" id="chart"></div></div>
+      <div class="chart" id="chart"></div><div class="off-chart" id="chart-off"></div></div>
     ${rulesCard}${linesCard('The session', sessRows)}${linesCard('Scorecard', outRows)}</div>`;
   if (!d.candles?.length && S.reviewTf === 'day2') return;
   const daily = S.reviewTf === 'daily';
@@ -564,7 +574,11 @@ async function renderReview() {
   if (side === 'bounce') lines.push(...gradeLines(d.ladder), { price: d.mid_bb, color: '#a594ff', title: 'mid-BB' });
   else lines.push({ price: d.gap_level, color: '#ff6363', title: '+4%' }, { price: d.ema9, color: '#7cc4ff', title: '9EMA' });
   if (!daily && sess.pm_low != null) lines.push({ price: sess.pm_low, color: '#ffb547', title: 'PM low', style: 1 });
-  makeChart($('#chart'), daily ? d.daily : d.candles, { daily, lines, fitDays: 70, ...(daily ? {} : tradeMarks(d.trades, side)) });
+  // the replay shows 9:00-16:00: the rules trade the session; scroll for the rest
+  const tod = t => { const x = new Date(t * 1000); return x.getUTCHours() * 60 + x.getUTCMinutes(); };
+  const session = (d.candles || []).filter(b => tod(b.time) >= 540 && tod(b.time) < 960);
+  makeChart($('#chart'), daily ? d.daily : session, { daily, lines, fitDays: 70, offEl: $('#chart-off'),
+    ...(daily ? {} : tradeMarks(d.trades, side)) });
 }
 
 // ── events ───────────────────────────────────────────────────────────────
