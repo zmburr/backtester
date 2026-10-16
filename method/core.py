@@ -21,12 +21,7 @@ CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15}
 MIN_GO = 2                      # same episode gate as the playbook email
 REVERSAL_GAP_GATE = 0.04        # 3DGapFade gap gate (analyzers/reversal_pretrade.py)
 
-SCENARIO_TEXT = {
-    "bounce": {
-        "A": "through the GO level",
-        "B": "above the GO level: wait for the flush",
-        "C": "gapping up: no chase",
-    },
+SCENARIO_TEXT = {       # bounce names use the game plan's grades instead (method/ladder.py)
     "reversal": {
         "A": "exhaustion gap (+4% or more)",
         "B": "flat or small gap: wait for the VWAP fail",
@@ -59,15 +54,6 @@ def due(mode: str, last_generated: datetime.datetime | None, now: datetime.datet
         return True
     gap = (now - last_generated).total_seconds() / 60
     return gap >= CADENCE_MIN.get(mode, 5) - 1 or gap < 0
-
-
-def bounce_scenario(gap: float | None, go_gap: float | None) -> str | None:
-    """A: at or through the GO level. B: down, but above it. C: flat or up."""
-    if gap is None:
-        return None
-    if go_gap is not None and gap <= go_gap:
-        return "A"
-    return "B" if gap < 0 else "C"
 
 
 def reversal_scenario(gap: float | None) -> str | None:
@@ -115,12 +101,23 @@ def read_json(path: Path, default=None):
 # History: past setup days and how they played out
 # ---------------------------------------------------------------------------
 
-def _num(v):
+def to_num(v):
     try:
         f = float(v)
     except (TypeError, ValueError):
         return None
     return None if math.isnan(f) else f
+
+
+def index_outcomes(outcomes: list[dict]) -> dict:
+    """Scorecard rows keyed (target_date, bucket, ticker); morning beats evening
+    when the scorecard has both for one target."""
+    by_key = {}
+    for row in outcomes:
+        key = (row.get("target_date"), row.get("bucket"), row.get("ticker"))
+        if key not in by_key or row.get("session") == "morning":
+            by_key[key] = row
+    return by_key
 
 
 def build_episodes(reports: dict, outcomes: list[dict], next_trading_day,
@@ -151,12 +148,7 @@ def build_episodes(reports: dict, outcomes: list[dict], next_trading_day,
                     ep["names"][s["ticker"]] = {"ticker": s["ticker"], "rec": rec,
                                                 "score": s.get("score"), "cap": s.get("cap")}
 
-    by_key = {}
-    for row in outcomes:
-        key = (row.get("target_date"), row.get("bucket"), row.get("ticker"))
-        # morning beats evening when the scorecard has both for one target
-        if key not in by_key or row.get("session") == "morning":
-            by_key[key] = row
+    by_key = index_outcomes(outcomes)
 
     out = []
     for (target, side), ep in episodes.items():
@@ -164,10 +156,10 @@ def build_episodes(reports: dict, outcomes: list[dict], next_trading_day,
         for n in sorted(ep["names"].values(), key=lambda n: (n["rec"] != "GO", n["ticker"])):
             o = by_key.get((target, side, n["ticker"]), {})
             names.append({**n,
-                          "d0_pct": _num(o.get("d0_pct")),
-                          "d1_pct": _num(o.get("d1_pct")),
-                          "mfe_atr_d0": _num(o.get("mfe_atr_d0")),
-                          "exit_r": _num(o.get("exit_r")),
+                          "d0_pct": to_num(o.get("d0_pct")),
+                          "d1_pct": to_num(o.get("d1_pct")),
+                          "mfe_atr_d0": to_num(o.get("mfe_atr_d0")),
+                          "exit_r": to_num(o.get("exit_r")),
                           "tradeable_d0": str(o.get("tradeable_d0")) == "True" if o else None})
         n_go = sum(1 for n in names if n["rec"] == "GO")
         out.append({"target": target, "side": side, "reports": ep["reports"],

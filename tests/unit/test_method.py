@@ -50,16 +50,6 @@ def test_cadence_skips_passes_between():
 
 # ---------------------------------------------------------------- scenarios
 
-def test_bounce_scenarios():
-    assert core.bounce_scenario(-0.09, -0.04) == "A"
-    assert core.bounce_scenario(-0.04, -0.04) == "A"      # at the level counts
-    assert core.bounce_scenario(-0.02, -0.04) == "B"
-    assert core.bounce_scenario(0.01, -0.04) == "C"
-    assert core.bounce_scenario(-0.30, None) == "B"       # 5/6 not reachable within -20%
-    assert core.bounce_scenario(0.0, -0.0) == "A"         # GO at a flat open
-    assert core.bounce_scenario(None, -0.04) is None
-
-
 def test_reversal_scenarios():
     assert core.reversal_scenario(0.05) == "A"
     assert core.reversal_scenario(0.04) == "A"
@@ -115,6 +105,29 @@ STATIC = {"prior_close": 100.0, "consecutive_down_days": 4, "atr": 8.0, "mid_bb"
           "selloff_first_open": 140.0}
 
 
+# a ladder in the game plan's shape: B from 96 down, A from 92, A+ from 85
+LADDER = {
+    "setup_type": "GapFade_weakstock",
+    "levels": [{"price": 96.0, "gap": -0.04, "grade": "B", "score": 5, "intensity": 50.0, "events": ["grade B"]},
+               {"price": 92.0, "gap": -0.08, "grade": "A", "score": 6, "intensity": 65.0, "events": ["grade A"]},
+               {"price": 85.0, "gap": -0.15, "grade": "A+", "score": 6, "intensity": 80.0, "events": ["grade A+"]}],
+    "zones": [{"grade": "C", "top": 102.0, "bottom": 96.0}, {"grade": "B", "top": 96.0, "bottom": 92.0},
+              {"grade": "A", "top": 92.0, "bottom": 85.0}, {"grade": "A+", "top": 85.0, "bottom": 60.0}],
+    "ceiling": {"score": 6, "grade": "A+", "blocked": [], "floor_price": 60.0},
+}
+
+
+def fake_grade_at(s, cap, price, ticker):
+    """The real checklist at `price`, graded off LADDER's price bands."""
+    from analyzers.bounce_scorer import BouncePretrade
+    from scanners.premarket_bounce_scanner import metrics_from_price
+    m = metrics_from_price(s, price)
+    res = BouncePretrade().validate(ticker, m, cap=cap, force_setup=s.get("setup_type"))
+    grade = "A+" if price <= 85 else "A" if price <= 92 else "B" if price <= 96 else "C"
+    return {"grade": grade, "intensity": 70.0, "score": res.score, "rec": res.recommendation,
+            "result": res, "metrics": m}
+
+
 def _bars(day, rows):
     """rows: [(HH:MM, open, high, low, close)] -> Polygon-shaped minute frame."""
     idx = pd.DatetimeIndex([pd.Timestamp(f"{day} {t}", tz=ET) for t, *_ in rows])
@@ -143,6 +156,10 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "completed_daily", fake_daily)
     monkeypatch.setattr(rf, "static_from_hist", lambda hist: dict(STATIC))
     monkeypatch.setattr(rf, "go_gap_trigger", lambda t, s, cap, checker: -0.04)
+    monkeypatch.setattr(rf, "ladder_payload", lambda s, cap, t: dict(LADDER))
+    monkeypatch.setattr(rf, "grade_at", fake_grade_at)
+    monkeypatch.setattr(rf, "historical_grade_stats", lambda: {"A": {"n": 15, "med_open_close": 0.117}})
+    monkeypatch.setattr(rf, "lookup_bounce_odds", lambda score, cap: {"p_bounce5": 0.6})
     monkeypatch.setattr(rf.time, "sleep", lambda s: None)
     rev = []
     monkeypatch.setattr(rf, "reversal_pass", lambda cands, caps, today, setups: rev.append(cands) or [])
@@ -153,7 +170,7 @@ def env(tmp_path, monkeypatch):
     return {"dir": tmp_path, "built": built, "rev": rev, "monkeypatch": monkeypatch}
 
 
-def test_premarket_pass_scores_scenarios_and_tracks_breadth(env):
+def test_premarket_pass_grades_and_tracks_breadth(env):
     day = "2026-10-15"
     env["monkeypatch"].setattr(rf.pq, "get_intraday", lambda t, d, m, s: _bars(day, [
         ("04:00", 99, 99, 95, 96), ("07:06", 96, 96, 90, 91 if t == "SOXL" else 98)]))
@@ -162,10 +179,15 @@ def test_premarket_pass_scores_scenarios_and_tracks_breadth(env):
     assert snap["data_time"] == "07:06"
     rows = {r["ticker"]: r for r in snap["bounce"]["rows"]}
     soxl, mxl = rows["SOXL"], rows["MXL"]
-    assert soxl["gap"] == pytest.approx(-0.09) and soxl["scenario"] == "A"
+    assert soxl["gap"] == pytest.approx(-0.09) and soxl["grade"] == "A"    # 91 is in the A band
+    assert soxl["next"]["grade"] == "A+" and soxl["next"]["price"] == 85.0
+    assert soxl["next"]["pct_away"] == pytest.approx(85 / 91 - 1)
     assert soxl["go_price"] == pytest.approx(96.0)
     assert soxl["pm_low"] == 90 and soxl["pm_low_time"] == "07:06"
-    assert mxl["scenario"] == "B"
+    assert mxl["grade"] == "C" and mxl["next"]["grade"] == "B"            # 98: next is B at 96
+    assert soxl["ladder"]["levels"][0]["price"] == 96.0 and soxl["odds_pop"]["p_bounce5"] == 0.6
+    assert "scenario" not in soxl
+    assert snap["grade_stats"]["A"]["n"] == 15
     assert soxl["report_rec"] == "GO" and soxl["odds"]["p_bounce5"] == 0.64
     assert soxl["principal"] and not mxl.get("principal")
     assert json.loads(rf.SNAPSHOT.read_text())["breadth"][0]["t"] == "08:35"
@@ -185,14 +207,14 @@ def test_cadence_skip_and_closed(env):
     assert rf.run(now=at("03:00")) is None                       # closed
 
 
-def test_market_pass_locks_the_scenario_at_the_open(env):
+def test_market_pass_grades_the_open_and_now(env):
     env["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
         ("09:00", 99, 99, 97, 98), ("09:30", 94, 95, 93, 94), ("10:30", 99, 101, 98, 101)]))
     snap = rf.run(now=at("10:45"))
     soxl = next(r for r in snap["bounce"]["rows"] if r["ticker"] == "SOXL")
-    assert soxl["open"] == 94 and soxl["scenario"] == "A"        # opened -6%, through -4%
-    assert soxl["scenario_now"] == "C"                           # now +1%
-    assert soxl["day_low"] == 93
+    assert soxl["open"] == 94 and soxl["grade_open"] == "B"      # opened 94: B band
+    assert soxl["grade"] == "C"                                  # now 101
+    assert soxl["day_low"] == 93 and soxl["day_low_time"] == "09:30"
 
 
 def test_evening_plans_tomorrow_and_rebuilds_a_stale_static(env):

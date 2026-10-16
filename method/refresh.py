@@ -14,9 +14,10 @@ report module's heavy imports out of the long-running server.
 Data is Polygon (15-min delayed); the mini can't reach Trillium. Every
 snapshot carries the time of the newest bar it used.
 
-Bounce scoring is the premarket scanner's own: completed_daily +
+Bounce scoring is the bounce game plan's (analyzers/bounce_ladder.py), which
+is the premarket scanner's checklist plus intensity: completed_daily +
 static_from_hist (cached once per session, setup type fixed at the prior
-close) + metrics_from_price + BouncePretrade. Reversal scoring is the
+close), the grade ladder built once per session, score_at for the live price. Reversal scoring is the
 priority report's own: get_pretrade_metrics + score_pretrade_setup, run on
 the report's reversal names plus watchlist names closing 15%+ above the 9EMA.
 
@@ -38,12 +39,13 @@ from pathlib import Path
 
 import pandas as pd
 
+from analyzers.bounce_ladder import historical_grade_stats, lookup_bounce_odds
 from analyzers.bounce_scorer import BouncePretrade
 from method import core
+from method.ladder import grade_at, ladder_payload, next_better
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
-    CAP_CACHE_FILE, _load_json, completed_daily, get_cap, load_watchlist, metrics_from_price,
-    static_from_hist,
+    CAP_CACHE_FILE, _load_json, completed_daily, get_cap, load_watchlist, static_from_hist,
 )
 from scripts.evening_signal_log import go_gap_trigger, next_trading_day
 from scripts.playbook_email import PRINCIPALS
@@ -79,13 +81,15 @@ def _statics_path(session: str):
 
 def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
     """The premarket scanner's statics as-of the session (setup type fixed at
-    the prior close), plus the GO level and the 9EMA stretch of the last
-    completed close (for picking reversal candidates). One daily-bar fetch."""
+    the prior close), plus the GO level, the game plan's grade ladder and the
+    9EMA stretch of the last completed close (for picking reversal
+    candidates). One daily-bar fetch; the ladder costs ~0.6 s."""
     hist = completed_daily(ticker, session)
     if hist is None:
         return None
     s = static_from_hist(hist)
     s["go_gap"] = go_gap_trigger(ticker, s, cap, checker)
+    s["ladder"] = ladder_payload(s, cap, ticker)
     ema9 = hist["close"].ewm(span=9, adjust=False).mean().iloc[-1]
     s["ema9"] = float(ema9)
     s["pct_from_9ema"] = float(hist["close"].iloc[-1] / ema9 - 1)
@@ -135,6 +139,9 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
         if not s:
             continue
         try:
+            if "ladder" not in s:                  # statics cached before the ladder existed
+                s["ladder"] = ladder_payload(s, caps[t], t)
+                rebuilt = True
             bars = pq.get_intraday(t, today, 1, "minute")
             if bars is None or bars.empty:
                 continue
@@ -157,14 +164,18 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
             price = float(bars["close"].iloc[-1])
             last_bar = bars.index[-1]
             newest = max(newest, last_bar) if newest is not None else last_bar
-            m = metrics_from_price(s, price)
-            # weak/strong fixed at the prior close, as the scanner does (SKHY 10/15)
-            res = checker.validate(t, m, cap=caps[t], force_setup=s.get("setup_type"))
+            # the game plan's scoring: weak/strong fixed at the prior close (SKHY 10/15)
+            g = grade_at(s, caps[t], price, t)
+            res, m = g["result"], g["metrics"]
             go_gap = s.get("go_gap")
             prior = s["prior_close"]
+            levels = s["ladder"]["levels"]
             row = {
                 "ticker": t, "cap": caps[t], "setup": res.setup_type,
                 "score": res.score, "max_score": res.max_score, "rec": res.recommendation,
+                "grade": g["grade"], "intensity": g["intensity"],
+                "next": next_better(levels, price, g["grade"]), "ladder": s["ladder"],
+                "odds_pop": lookup_bounce_odds(res.score, caps[t]),
                 "price": price, "prior_close": prior, "gap": m.get("gap_pct"),
                 "go_gap": go_gap, "go_price": prior * (1 + go_gap) if go_gap is not None else None,
                 "down_days": s.get("consecutive_down_days"), "off_30d": m.get("pct_off_30d_high"),
@@ -182,12 +193,11 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
                 row["pm_high"] = float(pm["high"].max())
             if mode == "market" and not rth.empty:
                 open_px = float(rth["open"].iloc[0])
-                open_gap = open_px / prior - 1
-                row.update(open=open_px, open_gap=open_gap, day_low=float(rth["low"].min()),
-                           scenario=core.bounce_scenario(open_gap, go_gap),
-                           scenario_now=core.bounce_scenario(row["gap"], go_gap))
-            else:
-                row["scenario"] = core.bounce_scenario(row["gap"], go_gap)
+                at_open = grade_at(s, caps[t], open_px, t)
+                row.update(open=open_px, open_gap=open_px / prior - 1, day_low=float(rth["low"].min()),
+                           day_low_time=rth["low"].idxmin().strftime("%H:%M"),
+                           grade_open=at_open["grade"], score_open=at_open["score"],
+                           intensity_open=at_open["intensity"])
             if mode == "evening" and not ah.empty:
                 row["ah_low"] = float(ah["low"].min())
             rows.append(row)
@@ -385,12 +395,13 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         "reversal": {"rows": reversal, "counts": rc},
         "reports": report_views,
         "scenario_text": core.SCENARIO_TEXT,
+        "grade_stats": historical_grade_stats(),
     }
     if dry:
         logger.info(f"--dry {mode} for {session}: bounce {bc}, reversal {rc}, data {data_time}")
         for r in bounce[:8] + reversal[:5]:
             logger.info(f"  {r['ticker']:6} {r['score']}/{r['max_score']} {r['rec']:8} "
-                        f"gap {(r['gap'] or 0) * 100:+.1f}% scenario {r.get('scenario')}")
+                        f"gap {(r['gap'] or 0) * 100:+.1f}% grade {r.get('grade') or r.get('scenario')}")
         return snapshot
     snapshot["breadth"] = append_breadth(session, entry)
     core.write_json(SNAPSHOT, snapshot)

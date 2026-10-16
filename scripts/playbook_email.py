@@ -216,8 +216,26 @@ def bounce_rows(signals: list[dict], target: str) -> list[dict]:
                        atr_pct=static["atr"] / close if close else None,
                        go_gap=go, go_price=close * (1 + go) if go is not None else None,
                        mid_bb=static.get("mid_bb"))
+            try:
+                row.update(grade_ladder(static, cap, t, close))
+            except Exception as e:                   # the ladder is extra; never sink the email
+                logger.warning(f"{t}: grade ladder failed: {e}")
         rows.append(row)
     return rows
+
+
+def grade_ladder(static: dict, cap: str, ticker: str, price: float) -> dict:
+    """The bounce game plan's grade at `price` and the price each better grade
+    starts at below it (analyzers/bounce_ladder.py)."""
+    from analyzers.bounce_ladder import GRADE_RANK, build_ladder, score_at
+    lad = build_ladder(static, cap, ticker=ticker)
+    here = score_at(static, cap, price, ticker)
+    better, seen = [], GRADE_RANK[here["grade"]]
+    for lv in lad.levels:                    # high -> low
+        if lv["price"] < price and GRADE_RANK[lv["grade"]] > seen:
+            better.append((lv["grade"], float(lv["price"])))
+            seen = GRADE_RANK[lv["grade"]]
+    return {"grade": here["grade"], "intensity": here["intensity"], "better": better}
 
 
 def reversal_rows(signals: list[dict], target: str) -> list[dict]:
@@ -312,7 +330,11 @@ def names_html(side: str, rows: list[dict]) -> str:
             line1 = [r.get("cap"), f"close {_px(r['close'])}" if "close" in r else None,
                      f"down {r['down_days']}d" if r.get("down_days") is not None else None,
                      f"{_pct(r['off_30d'])} off 30d high" if r.get("off_30d") is not None else None]
-            line2 = [f"GO level {_go_cell(r)}" if "close" in r else "no daily bars",
+            grade = None
+            if r.get("grade"):
+                grade = f"grade {r['grade'] if r['grade'] != '-' else 'none'} at the close" + "".join(
+                    f" · {g} at {_px(p)} ({_pct(p / r['close'] - 1)})" for g, p in r.get("better", []))
+            line2 = [grade, f"GO level {_go_cell(r)}" if "close" in r else "no daily bars",
                      f"ATR {_pct(r['atr_pct'], signed=False)}" if r.get("atr_pct") else None,
                      f"mid-BB {_px(r['mid_bb'])}" if r.get("mid_bb") else None,
                      f"{_pct(r['p_bounce5'], signed=False)} odds of a 5%+ bounce"

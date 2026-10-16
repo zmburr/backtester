@@ -123,6 +123,17 @@ h1, h2, h3, p { margin: 0; }
 .badge.long { background: var(--go-soft); color: var(--go); }
 .badge.short { background: var(--neg-soft); color: var(--neg); }
 .badge.lev { background: var(--brand-soft); color: var(--brand); }
+/* game plan grades: A+ is the one solid badge, the rest tinted */
+.badge.gAp { background: var(--go); color: #06231a; }
+.badge.gA { background: var(--go-soft); color: var(--go); }
+.badge.gB { background: var(--caution-soft); color: var(--caution); }
+.badge.gC { background: rgba(255, 138, 76, .13); color: #ff8a4c; }
+.badge.gN { background: var(--bg-3); color: var(--text-3); }
+.gAp-text { color: var(--go); text-shadow: 0 0 18px rgba(61, 220, 151, .35); }
+.gA-text { color: var(--go); } .gB-text { color: var(--caution); } .gC-text { color: #ff8a4c; } .gN-text { color: var(--text-3); }
+.small-line { font-size: 12.5px; margin-top: 8px; line-height: 1.5; }
+button.line.link { width: 100%; text-align: left; cursor: pointer; }
+button.line.link:hover b { color: var(--brand); }
 
 /* ── Cards ─────────────────────────────────────────────────────────────── */
 .card { display: block; width: 100%; text-align: left; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r);

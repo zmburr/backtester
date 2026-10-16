@@ -27,6 +27,7 @@ import pandas as pd
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 from method import core
+from method import review as rv
 from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, read_breadth
 from data_queries import polygon_queries as pq
 from scripts import playbook_email as pe
@@ -39,11 +40,14 @@ STATIC = Path(__file__).resolve().parent / "static"
 REPO = Path(__file__).resolve().parents[1]
 OUTCOMES = DATA_DIR / "signal_outcomes.csv"
 SHOTS = METHOD_DIR / "shots.json"
+REVIEW_DIR = METHOD_DIR / "review"
+REVIEW_CACHE_AFTER_DAYS = 5      # past days without a scorecard row are cached once they're this old
 BARS_TTL_S = 300
 TZ = "US/Eastern"
 
 _bars_cache: dict[str, tuple[float, dict]] = {}
 _history_cache: dict = {"key": None, "data": None}
+_outcomes_cache: dict = {"mtime": None, "rows": [], "index": {}}
 _shots_lock = threading.Lock()
 
 
@@ -83,6 +87,18 @@ def chart_bars(ticker: str) -> dict:
             "intraday_date": day.isoformat()}
 
 
+def outcomes() -> tuple[list[dict], dict]:
+    """The scorecard's rows (control cohort dropped) and their (target, side, ticker) index."""
+    mtime = OUTCOMES.stat().st_mtime if OUTCOMES.exists() else None
+    if _outcomes_cache["mtime"] != mtime:
+        rows = []
+        if OUTCOMES.exists():
+            with OUTCOMES.open(newline="", encoding="utf-8") as fh:
+                rows = [r for r in csv.DictReader(fh) if r.get("cohort") != "control"]
+        _outcomes_cache.update(mtime=mtime, rows=rows, index=core.index_outcomes(rows))
+    return _outcomes_cache["rows"], _outcomes_cache["index"]
+
+
 def history() -> list[dict]:
     files = sorted(SIGNALS_DIR.glob("*_*.json"))
     key = (len(files), max((f.stat().st_mtime for f in files), default=0),
@@ -96,13 +112,14 @@ def history() -> list[dict]:
             rep = core.read_json(f)
             if rep:
                 reports[(date_str, session)] = rep
-    outcomes = []
-    if OUTCOMES.exists():
-        with OUTCOMES.open(newline="", encoding="utf-8") as fh:
-            outcomes = [r for r in csv.DictReader(fh) if r.get("cohort") != "control"]
-    data = core.build_episodes(reports, outcomes, next_trading_day)
+    rows, _ = outcomes()
+    data = core.build_episodes(reports, rows, next_trading_day)
     _history_cache.update(key=key, data=data)
     return data
+
+
+def _valid_ticker(t: str) -> bool:
+    return bool(t) and t.isascii() and t.replace(".", "").isalnum() and len(t) <= 10
 
 
 def create_app() -> Flask:
@@ -160,10 +177,44 @@ def create_app() -> Flask:
     def api_history():
         return jsonify(episodes=history())
 
+    @app.get("/api/review")
+    def api_review():
+        """One day replayed: ladder as of the night before, the open's grade, the rules'
+        trades. Past days are cached on disk; today is replayed live each call."""
+        side = request.args.get("side", "bounce")
+        ticker = (request.args.get("ticker") or "").upper()
+        date = request.args.get("date") or ""
+        try:
+            day = datetime.date.fromisoformat(date)
+        except ValueError:
+            abort(400)
+        if side not in ("bounce", "reversal") or not _valid_ticker(ticker):
+            abort(400)
+        today = pd.Timestamp.now(tz=TZ).date()
+        _, index = outcomes()
+        row = index.get((date, side, ticker))
+        outcome = None if row is None else {k: core.to_num(row.get(k)) for k in (
+            "d0_pct", "d1_pct", "mfe_atr_d0", "exit_r", "entry_r", "atr_pct", "entry_open")}
+        path = REVIEW_DIR / f"{side}_{ticker}_{date}.json"
+        data = core.read_json(path) if day < today else None
+        if data is None:
+            from scanners.premarket_bounce_scanner import CAP_CACHE_FILE, _load_json, get_cap
+            cap = get_cap(ticker, _load_json(CAP_CACHE_FILE))
+            try:
+                data = core.clean(rv.review(ticker, date, side, cap, outcome=outcome, live=day >= today))
+            except Exception as e:
+                logger.warning(f"review {side} {ticker} {date}: {e}")
+                return jsonify(ticker=ticker, date=date, side=side, error=str(e), candles=[], trades=[])
+            old_enough = (today - day).days > REVIEW_CACHE_AFTER_DAYS
+            if day < today and data.get("candles") and (row is not None or old_enough):
+                core.write_json(path, data)
+        data["outcome"] = outcome
+        return jsonify(data)
+
     @app.get("/api/bars")
     def bars():
         ticker = (request.args.get("ticker") or "").upper()
-        if not ticker.isascii() or not ticker.replace(".", "").isalnum() or len(ticker) > 10:
+        if not _valid_ticker(ticker):
             abort(400)
         hit = _bars_cache.get(ticker)
         if hit and time.time() - hit[0] < BARS_TTL_S:

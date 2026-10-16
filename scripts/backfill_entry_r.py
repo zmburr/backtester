@@ -81,17 +81,17 @@ NEW_COLUMNS = ["entry_r", "entry_r_floored", "exit_r", "entry_signals",
                "entry_price", "entry_stop"]
 
 
-def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
+def entry_signals(two: pd.DataFrame, atr_abs: float | None) -> tuple[list, list[dict]]:
     """Replay the live entry rule over one day's 2-min frame.
 
-    Returns best MFE in R across the day's attempts (the "how big was the
-    bounce" scale), plus the first attempt's fill and stop for traceability.
+    Returns (fire_times, attempts): every LOD-gated break (bar END times, for
+    the exit simulator) and the alert protocol's attempts (fill, stop, best
+    MFE in R raw and floored) under the arming / cooldown gates.
     """
-    out = {"entry_r": "", "entry_r_floored": "", "exit_r": "", "entry_signals": 0,
-           "entry_price": "", "entry_stop": ""}
+    fire_times: list = []    # every LOD-gated break, for the exit simulator
+    attempts: list[dict] = []
     if two is None or two.empty or len(two) < 2:
-        return out
-    fire_times = []          # every LOD-gated break, for the exit simulator
+        return fire_times, attempts
     ends = two.index + pd.Timedelta(minutes=2)
 
     highs, lows, closes = two["high"].values, two["low"].values, two["close"].values
@@ -101,7 +101,6 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
     day_low, day_low_win = lows[0], 0
     live_stop = None          # not None => an entry is live; blocks re-arming
     last_confirm = -99
-    attempts = []
 
     for i in range(1, n):
         # -- LOD tracking (a break only counts when it follows a fresh low) --
@@ -152,6 +151,34 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
         })
         last_confirm = i
         live_stop = stop
+    return fire_times, attempts
+
+
+def rule_trades(two: pd.DataFrame, atr_abs: float | None, fire_times: list | None = None) -> list:
+    """The trades the live rules would have taken: entries from the 2-min break,
+    exits per the live exit rule (LOD disaster stop first, arm at entry + 1.5 ATR,
+    then trail the prior 2-min low; else the close), capped at MAX_ENTRY_SIGNALS
+    attempts to match the alert protocol's one-re-entry limit. Each attempt has
+    entry_time / exit_time (2-min bar END times), entry, stop, exit, stopped, r."""
+    if fire_times is None:
+        fire_times, _ = entry_signals(two, atr_abs)
+    if not fire_times:
+        return []
+    res = simulate_day_exits(two, fire_times, ExitSpec(kind="trail", arm_atr=ARM_ATR), atr_abs)
+    return res.attempts[:MAX_ENTRY_SIGNALS]
+
+
+def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
+    """Replay the live entry rule over one day's 2-min frame.
+
+    Returns best MFE in R across the day's attempts (the "how big was the
+    bounce" scale), plus the first attempt's fill and stop for traceability.
+    """
+    out = {"entry_r": "", "entry_r_floored": "", "exit_r": "", "entry_signals": 0,
+           "entry_price": "", "entry_stop": ""}
+    if two is None or two.empty or len(two) < 2:
+        return out
+    fire_times, attempts = entry_signals(two, atr_abs)
 
     if attempts:
         out["entry_signals"] = len(attempts)
@@ -160,13 +187,10 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
         out["entry_price"] = round(attempts[0]["entry"], 4)
         out["entry_stop"] = round(attempts[0]["stop"], 4)
 
-    # Realised R under the live exit rule. Capped at MAX_ENTRY_SIGNALS attempts
-    # to match the alert protocol's one-re-entry limit.
+    # Realised R under the live exit rule.
     if fire_times:
         try:
-            res = simulate_day_exits(two, fire_times,
-                                     ExitSpec(kind="trail", arm_atr=ARM_ATR), atr_abs)
-            taken = res.attempts[:MAX_ENTRY_SIGNALS]
+            taken = rule_trades(two, atr_abs, fire_times)
             if taken:
                 out["exit_r"] = round(sum(a.r for a in taken), 3)
         except Exception:  # noqa: BLE001 - exit sim must not sink the row's MFE

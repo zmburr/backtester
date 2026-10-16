@@ -48,7 +48,7 @@ from plotly.offline import get_plotlyjs
 from plotly.subplots import make_subplots
 
 from analyzers.bounce_exit_targets import calculate_bounce_exit_targets
-from analyzers.bounce_ladder import (GRADE_RANK, Ladder, build_ladder, historical_grade_stats,
+from analyzers.bounce_ladder import (GRADE_RANK, Ladder, build_ladder, grade_zones, historical_grade_stats,
                                      lookup_bounce_odds)
 from data_queries import polygon_queries as pq
 from scanners import overnight_bounce_tracker as ot
@@ -200,18 +200,6 @@ def _hover(ctx: dict, r: dict, stats: dict) -> str:
 # ---------------------------------------------------------------------------
 # Chart
 # ---------------------------------------------------------------------------
-
-def grade_zones(lad: Ladder) -> list:
-    """[(grade, top, bottom)] high -> low, split at the exact grade-flip prices."""
-    pts = lad.points
-    edges = [(lv['price'], lv['grade']) for lv in lad.levels if any(e.startswith('grade') for e in lv['events'])]
-    zones, top, grade = [], float(pts['price'].iloc[0]), pts['grade'].iloc[0]
-    for price, g in edges:
-        zones.append((grade, top, price))
-        top, grade = price, g
-    zones.append((grade, top, float(pts['price'].iloc[-1])))
-    return zones
-
 
 def price_window(ctx: dict, marker: Optional[dict], bars: dict) -> Tuple[float, float]:
     """The ladder from just above the prior close down to its A+ level (or floor), plus the marker,

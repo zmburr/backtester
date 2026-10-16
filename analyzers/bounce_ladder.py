@@ -201,6 +201,18 @@ def build_ladder(static: dict, cap: str, ticker: str = '', floor: float = -0.40,
                   points=points, levels=level_rows, ceiling=ceiling)
 
 
+def grade_zones(lad: 'Ladder') -> list:
+    """[(grade, top, bottom)] high -> low, split at the exact grade-flip prices."""
+    pts = lad.points
+    edges = [(lv['price'], lv['grade']) for lv in lad.levels if any(e.startswith('grade') for e in lv['events'])]
+    zones, top, grade = [], float(pts['price'].iloc[0]), pts['grade'].iloc[0]
+    for price, g in edges:
+        zones.append((grade, top, price))
+        top, grade = price, g
+    zones.append((grade, top, float(pts['price'].iloc[-1])))
+    return zones
+
+
 # ---------------------------------------------------------------------------
 # What each grade has meant historically
 # ---------------------------------------------------------------------------

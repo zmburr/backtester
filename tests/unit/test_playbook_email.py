@@ -66,6 +66,8 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(pe, "next_trading_day", lambda d: d + datetime.timedelta(days=1))
     monkeypatch.setattr(pe, "build_static", lambda t, date: dict(STATIC))
     monkeypatch.setattr(pe, "go_gap_trigger", lambda t, s, cap, checker: -0.05)
+    monkeypatch.setattr(pe, "grade_ladder", lambda s, cap, t, price: {
+        "grade": "B", "intensity": 50.0, "better": [("A", 92.0), ("A+", 85.0)]})
     monkeypatch.setattr(pe, "BouncePretrade", Mock)
     monkeypatch.setattr(pe.risk_source, "one_r_dollars", lambda: 3000.0)
     monkeypatch.setattr(pe.risk_source, "tier_multiples",
@@ -167,6 +169,7 @@ def test_body_carries_levels_tiers_and_the_note_in_order(env):
     pe.run("evening", DAY)
     body = env["mail"].call_args.args[2]
     assert "≤ 95.00 (-5%)" in body                       # GO level off the 100 close
+    assert "grade B at the close · A at 92.00 (-8%) · A+ at 85.00 (-15%)" in body
     assert "130.00" in body and "64%" in body           # mid-BB, odds
     assert body.count("leveraged: check the principal (SMH, MU or SKHY)") == 1   # SOXL only
     assert "1R = $3,000. A 15R = 3 shots of 5.0R ($15.0k)" in body
