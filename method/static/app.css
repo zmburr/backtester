@@ -168,6 +168,16 @@ button.line.link:hover b { color: var(--brand); }
 .badge.pick { cursor: pointer; transition: filter .12s, transform .12s; }
 .badge.pick:hover { filter: brightness(1.25); }
 .badge.pick:active { transform: scale(.96); filter: brightness(1.35); }
+.tickers button.badge { cursor: pointer; }
+.badge.mkt { background: var(--brand-soft); color: var(--brand); }
+
+.breadth .bline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.breadth .bline b { font: 800 26px/1 var(--display); }
+.breadth .bline .badge { align-self: center; }
+.breadth .edge { margin-top: 10px; font-size: 14px; line-height: 1.45; }
+.breadth .edge small { display: block; color: var(--text-3); font-size: 12px; margin-top: 2px; }
+.breadth.st-breadth { border-color: rgba(61, 220, 151, .4); background: linear-gradient(180deg, var(--go-soft), var(--bg-1) 70%); }
+.breadth.st-elevated { border-color: rgba(255, 181, 71, .3); }
 
 .name { position: relative; cursor: pointer; padding: 14px 16px; margin-bottom: 10px; transition: border-color .12s; }
 .name:hover { border-color: var(--line-2); }

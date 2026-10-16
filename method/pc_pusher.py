@@ -72,13 +72,18 @@ def keep_awake(on: bool) -> None:
 
 def pick_names(snap: dict) -> tuple[list[str], list[str]]:
     """(active, board). Active = what can change a decision now: names the board or
-    the priority report rates GO/CAUTION, and every reversal row."""
+    the priority report rates GO/CAUTION, and every reversal row. The board also carries
+    the market-breadth names near their flag price until the open's count locks, so
+    the count moves in real time (method/breadth.py)."""
     bounce = (snap.get("bounce") or {}).get("rows", [])
     reversal = (snap.get("reversal") or {}).get("rows", [])
     active = [r["ticker"] for r in bounce
               if r.get("rec") in ("GO", "CAUTION") or r.get("report_rec") in ("GO", "CAUTION")]
     active += [r["ticker"] for r in reversal]
     board = [r["ticker"] for r in bounce] + [r["ticker"] for r in reversal]
+    mb = snap.get("market_breadth") or {}
+    if mb.get("status") == "ok" and not mb.get("locked"):
+        board += list(mb.get("names") or []) + [x["ticker"] for x in mb.get("near") or []]
     return list(dict.fromkeys(active)), list(dict.fromkeys(board))
 
 

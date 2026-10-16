@@ -44,6 +44,7 @@ import pandas as pd
 
 from analyzers.bounce_ladder import GRADE_RANK, historical_grade_stats, lookup_bounce_odds
 from analyzers.bounce_scorer import BouncePretrade
+from method import breadth
 from method import core
 from method import live
 from method import push
@@ -64,6 +65,7 @@ SIGNALS_DIR = DATA_DIR / "priority_signals"
 METHOD_DIR = Path(os.environ.get("METHOD_DIR") or DATA_DIR / "method")
 SNAPSHOT = METHOD_DIR / "snapshot.json"
 LIVE = METHOD_DIR / "live.json"
+MARKET_BREADTH = METHOD_DIR / "market_breadth.json"   # the snapshot's block + per-name Polygon prices
 REVERSAL_9EMA_MIN = 0.15        # watchlist names this far above the 9EMA get reversal-scored
 STATIC_DRIFT = 0.01             # evening: rebuild a static whose close disagrees with the tape
 
@@ -459,6 +461,8 @@ def grade_alerts(rows: list[dict], session: str, mode: str) -> list[str]:
 
 
 def _counts(rows):
+    """Watchlist GO/CAUTION counts (the market-breadth rows have their own count)."""
+    rows = [r for r in rows if not r.get("market")]
     return {"GO": sum(r["rec"] == "GO" for r in rows),
             "CAUTION": sum(r["rec"] == "CAUTION" for r in rows)}
 
@@ -477,6 +481,62 @@ def read_breadth(session: str) -> list[dict]:
         return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
     except (OSError, ValueError):
         return []
+
+
+# ---------------------------------------------------------------------------
+# Market breadth (method/breadth.py): the day's count, market rows, the edge
+# ---------------------------------------------------------------------------
+
+def market_breadth(session: str, mode: str, today: str, now: datetime.datetime, feed: dict,
+                   snapshot_prices=None) -> dict | None:
+    """This pass's breadth block, or None outside the modes it runs in. One all-tickers
+    Polygon call, skipped once the open's count is locked."""
+    if mode not in ("premarket", "market", "evening"):
+        return None
+    if not breadth.load_candidates(session):
+        return {"session": session, "status": "not built"}
+    prev = core.read_json(MARKET_BREADTH)
+    prices = None
+    if not (prev and prev.get("session") == session and prev.get("locked")):
+        try:
+            prices = (snapshot_prices or breadth.snapshot_prices)(today)
+        except Exception as e:
+            logger.warning(f"breadth snapshot failed: {e}")
+    mb = breadth.evaluate(session, mode, now, feed, prev=prev, snap_prices=prices)
+    core.write_json(MARKET_BREADTH, mb)
+    return mb
+
+
+def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
+    """Market rows say so; every row carries the replayed edge for its score on a day like today."""
+    table = breadth.edge_table()
+    names = set((mb or {}).get("names") or [])
+    state = (mb or {}).get("state")
+    relaxed = set((mb or {}).get("relaxed") or []) if state == "breadth" else set()   # breadth days only
+    detail = (mb or {}).get("detail") or {}
+    for r in rows:
+        t = r["ticker"]
+        r.pop("edge", None)
+        if t in names or t in relaxed:
+            r["breadth_flag"] = "strict" if t in names else "relaxed"
+            r["counted"] = bool((detail.get(t) or {}).get("counted"))
+        else:
+            r.pop("breadth_flag", None)
+        score = r.get("score_open") if r.get("score_open") is not None else r.get("score")
+        e = breadth.edge_for(table, state, score, relaxed=r.get("breadth_flag") == "relaxed")
+        if e:
+            r["edge"] = {k: e.get(k) for k in ("mean_r", "win", "n", "shrunk")}
+    return rows
+
+
+def breadth_alert(mb: dict | None) -> bool:
+    if not mb:
+        return False
+    if breadth.breadth_push(mb, push.send):
+        core.write_json(MARKET_BREADTH, mb)
+        logger.info(f"breadth push: {mb['n']} names ({mb.get('basis')})")
+        return True
+    return False
 
 
 def apply_live(day: str, names: dict, now: datetime.datetime | None = None, alerts: bool = True) -> dict:
@@ -507,6 +567,16 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
     if mode == "premarket":
         live_reversal(snap["reversal"]["rows"], fresh)
         snap["reversal"]["counts"] = _counts(snap["reversal"]["rows"])
+    mb = None
+    if mode in ("premarket", "market"):
+        try:
+            mb = breadth.evaluate(session, mode, now, fresh, prev=core.read_json(MARKET_BREADTH))
+            if mb.get("status") == "ok":
+                core.write_json(MARKET_BREADTH, mb)
+                snap["market_breadth"] = breadth.public(mb)
+                tag_rows(rows, mb)
+        except Exception as e:
+            logger.warning(f"live breadth re-count failed: {e}")
     snap["bounce"] = {"rows": _sort_rows(rows), "counts": _counts(rows)}
     times = [snap.get("data_time") or ""] + [b["bar_time"] for b in fresh.values()]
     snap["data_time"] = max(times) or None
@@ -514,6 +584,9 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
     set_source(snap)
     core.write_json(SNAPSHOT, snap)
     sent = grade_alerts(rows, session, mode) if alerts else []
+    if alerts and mb and breadth_alert(mb):
+        snap["market_breadth"] = breadth.public(mb)
+        core.write_json(SNAPSHOT, snap)
     return {"stored": len(names), "regraded": n, "alerts": sent}
 
 
@@ -539,14 +612,22 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
                    else today).isoformat()
     else:
         session = core.session_for(mode, today, next_trading_day).isoformat()
-    tickers = load_watchlist()
+    watchlist = load_watchlist()
+    feed = live.fresh_names(core.read_json(LIVE), today.isoformat(), now) if mode != "overnight" else {}
+    mb = None
+    if not dry:
+        try:
+            mb = market_breadth(session, mode, today.isoformat(), now, feed)
+        except Exception as e:
+            logger.warning(f"market breadth failed: {e}")
+    market = [t for t in breadth.board_names(mb) if t not in watchlist]
+    tickers = watchlist + market
     caps_cache = _load_json(CAP_CACHE_FILE)
     caps = {t: get_cap(t, caps_cache) for t in tickers}
     checker = BouncePretrade()
     statics = load_statics(session, tickers, caps, checker)
 
     reports = recent_reports(today, mode)
-    feed = live.fresh_names(core.read_json(LIVE), today.isoformat(), now) if mode != "overnight" else {}
     if mode == "overnight":
         held = [r["ticker"] for r in ((prev or {}).get("reversal") or {}).get("rows", [])]
         prices = overnight_prices(list(dict.fromkeys(tickers + held)), prev)
@@ -555,6 +636,9 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     else:
         bounce, data_time = bounce_pass(tickers, statics, caps, checker, mode,
                                         today.isoformat(), now, session, feed)
+        for r in bounce:
+            if r["ticker"] in market:
+                r["market"] = True
         setups = {s["ticker"]: s.get("setup_type") or "" for rep in reports
                   for s in rep.get("signals", []) if s.get("bucket") == "reversal"}
         reversal = reversal_pass(reversal_candidates(reports, statics), caps,
@@ -575,8 +659,13 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
                 if r["ticker"] in v["analogs"]:
                     r["analogs"] = v["analogs"][r["ticker"]]
 
+    if mode == "overnight" and prev and (prev.get("market_breadth") or {}).get("session") == session:
+        mb = prev["market_breadth"]          # the evening's read stands until the premarket
+    tag_rows(bounce, mb)
     if not dry:
         grade_alerts(bounce, session, mode)
+        if mode in ("premarket", "market"):
+            breadth_alert(mb)
     bc, rc = _counts(bounce), _counts(reversal)
     entry = {"t": now.strftime("%H:%M"), "date": today.isoformat(), "mode": mode,
              "bounce_go": bc["GO"], "bounce_caution": bc["CAUTION"],
@@ -589,6 +678,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         "reports": report_views,
         "scenario_text": core.SCENARIO_TEXT,
         "grade_stats": historical_grade_stats(),
+        "market_breadth": breadth.public(mb),
     }
     set_source(snapshot)
     if dry:

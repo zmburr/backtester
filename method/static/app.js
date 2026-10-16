@@ -30,7 +30,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const pct = (x, d = 1) => x == null ? '–' : `${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(d)}%`;
 const upct = (x, d = 0) => x == null ? '–' : `${(x * 100).toFixed(d)}%`;
 const px = x => x == null ? '–' : Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const rr = x => x == null ? '–' : `${x >= 0 ? '+' : '−'}${Math.abs(Number(x)).toFixed(1)}R`;
+const rr = x => x == null ? '–' : Math.abs(x) < 0.05 ? '0.0R' : `${x >= 0 ? '+' : '−'}${Math.abs(Number(x)).toFixed(1)}R`;
 const wide = () => matchMedia('(min-width: 1024px)').matches;
 const recCls = r => r === 'GO' ? 'go' : r === 'CAUTION' ? 'caution' : 'nogo';
 const isActive = r => r.rec === 'GO' || r.rec === 'CAUTION';
@@ -124,6 +124,8 @@ function renderStatus() {
   else if (s && !s.empty) {
     const stale = Date.now() - new Date(lastUpdate(s)).getTime() > 30 * 60e3 && activeNow();
     short = `${MODE_WORD[s.mode] || s.mode} · ${s.data_time || '–'}`;
+    const mb = s.market_breadth;
+    if (mb?.status === 'ok') short += ` · breadth ${mb.n}`;
     dot = stale ? 'warn' : 'ok';
   } else if (s?.empty) { short = 'No data yet'; dot = 'warn'; }
   $$('[data-status-short]').forEach(e => { e.textContent = short; });
@@ -198,13 +200,14 @@ function renderSideList(side) {
   let h = listHead(`${esc(MODE_WORD[s.mode] || s.mode)} · plan for`, esc(dayLabel(s.session)),
     `Data ${esc(s.data_time || '–')} ET · ${esc(s.source)} · updated ${esc(ago(lastUpdate(s)))}`);
 
+  if (side === 'bounce') h += breadthCard(s);
   const b = s.breadth || [], goN = b.map(e => e[`${side}_go`] || 0), ca = b.map(e => e[`${side}_caution`] || 0);
   const runDay = (s.generated_at || '').slice(0, 10);
   const since = b.length ? (b[0].date && b[0].date !== runDay ? `${b[0].t} last evening` : b[0].t) : '';
   h += `<div class="kpis"><div class="kpi"><div class="eyebrow">GO</div><b class="go num">${c.GO}</b>` +
     `<small>${b.length > 1 ? `${goN[0]} → ${goN[goN.length - 1]} since ${esc(since)}` : 'watchlist'}</small></div>` +
     `<div class="kpi"><div class="eyebrow">Caution</div><b class="caution num">${c.CAUTION}</b><small>watchlist</small></div></div>`;
-  if (b.length > 1) h += `<div class="card"><div class="eyebrow">Breadth since ${esc(since)}</div>${spark(goN, ca)}</div>`;
+  if (b.length > 1) h += `<div class="card"><div class="eyebrow">Watchlist GO and caution since ${esc(since)}</div>${spark(goN, ca)}</div>`;
 
   const rep = (s.reports || [])[0];
   if (rep) {
@@ -236,18 +239,58 @@ function renderSideList(side) {
   list.innerHTML = h;
   if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });
 }
+// ── market breadth (method/breadth.py): the day's count and its replayed edge ──
+const STATE_WORD = { normal: 'Normal day', elevated: 'Elevated', breadth: 'Breadth day' };
+const STATE_CLS = { normal: 'nogo', elevated: 'caution', breadth: 'go' };
+const STATE_DAY = { normal: 'a normal day', elevated: 'an elevated day', breadth: 'a breadth day' };
+const edgeText = e => e?.mean_r == null ? null : `${rr(e.mean_r)} a name · ${upct(e.win)} win`;
+function breadthCard(s) {
+  const mb = s.market_breadth;
+  if (!mb) return '';
+  if (mb.status !== 'ok') {
+    return `<div class="card breadth"><div class="eyebrow">Market breadth</div>
+      <div class="muted small-line">Counts for ${esc(dayLabel(mb.session))} are built at 5:45 PM ET.</div></div>`;
+  }
+  const e = mb.edge || {};
+  const when = mb.basis === 'open' ? 'at the open'
+    : s.mode === 'evening' ? 'if it opened at the after-hours price'
+    : s.mode === 'market' ? 'so far, opens still coming in' : 'if it opens here';
+  const onBoard = new Set((s.bounce?.rows || []).map(r => r.ticker));
+  const detail = mb.detail || {};
+  const chip = (t, cls) => onBoard.has(t)
+    ? `<button class="badge ${cls}" data-btk="${esc(t)}">${esc(t)}</button>`
+    : `<span class="badge ${cls}">${esc(t)}</span>`;
+  const counted = mb.names.filter(t => detail[t]?.counted), extra = mb.names.filter(t => !detail[t]?.counted);
+  const chips = [...counted.map(t => chip(t, 'go')), ...extra.map(t => chip(t, 'nogo'))];
+  const relaxed = mb.state === 'breadth' ? (mb.relaxed || []).map(t => chip(t, 'caution')) : [];
+  const near = mb.locked ? [] : (mb.near || []).slice(0, 4).map(x => `${x.ticker} ${px(x.flag_price)} (${pct(-x.away)})`);
+  const days = e.traded_days ? `${e.n} names on ${Number(e.traded_days).toLocaleString('en-US')} days like this: ` +
+    `${e.pos_days} of ${e.traded_days} days positive, typical day ${rr(e.day_mean_r)}. Your entry and trail rules.` : '';
+  const etf = mb.n_etf ? ` · ${mb.n_etf} ${mb.n_etf === 1 ? 'is an ETF' : 'are ETFs'}` : '';
+  return `<div class="card breadth st-${esc(mb.state)}">
+    <div class="eyebrow">Market breadth · ${esc(when)}${mb.asof ? ` · ${esc(mb.asof.slice(11, 16))}` : ''}</div>
+    <div class="bline"><b class="num">${mb.n}</b><span>names B or better market-wide${esc(etf)}</span><span class="badge ${STATE_CLS[mb.state]}">${esc(STATE_WORD[mb.state])}</span></div>
+    ${edgeText(e) ? `<div class="edge">Bounce edge today: <b class="num ${e.mean_r >= 0.5 ? 'go' : ''}">${esc(edgeText(e))}</b><small>${esc(days)}</small></div>` : ''}
+    ${chips.length ? `<div class="tickers">${chips.join('')}</div>` : ''}
+    ${relaxed.length ? `<div class="muted small-line">Relaxed rules (breadth days only, not counted)</div><div class="tickers">${relaxed.join('')}</div>` : ''}
+    ${extra.length ? '<div class="muted small-line">Grey: outside the counted universe (under $5 or under 500k shares a day).</div>' : ''}
+    ${near.length ? `<div class="muted small-line">Next to flag: ${esc(near.join(' · '))}</div>` : ''}</div>`;
+}
+
 function nameCard(side, r) {
   const mode = S.snap.mode, move = `${pct(r.gap)} ${MOVE_WORD[mode] || 'vs close'}`;
   const src = r.src === 'Y' ? `Blue Ocean ${r.bar_time}`
     : r.src && r.src !== (S.snap.src || 'P') ? `${r.src_label || r.src} ${r.bar_time || ''}` : null;
   const nxt = r.next ? `next ${gradeLabel(r.next.grade)} at ${px(r.next.price)} (${pct(r.next.pct_away)})` : (side === 'bounce' && r.grade ? 'best grade reached' : null);
   const l2 = side === 'bounce'
-    ? [move, nxt, src, r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
+    ? [move, r.edge?.mean_r != null ? `edge ${rr(r.edge.mean_r)}` : null, nxt, src,
+       r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
        r.down_days != null ? `down ${r.down_days}d` : null]
     : [move, r.pct_from_9ema != null ? `${pct(r.pct_from_9ema, 0)} vs 9EMA` : null, `+4% at ${px(r.gap_level)}`];
   return `<div class="card name${wide() && S.sel[side] === r.ticker ? ' sel' : ''}" role="button" tabindex="0" data-side="${side}" data-tk="${esc(r.ticker)}">` +
     `<div class="l1"><span class="tk">${esc(r.ticker)}</span>${side === 'bounce' ? gradeBadges(r) : ''}${recBadge(r)}${side === 'reversal' ? scenBadges(r) : ''}` +
     `${r.principal ? '<span class="badge lev">3x</span>' : ''}${locked(side, r.ticker) ? '<span class="badge lock">LOCKED</span>' : ''}` +
+    `${r.market ? `<span class="badge mkt">${r.breadth_flag === 'relaxed' ? 'market · relaxed' : r.counted === false ? 'market · not counted' : 'market'}</span>` : ''}` +
     `<span class="cap">${esc(r.cap || '')}</span></div><div class="l2 num">${l2.filter(Boolean).map(esc).join(' · ')}</div></div>`;
 }
 
@@ -558,11 +601,16 @@ function gradeCard(r) {
   const hist = st && g !== '-' ? `Your ${gradeLabel(g)} trades: median open→close ${pct(st.med_open_close, 0)}, high ${pct(st.med_open_high, 0)}, dipped ${pct(st.med_open_low, 0)} first (${st.n} trades).` : '';
   const ceil = r.ladder?.ceiling?.blocked?.length ? `Ceiling ${gradeLabel(r.ladder.ceiling.grade)}: ${r.ladder.ceiling.blocked.join(', ')} fails at every price.` : '';
   const now = r.grade_open && r.grade !== r.grade_open ? `<div class="muted" style="margin-top:6px">Now ${gradeLabel(r.grade)} at ${px(r.price)}.</div>` : '';
+  const mb = S.snap.market_breadth;
+  const edge = r.edge?.mean_r != null && mb?.state
+    ? `On ${STATE_DAY[mb.state]} (${mb.n} names market-wide), ${score >= 4 ? `${Math.min(score, 6)}/6` : '3/6-or-lower'} names averaged ${rr(r.edge.mean_r)} with ${upct(r.edge.win)} wins under your rules (${r.edge.n} names${r.edge.shrunk ? ', a small sample pulled toward the day average' : ''}).`
+    : '';
+  const mkt = r.market ? `Flagged by the market-wide breadth scan, not on your watchlist${r.counted === false ? ' (outside the counted universe)' : ''}.` : '';
   return `<div class="card callout"><div class="eyebrow">Grade ${esc(lead)}</div>
     <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="big ${GRADE_CLS[g]}-text">${esc(gradeLabel(g))}</span>
       <span class="muted">${score}/6 · intensity ${inten != null ? Math.round(inten) : '–'}</span></div>
     ${better.length ? `<div style="margin-top:8px">${better.map(lv => `${gradeBadge(lv.grade)} at <b>${px(lv.price)}</b> <span class="muted">(${pct(lv.price / r.price - 1)})</span>`).join('&nbsp;&nbsp;')}</div>` : '<div style="margin-top:8px" class="muted">Best grade on the ladder already reached.</div>'}
-    ${now}${hist ? `<div class="muted small-line">${esc(hist)}</div>` : ''}${ceil ? `<div class="muted small-line">${esc(ceil)}</div>` : ''}</div>`;
+    ${now}${edge ? `<div class="small-line">${esc(edge)}</div>` : ''}${mkt ? `<div class="muted small-line">${esc(mkt)}</div>` : ''}${hist ? `<div class="muted small-line">${esc(hist)}</div>` : ''}${ceil ? `<div class="muted small-line">${esc(ceil)}</div>` : ''}</div>`;
 }
 function ladderCard(r) {
   const levels = r.ladder?.levels || [];
@@ -949,6 +997,7 @@ document.addEventListener('click', e => {
   }
   const t = e.target.closest('button');
   if (!t) return;
+  if (t.dataset.btk) return go('bounce', t.dataset.btk, wide());
   if (t.dataset.review) return go('history', S.sel.history, false, t.dataset.review);
   if (t.dataset.pick) return go(t.dataset.pick, t.dataset.tk, wide());
   if (t.dataset.back != null) return back();

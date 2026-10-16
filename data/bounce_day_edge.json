@@ -1,0 +1,145 @@
+{
+ "built": "2026-10-16",
+ "unit": "R per name-day under the live rules, when the rules entered",
+ "population": "bounce_population_2022_2026.csv",
+ "shrink_n": 30,
+ "thresholds": {
+  "elevated": 6,
+  "breadth": 11
+ },
+ "states": {
+  "normal": {
+   "n": 733,
+   "mean_r": 0.14,
+   "median_r": -1.0,
+   "win": 0.386,
+   "days": 1080,
+   "day_mean_r": 0.225,
+   "traded_days": 455,
+   "pos_days": 184,
+   "by_score": {
+    "4": {
+     "n": 490,
+     "mean_r": 0.215,
+     "median_r": -1.0,
+     "win": 0.396
+    },
+    "5": {
+     "n": 204,
+     "mean_r": -0.007,
+     "median_r": -1.0,
+     "win": 0.358
+    },
+    "6": {
+     "n": 39,
+     "mean_r": -0.032,
+     "median_r": -0.667,
+     "win": 0.41
+    },
+    "low": {
+     "n": 491,
+     "mean_r": -0.067,
+     "median_r": -2.0,
+     "win": 0.367
+    }
+   }
+  },
+  "elevated": {
+   "n": 203,
+   "mean_r": 0.14,
+   "median_r": -2.0,
+   "win": 0.374,
+   "days": 29,
+   "day_mean_r": 0.322,
+   "traded_days": 29,
+   "pos_days": 12,
+   "by_score": {
+    "4": {
+     "n": 137,
+     "mean_r": 0.226,
+     "median_r": -2.0,
+     "win": 0.38
+    },
+    "5": {
+     "n": 56,
+     "mean_r": -0.031,
+     "median_r": -1.0,
+     "win": 0.339
+    },
+    "6": {
+     "n": 10,
+     "mean_r": 0.081,
+     "median_r": -0.896,
+     "win": 0.405,
+     "raw": {
+      "n": 10,
+      "mean_r": -0.097,
+      "median_r": -0.896,
+      "win": 0.5
+     },
+     "shrunk": true
+    },
+    "low": {
+     "n": 49,
+     "mean_r": -0.193,
+     "median_r": -2.0,
+     "win": 0.286
+    }
+   }
+  },
+  "breadth": {
+   "n": 295,
+   "mean_r": 1.202,
+   "median_r": 0.7,
+   "win": 0.566,
+   "days": 17,
+   "day_mean_r": 0.979,
+   "traded_days": 17,
+   "pos_days": 11,
+   "by_score": {
+    "4": {
+     "n": 167,
+     "mean_r": 0.914,
+     "median_r": 0.438,
+     "win": 0.533
+    },
+    "5": {
+     "n": 97,
+     "mean_r": 1.479,
+     "median_r": 0.712,
+     "win": 0.567
+    },
+    "6": {
+     "n": 31,
+     "mean_r": 1.894,
+     "median_r": 1.338,
+     "win": 0.742
+    },
+    "low": {
+     "n": 26,
+     "mean_r": 1.842,
+     "median_r": 2.022,
+     "win": 0.678,
+     "raw": {
+      "n": 26,
+      "mean_r": 2.581,
+      "median_r": 2.022,
+      "win": 0.808
+     },
+     "shrunk": true
+    }
+   }
+  }
+ },
+ "relaxed": {
+  "breadth": {
+   "n": 221,
+   "mean_r": 1.051,
+   "median_r": 0.611,
+   "win": 0.588,
+   "day_mean_r": 0.519,
+   "traded_days": 17,
+   "pos_days": 10
+  }
+ }
+}

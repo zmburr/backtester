@@ -143,6 +143,9 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "METHOD_DIR", tmp_path / "method")
     monkeypatch.setattr(rf, "SNAPSHOT", tmp_path / "method" / "snapshot.json")
     monkeypatch.setattr(rf, "LIVE", tmp_path / "method" / "live.json")
+    monkeypatch.setattr(rf, "MARKET_BREADTH", tmp_path / "method" / "market_breadth.json")
+    monkeypatch.setattr(rf.breadth, "METHOD_DIR", tmp_path / "method")
+    monkeypatch.setattr(rf.breadth, "snapshot_prices", lambda day: {})    # no Polygon in tests
     monkeypatch.setattr(rf, "SIGNALS_DIR", sig)
     monkeypatch.setattr(rf, "load_watchlist", lambda: ["SOXL", "MXL"])
     monkeypatch.setattr(rf, "_load_json", lambda p: {})
