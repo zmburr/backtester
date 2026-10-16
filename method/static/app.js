@@ -851,6 +851,8 @@ async function showReview(ctx) {
 // ── best trades: your graded trades, replayed with the systems on them ──
 const dayLabelY = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', year: '2-digit' });
 const shortSetup = s => s.replace(/_?(weak|strong)stock$/, (_, w) => ` · ${w}`).replace(/^GapFade/, 'Gap fade');
+// Intraday capitulations form after the open, so the grade at the open doesn't apply to them.
+const intradaySetup = r => r.side === 'bounce' && /IntradayCapitch/.test(r.setup || '');
 const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 function bestRows() {
   const f = PREFS.best;
@@ -862,8 +864,10 @@ function bestRows() {
 function bestSummary(rows) {
   if (!rows.length) return '';
   const ok = rows.filter(r => r.ok), rs = ok.filter(r => r.rules_r != null).map(r => r.rules_r);
+  const gaps = ok.filter(r => !intradaySetup(r)), intra = ok.length - gaps.length;
   const sys = PREFS.best.side === 'bounce'
-    ? `system had ${Math.round(100 * ok.filter(r => r.sys_grade === 'A' || r.sys_grade === 'A+').length / Math.max(1, ok.length))}% at A or better at the open`
+    ? `system had ${Math.round(100 * gaps.filter(r => r.sys_grade === 'A' || r.sys_grade === 'A+').length / Math.max(1, gaps.length))}% at A or better at the open` +
+      (intra ? ` (${intra} intraday capitulation${intra === 1 ? '' : 's'} left out)` : '')
     : `${Math.round(100 * ok.filter(r => r.sys_scenario === 'A').length / Math.max(1, ok.length))}% opened +4% or more`;
   return `${rows.length} trades · ${sys} · rules ${rs.length ? `median ${rr(median(rs))} on the ${rs.length} that fired` : 'never fired'}`;
 }
@@ -882,12 +886,13 @@ function bestFilters() {
 }
 function bestCard(r) {
   const bounce = r.side === 'bounce';
-  const sys = bounce ? (r.sys_grade ? gradeBadge(r.sys_grade) : '') : (r.sys_scenario ? `<span class="badge ${r.sys_scenario}">${r.sys_scenario}</span>` : '');
+  const sys = intradaySetup(r) ? '<span class="badge nogo" title="Forms after the open: the open grade doesn’t apply">intraday</span>'
+    : bounce ? (r.sys_grade ? gradeBadge(r.sys_grade) : '') : (r.sys_scenario ? `<span class="badge ${r.sys_scenario}">${r.sys_scenario}</span>` : '');
   const move = r.move != null ? `${bounce ? 'open→high' : 'open→low'} ${pct(bounce ? r.move : -r.move, 0)}${r.move_atr != null ? ` (${r.move_atr.toFixed(1)} ATR)` : ''}` : null;
   const rules = !r.ok ? 'no bars' : r.rules_r != null ? `rules ${rr(r.rules_r)}` : 'no rules entry';
   return `<div class="card name${wide() && S.sel.best === r.key ? ' sel' : ''}" role="button" tabindex="0" data-best="${esc(r.key)}">` +
     `<div class="l1"><span class="tk">${esc(r.ticker)}</span><span class="badge mine" title="Your grade">You ${esc(r.grade || '?')}</span>` +
-    `${sys ? `<span class="sys">${bounce ? 'system' : 'open'}</span>${sys}` : ''}<span class="cap">${esc(r.cap || '')}</span></div>` +
+    `${sys ? `<span class="sys">${intradaySetup(r) ? 'setup' : bounce ? 'system' : 'open'}</span>${sys}` : ''}<span class="cap">${esc(r.cap || '')}</span></div>` +
     `<div class="l2 num">${[dayLabelY(r.date), move, rules].filter(Boolean).map(esc).join(' · ')}` +
     `${r.setup ? `<br><span class="muted">${esc(shortSetup(r.setup))}</span>` : ''}</div></div>`;
 }
@@ -900,8 +905,10 @@ async function renderBest() {
     }
     if (S.route !== 'best') return;
   }
+  const linked = S.lib.find(r => r.key === S.sel.best);
+  if (linked && linked.side !== PREFS.best.side) Object.assign(PREFS.best, { side: linked.side, setup: '' });   // a link to the other side
   const rows = bestRows();
-  if (wide() && rows.length && !rows.some(r => r.key === S.sel.best)) S.sel.best = rows[0].key;
+  if (wide() && rows.length && !linked) S.sel.best = rows[0].key;
   const side = PREFS.best.side === 'bounce' ? 'bounces' : 'reversals';
   list.innerHTML = listHead('Best trades', `Your ${side}`, esc(bestSummary(rows))) + bestFilters() +
     (!S.lib.length ? '<div class="empty">Not built yet. On the mini: python -m method.library</div>'
@@ -914,8 +921,9 @@ function renderBestDetail() {
   if (!r) { setTitle('Best trades', ''); reader.innerHTML = '<div class="col"><div class="empty">Pick a trade.</div></div>'; return; }
   const log = linesCard('Your log', (r.log || []).map(([k, v]) => [esc(k), '', `<span class="num">${esc(v)}</span>`]),
     `<p class="foot-note" style="margin:10px 0 0">From ${r.side === 'bounce' ? 'bounce_data.csv' : 'reversal_data.csv'}. Your grade: ${esc(r.grade || '–')}.</p>`);
+  const intra = intradaySetup(r) ? `<div class="card callout warn"><div class="eyebrow">Intraday capitulation</div><div style="margin-top:6px">This setup forms after the open, so the grade at the open and the open-based rules don't apply. Judge it on the intraday flush.</div></div>` : '';
   showReview({ side: r.side, tk: r.ticker, date: r.date, cap: r.cap, title: esc(r.ticker),
-    sub: [dayLabelY(r.date), r.side, `your grade ${r.grade || '–'}`, r.cap].filter(Boolean).join(' · '), cards: () => log });
+    sub: [dayLabelY(r.date), r.side, `your grade ${r.grade || '–'}`, r.cap].filter(Boolean).join(' · '), cards: () => intra + log });
 }
 
 // ── events ───────────────────────────────────────────────────────────────
