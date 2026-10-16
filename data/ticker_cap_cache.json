@@ -77,5 +77,10 @@
  "DRAM": "ETF",
  "PENG": "Medium",
  "SPCX": "Large",
- "KORU": "ETF"
+ "KORU": "ETF",
+ "AMDL": "ETF",
+ "FLYE": "Micro",
+ "PTIR": "ETF",
+ "QMCO": "Small",
+ "SMTC": "Medium"
 }
