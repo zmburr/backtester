@@ -209,7 +209,10 @@ function renderSideList(side) {
   const rep = (s.reports || [])[0];
   if (rep) {
     const v = rep[side];
-    const chips = [...v.GO.map(t => `<span class="badge go">${esc(t)}</span>`), ...v.CAUTION.map(t => `<span class="badge caution">${esc(t)}</span>`)];
+    const chip = (t, cls) => rows.some(r => r.ticker === t)       // a name on the board opens its detail and chart
+      ? `<button class="badge ${cls} pick" data-pick="${side}" data-tk="${esc(t)}">${esc(t)}</button>`
+      : `<span class="badge ${cls}">${esc(t)}</span>`;
+    const chips = [...v.GO.map(t => chip(t, 'go')), ...v.CAUTION.map(t => chip(t, 'caution'))];
     h += `<div class="card"><div class="eyebrow">Priority report · ${esc(clock12(rep.time))} ${esc(dayLabel(rep.date))}</div>` +
       (chips.length ? `<div class="tickers">${chips.join('')}</div>` : `<div class="muted" style="margin-top:6px;font-size:13px">No ${side} windows</div>`) + '</div>';
   }
@@ -937,6 +940,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button');
   if (!t) return;
   if (t.dataset.review) return go('history', S.sel.history, false, t.dataset.review);
+  if (t.dataset.pick) return go(t.dataset.pick, t.dataset.tk, wide());
   if (t.dataset.back != null) return back();
   if (t.dataset.more) { S.showAll[t.dataset.more] = !S.showAll[t.dataset.more]; return render(); }
   if (t.dataset.ctf) {                 // timeframe: redraw the chart only
