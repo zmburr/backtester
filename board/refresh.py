@@ -14,8 +14,9 @@ report module's heavy imports out of the long-running server.
 Data is Polygon (15-min delayed); the mini can't reach Trillium. Every
 snapshot carries the time of the newest bar it used.
 
-Bounce scoring is the premarket scanner's own: build_static (cached once per
-session) + metrics_from_price + BouncePretrade. Reversal scoring is the
+Bounce scoring is the premarket scanner's own: completed_daily +
+static_from_hist (cached once per session, setup type fixed at the prior
+close) + metrics_from_price + BouncePretrade. Reversal scoring is the
 priority report's own: get_pretrade_metrics + score_pretrade_setup, run on
 the report's reversal names plus watchlist names closing 15%+ above the 9EMA.
 
@@ -41,7 +42,8 @@ from analyzers.bounce_scorer import BouncePretrade
 from board import core
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
-    CAP_CACHE_FILE, _load_json, build_static, get_cap, load_watchlist, metrics_from_price,
+    CAP_CACHE_FILE, _load_json, completed_daily, get_cap, load_watchlist, metrics_from_price,
+    static_from_hist,
 )
 from scripts.evening_signal_log import go_gap_trigger, next_trading_day
 from scripts.playbook_email import PRINCIPALS
@@ -76,23 +78,17 @@ def _statics_path(session: str):
 
 
 def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
-    """build_static as-of the session, plus the GO level and the 9EMA stretch
-    of the last completed close (for picking reversal candidates)."""
-    s = build_static(ticker, session)
-    if not s:
+    """The premarket scanner's statics as-of the session (setup type fixed at
+    the prior close), plus the GO level and the 9EMA stretch of the last
+    completed close (for picking reversal candidates). One daily-bar fetch."""
+    hist = completed_daily(ticker, session)
+    if hist is None:
         return None
-    s = dict(s)
+    s = static_from_hist(hist)
     s["go_gap"] = go_gap_trigger(ticker, s, cap, checker)
-    try:
-        d = pq.get_levels_data(ticker, session, 40, 1, "day")
-        if d is not None and not d.empty:
-            if d.index[-1].date() == datetime.date.fromisoformat(session):
-                d = d.iloc[:-1]
-            ema9 = d["close"].ewm(span=9, adjust=False).mean().iloc[-1]
-            s["ema9"] = float(ema9)
-            s["pct_from_9ema"] = float(d["close"].iloc[-1] / ema9 - 1)
-    except Exception as e:
-        logger.warning(f"{ticker}: 9EMA failed: {e}")
+    ema9 = hist["close"].ewm(span=9, adjust=False).mean().iloc[-1]
+    s["ema9"] = float(ema9)
+    s["pct_from_9ema"] = float(hist["close"].iloc[-1] / ema9 - 1)
     return s
 
 
@@ -162,7 +158,8 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
             last_bar = bars.index[-1]
             newest = max(newest, last_bar) if newest is not None else last_bar
             m = metrics_from_price(s, price)
-            res = checker.validate(t, m, cap=caps[t])
+            # weak/strong fixed at the prior close, as the scanner does (SKHY 10/15)
+            res = checker.validate(t, m, cap=caps[t], force_setup=s.get("setup_type"))
             go_gap = s.get("go_gap")
             prior = s["prior_close"]
             row = {

@@ -137,12 +137,12 @@ def board(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "next_trading_day", lambda d: d + datetime.timedelta(days=1))
     built = []
 
-    def fake_static(t, session):
+    def fake_daily(t, session):
         built.append((t, session))
-        return dict(STATIC)
-    monkeypatch.setattr(rf, "build_static", fake_static)
+        return pd.DataFrame({"close": [100.0] * 20})
+    monkeypatch.setattr(rf, "completed_daily", fake_daily)
+    monkeypatch.setattr(rf, "static_from_hist", lambda hist: dict(STATIC))
     monkeypatch.setattr(rf, "go_gap_trigger", lambda t, s, cap, checker: -0.04)
-    monkeypatch.setattr(rf.pq, "get_levels_data", lambda *a, **k: None)
     monkeypatch.setattr(rf.time, "sleep", lambda s: None)
     rev = []
     monkeypatch.setattr(rf, "reversal_pass", lambda cands, caps, today, setups: rev.append(cands) or [])
@@ -198,11 +198,13 @@ def test_market_pass_locks_the_scenario_at_the_open(board):
 def test_evening_plans_tomorrow_and_rebuilds_a_stale_static(board):
     calls = []
 
-    def static(t, session):
+    def daily(t, session):
         calls.append(session)
-        # first build saw yesterday's close; the tape closed at 90
-        return dict(STATIC, prior_close=100.0 if len(calls) <= 2 else 90.0)
-    board["monkeypatch"].setattr(rf, "build_static", static)
+        return pd.DataFrame({"close": [100.0] * 20})
+    # first build saw yesterday's close; the tape closed at 90
+    board["monkeypatch"].setattr(rf, "completed_daily", daily)
+    board["monkeypatch"].setattr(rf, "static_from_hist", lambda hist: dict(
+        STATIC, prior_close=100.0 if len(calls) <= 2 else 90.0))
     board["monkeypatch"].setattr(rf.pq, "get_intraday", lambda *a: _bars("2026-10-15", [
         ("15:59", 91, 91, 90, 90), ("17:30", 89, 89, 87, 88)]))
     snap = rf.run(now=at("17:45"))
