@@ -17,12 +17,18 @@ the cover matrix (reversal_trader._check_matrix_cover_triggers): half into a
 tripwire, else hold to 15:55. A name stops after two stop-outs (the trader's
 per-name cap), three attempts at most.
 
+Candles are 1-min (the page draws 1, 2 or 5 min from them), with each bar's
+VWAP; past days also carry the next session and the daily bars from the trade
+day on, so a chart can show the overnight hold and what came after.
+
 Past days are cached by the server; today is always fetched fresh, and never
-through the study's permanent bar cache.
+through the study's permanent bar cache. VERSION bumps when the shape changes,
+so older cached replays are rebuilt.
 """
 
 from __future__ import annotations
 
+import datetime
 from datetime import time as dt_time
 
 import pandas as pd
@@ -34,7 +40,9 @@ from method.ladder import grade_at, ladder_payload
 from reversal_entry_study.run_study import _two_min
 from scanners.premarket_bounce_scanner import completed_daily, static_from_hist
 from scripts.backfill_entry_r import rule_trades
+from scripts.evening_signal_log import next_trading_day
 
+VERSION = 2
 TZ = "US/Eastern"
 BAR = pd.Timedelta(minutes=2)
 REV_FIRST_END = dt_time(9, 32)       # one completed 2-min bar
@@ -63,12 +71,35 @@ def day_bars(ticker: str, date: str, live: bool) -> pd.DataFrame | None:
 
 
 def _candles(bars: pd.DataFrame) -> list[dict]:
-    """Full-session 2-min candles (premarket included) on the same bins as the rules' frame."""
-    two = bars.resample("2min", label="left", closed="left").agg(
-        {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
-    ).dropna(subset=["open", "high", "low", "close"])
-    return [{"time": et_epoch(ts), "open": float(r.open), "high": float(r.high), "low": float(r.low),
-             "close": float(r.close), "value": float(r.volume)} for ts, r in two.iterrows()]
+    """Full-session 1-min candles (premarket and after hours included), each with its
+    bar VWAP (`vw`) when Polygon has one, for the page's day VWAP."""
+    vw = "vwap" in bars.columns
+    out = []
+    for ts, r in bars.iterrows():
+        c = {"time": et_epoch(ts), "open": float(r.open), "high": float(r.high), "low": float(r.low),
+             "close": float(r.close), "value": float(r.volume)}
+        if vw and pd.notna(r.vwap):
+            c["vw"] = float(r.vwap)
+        out.append(c)
+    return out
+
+
+def _daily_rows(df: pd.DataFrame) -> list[dict]:
+    return [{"time": ts.strftime("%Y-%m-%d"), "open": float(r.open), "high": float(r.high),
+             "low": float(r.low), "close": float(r.close), "value": float(r.volume)}
+            for ts, r in df.iterrows()]
+
+
+def after_days(ticker: str, date: str, n: int = 6) -> list[dict]:
+    """Daily bars from the trade day on (the trade day plus n-1 sessions), past days only."""
+    day = datetime.date.fromisoformat(date)
+    end = min(day + datetime.timedelta(days=12), pd.Timestamp.now(tz=TZ).date() - datetime.timedelta(days=1))
+    if end < day:
+        return []
+    df = pq.get_levels_data(ticker, end.isoformat(), 14, 1, "day")
+    if df is None or df.empty:
+        return []
+    return _daily_rows(df[df.index.date >= day].iloc[:n])
 
 
 def _session(bars: pd.DataFrame) -> dict:
@@ -191,8 +222,8 @@ def review(ticker: str, date: str, side: str, cap: str, outcome: dict | None = N
     """Everything a review chart needs for (ticker, date). `outcome` is the
     scorecard row for that day, when there is one: its ATR is the one the
     scorecard's exit_r used, and its results are shown beside the replay."""
-    out = {"ticker": ticker, "date": date, "side": side, "cap": cap, "live": live,
-           "candles": [], "trades": [], "session": {}}
+    out = {"v": VERSION, "ticker": ticker, "date": date, "side": side, "cap": cap, "live": live,
+           "candles": [], "next_candles": [], "trades": [], "session": {}}
     hist = completed_daily(ticker, date)
     if hist is None:
         out["error"] = "no daily history"
@@ -200,9 +231,7 @@ def review(ticker: str, date: str, side: str, cap: str, outcome: dict | None = N
     static = static_from_hist(hist)
     out.update(prior_close=float(static["prior_close"]), mid_bb=static.get("mid_bb"),
                atr=float(static["atr"]))
-    out["daily"] = [{"time": ts.strftime("%Y-%m-%d"), "open": float(r.open), "high": float(r.high),
-                     "low": float(r.low), "close": float(r.close), "value": float(r.volume)}
-                    for ts, r in hist.iloc[-130:].iterrows()]
+    out["daily"] = _daily_rows(hist.iloc[-180:])        # 180 so the 50-day average covers the view
     if side == "bounce":
         out["ladder"] = ladder_payload(static, cap, ticker)
     else:
@@ -233,4 +262,19 @@ def review(ticker: str, date: str, side: str, cap: str, outcome: dict | None = N
         out["at_open"] = {"price": open_, "gap": open_ / out["prior_close"] - 1}
         out["trades"] = reversal_trades(bars, atr, live)
     out["rules_r"] = sum(t["r"] for t in out["trades"]) if out["trades"] else None
+    if not live:
+        day = datetime.date.fromisoformat(date)
+        today = pd.Timestamp.now(tz=TZ).date()
+        after = after_days(ticker, date)
+        out["daily"] += after
+        nxt = next_trading_day(day)
+        if nxt < today:                  # never through fetch_day's permanent cache while it's partial
+            nb = day_bars(ticker, nxt.isoformat(), live=False)
+            if nb is not None and not nb.empty:
+                nb = nb[nb.index.strftime("%Y-%m-%d") == nxt.isoformat()]
+                out["next_candles"] = _candles(nb)
+                out["next_date"] = nxt.isoformat()
+                out["next_session"] = _session(nb)
+        # safe to cache for good: the next day is over and the days after are in
+        out["complete"] = nxt < today and (len(after) >= 6 or (today - day).days > 12)
     return out

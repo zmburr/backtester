@@ -34,6 +34,7 @@ import pandas as pd
 from flask import Flask, abort, jsonify, make_response, request, send_from_directory
 
 from method import core
+from method import library as lib
 from method import live
 from method import push
 from method import review as rv
@@ -50,13 +51,14 @@ REPO = Path(__file__).resolve().parents[1]
 OUTCOMES = DATA_DIR / "signal_outcomes.csv"
 SHOTS = METHOD_DIR / "shots.json"
 REVIEW_DIR = METHOD_DIR / "review"
-REVIEW_CACHE_AFTER_DAYS = 5      # past days without a scorecard row are cached once they're this old
 BARS_TTL_S = 300
 TZ = "US/Eastern"
 
 _bars_cache: dict[str, tuple[float, dict]] = {}
 _history_cache: dict = {"key": None, "data": None}
 _outcomes_cache: dict = {"mtime": None, "rows": [], "index": {}}
+_library_cache: dict = {"mtime": None, "data": None}
+CAPS = ("ETF", "Large", "Medium", "Small", "Micro")
 _shots_lock = threading.Lock()
 _live_lock = threading.Lock()
 
@@ -78,7 +80,15 @@ def _et_epoch(ts: pd.Timestamp) -> int:
 def chart_bars(ticker: str) -> dict:
     """~6 months of daily bars and the latest session's 1-min bars (ext hours)."""
     today = pd.Timestamp.now(tz=TZ).date()
-    daily = pq.get_levels_data(ticker, today.isoformat(), 190, 1, "day")
+    # Polygon's delayed plan refuses a range ending on a day that hasn't traded yet
+    # (after midnight until the 4 AM bars arrive), so fall back a day.
+    daily = None
+    for end in (today, today - datetime.timedelta(days=1)):
+        try:
+            daily = pq.get_levels_data(ticker, end.isoformat(), 190, 1, "day")
+            break
+        except Exception as e:
+            logger.info(f"bars {ticker}: daily to {end} refused ({e}); trying a day earlier")
     day_rows = [] if daily is None else [
         {"time": ts.strftime("%Y-%m-%d"), "open": float(r.open), "high": float(r.high),
          "low": float(r.low), "close": float(r.close), "value": float(r.volume)}
@@ -86,7 +96,10 @@ def chart_bars(ticker: str) -> dict:
     intra, day = None, today
     for back in range(6):
         day = today - datetime.timedelta(days=back)
-        intra = pq.get_intraday(ticker, day.isoformat(), 1, "minute")
+        try:
+            intra = pq.get_intraday(ticker, day.isoformat(), 1, "minute")
+        except Exception:
+            continue
         if intra is not None and not intra.empty:
             break
     min_rows = [] if intra is None or intra.empty else [
@@ -256,26 +269,28 @@ def create_app() -> Flask:
             abort(400)
         if side not in ("bounce", "reversal") or not _valid_ticker(ticker):
             abort(400)
-        today = pd.Timestamp.now(tz=TZ).date()
+        cap = request.args.get("cap")
+        cap = cap if cap in CAPS else None
         _, index = outcomes()
         row = index.get((date, side, ticker))
-        outcome = None if row is None else {k: core.to_num(row.get(k)) for k in (
-            "d0_pct", "d1_pct", "mfe_atr_d0", "exit_r", "entry_r", "atr_pct", "entry_open")}
-        path = REVIEW_DIR / f"{side}_{ticker}_{date}.json"
-        data = core.read_json(path) if day < today else None
-        if data is None:
-            from scanners.premarket_bounce_scanner import CAP_CACHE_FILE, _load_json, get_cap
-            cap = get_cap(ticker, _load_json(CAP_CACHE_FILE))
-            try:
-                data = core.clean(rv.review(ticker, date, side, cap, outcome=outcome, live=day >= today))
-            except Exception as e:
-                logger.warning(f"review {side} {ticker} {date}: {e}")
-                return jsonify(ticker=ticker, date=date, side=side, error=str(e), candles=[], trades=[])
-            old_enough = (today - day).days > REVIEW_CACHE_AFTER_DAYS
-            if day < today and data.get("candles") and (row is not None or old_enough):
-                core.write_json(path, data)
+        try:
+            data = lib.cached_review(side, ticker, date, REVIEW_DIR, cap=cap, row=row)
+        except Exception as e:
+            logger.warning(f"review {side} {ticker} {date}: {e}")
+            return jsonify(ticker=ticker, date=date, side=side, error=str(e), candles=[], trades=[])
+        data = dict(data)
+        outcome = lib.outcome_fields(row)
         data["outcome"] = outcome
         return jsonify(data)
+
+    @app.get("/api/library")
+    def api_library():
+        """Your graded trades with what the systems said (method/library.py builds it)."""
+        path = lib.LIBRARY
+        mtime = path.stat().st_mtime if path.exists() else None
+        if _library_cache["mtime"] != mtime:
+            _library_cache.update(mtime=mtime, data=core.read_json(path) or {"rows": []})
+        return jsonify(_library_cache["data"])
 
     @app.get("/api/bars")
     def bars():

@@ -84,7 +84,7 @@ h1, h2, h3, p { margin: 0; }
 .icon-btn { width: 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center; color: var(--text-2); flex: none; margin-left: -8px; }
 .icon-btn:active { background: var(--bg-3); }
 
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr);
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr);
   height: calc(var(--tabbar-h) + var(--sab)); padding: 6px calc(10px + var(--sar)) var(--sab) calc(10px + var(--sal));
   background: rgba(8, 10, 12, .86); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border-top: 1px solid var(--line); }
@@ -221,3 +221,32 @@ ul.items li.tiers { list-style: none; margin-left: -18px; padding: 10px 12px; bo
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 .off-chart { font-size: 12px; color: var(--text-3); margin: 6px 4px 2px; line-height: 1.5; }
 #live-rules .lines { margin-top: 6px; }
+
+/* ── charts: toolbar, readout, overlay switches ─────────────────────────── */
+.chart-card .card-head { flex-wrap: wrap; row-gap: 8px; }
+.chart-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.chart-tools .btn.small { height: 34px; padding: 0 12px; font-size: 12px; }
+.chart-wrap { position: relative; }
+.legend { position: absolute; top: 2px; left: 4px; right: 64px; z-index: 3; pointer-events: none; font-size: 11px; line-height: 1.45;
+  color: var(--text-2); font-variant-numeric: tabular-nums; }
+.legend b { color: var(--text); font-weight: 600; margin-right: 2px; }
+.chart-card.expanded .chart { height: min(74vh, 900px); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.tog { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px; border-radius: 9px; background: var(--bg-2);
+  border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: var(--text-2); cursor: pointer; user-select: none; }
+.tog input { accent-color: var(--brand); width: 15px; height: 15px; margin: 0; }
+.tog:has(input:not(:checked)) { color: var(--text-3); }
+
+/* ── best trades ───────────────────────────────────────────────────────── */
+.filters { display: grid; gap: 8px; margin-bottom: 12px; }
+.frow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chips { display: inline-flex; gap: 5px; }
+.chip { height: 34px; min-width: 38px; padding: 0 12px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line);
+  color: var(--text-3); font-weight: 700; font-size: 13px; }
+.chip.on { background: var(--brand-soft); border-color: rgba(165, 148, 255, .5); color: var(--text); }
+.selects select { height: 34px; flex: 1 1 0; min-width: 0; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line);
+  color: var(--text-2); font: 600 12.5px var(--font); padding: 0 8px; }
+.badge.mine { background: transparent; box-shadow: inset 0 0 0 1px rgba(165, 148, 255, .5); color: var(--brand); }
+.sys { font-size: 11px; color: var(--text-3); margin-left: 2px; }
+.callout { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .legend .ohl { display: none; } }

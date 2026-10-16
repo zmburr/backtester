@@ -132,7 +132,8 @@ def client(tmp_path, monkeypatch):
 
     def fake_review(ticker, date, side, cap, outcome=None, live=False):
         calls.append((ticker, date, side, live, outcome))
-        return {"ticker": ticker, "date": date, "side": side, "live": live, "candles": [{"time": 1}], "trades": []}
+        return {"v": sv.rv.VERSION, "ticker": ticker, "date": date, "side": side, "live": live,
+                "candles": [{"time": 1}], "trades": [], "complete": not live}
     monkeypatch.setattr(sv.rv, "review", fake_review)
     (tmp_path / "signal_outcomes.csv").write_text(
         "signal_date,session,target_date,ticker,bucket,cohort,d0_pct,d1_pct,mfe_atr_d0,exit_r,entry_r,atr_pct,entry_open\n"

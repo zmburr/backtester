@@ -1,18 +1,28 @@
 'use strict';
 // Method: renders /api/snapshot (written by method/refresh.py) and polls it.
-// Routes: #/bounce[/TICKER]  #/reversal[/TICKER]  #/playbook  #/history[/N[/TICKER]]
+// Routes: #/bounce[/TICKER]  #/reversal[/TICKER]  #/playbook  #/history[/N[/TICKER]]  #/best[/side:TICKER:date]
 // Phone: list, then a detail pane (Back / swipe back). Desktop (≥1024px): rail +
-// list + detail. Keys: ↑/↓ names, ←/→ or 1-4 sections, Esc back.
+// list + detail. Keys: ↑/↓ names, ←/→ or 1-5 sections, Esc back.
 // Bounce grades are the bounce game plan's (analyzers/bounce_ladder.py):
 // GO with intensity 75+ = A+, 60-75 = A, under 60 = B; 4/6 = B; 3/6 = C.
 
 const S = {
-  route: 'bounce', snap: null, sel: { bounce: null, reversal: null, history: null }, reviewTk: null,
-  showAll: { bounce: false, reversal: false }, lessons: {}, lessonSide: 'bounce', history: null,
-  shots: { date: null, entries: [] }, chart: null, chartTf: 'intraday', reviewTf: 'day2', bars: {},
-  reviews: {}, reachable: true,
+  route: 'bounce', snap: null, sel: { bounce: null, reversal: null, history: null, best: null }, reviewTk: null,
+  showAll: { bounce: false, reversal: false }, lessons: {}, lessonSide: 'bounce', history: null, lib: null,
+  shots: { date: null, entries: [] }, chart: null, redraw: null, bars: {}, reviews: {}, reviewKey: null, reachable: true,
 };
-const ROUTES = ['bounce', 'reversal', 'playbook', 'history'];
+// Per-device chart and filter choices (a convenience: the page works the same without them).
+const PREFS = (() => {
+  const base = { tf: { live: '1', replay: '2' }, expanded: false,
+    ov: { grades: true, trades: true, stops: true, levels: true, vwap: false, volume: true, avgs: true, bands: false, ext: false, next: false },
+    best: { side: 'bounce', grades: ['A'], cap: '', setup: '', sort: 'move' } };
+  try {
+    const v = JSON.parse(localStorage.getItem('method.prefs') || '{}');
+    return { ...base, ...v, tf: { ...base.tf, ...v.tf }, ov: { ...base.ov, ...v.ov }, best: { ...base.best, ...v.best } };
+  } catch (e) { return base; }
+})();
+function savePrefs() { try { localStorage.setItem('method.prefs', JSON.stringify(PREFS)); } catch (e) { /* private mode */ } }
+const ROUTES = ['bounce', 'reversal', 'playbook', 'history', 'best'];
 const app = document.getElementById('app');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -93,6 +103,7 @@ function applyRoute() {
     S.sel.history = arg != null ? Number(arg) : (wide() ? S.sel.history : null);
     S.reviewTk = sub;
   }
+  if (route === 'best') S.sel.best = arg || (wide() ? S.sel.best : null);
   app.dataset.route = route;
   app.dataset.view = arg != null || route === 'playbook' ? 'detail' : 'list';
   $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === route));
@@ -100,6 +111,7 @@ function applyRoute() {
 }
 function back() {
   if (S.route === 'playbook') return;
+  S.reviewKey = null;
   if (S.route === 'history' && S.reviewTk) return go('history', S.sel.history);
   go(S.route);
 }
@@ -132,6 +144,8 @@ function render() {
     renderDetail(r);
   } else if (r === 'playbook') {
     renderPlaybook();
+  } else if (r === 'best') {
+    renderBest();
   } else {
     renderHistory();
   }
@@ -225,21 +239,107 @@ function nameCard(side, r) {
 }
 
 // ── charts ───────────────────────────────────────────────────────────────
+// One drawing path for every chart (live names, History, Best): 1-min bars in,
+// the chosen timeframe out, overlays switched by the check boxes under the chart.
 const CH = { text: '#6f7873', grid: '#151a1e', up: '#46b98a', down: '#d9615f' };
+const BAND = { 'A+': 'rgba(61,220,151,.12)', A: 'rgba(143,227,184,.075)', B: 'rgba(255,181,71,.06)', C: 'rgba(255,138,76,.045)' };
+const OV = { grades: 'Grades', trades: 'Trades', stops: 'Stops', levels: 'Levels', vwap: 'VWAP', volume: 'Volume',
+  avgs: 'Averages', bands: 'Bollinger', ext: 'Extended hours', next: 'Next day' };
+const tod = t => { const x = new Date(t * 1000); return x.getUTCHours() * 60 + x.getUTCMinutes(); };   // ET-shifted epoch -> minute of day
+const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
+const fmtVol = v => v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}K` : String(Math.round(v || 0));
 function snapTime(t, times) {        // markers must sit on a bar that exists
   let best = times[0];
   for (const x of times) { if (x <= t) best = x; else break; }
   return best;
 }
-function makeChart(el, bars, { daily = false, lines = [], markers = [], segments = [], fitDays = 90, offEl = null } = {}) {
+function resample(bars, m) {         // 1-min -> m-min, keeping each bar's volume-weighted price for VWAP
+  const tp = b => b.vw ?? (b.high + b.low + b.close) / 3;
+  if (m <= 1) return bars;
+  const s = m * 60, out = [];
+  let cur = null;
+  const done = c => out.push({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close, value: c.value,
+    vw: c.value ? c.pv / c.value : c.close });
+  for (const b of bars) {
+    const t = Math.floor(b.time / s) * s, v = b.value || 0;
+    if (!cur || cur.time !== t) {
+      if (cur) done(cur);
+      cur = { time: t, open: b.open, high: b.high, low: b.low, close: b.close, value: v, pv: tp(b) * v };
+    } else {
+      cur.high = Math.max(cur.high, b.high); cur.low = Math.min(cur.low, b.low); cur.close = b.close;
+      cur.value += v; cur.pv += tp(b) * v;
+    }
+  }
+  if (cur) done(cur);
+  return out;
+}
+function sessionWindow(bars, ext) {  // 9:00-16:00 once the session has bars; premarket-only days show everything
+  if (ext || !bars.some(b => tod(b.time) >= 570 && tod(b.time) < 960)) return bars;
+  return bars.filter(b => tod(b.time) >= 540 && tod(b.time) < 960);
+}
+function vwapDays(bars) {            // the session VWAP from 9:30, one line per day (4.2 joins a line across gaps)
+  const days = [];
+  let day = null, pv = 0, v = 0;
+  for (const b of bars) {
+    const m = tod(b.time);
+    if (m < 570 || m >= 960) continue;
+    const d = Math.floor(b.time / 86400);
+    if (d !== day) { day = d; pv = 0; v = 0; days.push([]); }
+    pv += (b.vw ?? (b.high + b.low + b.close) / 3) * (b.value || 0); v += b.value || 0;
+    if (v) days[days.length - 1].push({ time: b.time, value: pv / v });
+  }
+  return days.filter(x => x.length);
+}
+function dailyAverages(bars) {       // 9EMA, 20SMA (= mid-BB) with 2-sigma bands, 50SMA
+  const ema = [], s20 = [], s50 = [], up = [], lo = [];
+  let e = null;
+  bars.forEach((b, i) => {
+    e = e == null ? b.close : 0.2 * b.close + 0.8 * e;
+    ema.push({ time: b.time, value: e });
+    if (i >= 19) {
+      const w = bars.slice(i - 19, i + 1).map(x => x.close), m = avg(w);
+      const sd = Math.sqrt(w.reduce((s, x) => s + (x - m) ** 2, 0) / 19);
+      s20.push({ time: b.time, value: m }); up.push({ time: b.time, value: m + 2 * sd }); lo.push({ time: b.time, value: m - 2 * sd });
+    }
+    if (i >= 49) s50.push({ time: b.time, value: avg(bars.slice(i - 49, i + 1).map(x => x.close)) });
+  });
+  return { ema, s20, s50, up, lo };
+}
+class Bands {                        // the bounce grade zones, painted faintly behind the candles
+  constructor(zones) { this.zones = zones; this.series = null; }
+  attached({ series }) { this.series = series; }
+  detached() { this.series = null; }
+  updateAllViews() {}
+  paneViews() {
+    return [{
+      zOrder: () => 'bottom',
+      renderer: () => ({
+        draw: target => target.useBitmapCoordinateSpace(({ context: ctx, bitmapSize, verticalPixelRatio: vr }) => {
+          if (!this.series) return;
+          for (const z of this.zones) {
+            const a = this.series.priceToCoordinate(z.top), b = this.series.priceToCoordinate(z.bottom);
+            if (a == null || b == null) continue;
+            ctx.fillStyle = BAND[z.grade];
+            ctx.fillRect(0, Math.min(a, b) * vr, bitmapSize.width, Math.abs(b - a) * vr);
+          }
+        }),
+      }),
+    }];
+  }
+}
+function makeChart(el, bars, { daily = false, lines = [], markers = [], segments = [], bands = [], series = [], fitDays = 90,
+  offEl = null, legendEl = null, volume = true, refs = {} } = {}) {
   if (S.chart) { S.chart.remove(); S.chart = null; }
   el.innerHTML = '';
+  if (legendEl) legendEl.innerHTML = '';
+  if (offEl) offEl.innerHTML = '';
   if (!bars?.length) { el.innerHTML = '<div class="empty">No bars.</div>'; return null; }
   const c = LightweightCharts.createChart(el, {
     autoSize: true,
     layout: { background: { type: 'solid', color: 'transparent' }, textColor: CH.text, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 11, attributionLogo: false },
     grid: { vertLines: { visible: false }, horzLines: { color: CH.grid } },
-    rightPriceScale: { borderVisible: false, minimumWidth: 58 },
+    // room at the top for the readout, at the bottom for volume
+    rightPriceScale: { borderVisible: false, minimumWidth: 58, scaleMargins: { top: legendEl ? 0.16 : 0.08, bottom: volume ? 0.16 : 0.06 } },
     // 960 one-minute bars (4 AM-8 PM) must fit a phone-width chart
     timeScale: { borderVisible: false, timeVisible: !daily, secondsVisible: false, rightOffset: daily ? 2 : 8, minBarSpacing: 0.05 },
     crosshair: { mode: 0, vertLine: { color: '#3a434b', labelBackgroundColor: '#1a1f24' }, horzLine: { color: '#3a434b', labelBackgroundColor: '#1a1f24' } },
@@ -268,10 +368,18 @@ function makeChart(el, bars, { daily = false, lines = [], markers = [], segments
       return { ...res, priceRange: { minValue: Math.min(res.priceRange.minValue, ...extra), maxValue: Math.max(res.priceRange.maxValue, ...extra) } };
     },
   });
-  const vol = c.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'vol', color: '#1c2227', lastValueVisible: false, priceLineVisible: false });
-  c.priceScale('vol').applyOptions({ scaleMargins: { top: 0.88, bottom: 0 } });
+  if (bands.length) candles.attachPrimitive(new Bands(bands));
   candles.setData(bars.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
-  vol.setData(bars.map(b => ({ time: b.time, value: b.value })));
+  if (volume) {
+    const vol = c.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
+    c.priceScale('vol').applyOptions({ scaleMargins: { top: 0.86, bottom: 0 } });
+    vol.setData(bars.map(b => ({ time: b.time, value: b.value || 0, color: b.close >= b.open ? 'rgba(70,185,138,.4)' : 'rgba(217,97,95,.4)' })));
+  }
+  for (const sr of series) {           // overlays never stretch the scale
+    const ls = c.addLineSeries({ color: sr.color, lineWidth: sr.width || 1, lineStyle: sr.style ?? 0, lastValueVisible: false,
+      priceLineVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null });
+    ls.setData(sr.data);
+  }
   for (const l of shown) {
     candles.createPriceLine({ price: l.price, color: l.color, lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: l.title || '' });
   }
@@ -280,12 +388,26 @@ function makeChart(el, bars, { daily = false, lines = [], markers = [], segments
     for (const s of segments) {
       const a = snapTime(s.from, times), b2 = snapTime(s.to, times);
       if (b2 <= a) continue;
-      const seg = c.addLineSeries({ color: s.color, lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+      const seg = c.addLineSeries({ color: s.color, lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false,
+        crosshairMarkerVisible: false, autoscaleInfoProvider: () => null });
       seg.setData([{ time: a, value: s.price }, { time: b2, value: s.price }]);
     }
-    if (markers.length) {
-      candles.setMarkers(markers.map(m => ({ ...m, time: snapTime(m.time, times) })).sort((x, y) => x.time - y.time));
-    }
+  }
+  if (markers.length) {
+    candles.setMarkers(markers.map(m => ({ ...m, time: snapTime(m.time, times) })).sort((x, y) => (x.time < y.time ? -1 : x.time > y.time ? 1 : 0)));
+  }
+  if (legendEl) {                      // the crosshair readout: OHLC and the moves that matter
+    const show = i => {
+      const b = bars[i];
+      const nextDay = refs.nextStart != null && b.time >= refs.nextStart;
+      const prior = daily ? (i > 0 ? bars[i - 1].close : null) : nextDay ? refs.dayClose : refs.prior;
+      const open = nextDay ? refs.nextOpen : refs.open;
+      legendEl.innerHTML = `<b>${daily ? esc(b.time) : hhmm(b.time)}</b> <span class="ohl">O ${px(b.open)} H ${px(b.high)} L ${px(b.low)} </span>C ${px(b.close)}` +
+        (prior ? ` · <span class="${b.close >= prior ? 'go' : 'neg'}">${pct(b.close / prior - 1)}</span> vs ${daily ? 'prior day' : 'prior close'}` : '') +
+        (!daily && open ? ` · ${pct(b.close / open - 1)} vs open` : '') + ` · vol ${fmtVol(b.value)}`;
+    };
+    show(bars.length - 1);
+    c.subscribeCrosshairMove(p => show(p.point && p.logical != null ? Math.max(0, Math.min(bars.length - 1, Math.round(p.logical))) : bars.length - 1));
   }
   const fit = () => daily ? c.timeScale().setVisibleLogicalRange({ from: bars.length - fitDays, to: bars.length + 2 }) : c.timeScale().fitContent();
   fit();
@@ -297,17 +419,29 @@ function gradeLines(ladder) {        // where each better grade starts, moving d
   return (ladder?.zones || []).slice(1).filter(z => z.grade !== '-')
     .map(z => ({ price: z.top, color: GRADE_LINE[z.grade], title: z.grade }));
 }
-function tradeMarks(trades, side) {
-  const long = side === 'bounce', markers = [], segments = [];
+function tradeMarks(trades, side, m = 2, bars1 = []) {
+  // The rules fire on 2-min closes (entry_t / exit_t = that 2-min bar's start). On any
+  // timeframe a fill at a bar's close sits on the bar holding that close; a stop or a
+  // trail sits on the 1-min bar that touched it.
+  const long = side === 'bounce', markers = [], segments = [], s = m * 60;
+  const fl = t => Math.floor(t / s) * s;
+  const atClose = t => fl(t + 119);
+  const touched = (t0, price, up) => {
+    const b = bars1.find(x => x.time >= t0 && x.time < t0 + 120 && (up ? x.high >= price : x.low <= price));
+    return fl(b ? b.time : t0);
+  };
   (trades || []).forEach((t, i) => {
-    markers.push({ time: t.entry_t, position: long ? 'belowBar' : 'aboveBar', color: long ? '#3ddc97' : '#ff6363',
+    const inAt = atClose(t.entry_t);
+    markers.push({ time: inAt, position: long ? 'belowBar' : 'aboveBar', color: long ? '#3ddc97' : '#ff6363',
       shape: long ? 'arrowUp' : 'arrowDown', text: String(i + 1) });
-    if (t.half) markers.push({ time: t.half.t, position: 'belowBar', color: '#a594ff', shape: 'circle', text: '½' });
+    if (t.half) markers.push({ time: touched(t.half.t, t.half.price, false), position: 'belowBar', color: '#a594ff', shape: 'circle', text: '½' });
+    let outAt = atClose(t.exit_t);
+    if (t.kind === 'stop' || t.kind === 'trail') outAt = touched(t.exit_t, t.kind === 'stop' ? t.stop : t.exit, !long);
     if (t.kind !== 'open') {
-      markers.push({ time: t.exit_t, position: long ? 'aboveBar' : 'belowBar', color: t.r >= 0 ? '#a594ff' : '#ff6363',
+      markers.push({ time: outAt, position: long ? 'aboveBar' : 'belowBar', color: t.r >= 0 ? '#a594ff' : '#ff6363',
         shape: long ? 'arrowDown' : 'arrowUp', text: rr(t.r) });
     }
-    segments.push({ from: t.entry_t, to: t.exit_t, price: t.stop, color: '#ff6363' });
+    segments.push({ from: inAt, to: outAt, price: t.stop, color: '#ff6363' });
   });
   return { markers, segments };
 }
@@ -323,6 +457,66 @@ const RULES_NOTE = {
   bounce: 'Rules: buy the first 2-min close above the prior bar’s high after a fresh low; stop at the low; once +1.5 ATR, trail the prior 2-min low; 2 attempts max.',
   reversal: 'Rules: short the first 2-min close below the prior bar’s low, 9:32–10:30; stop at the high of day; cover half into a 4-ATR flush, the rest on the 12:30 tripwire or at the close; 2 stop-outs lock the name.',
 };
+function chartCardHtml(scope, title) {
+  const tf = PREFS.tf[scope];
+  return `<div class="card chart-card${PREFS.expanded ? ' expanded' : ''}"><div class="card-head"><span class="eyebrow" id="chart-title">${esc(title)}</span>
+    <div class="chart-tools"><div class="seg small">${['1', '2', '5', 'D'].map(x =>
+      `<button data-ctf="${x}" data-scope="${scope}" class="${tf === x ? 'on' : ''}">${x === 'D' ? 'Daily' : `${x}m`}</button>`).join('')}</div>
+    <button class="btn ghost small" data-expand="1">${PREFS.expanded ? 'Smaller' : 'Bigger'}</button></div></div>
+    <div class="chart-wrap"><div class="chart" id="chart"></div><div class="legend" id="chart-legend"></div></div>
+    <div class="off-chart" id="chart-off"></div><div class="toggles" id="chart-toggles"></div><div id="live-rules"></div></div>`;
+}
+function togglesHtml(keys) {
+  return keys.map(k => `<label class="tog"><input type="checkbox" data-ov="${k}"${PREFS.ov[k] ? ' checked' : ''}><span>${OV[k]}</span></label>`).join('');
+}
+function levelLines(side, r, sess = null) {
+  const out = [{ price: r.prior_close, color: '#6f7873', title: 'prior close' }];
+  if (side === 'bounce') out.push({ price: r.mid_bb, color: '#a594ff', title: 'mid-BB' });
+  else out.push({ price: r.gap_level, color: '#ff6363', title: '+4%' }, { price: r.ema9, color: '#7cc4ff', title: '9EMA' });
+  const pmLow = sess ? sess.pm_low : side === 'bounce' ? r.pm_low : null;
+  if (pmLow != null) out.push({ price: pmLow, color: '#ffb547', title: 'PM low', style: 1, intraday: true });
+  return out;
+}
+function drawChart({ side, tf, bars1 = [], next1 = [], dailyBars = [], levels = [], ladder = null, trades = null, tradeDay = null, refs = {} }) {
+  if (!$('#chart')) return;
+  const ov = PREFS.ov, daily = tf === 'D', m = daily ? 1 : Number(tf);
+  const hasTrades = !daily && !!trades?.length;
+  const keys = [side === 'bounce' && ladder && 'grades', hasTrades && 'trades', hasTrades && 'stops', 'levels',
+    !daily && 'vwap', daily && 'avgs', daily && 'bands', 'volume', !daily && 'ext', !daily && next1.length && 'next'].filter(Boolean);
+  $('#chart-toggles').innerHTML = togglesHtml(keys);
+  const grades = ov.grades && side === 'bounce';
+  const lines = [...(ov.levels ? levels.filter(l => !(daily && l.intraday)) : []), ...(grades ? gradeLines(ladder) : [])];
+  const bands = grades ? (ladder?.zones || []).filter(z => BAND[z.grade]) : [];
+  const r2 = { ...refs }, markers = [], series = [];
+  let bars, segments = [];
+  if (daily) {
+    bars = dailyBars;
+    if (bars.length > 1 && (ov.avgs || ov.bands)) {
+      const a = dailyAverages(bars);
+      if (ov.avgs) series.push({ data: a.ema, color: '#7cc4ff' }, { data: a.s20, color: '#a594ff' }, { data: a.s50, color: 'rgba(242,244,239,.5)' });
+      if (ov.bands) series.push({ data: a.up, color: 'rgba(165,148,255,.55)', style: 2 }, { data: a.lo, color: 'rgba(165,148,255,.55)', style: 2 });
+    }
+    if (tradeDay && bars.some(b => b.time === tradeDay)) {
+      markers.push({ time: tradeDay, position: side === 'bounce' ? 'belowBar' : 'aboveBar', color: '#a594ff',
+        shape: side === 'bounce' ? 'arrowUp' : 'arrowDown', text: 'trade' });
+    }
+  } else {
+    const nxt = ov.next ? sessionWindow(next1, ov.ext) : [];
+    bars = resample([...sessionWindow(bars1, ov.ext), ...nxt], m);
+    if (ov.vwap) series.push(...vwapDays(bars).map(data => ({ data, color: '#e5c07b', width: 2 })));
+    if (hasTrades) {
+      const tm = tradeMarks(trades, side, m, bars1);
+      if (ov.trades) markers.push(...tm.markers);
+      if (ov.stops) segments = tm.segments;
+    }
+    if (nxt.length) {
+      r2.nextStart = Math.floor(nxt[0].time / (m * 60)) * m * 60;
+      markers.push({ time: r2.nextStart, position: 'aboveBar', color: '#aab2ad', shape: 'square', text: 'next day' });
+    }
+  }
+  makeChart($('#chart'), bars, { daily, lines, markers, segments, bands, series, fitDays: 70, offEl: $('#chart-off'),
+    legendEl: $('#chart-legend'), volume: ov.volume, refs: r2 });
+}
 
 // ── name detail ──────────────────────────────────────────────────────────
 function setTitle(html, sub) { $('#d-title').innerHTML = html; $('#d-sub').textContent = sub || ''; }
@@ -419,9 +613,7 @@ function renderDetail(side, soft = false) {
     return;
   }
   reader.innerHTML = `<div class="col"><div id="detail-top" data-tk="${esc(r.ticker)}">${lead}${lev}${kpis(pairs)}</div>
-    <div class="card chart-card"><div class="card-head"><span class="eyebrow">Chart${mode === 'market' ? ' · rules so far' : ''}</span>
-      <div class="seg small"><button data-tf="intraday" class="${S.chartTf === 'intraday' ? 'on' : ''}">1-min</button><button data-tf="day" class="${S.chartTf === 'day' ? 'on' : ''}">Daily</button></div></div>
-      <div class="chart" id="chart"></div><div class="off-chart" id="chart-off"></div><div id="live-rules"></div></div>
+    ${chartCardHtml('live', 'Chart')}
     <div id="ladder-slot">${side === 'bounce' ? ladderCard(r) : ''}</div>
     ${shotsCard(side, r.ticker)}
     ${linesCard("What's missing", misses)}${linesCard('Flags', flags)}${linesCard('Closest past setups', comps)}</div>`;
@@ -435,21 +627,20 @@ async function drawDetailChart(side, r) {
     data._t = Date.now(); S.bars[tk] = data;
   }
   if (!$('#chart') || S.sel[side] !== tk) return;
-  const daily = S.chartTf === 'day';
-  const lines = [{ price: r.prior_close, color: '#6f7873', title: 'prior close' }];
-  if (side === 'bounce') {
-    lines.push(...gradeLines(r.ladder), { price: r.mid_bb, color: '#a594ff', title: 'mid-BB' });
-    if (!daily) lines.push({ price: r.pm_low, color: '#ffb547', title: 'PM low', style: 1 });
-  } else {
-    lines.push({ price: r.gap_level, color: '#ff6363', title: '+4%' }, { price: r.ema9, color: '#7cc4ff', title: '9EMA' });
-  }
-  let marks = { markers: [], segments: [] }, live = null;
-  if (S.snap.mode === 'market' && !daily) {
+  let live = null;
+  if (S.snap.mode === 'market') {
     live = await liveReview(side, tk);
-    if (live?.trades) marks = tradeMarks(live.trades, side);
     if (!$('#chart') || S.sel[side] !== tk) return;
   }
-  makeChart($('#chart'), daily ? data.daily : data.intraday, { daily, lines, ...marks, offEl: $('#chart-off') });
+  S.redraw = () => {                   // reads the row fresh: live ticks move the levels
+    const row = (S.snap?.[side]?.rows || []).find(x => x.ticker === tk);
+    if (!row || !$('#chart') || S.sel[side] !== tk) return;
+    const tf = PREFS.tf.live;
+    $('#chart-title').textContent = tf === 'D' ? 'Daily' : `${tf}-min${S.snap.mode === 'market' ? ' · rules so far' : ''}`;
+    drawChart({ side, tf, bars1: data.intraday || [], dailyBars: data.daily || [], levels: levelLines(side, row),
+      ladder: side === 'bounce' ? row.ladder : null, trades: live?.trades, refs: { prior: row.prior_close, open: row.open } });
+  };
+  S.redraw();
   const box = $('#live-rules');
   if (box && live) {
     box.innerHTML = live.trades?.length
@@ -585,26 +776,38 @@ function renderEpisode() {
     `<div class="lines" style="margin-top:4px">${rows}</div></div>` +
     `<p class="foot-note">"Rules" R = the live entry and exit rules replayed on that day (the scorecard's number).</p></div>`;
 }
-async function renderReview() {
-  const ep = S.history?.[S.sel.history], tk = S.reviewTk, reader = $('#reader');
+function renderReview() {
+  const ep = S.history?.[S.sel.history], tk = S.reviewTk;
   if (!ep || !tk) return renderEpisode();
-  const side = ep.side, key = `${side}:${tk}:${ep.target}`;
   const name = ep.names.find(n => n.ticker === tk) || { ticker: tk };
-  setTitle(esc(tk), [`${dayLabel(ep.target)} · ${side === 'bounce' ? 'bounce' : 'reversal'} replay`,
-    name.rec ? `report: ${name.score || ''} ${name.rec} the night before` : null].filter(Boolean).join(' · '));
+  showReview({ side: ep.side, tk, date: ep.target, title: esc(tk),
+    sub: [`${dayLabel(ep.target)} · ${ep.side === 'bounce' ? 'bounce' : 'reversal'} replay`,
+      name.rec ? `report: ${name.score || ''} ${name.rec} the night before` : null].filter(Boolean).join(' · '),
+    back: `<button class="btn ghost small" data-back="1" style="margin-bottom:12px">‹ ${esc(dayLabel(ep.target))}</button>` });
+}
+
+// ── one replayed day (History and Best) ─────────────────────────────────
+async function showReview(ctx) {
+  const { side, tk, date } = ctx, reader = $('#reader'), key = `${side}:${tk}:${date}`;
+  S.reviewKey = key;
+  setTitle(ctx.title, ctx.sub);
   let d = S.reviews[key];
   if (!d) {
-    reader.innerHTML = '<div class="col"><div class="empty">Replaying the day…</div></div>';
-    try { d = await api(`/api/review?side=${side}&ticker=${encodeURIComponent(tk)}&date=${ep.target}`); } catch (e) {
-      reader.innerHTML = `<div class="col"><div class="empty neg">Couldn't replay: ${esc(e.message)}</div></div>`; return;
+    reader.innerHTML = `<div class="col">${ctx.back || ''}<div class="empty">Replaying the day…</div></div>`;
+    try {
+      d = await api(`/api/review?side=${side}&ticker=${encodeURIComponent(tk)}&date=${date}${ctx.cap ? `&cap=${encodeURIComponent(ctx.cap)}` : ''}`);
+    } catch (e) {
+      if (S.reviewKey === key) reader.innerHTML = `<div class="col">${ctx.back || ''}<div class="empty neg">Couldn't replay: ${esc(e.message)}</div></div>`;
+      return;
     }
     S.reviews[key] = d;
-    if (S.reviewTk !== tk || S.history?.[S.sel.history] !== ep) return;
+    if (S.reviewKey !== key) return;
   }
   if (d.at_open?.grade) $('#d-title').insertAdjacentHTML('beforeend', ` ${gradeBadge(d.at_open.grade)}`);
   const sess = d.session || {}, o = d.at_open, out = d.outcome || {};
   let head;
-  if (!d.candles?.length) head = `<div class="card callout warn"><div class="eyebrow">No bars</div><div style="margin-top:6px">${esc(d.error || 'Polygon has no minute bars for this day yet.')}</div></div>`;
+  if (!d.candles?.length) head = `<div class="card callout warn"><div class="eyebrow">No bars</div><div style="margin-top:6px">${
+    date > etToday() ? `${esc(dayLabel(date))} hasn't traded yet.` : esc(d.error || 'Polygon has no minute bars for this day yet.')}</div></div>`;
   else if (side === 'bounce' && o) head = `<div class="card callout"><div class="eyebrow">Graded at the open</div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="big ${GRADE_CLS[o.grade]}-text">${esc(gradeLabel(o.grade))}</span>
       <span class="muted">${o.score}/6 · intensity ${o.intensity != null ? Math.round(o.intensity) : '–'} · opened ${px(o.price)} (${pct(o.gap)})</span></div></div>`;
@@ -621,34 +824,105 @@ async function renderReview() {
     sess.high != null ? ['High of day', `${px(sess.high)} @ ${sess.high_time}`] : null,
     sess.close != null ? [d.live ? `Last (${sess.last_time})` : 'Close', px(sess.close)] : null,
   ].filter(Boolean).map(([a, b2]) => [esc(a), '', `<span class="num">${esc(b2)}</span>`]);
+  const ns = d.next_session || {}, dc = sess.close;
+  const nextRows = d.next_date && ns.open != null ? [
+    ['Open', ns.open, dc], ['High', ns.high, ns.open], ['Low', ns.low, ns.open], ['Close', ns.close, dc],
+  ].map(([k, v, ref]) => [esc(k), '', `<span class="num">${px(v)}</span> <span class="muted">${ref ? pct(v / ref - 1) : ''} vs ${k === 'High' || k === 'Low' ? 'its open' : 'the close before'}</span>`]) : [];
   const outRows = [
     out.d0_pct != null ? ['Open → close', '', `<b class="${(side === 'bounce' ? 1 : -1) * out.d0_pct > 0 ? 'go' : 'neg'}">${pct(out.d0_pct)}</b>`] : null,
     out.mfe_atr_d0 != null ? ['Best move from the open', '', `${Number(out.mfe_atr_d0).toFixed(1)} ATR`] : null,
     out.exit_r != null ? ['Scorecard rules R', '', rr(out.exit_r)] : null,
     out.d1_pct != null ? ['Next day', '', pct(out.d1_pct)] : null,
   ].filter(Boolean);
-  reader.innerHTML = `<div class="col"><button class="btn ghost small" data-back="1" style="margin-bottom:12px">‹ ${esc(dayLabel(ep.target))}</button>${head}
-    <div class="card chart-card"><div class="card-head"><span class="eyebrow">${S.reviewTf === 'daily' ? 'Daily · night-before ladder' : '2-min · 9:00–16:00'}</span>
-      <div class="seg small"><button data-rtf="day2" class="${S.reviewTf === 'day2' ? 'on' : ''}">2-min</button><button data-rtf="daily" class="${S.reviewTf === 'daily' ? 'on' : ''}">Daily</button></div></div>
-      <div class="chart" id="chart"></div><div class="off-chart" id="chart-off"></div></div>
-    ${rulesCard}${linesCard('The session', sessRows)}${linesCard('Scorecard', outRows)}</div>`;
-  if (!d.candles?.length && S.reviewTf === 'day2') return;
-  const daily = S.reviewTf === 'daily';
-  const lines = [{ price: d.prior_close, color: '#6f7873', title: 'prior close' }];
-  if (side === 'bounce') lines.push(...gradeLines(d.ladder), { price: d.mid_bb, color: '#a594ff', title: 'mid-BB' });
-  else lines.push({ price: d.gap_level, color: '#ff6363', title: '+4%' }, { price: d.ema9, color: '#7cc4ff', title: '9EMA' });
-  if (!daily && sess.pm_low != null) lines.push({ price: sess.pm_low, color: '#ffb547', title: 'PM low', style: 1 });
-  // the replay shows 9:00-16:00: the rules trade the session; scroll for the rest
-  const tod = t => { const x = new Date(t * 1000); return x.getUTCHours() * 60 + x.getUTCMinutes(); };
-  const session = (d.candles || []).filter(b => tod(b.time) >= 540 && tod(b.time) < 960);
-  makeChart($('#chart'), daily ? d.daily : session, { daily, lines, fitDays: 70, offEl: $('#chart-off'),
-    ...(daily ? {} : tradeMarks(d.trades, side)) });
+  reader.innerHTML = `<div class="col">${ctx.back || ''}${head}${chartCardHtml('replay', '')}${rulesCard}${ctx.cards ? ctx.cards(d) : ''}
+    ${linesCard('The session', sessRows)}${linesCard(d.next_date ? `Next day · ${esc(dayLabel(d.next_date))}` : 'Next day', nextRows)}${linesCard('Scorecard', outRows)}</div>`;
+  S.redraw = () => {
+    if (S.reviewKey !== key || !$('#chart')) return;
+    const tf = PREFS.tf.replay;
+    $('#chart-title').textContent = tf === 'D' ? 'Daily · night-before ladder' : `${tf}-min${PREFS.ov.ext ? '' : ' · 9:00–16:00'}`;
+    if (tf !== 'D' && !d.candles?.length) { $('#chart').innerHTML = '<div class="empty">No bars.</div>'; return; }
+    drawChart({ side, tf, bars1: d.candles || [], next1: d.next_candles || [], dailyBars: d.daily || [],
+      levels: levelLines(side, d, sess), ladder: side === 'bounce' ? d.ladder : null, trades: d.trades, tradeDay: date,
+      refs: { prior: d.prior_close, open: sess.open, dayClose: sess.close, nextOpen: ns.open } });
+  };
+  S.redraw();
+}
+
+// ── best trades: your graded trades, replayed with the systems on them ──
+const dayLabelY = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', year: '2-digit' });
+const shortSetup = s => s.replace(/_?(weak|strong)stock$/, (_, w) => ` · ${w}`).replace(/^GapFade/, 'Gap fade');
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+function bestRows() {
+  const f = PREFS.best;
+  const rows = (S.lib || []).filter(r => r.side === f.side && (!f.grades.length || f.grades.includes(r.grade))
+    && (!f.cap || r.cap === f.cap) && (!f.setup || r.setup === f.setup));
+  const val = { move: r => r.move_atr, rules: r => r.rules_r }[f.sort];
+  return rows.sort(val ? (a, b) => (val(b) ?? -1e9) - (val(a) ?? -1e9) : (a, b) => (a.date < b.date ? 1 : -1));
+}
+function bestSummary(rows) {
+  if (!rows.length) return '';
+  const ok = rows.filter(r => r.ok), rs = ok.filter(r => r.rules_r != null).map(r => r.rules_r);
+  const sys = PREFS.best.side === 'bounce'
+    ? `system had ${Math.round(100 * ok.filter(r => r.sys_grade === 'A' || r.sys_grade === 'A+').length / Math.max(1, ok.length))}% at A or better at the open`
+    : `${Math.round(100 * ok.filter(r => r.sys_scenario === 'A').length / Math.max(1, ok.length))}% opened +4% or more`;
+  return `${rows.length} trades · ${sys} · rules ${rs.length ? `median ${rr(median(rs))} on the ${rs.length} that fired` : 'never fired'}`;
+}
+function bestFilters() {
+  const f = PREFS.best, side = (S.lib || []).filter(r => r.side === f.side);
+  const opts = (vals, cur, all) => `<option value="">${all}</option>` + vals.map(v => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
+  const setups = [...new Set(side.map(r => r.setup).filter(Boolean))].sort();
+  const caps = ['ETF', 'Large', 'Medium', 'Small', 'Micro'].filter(c => side.some(r => r.cap === c));
+  return `<div class="filters"><div class="frow"><div class="seg"><button data-bside="bounce" class="${f.side === 'bounce' ? 'on' : ''}">Bounce</button>` +
+    `<button data-bside="reversal" class="${f.side === 'reversal' ? 'on' : ''}">Reversal</button></div>` +
+    `<div class="chips" role="group" aria-label="Your grade">${['A', 'B', 'C'].map(g => `<button class="chip${f.grades.includes(g) ? ' on' : ''}" data-bgrade="${g}" aria-pressed="${f.grades.includes(g)}">${g}</button>`).join('')}</div></div>` +
+    `<div class="frow selects"><select data-bf="cap" aria-label="Cap">${opts(caps, f.cap, 'All caps')}</select>` +
+    `<select data-bf="setup" aria-label="Setup">${opts(setups, f.setup, 'All setups')}</select>` +
+    `<select data-bf="sort" aria-label="Sort">${[['move', 'By move'], ['newest', 'By date'], ['rules', 'By rules R']].map(([v, l]) =>
+      `<option value="${v}"${f.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>`;
+}
+function bestCard(r) {
+  const bounce = r.side === 'bounce';
+  const sys = bounce ? (r.sys_grade ? gradeBadge(r.sys_grade) : '') : (r.sys_scenario ? `<span class="badge ${r.sys_scenario}">${r.sys_scenario}</span>` : '');
+  const move = r.move != null ? `${bounce ? 'open→high' : 'open→low'} ${pct(bounce ? r.move : -r.move, 0)}${r.move_atr != null ? ` (${r.move_atr.toFixed(1)} ATR)` : ''}` : null;
+  const rules = !r.ok ? 'no bars' : r.rules_r != null ? `rules ${rr(r.rules_r)}` : 'no rules entry';
+  return `<div class="card name${wide() && S.sel.best === r.key ? ' sel' : ''}" role="button" tabindex="0" data-best="${esc(r.key)}">` +
+    `<div class="l1"><span class="tk">${esc(r.ticker)}</span><span class="badge mine" title="Your grade">You ${esc(r.grade || '?')}</span>` +
+    `${sys ? `<span class="sys">${bounce ? 'system' : 'open'}</span>${sys}` : ''}<span class="cap">${esc(r.cap || '')}</span></div>` +
+    `<div class="l2 num">${[dayLabelY(r.date), move, rules].filter(Boolean).map(esc).join(' · ')}` +
+    `${r.setup ? `<br><span class="muted">${esc(shortSetup(r.setup))}</span>` : ''}</div></div>`;
+}
+async function renderBest() {
+  const list = $('#list');
+  if (!S.lib) {
+    list.innerHTML = '<div class="empty">Loading…</div>';
+    try { S.lib = (await api('/api/library')).rows || []; } catch (e) {
+      list.innerHTML = `<div class="empty neg">${esc(e.message)}</div>`; return;
+    }
+    if (S.route !== 'best') return;
+  }
+  const rows = bestRows();
+  if (wide() && rows.length && !rows.some(r => r.key === S.sel.best)) S.sel.best = rows[0].key;
+  const side = PREFS.best.side === 'bounce' ? 'bounces' : 'reversals';
+  list.innerHTML = listHead('Best trades', `Your ${side}`, esc(bestSummary(rows))) + bestFilters() +
+    (!S.lib.length ? '<div class="empty">Not built yet. On the mini: python -m method.library</div>'
+      : rows.length ? rows.map(bestCard).join('') : '<div class="empty">No trades match these filters.</div>');
+  if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });
+  renderBestDetail();
+}
+function renderBestDetail() {
+  const r = (S.lib || []).find(x => x.key === S.sel.best), reader = $('#reader');
+  if (!r) { setTitle('Best trades', ''); reader.innerHTML = '<div class="col"><div class="empty">Pick a trade.</div></div>'; return; }
+  const log = linesCard('Your log', (r.log || []).map(([k, v]) => [esc(k), '', `<span class="num">${esc(v)}</span>`]),
+    `<p class="foot-note" style="margin:10px 0 0">From ${r.side === 'bounce' ? 'bounce_data.csv' : 'reversal_data.csv'}. Your grade: ${esc(r.grade || '–')}.</p>`);
+  showReview({ side: r.side, tk: r.ticker, date: r.date, cap: r.cap, title: esc(r.ticker),
+    sub: [dayLabelY(r.date), r.side, `your grade ${r.grade || '–'}`, r.cap].filter(Boolean).join(' · '), cards: () => log });
 }
 
 // ── events ───────────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
   const card = e.target.closest('.name');
   if (card) {
+    if (card.dataset.best != null) return go('best', card.dataset.best, wide());
     if (card.dataset.ep != null) return go('history', card.dataset.ep, wide());
     return go(card.dataset.side, card.dataset.tk, wide());
   }
@@ -657,8 +931,26 @@ document.addEventListener('click', e => {
   if (t.dataset.review) return go('history', S.sel.history, false, t.dataset.review);
   if (t.dataset.back != null) return back();
   if (t.dataset.more) { S.showAll[t.dataset.more] = !S.showAll[t.dataset.more]; return render(); }
-  if (t.dataset.tf) { S.chartTf = t.dataset.tf; return render(); }
-  if (t.dataset.rtf) { S.reviewTf = t.dataset.rtf; return render(); }
+  if (t.dataset.ctf) {                 // timeframe: redraw the chart only
+    PREFS.tf[t.dataset.scope] = t.dataset.ctf; savePrefs();
+    $$('[data-ctf]').forEach(b => b.classList.toggle('on', b === t));
+    return S.redraw?.();
+  }
+  if (t.dataset.expand) {
+    PREFS.expanded = !PREFS.expanded; savePrefs();
+    t.closest('.chart-card')?.classList.toggle('expanded', PREFS.expanded);
+    t.textContent = PREFS.expanded ? 'Smaller' : 'Bigger';
+    return;
+  }
+  if (t.dataset.bside) {
+    if (PREFS.best.side !== t.dataset.bside) Object.assign(PREFS.best, { side: t.dataset.bside, setup: '' });
+    savePrefs(); return render();
+  }
+  if (t.dataset.bgrade) {
+    const g = t.dataset.bgrade, gs = PREFS.best.grades;
+    PREFS.best.grades = gs.includes(g) ? gs.filter(x => x !== g) : [...gs, g].sort();
+    savePrefs(); return render();
+  }
   if (t.dataset.lside) { S.lessonSide = t.dataset.lside; return render(); }
   if (t.dataset.shot) return postShot({ side: S.route === 'playbook' ? S.lessonSide : S.route, ticker: t.dataset.tk, kind: t.dataset.shot });
   if (t.dataset.undo) return postShot({ kind: 'undo' });
@@ -666,17 +958,29 @@ document.addEventListener('click', e => {
   if (t.id === 'push-test') return api('/api/push/test', { method: 'POST', body: '{}' })
     .then(r => { $('#push-status').textContent = r.sent ? 'Test sent.' : 'No device is subscribed.'; });
 });
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.ov) { PREFS.ov[el.dataset.ov] = el.checked; savePrefs(); return S.redraw?.(); }
+  if (el.dataset.bf) { PREFS.best[el.dataset.bf] = el.value; savePrefs(); return render(); }
+});
 document.addEventListener('keydown', e => {
+  if (e.target.matches?.('input, select, textarea')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === 'Enter' && e.target.classList?.contains('name')) return e.target.click();
   const i = ROUTES.indexOf(S.route);
-  if (/^[1-4]$/.test(e.key)) return go(ROUTES[Number(e.key) - 1]);
+  if (/^[1-5]$/.test(e.key)) return go(ROUTES[Number(e.key) - 1]);
   if (e.key === 'ArrowRight') { e.preventDefault(); return go(ROUTES[(i + 1) % ROUTES.length]); }
   if (e.key === 'ArrowLeft') { e.preventDefault(); return go(ROUTES[(i + ROUTES.length - 1) % ROUTES.length]); }
   if (e.key === 'Escape') return back();
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
   e.preventDefault();
   const step = e.key === 'ArrowDown' ? 1 : -1;
+  if (S.route === 'best') {
+    const rows = bestRows();
+    if (!rows.length) return;
+    const at = rows.findIndex(r => r.key === S.sel.best);
+    return go('best', rows[Math.max(0, Math.min(rows.length - 1, at + step))].key, true);
+  }
   if (S.route === 'history' && S.history?.length) {
     return go('history', Math.max(0, Math.min(S.history.length - 1, (S.sel.history ?? -1) + step)), true);
   }
