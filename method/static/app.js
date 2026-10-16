@@ -1025,6 +1025,17 @@ async function poll() {
   }
 }
 
+// iOS 26 home-screen app with a translucent status bar: the viewport ends short of the screen by
+// the top inset (59pt on a Pro), so the tab bar already sits clear of the home indicator. Tell the
+// CSS how short it is so it stops padding for the indicator on top of that.
+function fitViewport() {
+  const full = innerHeight > innerWidth ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  const short = navigator.standalone === true ? Math.min(Math.max(0, full - innerHeight), 120) : 0;   // iOS only
+  document.documentElement.style.setProperty('--vshort', `${short}px`);
+}
+fitViewport();
+addEventListener('resize', fitViewport);
+
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 applyRoute();
 (async function pollLoop() {        // every 15 s while the PC streams Trillium, else every minute

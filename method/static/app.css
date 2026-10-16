@@ -31,6 +31,9 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+  /* the bottom inset still to clear: iOS 26 home-screen apps can end the viewport short of the screen
+     (app.js sets --vshort), which already lifts everything clear of the home indicator */
+  --sab-ui: max(0px, var(--sab) - var(--vshort, 0px));
   --tabbar-h: 58px;
   color-scheme: dark;
 }
@@ -57,14 +60,14 @@ h1, h2, h3, p { margin: 0; }
 .main { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
 .pane { min-height: 0; min-width: 0; display: none; flex-direction: column; background: var(--bg); }
 .scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-  padding: 4px calc(16px + var(--sar)) calc(var(--tabbar-h) + var(--sab) + 28px) calc(16px + var(--sal)); }
+  padding: 4px calc(16px + var(--sar)) calc(var(--tabbar-h) + var(--sab-ui) + 28px) calc(16px + var(--sal)); }
 
 /* phone: the list, or the detail (Playbook is detail-only) */
 .app[data-view="list"] .pane-list { display: flex; }
 .app[data-view="detail"] .pane-detail, .app[data-route="playbook"] .pane-detail { display: flex; }
 .app[data-route="playbook"] .pane-list { display: none; }
 .app[data-view="detail"]:not([data-route="playbook"]) .tabbar { display: none; }
-.app[data-view="detail"]:not([data-route="playbook"]) .pane-detail .scroll { padding-bottom: calc(var(--sab) + 28px); }
+.app[data-view="detail"]:not([data-route="playbook"]) .pane-detail .scroll { padding-bottom: calc(var(--sab-ui) + 28px); }
 .app[data-route="playbook"] .back { display: none; }
 
 .topbar { display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--sat)) calc(16px + var(--sar)) 10px calc(16px + var(--sal));
@@ -85,7 +88,7 @@ h1, h2, h3, p { margin: 0; }
 .icon-btn:active { background: var(--bg-3); }
 
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr);
-  height: calc(var(--tabbar-h) + var(--sab)); padding: 6px calc(10px + var(--sar)) var(--sab) calc(10px + var(--sal));
+  height: calc(var(--tabbar-h) + var(--sab-ui)); padding: 6px calc(10px + var(--sar)) var(--sab-ui) calc(10px + var(--sal));
   background: rgba(8, 10, 12, .86); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border-top: 1px solid var(--line); }
 .tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--text-3);
