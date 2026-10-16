@@ -246,12 +246,17 @@ const STATE_DAY = { normal: 'a normal day', elevated: 'an elevated day', breadth
 const STATE_DAYS = { normal: 'normal days', elevated: 'elevated days', breadth: 'breadth days' };
 const shortDate = iso => { const [y, m, d] = String(iso).split('-'); return `${+m}/${+d}/${y.slice(2)}`; };
 // the recorded days alone (method/breadth.py records each session; the table rebuilds nightly)
-function sinceText(e, state) {
-  const s = e?.since_study;
-  if (!s || !STATE_DAYS[state]) return '';
+// a day type's (or a breadth day's strength's) nouns: [one day, many days]
+const DAY_NOUNS = { normal: ['normal day', 'normal days'], elevated: ['elevated day', 'elevated days'],
+  breadth: ['breadth day', 'breadth days'], '11-15': ['breadth day with 11–15 names', 'breadth days with 11–15 names'],
+  '16+': ['strong breadth day', 'strong breadth days'] };
+// the recorded days alone (method/breadth.py records each session; the table rebuilds nightly)
+function sinceText(e, kind) {
+  const s = e?.since_study, nouns = DAY_NOUNS[kind];
+  if (!s || !nouns) return '';
   const lead = `Since the study (${shortDate(s.since)}): `;
-  if (!s.days) return `${lead}no ${STATE_DAYS[state]} yet.`;
-  const days = `${s.days} ${s.days === 1 ? STATE_DAYS[state].slice(0, -1) : STATE_DAYS[state]}`;
+  if (!s.days) return `${lead}no ${nouns[1]} yet.`;
+  const days = `${s.days} ${s.days === 1 ? nouns[0] : nouns[1]}`;
   const green = s.traded_days ? `, ${s.pos_days} of ${s.traded_days} days positive` : '';
   return s.n ? `${lead}${days}, ${s.n} names, ${rr(s.mean_r)} a name, ${upct(s.win)} green${green}.` : `${lead}${days}, no entries yet.`;
 }
@@ -265,7 +270,15 @@ function breadthCard(s) {
     return `<div class="card breadth"><div class="eyebrow">Market breadth</div>
       <div class="muted small-line">Counts for ${esc(dayLabel(mb.session))} are built at 5:45 PM ET.</div></div>`;
   }
-  const e = mb.edge || {};
+  // a breadth day leads with its strength's edge: the edge sat at 16+ names, 11-15 was near a coin flip
+  const band = mb.state === 'breadth' ? mb.band : null, bands = mb.bands || {};
+  const e = band && bands[band]?.mean_r != null ? bands[band] : mb.edge || {};
+  const strong = band === '16+';
+  const word = strong ? 'Strong breadth day' : STATE_WORD[mb.state], cls = band === '11-15' ? 'caution' : STATE_CLS[mb.state];
+  const all = mb.edge || {}, top = bands['16+'];
+  const bandNote = band === '11-15' && top?.mean_r != null
+    ? `11–15 names has been close to a coin flip. The edge has been at 16+ names: ${rr(top.mean_r)} a name, ${top.pos_days} of ${top.traded_days} days positive.`
+    : strong && all.mean_r != null ? `All breadth days (11+): ${rr(all.mean_r)} a name, ${all.pos_days} of ${all.traded_days} days positive.` : '';
   const when = mb.basis === 'open' ? 'at the open'
     : s.mode === 'evening' ? 'if it opened at the after-hours price'
     : s.mode === 'market' ? 'so far, opens still coming in' : 'if it opens here';
@@ -278,14 +291,16 @@ function breadthCard(s) {
   const chips = [...counted.map(t => chip(t, 'go')), ...extra.map(t => chip(t, 'nogo'))];
   const relaxed = mb.state === 'breadth' ? (mb.relaxed || []).map(t => chip(t, 'caution')) : [];
   const near = mb.locked ? [] : (mb.near || []).slice(0, 4).map(x => `${x.ticker} ${px(x.flag_price)} (${pct(-x.away)})`);
-  const days = e.traded_days ? `${e.n} names on ${Number(e.traded_days).toLocaleString('en-US')} days like this: ` +
+  const like = band && e !== mb.edge ? `days with ${band === '16+' ? '16+' : '11–15'} names` : 'days like this';
+  const days = e.traded_days ? `${e.n} names on ${Number(e.traded_days).toLocaleString('en-US')} ${like}: ` +
     `${e.pos_days} of ${e.traded_days} days positive, typical day ${rr(e.day_mean_r)}. Your entry and trail rules.` : '';
   const etf = mb.n_etf ? ` · ${mb.n_etf} ${mb.n_etf === 1 ? 'is an ETF' : 'are ETFs'}` : '';
-  return `<div class="card breadth st-${esc(mb.state)}">
+  return `<div class="card breadth st-${esc(mb.state)}${strong ? ' st-strong' : ''}">
     <div class="eyebrow">Market breadth · ${esc(when)}${mb.asof ? ` · ${esc(mb.asof.slice(11, 16))}` : ''}</div>
-    <div class="bline"><b class="num">${mb.n}</b><span>names B or better market-wide${esc(etf)}</span><span class="badge ${STATE_CLS[mb.state]}">${esc(STATE_WORD[mb.state])}</span></div>
+    <div class="bline"><b class="num">${mb.n}</b><span>names B or better market-wide${esc(etf)}</span><span class="badge ${cls}">${esc(word)}</span></div>
     ${edgeText(e) ? `<div class="edge">Bounce edge today: <b class="num ${e.mean_r >= 0.5 ? 'go' : ''}">${esc(edgeText(e))}</b><small>${esc(days)}</small>` +
-      `${sinceText(e, mb.state) ? `<small class="since">${esc(sinceText(e, mb.state))}</small>` : ''}</div>` : ''}
+      `${sinceText(e, band || mb.state) ? `<small class="since">${esc(sinceText(e, band || mb.state))}</small>` : ''}</div>` : ''}
+    ${bandNote ? `<div class="band-note${band === '11-15' ? ' weak' : ''}">${esc(bandNote)}</div>` : ''}
     ${mb.drift ? `<div class="drift">${esc(`Breadth days since the study are running below history: ${mb.drift.days} days, ${rr(mb.drift.mean_r)} a name (the study: ${rr(mb.drift.history_mean_r)}).`)}</div>` : ''}
     ${chips.length ? `<div class="tickers">${chips.join('')}</div>` : ''}
     ${relaxed.length ? `<div class="muted small-line">Relaxed rules (breadth days only, not counted)</div><div class="tickers">${relaxed.join('')}</div>` : ''}

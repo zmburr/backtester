@@ -508,7 +508,7 @@ def market_breadth(session: str, mode: str, today: str, now: datetime.datetime, 
         # what the card said at the open, kept for the day's record (the evening pass moves
         # market_breadth.json on to the next session before the record is written)
         core.write_json(breadth.live_path(session), {k: mb.get(k) for k in (
-            "n", "n_etf", "state", "basis", "asof", "names", "relaxed", "trillium", "pushed")})
+            "n", "n_etf", "state", "band", "basis", "asof", "names", "relaxed", "trillium", "pushed")})
         cutoff = (datetime.date.fromisoformat(session) - datetime.timedelta(days=14)).isoformat()
         for p in breadth.METHOD_DIR.glob("breadth_live_*.json"):
             if p.stem.rsplit("_", 1)[-1] < cutoff:

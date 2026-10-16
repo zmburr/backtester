@@ -51,7 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from analyzers.bounce_scorer import SETUP_PROFILES  # noqa: E402
-from method.breadth import BREADTH_DAY, ELEVATED, FLAG_SCORE, LOOP_START, RELAX  # noqa: E402
+from method.breadth import BANDS, BREADTH_DAY, ELEVATED, FLAG_SCORE, LOOP_START, RELAX  # noqa: E402
 
 DATA = ROOT / "data"
 EV = DATA / "score_ev_study.csv"
@@ -286,7 +286,7 @@ def build_table(hist: pd.DataFrame, study_days: pd.DataFrame, rec: pd.DataFrame,
     """The card's table: every cell from the study plus the recorded days, and each state's
     since-the-study cell from the recorded days alone."""
     names = (hist if rec.empty else pd.concat([hist, rec], ignore_index=True)).copy()
-    for c in ("exit_r", "r1", "r2", "score"):
+    for c in ("exit_r", "r1", "r2", "score", "n_flag"):
         names[c] = pd.to_numeric(names[c], errors="coerce")
     days = study_days[["date", "n_flag", "state"]]
     if len(rec_days):
@@ -301,7 +301,7 @@ def build_table(hist: pd.DataFrame, study_days: pd.DataFrame, rec: pd.DataFrame,
              "sources": {"study": f"{study_days.date.min()}..{study_days.date.max()}",
                          "recorded": {"since": LOOP_START, "sessions": int(len(rec_days)), "last": last}},
              "shrink_n": SHRINK_N, "thresholds": {"elevated": ELEVATED, "breadth": BREADTH_DAY},
-             "states": {}, "relaxed": {}, "watchlist": {}, "drift": None}
+             "states": {}, "bands": {}, "relaxed": {}, "watchlist": {}, "drift": None}
     for name, _, _ in STATES:
         x = strict[strict.state == name]
         base = cell(x.exit_r, days=int(by_state.get(name, 0)), dates=x.date, entries=per_entry(x))
@@ -316,6 +316,15 @@ def build_table(hist: pd.DataFrame, study_days: pd.DataFrame, rec: pd.DataFrame,
         if watch is not None:
             w = watch[watch.state == name]
             table["watchlist"][name] = cell(w.exit_r, dates=w.date)
+    # a breadth day's strength: the edge sat at 16+ names (11-15 was close to a coin flip)
+    rec_n = pd.to_numeric(rec.n_flag, errors="coerce") if len(rec) else pd.Series(dtype=float)
+    for band, lo, hi in BANDS:
+        x = strict[strict.n_flag.between(lo, hi)]
+        base = cell(x.exit_r, days=int(days.n_flag.between(lo, hi).sum()), dates=x.date, entries=per_entry(x))
+        y = rec[(rec.kind == "strict") & rec_n.between(lo, hi)] if len(rec) else rec
+        since = cell(pd.to_numeric(y.exit_r, errors="coerce"), dates=y.date, entries=per_entry(y) if len(y) else None,
+                     days=int(rec_days.n_flag.between(lo, hi).sum()) if len(rec_days) else 0)
+        table["bands"][band] = {**base, "since_study": {**since, "since": LOOP_START}}
     rb = relaxed[relaxed.state == "breadth"]
     if len(rb):
         table["relaxed"]["breadth"] = cell(rb.exit_r, dates=rb.date, entries=per_entry(rb))

@@ -231,6 +231,62 @@
    }
   }
  },
+ "bands": {
+  "11-15": {
+   "n": 121,
+   "mean_r": 0.136,
+   "median_r": -0.228,
+   "win": 0.479,
+   "entry_n": 187,
+   "entry_mean_r": 0.088,
+   "entry_win": 0.31,
+   "days": 10,
+   "day_mean_r": 0.132,
+   "traded_days": 10,
+   "pos_days": 5,
+   "since_study": {
+    "n": 37,
+    "mean_r": -1.053,
+    "median_r": -2.0,
+    "win": 0.243,
+    "entry_n": 69,
+    "entry_mean_r": -0.565,
+    "entry_win": 0.13,
+    "days": 3,
+    "day_mean_r": -1.066,
+    "traded_days": 3,
+    "pos_days": 0,
+    "since": "2026-07-01"
+   }
+  },
+  "16+": {
+   "n": 302,
+   "mean_r": 1.558,
+   "median_r": 0.706,
+   "win": 0.55,
+   "entry_n": 463,
+   "entry_mean_r": 1.016,
+   "entry_win": 0.363,
+   "days": 13,
+   "day_mean_r": 1.733,
+   "traded_days": 13,
+   "pos_days": 8,
+   "since_study": {
+    "n": 91,
+    "mean_r": 1.881,
+    "median_r": 0.756,
+    "win": 0.527,
+    "entry_n": 148,
+    "entry_mean_r": 1.157,
+    "entry_win": 0.331,
+    "days": 3,
+    "day_mean_r": 3.469,
+    "traded_days": 3,
+    "pos_days": 2,
+    "since": "2026-07-01"
+   }
+  }
+ },
  "relaxed": {
   "breadth": {
    "n": 344,

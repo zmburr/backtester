@@ -245,6 +245,29 @@ def test_the_frozen_study_rebuilds_the_studys_numbers():
     assert t["states"]["normal"]["days"] == 1080 and t["states"]["elevated"]["n"] == 203
 
 
+def test_a_breadth_days_strength_has_its_own_cell():
+    hist, days = _hist()                                           # study names on 12-name days
+    strong = hist.assign(n_flag=20, exit_r=3.0, ticker=lambda x: "T" + x.ticker, date="2025-06-02")
+    days = pd.concat([days, pd.DataFrame({"date": ["2025-06-02"], "n_flag": [20], "state": ["breadth"]})])
+    t = E.build_table(pd.concat([hist, strong]), days, *_rec(2, r=-1.0))
+    weak, top = t["bands"]["11-15"], t["bands"]["16+"]
+    assert (weak["n"], weak["days"], top["n"], top["days"]) == (46, 6, 40, 1)    # recorded 11-name days are 11-15
+    assert top["mean_r"] == 3.0                                                  # the copied low row isn't strict
+    assert weak["since_study"]["days"] == 2 and top["since_study"]["days"] == 0
+    assert [B.band_for(n) for n in (10, 11, 15, 16, 40, None)] == [None, "11-15", "11-15", "16+", "16+", None]
+
+
+def test_the_push_names_a_strong_breadth_day(bdir):
+    bands = {"11-15": {"n": 121, "mean_r": 0.14, "win": 0.48}, "16+": {"n": 302, "mean_r": 1.56, "win": 0.55}}
+    for n, title, says in ((16, "Strong breadth day · 16 names", "Days like this (16+ names): +1.6R a name"),
+                           (12, "Breadth day · 12 names", "The edge has been at 16+ names: +1.6R a name")):
+        sent = []
+        mb = {"status": "ok", "session": f"2026-10-{n}", "n": n, "n_etf": 0, "state": "breadth", "basis": "open",
+              "band": B.band_for(n), "bands": bands, "names": ["A"], "edge": {"mean_r": 1.2, "win": 0.57}, "asof": "x"}
+        assert B.breadth_push(mb, lambda t, b, url, tag: sent.append((t, b)) or 1)
+        assert sent[0][0] == title and says in sent[0][1]
+
+
 def test_each_best_trade_gets_its_day_type():
     rows = [{"date": "2025-04-07"}, {"date": "2019-01-02"}]
     library.tag_days(rows, {"2025-04-07": (39, "breadth")})

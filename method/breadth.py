@@ -68,6 +68,8 @@ LIST_MIN_DOLLAR_ADV = 9_000_000   # listed but not counted (feedback: no price f
 COUNT_CAPS = ("Large", "ETF", "Medium", "Small")   # the population's --cap
 FLAG_SCORE = 4
 BREADTH_DAY = 11                  # the study's trigger
+STRONG = 16                       # within breadth days the edge sat at 16+ names (10/16 review:
+                                  # 11-15 +0.14R a name, 5 of 10 days; 16+ about +1.5R, 8 of 13)
 ELEVATED = 6
 RELAX = 0.5                       # gap + 3-day thresholds on breadth days
 NEAR = 0.05                       # candidates this close to flagging get live prices from the PC
@@ -78,6 +80,14 @@ def state_for(n: int | None) -> str | None:
     if n is None:
         return None
     return "breadth" if n >= BREADTH_DAY else "elevated" if n >= ELEVATED else "normal"
+
+
+BANDS = (("11-15", BREADTH_DAY, STRONG - 1), ("16+", STRONG, 10**6))   # a breadth day's strength
+
+
+def band_for(n: int | None) -> str | None:
+    """'16+' (a strong breadth day), '11-15', or None below a breadth day."""
+    return next((name for name, lo, hi in BANDS if n is not None and lo <= n <= hi), None)
 
 
 # ---------------------------------------------------------------------------
@@ -646,6 +656,8 @@ def evaluate(session: str, mode: str, now: datetime.datetime, feed: dict | None,
     e = edge_for(table, res["state"], None)    # from the table each pass, so a rebuilt table shows at once
     res["edge"] = {k: v for k, v in e.items() if k != "by_score"} if e else None
     res["drift"] = (table or {}).get("drift")  # recorded breadth days running below the study
+    res["band"] = band_for(res["n"])           # a breadth day's strength, and every band's edge
+    res["bands"] = (table or {}).get("bands") or None
     return res
 
 
@@ -677,15 +689,23 @@ def breadth_push(mb: dict, send, state_path: Path | None = None) -> bool:
     if done:
         mb["pushed"] = done.get("at")
         return False
-    e = mb.get("edge") or {}
+    band = mb.get("band") or band_for(mb["n"])
+    bands = mb.get("bands") or {}
+    be = bands.get(band) or {}
+    e = be if be.get("mean_r") is not None else (mb.get("edge") or {})
+    label = f" ({band} names)" if be.get("mean_r") is not None else ""
     top = ", ".join(mb["names"][:6])
     when = "at the open" if mb.get("basis") == "open" else "premarket"
     etfs = f" ({mb['n_etf']} ETFs)" if mb.get("n_etf") else ""
     body = (f"{mb['n']} names B or better {when}{etfs}: {top}."
-            + (f" Days like this: {e['mean_r']:+.1f}R a name with the re-entry, {e['win'] * 100:.0f}% of names green."
+            + (f" Days like this{label}: {e['mean_r']:+.1f}R a name with the re-entry, {e['win'] * 100:.0f}% of names green."
                if e.get("mean_r") is not None else ""))
+    strong = bands.get("16+") or {}
+    if band == "11-15" and strong.get("mean_r") is not None:
+        body += f" The edge has been at 16+ names: {strong['mean_r']:+.1f}R a name."
+    title = f"{'Strong breadth day' if band == '16+' else 'Breadth day'} · {mb['n']} names"
     try:
-        n = send(f"Breadth day · {mb['n']} names", body, url="/#/bounce", tag=f"breadth-{mb['session']}")
+        n = send(title, body, url="/#/bounce", tag=f"breadth-{mb['session']}")
     except Exception as e:
         logger.warning(f"breadth push failed: {e}")
         n = 0
