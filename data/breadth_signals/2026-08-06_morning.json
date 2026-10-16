@@ -1,0 +1,37 @@
+{
+ "date": "2026-08-06",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 32,
+ "priced": 20,
+ "live": null,
+ "generated_at": "2026-10-16T18:29:39-04:00",
+ "signals": [
+  {
+   "ticker": "HYFM",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.20920630511463842,
+    "gap_pct": -0.03703703703703707,
+    "pct_change_3": -0.24651162790697667,
+    "prior_day_range_atr": 2.3899853291994035,
+    "prior_day_rvol": 0.7817933166969139,
+    "selloff_total_pct": -0.006134969325153244,
+    "pct_off_30d_high": -0.49375,
+    "pct_off_52wk_high": -0.6610878661087866,
+    "prior_close": 1.62,
+    "open": 1.56
+   }
+  }
+ ]
+}

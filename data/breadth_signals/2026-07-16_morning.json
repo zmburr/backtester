@@ -1,0 +1,59 @@
+{
+ "date": "2026-07-16",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 36,
+ "priced": 25,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:12-04:00",
+ "signals": [
+  {
+   "ticker": "SDOT",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 1.351622014051522,
+    "gap_pct": -0.11475409836065574,
+    "pct_change_3": -0.15371809100998887,
+    "prior_day_range_atr": 0.11739628992904003,
+    "prior_day_rvol": 0.05928248350015583,
+    "selloff_total_pct": -0.3234250221827861,
+    "pct_off_30d_high": -0.8561320754716981,
+    "pct_off_52wk_high": -0.9668478260869565,
+    "prior_close": 15.25,
+    "open": 13.5
+   }
+  },
+  {
+   "ticker": "WYFI",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.1908846568099481,
+    "gap_pct": -0.0457505140507197,
+    "pct_change_3": -0.19592174152659134,
+    "prior_day_range_atr": 0.7545402550903947,
+    "prior_day_rvol": 1.0329020950705823,
+    "selloff_total_pct": -0.24967858061198253,
+    "pct_off_30d_high": -0.37742559723831287,
+    "pct_off_52wk_high": -0.37742559723831287,
+    "prior_close": 29.18,
+    "open": 27.845
+   }
+  }
+ ]
+}

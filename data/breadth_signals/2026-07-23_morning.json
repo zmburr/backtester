@@ -1,0 +1,81 @@
+{
+ "date": "2026-07-23",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 29,
+ "priced": 18,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:42-04:00",
+ "signals": [
+  {
+   "ticker": "HQ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.21740534738485556,
+    "gap_pct": -0.009562841530054683,
+    "pct_change_3": -0.25306122448979596,
+    "prior_day_range_atr": 0.8828664658859855,
+    "prior_day_rvol": 0.5590707081124127,
+    "selloff_total_pct": -0.3434977578475336,
+    "pct_off_30d_high": -0.6746666666666666,
+    "pct_off_52wk_high": -0.6746666666666666,
+    "prior_close": 14.64,
+    "open": 14.5
+   }
+  },
+  {
+   "ticker": "SDOT",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.746744857706396,
+    "gap_pct": -0.0749506903353057,
+    "pct_change_3": -0.22417750573833203,
+    "prior_day_range_atr": 0.23111485087432168,
+    "prior_day_rvol": 0.07902115610484413,
+    "selloff_total_pct": -0.18222508972135967,
+    "pct_off_30d_high": -0.8086792452830188,
+    "pct_off_52wk_high": -0.9559130434782609,
+    "prior_close": 20.28,
+    "open": 18.76
+   }
+  },
+  {
+   "ticker": "VEEE",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5775346366995074,
+    "gap_pct": -0.0851293103448275,
+    "pct_change_3": -0.3706341132587318,
+    "prior_day_range_atr": 0.6180215984103059,
+    "prior_day_rvol": 0.06982287855579086,
+    "selloff_total_pct": -0.4935879945429741,
+    "pct_off_30d_high": -0.6655253198774554,
+    "pct_off_52wk_high": -0.9460621912234816,
+    "prior_close": 18.56,
+    "open": 16.98
+   }
+  }
+ ]
+}

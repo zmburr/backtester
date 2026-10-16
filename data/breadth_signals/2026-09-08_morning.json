@@ -1,0 +1,81 @@
+{
+ "date": "2026-09-08",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 2,
+ "state": "normal",
+ "candidates": 25,
+ "priced": 13,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:47-04:00",
+ "signals": [
+  {
+   "ticker": "BEZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.2130453734892015,
+    "gap_pct": -0.1276005547850208,
+    "pct_change_3": -0.2868447082096933,
+    "prior_day_range_atr": 0.7714556750120907,
+    "prior_day_rvol": 2.6509353974825727,
+    "selloff_total_pct": -0.3811158798283262,
+    "pct_off_30d_high": -0.750632928904445,
+    "pct_off_52wk_high": -0.9764840182648402,
+    "prior_close": 7.21,
+    "open": 6.29
+   }
+  },
+  {
+   "ticker": "NBIZ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.14874852420306967,
+    "gap_pct": -0.06776859504132234,
+    "pct_change_3": -0.20603674540682418,
+    "prior_day_range_atr": 1.2889911897769666,
+    "prior_day_rvol": 0.4254004089305143,
+    "selloff_total_pct": -0.2710843373493977,
+    "pct_off_30d_high": -0.8614609571788414,
+    "pct_off_52wk_high": -0.9949583333333334,
+    "prior_close": 24.2,
+    "open": 22.56
+   }
+  },
+  {
+   "ticker": "WETO",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 3.307274509803922,
+    "gap_pct": -0.06666666666666664,
+    "pct_change_3": -0.351145038167939,
+    "prior_day_range_atr": 0.2039354720135649,
+    "prior_day_rvol": 2.0559961546865675,
+    "selloff_total_pct": -0.5215759849906192,
+    "pct_off_30d_high": -0.9524164068229275,
+    "pct_off_52wk_high": -0.9938995215311005,
+    "prior_close": 2.55,
+    "open": 2.38
+   }
+  }
+ ]
+}

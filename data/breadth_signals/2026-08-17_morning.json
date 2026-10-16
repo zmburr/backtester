@@ -1,0 +1,125 @@
+{
+ "date": "2026-08-17",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 2,
+ "state": "normal",
+ "candidates": 26,
+ "priced": 14,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:17-04:00",
+ "signals": [
+  {
+   "ticker": "BSP",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.12921157829705268,
+    "gap_pct": -0.0027982701602645493,
+    "pct_change_3": -0.19742752143732126,
+    "prior_day_range_atr": 0.5788191021553851,
+    "prior_day_rvol": 0.8120431829459391,
+    "selloff_total_pct": -0.1832536879285269,
+    "pct_off_30d_high": -0.3330505598914149,
+    "pct_off_52wk_high": -0.3330505598914149,
+    "prior_close": 39.31,
+    "open": 39.2
+   }
+  },
+  {
+   "ticker": "PLAG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.9656732539682539,
+    "gap_pct": -0.14444444444444446,
+    "pct_change_3": -0.24999999999999994,
+    "prior_day_range_atr": 0.18409723687306573,
+    "prior_day_rvol": 0.15168950286864247,
+    "selloff_total_pct": -0.33333333333333337,
+    "pct_off_30d_high": -0.8678414096916299,
+    "pct_off_52wk_high": -0.8678414096916299,
+    "prior_close": 0.9,
+    "open": 0.77
+   }
+  },
+  {
+   "ticker": "SCKT",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3196703296703297,
+    "gap_pct": -0.03418803418803422,
+    "pct_change_3": -0.2822085889570552,
+    "prior_day_range_atr": 0.7352660326190746,
+    "prior_day_rvol": 0.08360795178960619,
+    "selloff_total_pct": -0.2822085889570552,
+    "pct_off_30d_high": -0.5806451612903226,
+    "pct_off_52wk_high": -0.5806451612903226,
+    "prior_close": 1.17,
+    "open": 1.13
+   }
+  },
+  {
+   "ticker": "SKDD",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.2633935657596372,
+    "gap_pct": -0.07043650793650802,
+    "pct_change_3": -0.15507124895222127,
+    "prior_day_range_atr": 0.3540480117083353,
+    "prior_day_rvol": 0.525382157519415,
+    "selloff_total_pct": -0.3344338065368108,
+    "pct_off_30d_high": -0.5395157606212883,
+    "pct_off_52wk_high": -0.5395157606212883,
+    "prior_close": 10.08,
+    "open": 9.37
+   }
+  },
+  {
+   "ticker": "SNDQ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.6016764536003081,
+    "gap_pct": -0.07243935309973042,
+    "pct_change_3": -0.3801169590643275,
+    "prior_day_range_atr": 0.2586551022644823,
+    "prior_day_rvol": 2.141842067976684,
+    "selloff_total_pct": -0.5086092715231788,
+    "pct_off_30d_high": -0.7629771601980514,
+    "pct_off_52wk_high": -0.9463291139240507,
+    "prior_close": 14.84,
+    "open": 13.765
+   }
+  }
+ ]
+}

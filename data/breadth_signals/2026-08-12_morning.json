@@ -1,0 +1,37 @@
+{
+ "date": "2026-08-12",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 15,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:01-04:00",
+ "signals": [
+  {
+   "ticker": "CLRO",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2952857142857144,
+    "gap_pct": -0.03464566929133855,
+    "pct_change_3": -0.3756145526057031,
+    "prior_day_range_atr": 0.8426377762286245,
+    "prior_day_rvol": 0.0883081268634587,
+    "selloff_total_pct": -0.40319548872180455,
+    "pct_off_30d_high": -0.6151515151515152,
+    "pct_off_52wk_high": -0.6151515151515152,
+    "prior_close": 6.35,
+    "open": 6.13
+   }
+  }
+ ]
+}

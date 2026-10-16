@@ -27,9 +27,15 @@ data/method/grouped/, the last STORE_DAYS sessions. A split after a day was stor
 leaves it unadjusted, so names that split inside the window get their split-adjusted
 history from Polygon per name instead.
 
+The feedback loop: after each build, every finished session since LOOP_START gets a record
+in data/breadth_signals/ (the count at the official open and the names it flagged). The
+signal scorecard scores those names as its 'breadth' cohort, and the edge table is rebuilt
+from the frozen study plus every recorded day (scripts/bounce_day_edge.py).
+
 Usage:
     python -m method.breadth --build                 # store + candidates for the next session
     python -m method.breadth --build --session 2026-10-19
+    python -m method.breadth --record                # record finished sessions, rebuild the table
     python -m method.breadth --now                   # count at the current snapshot
 """
 
@@ -366,6 +372,140 @@ def build(session: str, force: bool = False) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# The day's record: one file a session for the signal scorecard (the feedback loop)
+# ---------------------------------------------------------------------------
+
+SIGNALS_DIR = DATA_DIR / "breadth_signals"
+LOOP_START = "2026-07-01"          # the first session after the criteria study's data
+SIGNAL_METRICS = ("atr_pct", "gap_pct", "pct_change_3", "prior_day_range_atr", "prior_day_rvol",
+                  "selloff_total_pct", "pct_off_30d_high", "pct_off_52wk_high")
+
+
+STUDY_DAYS = DATA_DIR / "bounce_breadth_days.csv"   # the study's days (scripts/bounce_day_edge.py --freeze)
+
+
+def day_states(signals_dir: Path | None = None) -> dict:
+    """{date: (count, state)} for every day the study (2022 to mid-2026) or the records cover."""
+    out = {}
+    if STUDY_DAYS.exists():
+        days = pd.read_csv(STUDY_DAYS)
+        out = {d: (int(n), s) for d, n, s in zip(days.date, days.n_flag, days.state)}
+    for p in sorted((signals_dir or SIGNALS_DIR).glob("*_morning.json")):
+        rec = core.read_json(p) or {}
+        if rec.get("date") and rec.get("state"):
+            out[rec["date"]] = (rec.get("n"), rec["state"])
+    return out
+
+
+def score_at(c: dict, price: float, relaxed: bool = False) -> int:
+    """The name's checklist score at `price`: its static checks plus the gap check."""
+    gap = price / c["prior_close"] - 1
+    if relaxed:
+        return int(c["static_relaxed"]) + int(gap <= c["gap_th"] * RELAX)
+    return int(c["static_score"]) + int(gap <= c["gap_th"])
+
+
+def signal_path(session: str, signals_dir: Path | None = None) -> Path:
+    return (signals_dir or SIGNALS_DIR) / f"{session}_morning.json"
+
+
+def live_path(session: str) -> Path:
+    return METHOD_DIR / f"breadth_live_{session}.json"
+
+
+def day_record(session: str, cands: dict, opens: dict, hist_of, live: dict | None = None) -> dict:
+    """The session as the scorecard reads it (scripts/signal_scorecard.py, cohort 'breadth'):
+    the count at the official open, and one signal per name it flagged, plus the relaxed
+    names on breadth days. `hist_of(ticker)` = the name's daily bars through the session;
+    its metrics come from compute_bounce_metrics like the study's (completed bars, plus the
+    session's open for the gap)."""
+    from scanners.bounce_backscanner import BounceBackscanner
+    res = count(cands, opens)
+    named = [(t, "strict") for t in res["names"]]
+    if res["state"] == "breadth":
+        named += [(t, "relaxed") for t in res["relaxed"]]
+    signals = []
+    for t, kind in named:
+        c, o = cands[t], float(opens[t])
+        m = {}
+        h = hist_of(t)
+        if h is not None and len(h) and h.index[-1] == session:
+            try:
+                m = BounceBackscanner.compute_bounce_metrics(None, t, session, h.iloc[-STORE_DAYS:]) or {}
+            except Exception as e:
+                logger.warning(f"{t} {session}: metrics failed: {e}")
+        metrics = {k: float(m[k]) for k in SIGNAL_METRICS if m.get(k) is not None}
+        metrics.update(prior_close=c["prior_close"], open=o)
+        signals.append({"ticker": t, "bucket": "bounce", "cap": c["cap"], "setup": c["setup"],
+                        "recommendation": kind.upper(), "score": score_at(c, o, kind == "relaxed"),
+                        "counted": bool(c["counted"]), "etf": bool(c.get("etf")), "metrics": metrics})
+    return {"date": session, "session": "morning", "source": "market_breadth", "basis": "official open",
+            "n": res["n"], "n_etf": res["n_etf"], "state": res["state"], "candidates": len(cands),
+            "priced": res["priced"], "live": live or None,
+            "generated_at": pd.Timestamp.now(tz=TZ).isoformat(timespec="seconds"), "signals": signals}
+
+
+def record_sessions(today: str, store: Path = STORE, signals_dir: Path | None = None,
+                    cands_of=None, splits: set[str] | None = None, adjusted=adjusted_hist,
+                    sessions: list[str] | None = None) -> list[str]:
+    """Write the record of every stored session from LOOP_START through `today` that has none
+    yet (or just `sessions`). A session uses the candidates its card used (built the evening
+    before), else they're rebuilt from the store. Runs after the nightly build, once the
+    day's grouped bar is in. Names that split inside the store window get their metrics
+    from adjusted bars."""
+    stored = sorted(p.stem for p in store.glob("*.pkl"))
+    todo = [d for d in stored if LOOP_START <= d <= today and not signal_path(d, signals_dir).exists()
+            and (sessions is None or d in sessions)]
+    if not todo:
+        return []
+    long = load_store(stored, store)
+    splits = split_tickers(stored[0]) if splits is None else splits
+    etfs = None
+    written = []
+    for s in todo:
+        day = long[long["date"] == s]
+        opens = dict(zip(day["ticker"], day["open"].astype(float)))
+        cands = cands_of(s) if cands_of else (load_candidates(s) or {}).get("candidates")
+        if not cands:
+            cands = build_candidates(s, long, splits)
+            etfs = etf_tickers() if etfs is None else etfs
+            for t, c in cands.items():
+                c["etf"] = t in etfs
+        flagged = [t for t in cands if flag_of(cands[t], opens.get(t))]
+        hists = ticker_hists(long[long["date"] <= s], flagged)
+
+        def hist_of(t, s=s, hists=hists):
+            if t in splits:
+                try:
+                    h = adjusted(t, (datetime.date.fromisoformat(s) + datetime.timedelta(days=1)).isoformat())
+                    if h is not None and len(h) and h.index[-1] == s:
+                        return h
+                except Exception as e:
+                    logger.warning(f"{t}: adjusted history failed: {e}")
+            return hists.get(t)
+
+        rec = day_record(s, cands, opens, hist_of, core.read_json(live_path(s)))
+        core.write_json(signal_path(s, signals_dir), rec)
+        written.append(s)
+        logger.info(f"breadth record {s}: {rec['n']} names ({rec['state']}), {len(rec['signals'])} signals")
+    return written
+
+
+def feedback(today: str) -> None:
+    """The loop after each build: record finished sessions, then rebuild the edge table from
+    the frozen study plus every recorded day (scripts/bounce_day_edge.py)."""
+    try:
+        record_sessions(today)
+    except Exception as e:
+        logger.warning(f"breadth record failed: {e}")
+    try:
+        from scripts import bounce_day_edge
+        bounce_day_edge.rebuild(today=today)
+    except Exception as e:
+        logger.warning(f"edge table rebuild failed: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Counting
 # ---------------------------------------------------------------------------
 
@@ -505,6 +645,7 @@ def evaluate(session: str, mode: str, now: datetime.datetime, feed: dict | None,
         res["locked"] = True
     e = edge_for(table, res["state"], None)    # from the table each pass, so a rebuilt table shows at once
     res["edge"] = {k: v for k, v in e.items() if k != "by_score"} if e else None
+    res["drift"] = (table or {}).get("drift")  # recorded breadth days running below the study
     return res
 
 
@@ -581,6 +722,8 @@ def main():
     ap.add_argument("--session", help="YYYY-MM-DD (default: the next open)")
     ap.add_argument("--force", action="store_true", help="rebuild even if built")
     ap.add_argument("--now", action="store_true", help="print the count at the current snapshot")
+    ap.add_argument("--record", action="store_true",
+                    help="record finished sessions and rebuild the edge table (--build does this too)")
     args = ap.parse_args()
     from dotenv import load_dotenv
     load_dotenv(DATA_DIR.parent / ".env")
@@ -588,6 +731,8 @@ def main():
     session = args.session or next_session(now)
     if args.build:
         build(session, force=args.force)
+    if args.build or args.record:
+        feedback(now.date().isoformat())
     if args.now:
         built = load_candidates(session) or build(session)
         res = count(built["candidates"], {t: v["price"] for t, v in snapshot_prices(now.date().isoformat()).items()})

@@ -111,13 +111,14 @@ def chart_bars(ticker: str) -> dict:
 
 
 def outcomes() -> tuple[list[dict], dict]:
-    """The scorecard's rows (control cohort dropped) and their (target, side, ticker) index."""
+    """The scorecard's surfaced rows (control and breadth cohorts dropped) and their
+    (target, side, ticker) index."""
     mtime = OUTCOMES.stat().st_mtime if OUTCOMES.exists() else None
     if _outcomes_cache["mtime"] != mtime:
         rows = []
         if OUTCOMES.exists():
             with OUTCOMES.open(newline="", encoding="utf-8") as fh:
-                rows = [r for r in csv.DictReader(fh) if r.get("cohort") != "control"]
+                rows = [r for r in csv.DictReader(fh) if core.surfaced(r)]
         _outcomes_cache.update(mtime=mtime, rows=rows, index=core.index_outcomes(rows))
     return _outcomes_cache["rows"], _outcomes_cache["index"]
 
@@ -289,7 +290,12 @@ def create_app() -> Flask:
         path = lib.LIBRARY
         mtime = path.stat().st_mtime if path.exists() else None
         if _library_cache["mtime"] != mtime:
-            _library_cache.update(mtime=mtime, data=core.read_json(path) or {"rows": []})
+            data = core.read_json(path) or {"rows": []}
+            try:
+                lib.tag_days(data.get("rows") or [])           # the day type of each trade's session
+            except Exception as e:
+                logger.warning(f"library day tags: {e}")
+            _library_cache.update(mtime=mtime, data=data)
         return jsonify(_library_cache["data"])
 
     @app.get("/api/bars")

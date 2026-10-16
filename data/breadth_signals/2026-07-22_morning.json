@@ -1,0 +1,14 @@
+{
+ "date": "2026-07-22",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 26,
+ "priced": 15,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:37-04:00",
+ "signals": []
+}

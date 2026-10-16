@@ -1,0 +1,81 @@
+{
+ "date": "2026-08-31",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 37,
+ "priced": 25,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:15-04:00",
+ "signals": [
+  {
+   "ticker": "CRE",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2266952868103763,
+    "gap_pct": -0.1381074168797954,
+    "pct_change_3": -0.4258443465491923,
+    "prior_day_range_atr": 2.5948280724940167,
+    "prior_day_rvol": 0.10235829898984486,
+    "selloff_total_pct": -0.2903811252268602,
+    "pct_off_30d_high": -0.5453488372093023,
+    "pct_off_52wk_high": -0.9617341945586221,
+    "prior_close": 3.91,
+    "open": 3.37
+   }
+  },
+  {
+   "ticker": "IPST",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.9283734939759035,
+    "gap_pct": -0.014457831325301323,
+    "pct_change_3": -0.30717863105175286,
+    "prior_day_range_atr": 0.15962624099669073,
+    "prior_day_rvol": 0.06932475777049156,
+    "selloff_total_pct": -0.635004397537379,
+    "pct_off_30d_high": -0.8362273086029991,
+    "pct_off_52wk_high": -0.9921992481203008,
+    "prior_close": 4.15,
+    "open": 4.09
+   }
+  },
+  {
+   "ticker": "MVLL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.16843803443164973,
+    "gap_pct": -0.00478850758180357,
+    "pct_change_3": -0.23293541475359666,
+    "prior_day_range_atr": 0.8272335298537261,
+    "prior_day_rvol": 2.2829404942283187,
+    "selloff_total_pct": -0.27822580645161293,
+    "pct_off_30d_high": -0.28745887818845095,
+    "pct_off_52wk_high": -0.6773391942750239,
+    "prior_close": 25.06,
+    "open": 24.94
+   }
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-03",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 25,
+ "priced": 13,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:37-04:00",
+ "signals": [
+  {
+   "ticker": "FCEL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.13650892857142852,
+    "gap_pct": -0.007638888888888973,
+    "pct_change_3": -0.16424840394660475,
+    "prior_day_range_atr": 1.0403267418114706,
+    "prior_day_rvol": 1.9116531639908276,
+    "selloff_total_pct": -0.24488725747246984,
+    "pct_off_30d_high": -0.4396887159533074,
+    "pct_off_52wk_high": -0.6198521647307287,
+    "prior_close": 14.4,
+    "open": 14.29
+   }
+  }
+ ]
+}

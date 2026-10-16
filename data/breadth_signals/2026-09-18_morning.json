@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-18",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 18,
+ "priced": 6,
+ "live": null,
+ "generated_at": "2026-10-16T18:32:43-04:00",
+ "signals": [
+  {
+   "ticker": "BDRX",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2684488239601378,
+    "gap_pct": -0.025503187898487416,
+    "pct_change_3": -0.3985714285714286,
+    "prior_day_range_atr": 1.0520079660680364,
+    "prior_day_rvol": 0.1360902560527907,
+    "selloff_total_pct": -0.3496747967479674,
+    "pct_off_30d_high": -0.5238690476190476,
+    "pct_off_52wk_high": -0.9879714285714286,
+    "prior_close": 0.7999,
+    "open": 0.7795
+   }
+  }
+ ]
+}

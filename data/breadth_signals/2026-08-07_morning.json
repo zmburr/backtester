@@ -1,0 +1,59 @@
+{
+ "date": "2026-08-07",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 56,
+ "priced": 44,
+ "live": null,
+ "generated_at": "2026-10-16T18:29:45-04:00",
+ "signals": [
+  {
+   "ticker": "FCUV",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.30604924308334785,
+    "gap_pct": -0.1303288672350793,
+    "pct_change_3": -0.22547169811320744,
+    "prior_day_range_atr": 1.1262945137915643,
+    "prior_day_rvol": 0.05234870883536634,
+    "selloff_total_pct": -0.4706640876853642,
+    "pct_off_30d_high": -0.5413407821229049,
+    "pct_off_52wk_high": -0.9609047619047618,
+    "prior_close": 8.21,
+    "open": 7.14
+   }
+  },
+  {
+   "ticker": "HONA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.09040751764372905,
+    "gap_pct": -0.0014699303380839124,
+    "pct_change_3": -0.27720805617147076,
+    "prior_day_range_atr": 1.221541175763678,
+    "prior_day_rvol": 5.710436279295535,
+    "selloff_total_pct": -0.28689271716343084,
+    "pct_off_30d_high": -0.4131345784767003,
+    "pct_off_52wk_high": -0.4131345784767003,
+    "prior_close": 156.47,
+    "open": 156.24
+   }
+  }
+ ]
+}

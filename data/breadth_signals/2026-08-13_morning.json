@@ -1,0 +1,59 @@
+{
+ "date": "2026-08-13",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 31,
+ "priced": 19,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:07-04:00",
+ "signals": [
+  {
+   "ticker": "CLRO",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3295201085615594,
+    "gap_pct": -0.03454231433506048,
+    "pct_change_3": -0.35523385300668153,
+    "prior_day_range_atr": 0.6184741060765453,
+    "prior_day_rvol": 0.042853497948600924,
+    "selloff_total_pct": -0.45582706766917297,
+    "pct_off_30d_high": -0.6490909090909092,
+    "pct_off_52wk_high": -0.6490909090909092,
+    "prior_close": 5.79,
+    "open": 5.59
+   }
+  },
+  {
+   "ticker": "SMCZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.32734115138592756,
+    "gap_pct": -0.0388059701492537,
+    "pct_change_3": -0.3945746661124464,
+    "prior_day_range_atr": 1.263002937670577,
+    "prior_day_rvol": 4.956037311674278,
+    "selloff_total_pct": -0.4605475040257649,
+    "pct_off_30d_high": -0.7462121212121212,
+    "pct_off_52wk_high": -0.95336859688196,
+    "prior_close": 6.7,
+    "open": 6.44
+   }
+  }
+ ]
+}

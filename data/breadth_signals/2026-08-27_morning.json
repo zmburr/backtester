@@ -1,0 +1,37 @@
+{
+ "date": "2026-08-27",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 24,
+ "priced": 12,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:03-04:00",
+ "signals": [
+  {
+   "ticker": "IPST",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6240937276413069,
+    "gap_pct": -0.03005008347245419,
+    "pct_change_3": -0.30186480186480186,
+    "prior_day_range_atr": 0.41293934443457253,
+    "prior_day_rvol": 0.030608037467369342,
+    "selloff_total_pct": -0.47317502198768685,
+    "pct_off_30d_high": -0.7636148382004736,
+    "pct_off_52wk_high": -0.9887406015037594,
+    "prior_close": 5.99,
+    "open": 5.81
+   }
+  }
+ ]
+}

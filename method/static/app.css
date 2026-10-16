@@ -178,6 +178,10 @@ button.line.link:hover b { color: var(--brand); }
 .breadth .edge small { display: block; color: var(--text-3); font-size: 12px; margin-top: 2px; }
 .breadth.st-breadth { border-color: rgba(61, 220, 151, .4); background: linear-gradient(180deg, var(--go-soft), var(--bg-1) 70%); }
 .breadth.st-elevated { border-color: rgba(255, 181, 71, .3); }
+.breadth .edge small.since { margin-top: 4px; }
+.breadth .drift { margin-top: 10px; padding: 8px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.45;
+  color: var(--caution); background: var(--caution-soft); }
+.day-split { margin: 2px 2px 10px; }
 
 .name { position: relative; cursor: pointer; padding: 14px 16px; margin-bottom: 10px; transition: border-color .12s; }
 .name:hover { border-color: var(--line-2); }

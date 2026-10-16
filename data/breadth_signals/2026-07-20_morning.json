@@ -1,0 +1,81 @@
+{
+ "date": "2026-07-20",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 81,
+ "priced": 70,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:25-04:00",
+ "signals": [
+  {
+   "ticker": "INIO",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.11040352504638218,
+    "gap_pct": -0.01046176046176043,
+    "pct_change_3": -0.08090185676392578,
+    "prior_day_range_atr": 1.1273088826338415,
+    "prior_day_rvol": 1.5092711285902958,
+    "selloff_total_pct": -0.17080466646724501,
+    "pct_off_30d_high": -0.35459837019790463,
+    "pct_off_52wk_high": -0.35459837019790463,
+    "prior_close": 27.72,
+    "open": 27.43
+   }
+  },
+  {
+   "ticker": "NVVE",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.742783251231527,
+    "gap_pct": -0.03128991060025544,
+    "pct_change_3": -0.6368274582560297,
+    "prior_day_range_atr": 0.7771673918837098,
+    "prior_day_rvol": 0.46797066389080105,
+    "selloff_total_pct": -0.3602941176470588,
+    "pct_off_30d_high": -0.7812231942531274,
+    "pct_off_52wk_high": -0.9969366197183099,
+    "prior_close": 7.83,
+    "open": 7.585
+   }
+  },
+  {
+   "ticker": "PENG",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.1651226145150992,
+    "gap_pct": -0.0246647905975831,
+    "pct_change_3": -0.1707618393960192,
+    "prior_day_range_atr": 0.5699215471733785,
+    "prior_day_rvol": 0.7924195209053622,
+    "selloff_total_pct": -0.2596813725490196,
+    "pct_off_30d_high": -0.3277320275984866,
+    "pct_off_52wk_high": -0.3277320275984866,
+    "prior_close": 60.41,
+    "open": 58.92
+   }
+  }
+ ]
+}

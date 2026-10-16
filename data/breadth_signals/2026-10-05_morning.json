@@ -1,0 +1,59 @@
+{
+ "date": "2026-10-05",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 15,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:58-04:00",
+ "signals": [
+  {
+   "ticker": "AAOZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.18743409863945576,
+    "gap_pct": -0.05158730158730154,
+    "pct_change_3": -0.2876325088339223,
+    "prior_day_range_atr": 1.2967520708336648,
+    "prior_day_rvol": 2.377319287798082,
+    "selloff_total_pct": -0.2843450479233227,
+    "pct_off_30d_high": -0.3890909090909091,
+    "pct_off_52wk_high": -0.8025465230166504,
+    "prior_close": 10.08,
+    "open": 9.56
+   }
+  },
+  {
+   "ticker": "CTVA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5661822866730586,
+    "gap_pct": -0.00922818791946304,
+    "pct_change_3": -0.8464906632324533,
+    "prior_day_range_atr": 0.17328768210658907,
+    "prior_day_rvol": 6.349038528898107,
+    "selloff_total_pct": -0.8470029521242459,
+    "pct_off_30d_high": -0.8688235941454825,
+    "pct_off_52wk_high": -0.8689677915796417,
+    "prior_close": 11.92,
+    "open": 11.81
+   }
+  }
+ ]
+}

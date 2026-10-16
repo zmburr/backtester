@@ -1,0 +1,37 @@
+{
+ "date": "2026-07-10",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 28,
+ "priced": 17,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:50-04:00",
+ "signals": [
+  {
+   "ticker": "JEM",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 1.290809948979592,
+    "gap_pct": -0.36821428571428577,
+    "pct_change_3": -0.17037037037037037,
+    "prior_day_range_atr": 0.0899213928922574,
+    "prior_day_rvol": 0.31964245343075787,
+    "selloff_total_pct": -0.8696916812100058,
+    "pct_off_30d_high": -0.9006211180124224,
+    "pct_off_52wk_high": -0.9929113924050632,
+    "prior_close": 13.44,
+    "open": 8.4912
+   }
+  }
+ ]
+}

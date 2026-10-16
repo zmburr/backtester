@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-24",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 15,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:08-04:00",
+ "signals": [
+  {
+   "ticker": "AXTX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.1558284977433914,
+    "gap_pct": -0.058994197292069575,
+    "pct_change_3": -0.1758767268862912,
+    "prior_day_range_atr": 1.1047209234970414,
+    "prior_day_rvol": 0.5617650315856545,
+    "selloff_total_pct": -0.09377738825591579,
+    "pct_off_30d_high": -0.5370149253731343,
+    "pct_off_52wk_high": -0.8987068965517242,
+    "prior_close": 31.02,
+    "open": 29.19
+   }
+  }
+ ]
+}

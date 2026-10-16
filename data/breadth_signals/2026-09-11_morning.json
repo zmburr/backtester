@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-11",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 36,
+ "priced": 24,
+ "live": null,
+ "generated_at": "2026-10-16T18:32:10-04:00",
+ "signals": [
+  {
+   "ticker": "GCDT",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2515293270960777,
+    "gap_pct": -0.08757992637085832,
+    "pct_change_3": -0.43285714285714283,
+    "prior_day_range_atr": 1.1100473203477492,
+    "prior_day_rvol": 0.15252090527854453,
+    "selloff_total_pct": -0.14933245426075492,
+    "pct_off_30d_high": -0.5588888888888889,
+    "pct_off_52wk_high": -0.9117777777777777,
+    "prior_close": 3.0966,
+    "open": 2.8254
+   }
+  }
+ ]
+}

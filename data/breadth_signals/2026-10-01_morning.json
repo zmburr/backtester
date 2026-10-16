@@ -1,0 +1,59 @@
+{
+ "date": "2026-10-01",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 24,
+ "priced": 12,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:46-04:00",
+ "signals": [
+  {
+   "ticker": "LQDA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.20571664620904548,
+    "gap_pct": -0.2081956378056841,
+    "pct_change_3": -0.5892493552327949,
+    "prior_day_range_atr": 6.7582484411897665,
+    "prior_day_rvol": 9.87180480014483,
+    "selloff_total_pct": -0.5825631121534004,
+    "pct_off_30d_high": -0.6052180107214751,
+    "pct_off_52wk_high": -0.6767439376135028,
+    "prior_close": 30.26,
+    "open": 23.96
+   }
+  },
+  {
+   "ticker": "NESR",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.06490352796006511,
+    "gap_pct": -0.004711425206124753,
+    "pct_change_3": -0.14558872861455888,
+    "prior_day_range_atr": 1.271858378018691,
+    "prior_day_rvol": 2.19805889293533,
+    "selloff_total_pct": -0.22607110300820416,
+    "pct_off_30d_high": -0.2905292479108635,
+    "pct_off_52wk_high": -0.31050351922035735,
+    "prior_close": 25.47,
+    "open": 25.35
+   }
+  }
+ ]
+}

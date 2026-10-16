@@ -1,0 +1,59 @@
+{
+ "date": "2026-08-25",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 34,
+ "priced": 22,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:53-04:00",
+ "signals": [
+  {
+   "ticker": "PFSA",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.8662835308796007,
+    "gap_pct": -0.02838427947598251,
+    "pct_change_3": -0.3949801849405548,
+    "prior_day_range_atr": 0.36228646115568874,
+    "prior_day_rvol": 0.15194581871544635,
+    "selloff_total_pct": -0.7124921531701193,
+    "pct_off_30d_high": -0.8382768361581922,
+    "pct_off_52wk_high": -0.9997455555555554,
+    "prior_close": 4.58,
+    "open": 4.45
+   }
+  },
+  {
+   "ticker": "YJ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5857967032967034,
+    "gap_pct": -0.04895104895104884,
+    "pct_change_3": -0.28140703517587945,
+    "prior_day_range_atr": 0.4954104189671417,
+    "prior_day_rvol": 0.05385879760044036,
+    "selloff_total_pct": -0.2571428571428572,
+    "pct_off_30d_high": -0.7952755905511811,
+    "pct_off_52wk_high": -0.7952755905511811,
+    "prior_close": 2.86,
+    "open": 2.72
+   }
+  }
+ ]
+}

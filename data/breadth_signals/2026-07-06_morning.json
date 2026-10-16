@@ -1,0 +1,147 @@
+{
+ "date": "2026-07-06",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 5,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 144,
+ "priced": 133,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:27-04:00",
+ "signals": [
+  {
+   "ticker": "AAOI",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.15045715466839896,
+    "gap_pct": -0.006159570070277011,
+    "pct_change_3": -0.18365280777537793,
+    "prior_day_range_atr": 1.4210184830106947,
+    "prior_day_rvol": 1.1157370268754756,
+    "selloff_total_pct": -0.1744027303754266,
+    "pct_off_30d_high": -0.4230585766075176,
+    "pct_off_52wk_high": -0.4823896948688321,
+    "prior_close": 120.95,
+    "open": 120.205
+   }
+  },
+  {
+   "ticker": "AAOX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.42655369409785515,
+    "gap_pct": -0.01472031403336608,
+    "pct_change_3": -0.3552673204682063,
+    "prior_day_range_atr": 1.1836886617810543,
+    "prior_day_rvol": 0.9239943344120958,
+    "selloff_total_pct": -0.34258064516129033,
+    "pct_off_30d_high": -0.7285562067128397,
+    "pct_off_52wk_high": -0.8021359223300971,
+    "prior_close": 20.38,
+    "open": 20.08
+   }
+  },
+  {
+   "ticker": "ILLR",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3857255343082115,
+    "gap_pct": -0.09842519685039369,
+    "pct_change_3": -0.32625994694960214,
+    "prior_day_range_atr": 1.0810999970837831,
+    "prior_day_rvol": 0.3497113196678384,
+    "selloff_total_pct": -0.3079019073569482,
+    "pct_off_30d_high": -0.5364963503649636,
+    "pct_off_52wk_high": -0.8531707035088734,
+    "prior_close": 2.54,
+    "open": 2.29
+   }
+  },
+  {
+   "ticker": "JEM",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.616919254658385,
+    "gap_pct": -0.1652173913043479,
+    "pct_change_3": -0.4206549118387909,
+    "prior_day_range_atr": 1.2544802867383513,
+    "prior_day_rvol": 1.2696955354358443,
+    "selloff_total_pct": -0.7324025596276904,
+    "pct_off_30d_high": -0.7959183673469389,
+    "pct_off_52wk_high": -0.9854430379746836,
+    "prior_close": 27.6,
+    "open": 23.04
+   }
+  },
+  {
+   "ticker": "SRXH",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3173255630808001,
+    "gap_pct": -0.09959573686144796,
+    "pct_change_3": -0.2714859437751004,
+    "prior_day_range_atr": 1.0180175708542214,
+    "prior_day_rvol": 1.1172325168824733,
+    "selloff_total_pct": -0.4961111111111111,
+    "pct_off_30d_high": -0.6370548219287715,
+    "pct_off_52wk_high": -0.9550990099009902,
+    "prior_close": 5.442,
+    "open": 4.9
+   }
+  },
+  {
+   "ticker": "WOLF",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.17709267857142855,
+    "gap_pct": -0.01062499999999993,
+    "pct_change_3": -0.17098445595854922,
+    "prior_day_range_atr": 1.1043087810155894,
+    "prior_day_rvol": 0.7555208919240708,
+    "selloff_total_pct": -0.13043478260869565,
+    "pct_off_30d_high": -0.5050730017322445,
+    "pct_off_52wk_high": -0.5050730017322445,
+    "prior_close": 40.0,
+    "open": 39.575
+   }
+  }
+ ]
+}

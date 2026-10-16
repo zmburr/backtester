@@ -48,10 +48,17 @@ SIGNAL_DIR = PROJECT_ROOT / "data" / "priority_signals"
 # lane's episode/cluster numbering — which the analysis carries forward across
 # cycles — is bit-for-bit unaffected.
 CONTROL_DIR = PROJECT_ROOT / "data" / "control_signals"
+# Market-wide bounce names (method/breadth.py): every name in the bounce backscanner's
+# universe that scored 4+/6 at the official open, one file a session, with the day's
+# count. Most are not on the watchlist. Their own cohort, like control: a research lane,
+# never in the email or the rolling summary, never chained into surfaced episodes.
+BREADTH_DIR = PROJECT_ROOT / "data" / "breadth_signals"
 OUTCOMES_FILE = PROJECT_ROOT / "data" / "signal_outcomes.csv"
 
 COHORT_SURFACED = "surfaced"
 COHORT_CONTROL = "control"
+COHORT_BREADTH = "breadth"
+RESEARCH_COHORTS = (COHORT_CONTROL, COHORT_BREADTH)   # scored and stored, never reported as signals
 EMAIL_TO = "zmburr@gmail.com"
 
 HORIZON_DAYS = 4          # D0..D+3
@@ -105,6 +112,7 @@ COLUMNS = [
     # COLUMNS, so omitting them would silently erase the backfill on the next run.
     "entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop",
 ] + METRIC_COLUMNS
+ENTRY_COLUMNS = ("entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop")
 
 
 # ── Trading calendar ─────────────────────────────────────────────────────────
@@ -201,7 +209,8 @@ def collect_signals() -> dict[tuple, dict]:
     signal wins (fresher premarket data).
     """
     signals: dict[tuple, dict] = {}
-    for directory, cohort in ((SIGNAL_DIR, COHORT_SURFACED), (CONTROL_DIR, COHORT_CONTROL)):
+    for directory, cohort in ((SIGNAL_DIR, COHORT_SURFACED), (CONTROL_DIR, COHORT_CONTROL),
+                              (BREADTH_DIR, COHORT_BREADTH)):
         if not directory.exists():
             continue
         for path in sorted(directory.glob("*.json")):
@@ -481,7 +490,7 @@ def rolling_summary(rows: list[dict]) -> dict:
     # ALERT_WARN/ALERT_BAD banner every single day.
     recent = [r for r in rows if r.get("target_date", "") >= cutoff and _is_true(r.get("complete"))
               and str(r.get("days_available") or "0") != "0"  # exclude no-data (delisted) rows
-              and (r.get("cohort") or COHORT_SURFACED) != COHORT_CONTROL]
+              and (r.get("cohort") or COHORT_SURFACED) not in RESEARCH_COHORTS]
     rev = [r for r in recent if r.get("bucket") == "reversal"]
     bnc = [r for r in recent if r.get("bucket") == "bounce"]
     # Bucket-first: reversal (5 criteria) and bounce (6 criteria) are different
@@ -725,9 +734,10 @@ def main():
     outcomes = load_outcomes()
     last_day = last_completed_trading_day()
     n_ctrl = sum(1 for s in signals.values() if s.get("cohort") == COHORT_CONTROL)
+    n_brd = sum(1 for s in signals.values() if s.get("cohort") == COHORT_BREADTH)
     logger.info(
-        f"{len(signals)} signals on file ({len(signals) - n_ctrl} surfaced, {n_ctrl} control), "
-        f"{len(outcomes)} already scored, last completed day {last_day}"
+        f"{len(signals)} signals on file ({len(signals) - n_ctrl - n_brd} surfaced, {n_ctrl} control, "
+        f"{n_brd} breadth), {len(outcomes)} already scored, last completed day {last_day}"
     )
 
     reflagged = refresh_tradeable_flags(outcomes)
@@ -767,6 +777,12 @@ def main():
         window = trading_days_from(target, HORIZON_DAYS)
         bars = fetch_daily_bars(client, sig["ticker"], window[0], window[-1])
         row = compute_outcome(sig, bars)
+        if existing:
+            # the entry replay (scripts/backfill_entry_r.py) reads D0 only, so it can run as
+            # soon as D0 is over; keep its columns while the D0..D3 window fills in
+            for c in ENTRY_COLUMNS:
+                if existing.get(c) not in (None, ""):
+                    row[c] = existing[c]
         if row["days_available"] == 0:
             if existing is not None and len(window) >= HORIZON_DAYS:
                 # second straight miss after the window fully elapsed — likely
@@ -777,10 +793,10 @@ def main():
                 logger.warning(f"  {sig['ticker']} {target}: no price data, recording empty row")
         outcomes[key] = row
         updated += 1
-        # Control rows are scored and stored but never shown in the daily email:
-        # they are not signals anyone acted on, and ~75/session would bury the
+        # Control and breadth rows are scored and stored but never shown in the daily
+        # email: they are not signals anyone acted on, and ~75/session would bury the
         # handful of surfaced ones and make the subject-line rate meaningless.
-        if target == last_day and (row.get("cohort") or COHORT_SURFACED) != COHORT_CONTROL:
+        if target == last_day and (row.get("cohort") or COHORT_SURFACED) not in RESEARCH_COHORTS:
             new_today.append(row)
         if row["days_available"] > 0:
             logger.info(

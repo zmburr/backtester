@@ -1,0 +1,103 @@
+{
+ "date": "2026-07-02",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 4,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 43,
+ "priced": 31,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:21-04:00",
+ "signals": [
+  {
+   "ticker": "INLF",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 14.243249128919862,
+    "gap_pct": -0.08841463414634135,
+    "pct_change_3": -0.503030303030303,
+    "prior_day_range_atr": 0.011772800244629612,
+    "prior_day_rvol": 0.7808019945387522,
+    "selloff_total_pct": -0.4709677419354839,
+    "pct_off_30d_high": -0.9931524008350732,
+    "pct_off_52wk_high": -0.9988285714285714,
+    "prior_close": 6.56,
+    "open": 5.98
+   }
+  },
+  {
+   "ticker": "IRE",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.2560702451954937,
+    "gap_pct": -0.039098740888005294,
+    "pct_change_3": -0.11547479484173499,
+    "prior_day_range_atr": 0.5758132553505343,
+    "prior_day_rvol": 1.6505413082305744,
+    "selloff_total_pct": -0.5060556464811784,
+    "pct_off_30d_high": -0.6608988764044944,
+    "pct_off_52wk_high": -0.8789701636188643,
+    "prior_close": 15.09,
+    "open": 14.5
+   }
+  },
+  {
+   "ticker": "UBXG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5062318220701455,
+    "gap_pct": -0.027944111776447043,
+    "pct_change_3": -0.332,
+    "prior_day_range_atr": 0.5198678574144326,
+    "prior_day_rvol": 0.10042201125993223,
+    "selloff_total_pct": -0.3136986301369863,
+    "pct_off_30d_high": -0.6110248447204969,
+    "pct_off_52wk_high": -0.6110248447204969,
+    "prior_close": 5.01,
+    "open": 4.87
+   }
+  },
+  {
+   "ticker": "UPC",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3418024152106886,
+    "gap_pct": -0.08273381294964029,
+    "pct_change_3": -0.5435139573070608,
+    "prior_day_range_atr": 0.8787524571617573,
+    "prior_day_rvol": 0.25637188269157896,
+    "selloff_total_pct": -0.2871794871794872,
+    "pct_off_30d_high": -0.690423162583519,
+    "pct_off_52wk_high": -0.690423162583519,
+    "prior_close": 5.56,
+    "open": 5.1
+   }
+  }
+ ]
+}

@@ -121,6 +121,12 @@ def to_num(v):
     return None if math.isnan(f) else f
 
 
+def surfaced(row: dict) -> bool:
+    """A scorecard row from the priority report's GO/CAUTION lane. The control (below-bar)
+    and breadth (market-wide) cohorts share the file but were never signals you acted on."""
+    return (row.get("cohort") or "surfaced") == "surfaced"
+
+
 def index_outcomes(outcomes: list[dict]) -> dict:
     """Scorecard rows keyed (target_date, bucket, ticker); morning beats evening
     when the scorecard has both for one target."""

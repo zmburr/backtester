@@ -36,6 +36,10 @@ Adds columns, never replaces: `entry_r` (best MFE in R across the day's
 attempts), `entry_signals` (how many fired), `entry_price`, `entry_stop`.
 `tradeable_3d` is untouched — 15 analysis cycles depend on its definition.
 
+Runs on the mini at 5:45 AM weekdays, after the scorecard (dispatcher crontab), so rules R
+fills in by itself the morning after a signal's day, for every cohort (surfaced, control,
+and Method's market-wide breadth names).
+
 Usage:
     python -m scripts.backfill_entry_r --limit 25 --dry-run
     python -m scripts.backfill_entry_r
@@ -45,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime
 import sys
 from pathlib import Path
 
@@ -198,6 +203,16 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
     return out
 
 
+def pending(rows: list[dict], today: str, refresh: bool = False) -> list[dict]:
+    """Bounce rows to replay. The rule reads D0 only, so a row is ready once its first day
+    is over (the scorecard keeps these columns while the rest of its window fills in).
+    Every replay sets entry_signals, so a row the rules never entered isn't redone."""
+    return [r for r in rows if r.get("bucket") == "bounce"
+            and str(r.get("target_date") or "9") < today
+            and str(r.get("days_available") or "0") != "0"
+            and (refresh or not str(r.get("entry_signals") or "").strip())]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -211,9 +226,7 @@ def main() -> int:
         rows = list(csv.DictReader(f))
         header = list(rows[0].keys())
 
-    todo = [r for r in rows if r.get("bucket") == "bounce"
-            and str(r.get("complete")).lower() == "true"
-            and (args.refresh or not str(r.get("entry_r") or "").strip())]
+    todo = pending(rows, datetime.date.today().isoformat(), refresh=args.refresh)
     if args.limit:
         todo = todo[:args.limit]
     print(f"{len(todo)} bounce rows to score (of {len(rows)} total)\n")

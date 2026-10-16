@@ -1,0 +1,81 @@
+{
+ "date": "2026-08-21",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 53,
+ "priced": 41,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:42-04:00",
+ "signals": [
+  {
+   "ticker": "CDTG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.7507142857142854,
+    "gap_pct": -0.07650273224043723,
+    "pct_change_3": -0.44376899696048633,
+    "prior_day_range_atr": 2.0818060343258833,
+    "prior_day_rvol": 3.9731883943031314,
+    "selloff_total_pct": -0.37328767123287665,
+    "pct_off_30d_high": -0.7841981132075472,
+    "pct_off_52wk_high": -0.9656338028169015,
+    "prior_close": 1.83,
+    "open": 1.69
+   }
+  },
+  {
+   "ticker": "DFNS",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.4003782201405153,
+    "gap_pct": -0.1762295081967212,
+    "pct_change_3": -0.10294117647058826,
+    "prior_day_range_atr": 0.23645674610950404,
+    "prior_day_rvol": 0.018658855555447686,
+    "selloff_total_pct": -0.28487690504103164,
+    "pct_off_30d_high": -0.7318681318681318,
+    "pct_off_52wk_high": -0.9271641791044777,
+    "prior_close": 24.4,
+    "open": 20.1
+   }
+  },
+  {
+   "ticker": "PFSA",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.49909416871107753,
+    "gap_pct": -0.12153236459709378,
+    "pct_change_3": -0.7245269286754003,
+    "prior_day_range_atr": 1.5589669905849435,
+    "prior_day_rvol": 0.3769618217474898,
+    "selloff_total_pct": -0.524795982423101,
+    "pct_off_30d_high": -0.7326977401129944,
+    "pct_off_52wk_high": -0.9995794444444445,
+    "prior_close": 7.57,
+    "open": 6.65
+   }
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "date": "2026-10-02",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 28,
+ "priced": 16,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:53-04:00",
+ "signals": [
+  {
+   "ticker": "CTVA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5440675076713264,
+    "gap_pct": -0.014717581543357238,
+    "pct_change_3": -0.8385771157056634,
+    "prior_day_range_atr": 0.38017651052274254,
+    "prior_day_rvol": 10.097619123082103,
+    "selloff_total_pct": -0.8386599922988064,
+    "pct_off_30d_high": -0.8616705183228789,
+    "pct_off_52wk_high": -0.8618225788721557,
+    "prior_close": 12.57,
+    "open": 12.385
+   }
+  },
+  {
+   "ticker": "LQDA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2343691624559793,
+    "gap_pct": -0.046445158985351814,
+    "pct_change_3": -0.6040458339227615,
+    "prior_day_range_atr": 0.882622912263624,
+    "prior_day_rvol": 6.459726211802668,
+    "selloff_total_pct": -0.6138777762449994,
+    "pct_off_30d_high": -0.6255017393631256,
+    "pct_off_52wk_high": -0.7009934836021793,
+    "prior_close": 27.99,
+    "open": 26.69
+   }
+  }
+ ]
+}

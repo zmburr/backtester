@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-01",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 34,
+ "priced": 22,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:23-04:00",
+ "signals": [
+  {
+   "ticker": "MVLL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.17821817095038853,
+    "gap_pct": -0.06066945606694558,
+    "pct_change_3": -0.24605678233438488,
+    "prior_day_range_atr": 0.4676699344980365,
+    "prior_day_rvol": 0.6631834015005262,
+    "selloff_total_pct": -0.31163594470046085,
+    "pct_off_30d_high": -0.3204416276418187,
+    "pct_off_52wk_high": -0.6922748101824849,
+    "prior_close": 23.9,
+    "open": 22.45
+   }
+  }
+ ]
+}

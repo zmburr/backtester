@@ -1,0 +1,81 @@
+{
+ "date": "2026-08-05",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 38,
+ "priced": 26,
+ "live": null,
+ "generated_at": "2026-10-16T18:29:34-04:00",
+ "signals": [
+  {
+   "ticker": "FCUV",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.21381266846361185,
+    "gap_pct": -0.04528301886792457,
+    "pct_change_3": -0.08620689655172414,
+    "prior_day_range_atr": 2.0825407030614755,
+    "prior_day_rvol": 0.30233088173808326,
+    "selloff_total_pct": -0.31656995486782724,
+    "pct_off_30d_high": -0.4078212290502793,
+    "pct_off_52wk_high": -0.9499527856468367,
+    "prior_close": 10.6,
+    "open": 10.12
+   }
+  },
+  {
+   "ticker": "INHD",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6308027882205534,
+    "gap_pct": -0.0657894736842105,
+    "pct_change_3": -0.4933333333333334,
+    "prior_day_range_atr": 0.7074666411723711,
+    "prior_day_rvol": 0.12016062274339906,
+    "selloff_total_pct": -0.7618798955613577,
+    "pct_off_30d_high": -0.7897163938206134,
+    "pct_off_52wk_high": -0.9990394337714863,
+    "prior_close": 9.12,
+    "open": 8.52
+   }
+  },
+  {
+   "ticker": "PN",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5751284904896803,
+    "gap_pct": -0.0028328611898016396,
+    "pct_change_3": -0.5911986103068906,
+    "prior_day_range_atr": 0.3644954675551536,
+    "prior_day_rvol": 0.19284260584103916,
+    "selloff_total_pct": -0.5305851063829787,
+    "pct_off_30d_high": -0.7058333333333334,
+    "pct_off_52wk_high": -0.9192219679633867,
+    "prior_close": 7.06,
+    "open": 7.04
+   }
+  }
+ ]
+}

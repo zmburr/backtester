@@ -1,0 +1,81 @@
+{
+ "date": "2026-08-14",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 3,
+ "state": "normal",
+ "candidates": 24,
+ "priced": 12,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:12-04:00",
+ "signals": [
+  {
+   "ticker": "SKDD",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.28300456943586394,
+    "gap_pct": -0.042487169131047275,
+    "pct_change_3": -0.30231615120274913,
+    "prior_day_range_atr": 0.8040755741532221,
+    "prior_day_rvol": 1.070885373965673,
+    "selloff_total_pct": -0.329725982172334,
+    "pct_off_30d_high": -0.5362585655550479,
+    "pct_off_52wk_high": -0.5362585655550479,
+    "prior_close": 10.1513,
+    "open": 9.72
+   }
+  },
+  {
+   "ticker": "SMCZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.3569637040483946,
+    "gap_pct": -0.003257328990227944,
+    "pct_change_3": -0.43772893772893773,
+    "prior_day_range_atr": 0.6570070980231127,
+    "prior_day_rvol": 5.363645483858297,
+    "selloff_total_pct": -0.5056360708534622,
+    "pct_off_30d_high": -0.7674242424242423,
+    "pct_off_52wk_high": -0.9572661469933186,
+    "prior_close": 6.14,
+    "open": 6.12
+   }
+  },
+  {
+   "ticker": "SNDQ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.5457331366281452,
+    "gap_pct": -0.153184165232358,
+    "pct_change_3": -0.35587583148558755,
+    "prior_day_range_atr": 0.9303911247144625,
+    "prior_day_rvol": 1.9136753936456936,
+    "selloff_total_pct": -0.4228476821192053,
+    "pct_off_30d_high": -0.7216099664590321,
+    "pct_off_52wk_high": -0.9369620253164557,
+    "prior_close": 17.43,
+    "open": 14.76
+   }
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "date": "2026-07-13",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 16,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:55-04:00",
+ "signals": [
+  {
+   "ticker": "JEM",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 2.72211223735614,
+    "gap_pct": -0.13174427198817443,
+    "pct_change_3": -0.5374358974358975,
+    "prior_day_range_atr": 0.16290988077517954,
+    "prior_day_rvol": 0.5909282084470956,
+    "selloff_total_pct": -0.9370331588132635,
+    "pct_off_30d_high": -0.9519787045252883,
+    "pct_off_52wk_high": -0.9965746835443038,
+    "prior_close": 6.4944,
+    "open": 5.6388
+   }
+  },
+  {
+   "ticker": "NTLA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.08385558514647505,
+    "gap_pct": -0.032008441786844886,
+    "pct_change_3": -0.15587885985748218,
+    "prior_day_range_atr": 1.1241543375219467,
+    "prior_day_rvol": 0.9299222214929767,
+    "selloff_total_pct": -0.20364145658263313,
+    "pct_off_30d_high": -0.23079004329004332,
+    "pct_off_52wk_high": -0.49681415929203543,
+    "prior_close": 14.215,
+    "open": 13.76
+   }
+  }
+ ]
+}

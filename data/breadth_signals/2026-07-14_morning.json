@@ -1,0 +1,103 @@
+{
+ "date": "2026-07-14",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 88,
+ "priced": 77,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:02-04:00",
+ "signals": [
+  {
+   "ticker": "CLRO",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.37909415584415584,
+    "gap_pct": -0.06060606060606053,
+    "pct_change_3": -0.3160621761658032,
+    "prior_day_range_atr": 1.3628979996174522,
+    "prior_day_rvol": 0.04646561062869032,
+    "selloff_total_pct": -0.44397641112047176,
+    "pct_off_30d_high": -0.6,
+    "pct_off_52wk_high": -0.6,
+    "prior_close": 6.6,
+    "open": 6.2
+   }
+  },
+  {
+   "ticker": "JLHL",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.7167818369808721,
+    "gap_pct": -0.055488540410132584,
+    "pct_change_3": -0.35183737294761536,
+    "prior_day_range_atr": 0.8481819263682883,
+    "prior_day_rvol": 0.5117062164257636,
+    "selloff_total_pct": -0.4103840682788052,
+    "pct_off_30d_high": -0.8569456427955134,
+    "pct_off_52wk_high": -0.8569456427955134,
+    "prior_close": 8.29,
+    "open": 7.83
+   }
+  },
+  {
+   "ticker": "LHSW",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.42690570299265956,
+    "gap_pct": -0.011857707509881346,
+    "pct_change_3": -0.39904988123515445,
+    "prior_day_range_atr": 0.8655909000727467,
+    "prior_day_rvol": 0.026509620117398252,
+    "selloff_total_pct": -0.339425587467363,
+    "pct_off_30d_high": -0.6731266149870802,
+    "pct_off_52wk_high": -0.9593508997429305,
+    "prior_close": 2.53,
+    "open": 2.5
+   }
+  },
+  {
+   "ticker": "VTAK",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.48984141627130573,
+    "gap_pct": -0.10824108241082407,
+    "pct_change_3": -0.4294736842105264,
+    "prior_day_range_atr": 0.3766562787256462,
+    "prior_day_rvol": 0.11051907244265745,
+    "selloff_total_pct": -0.3864150943396227,
+    "pct_off_30d_high": -0.6366480446927374,
+    "pct_off_52wk_high": -0.9585217572642727,
+    "prior_close": 6.504,
+    "open": 5.8
+   }
+  }
+ ]
+}

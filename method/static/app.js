@@ -243,6 +243,18 @@ function renderSideList(side) {
 const STATE_WORD = { normal: 'Normal day', elevated: 'Elevated', breadth: 'Breadth day' };
 const STATE_CLS = { normal: 'nogo', elevated: 'caution', breadth: 'go' };
 const STATE_DAY = { normal: 'a normal day', elevated: 'an elevated day', breadth: 'a breadth day' };
+const STATE_DAYS = { normal: 'normal days', elevated: 'elevated days', breadth: 'breadth days' };
+const shortDate = iso => { const [y, m, d] = String(iso).split('-'); return `${+m}/${+d}/${y.slice(2)}`; };
+// the recorded days alone (method/breadth.py records each session; the table rebuilds nightly)
+function sinceText(e, state) {
+  const s = e?.since_study;
+  if (!s || !STATE_DAYS[state]) return '';
+  const lead = `Since the study (${shortDate(s.since)}): `;
+  if (!s.days) return `${lead}no ${STATE_DAYS[state]} yet.`;
+  const days = `${s.days} ${s.days === 1 ? STATE_DAYS[state].slice(0, -1) : STATE_DAYS[state]}`;
+  const green = s.traded_days ? `, ${s.pos_days} of ${s.traded_days} days positive` : '';
+  return s.n ? `${lead}${days}, ${s.n} names, ${rr(s.mean_r)} a name, ${upct(s.win)} green${green}.` : `${lead}${days}, no entries yet.`;
+}
 const entryText = e => e?.entry_mean_r == null ? '' : `a single entry ${rr(e.entry_mean_r)}, ${upct(e.entry_win)}`;
 const edgeText = e => e?.mean_r == null ? null
   : [`${rr(e.mean_r)} a name, re‑entry included`, `${upct(e.win)} of names green`, entryText(e)].filter(Boolean).join(' · ');
@@ -272,7 +284,9 @@ function breadthCard(s) {
   return `<div class="card breadth st-${esc(mb.state)}">
     <div class="eyebrow">Market breadth · ${esc(when)}${mb.asof ? ` · ${esc(mb.asof.slice(11, 16))}` : ''}</div>
     <div class="bline"><b class="num">${mb.n}</b><span>names B or better market-wide${esc(etf)}</span><span class="badge ${STATE_CLS[mb.state]}">${esc(STATE_WORD[mb.state])}</span></div>
-    ${edgeText(e) ? `<div class="edge">Bounce edge today: <b class="num ${e.mean_r >= 0.5 ? 'go' : ''}">${esc(edgeText(e))}</b><small>${esc(days)}</small></div>` : ''}
+    ${edgeText(e) ? `<div class="edge">Bounce edge today: <b class="num ${e.mean_r >= 0.5 ? 'go' : ''}">${esc(edgeText(e))}</b><small>${esc(days)}</small>` +
+      `${sinceText(e, mb.state) ? `<small class="since">${esc(sinceText(e, mb.state))}</small>` : ''}</div>` : ''}
+    ${mb.drift ? `<div class="drift">${esc(`Breadth days since the study are running below history: ${mb.drift.days} days, ${rr(mb.drift.mean_r)} a name (the study: ${rr(mb.drift.history_mean_r)}).`)}</div>` : ''}
     ${chips.length ? `<div class="tickers">${chips.join('')}</div>` : ''}
     ${relaxed.length ? `<div class="muted small-line">Relaxed rules (breadth days only, not counted)</div><div class="tickers">${relaxed.join('')}</div>` : ''}
     ${extra.length ? '<div class="muted small-line">Grey: outside the counted universe (under $5 or under 500k shares a day).</div>' : ''}
@@ -607,12 +621,16 @@ function gradeCard(r) {
   const edge = r.edge?.mean_r != null && mb?.state
     ? `On ${STATE_DAY[mb.state]} (${mb.n} names market-wide), ${score >= 4 ? `${Math.min(score, 6)}/6` : '3/6-or-lower'} names across the market averaged ${rr(r.edge.mean_r)} a name with the re‑entry, ${upct(r.edge.win)} green${entryText(r.edge) ? `; ${entryText(r.edge)}` : ''}, under your rules (${r.edge.n} names${r.edge.shrunk ? ', a small sample pulled toward the day average' : ''}).`
     : '';
+  const w = r.edge?.watch;
+  const watch = w?.n && mb?.state
+    ? `Your watchlist GO/CAUTION bounces on ${STATE_DAYS[mb.state]}: ${w.n} the rules entered, ${rr(w.mean_r)} a name, ${upct(w.win)} green (signal scorecard, since 2/26).`
+    : '';
   const mkt = r.market ? `Flagged by the market-wide breadth scan, not on your watchlist${r.counted === false ? ' (outside the counted universe)' : ''}.` : '';
   return `<div class="card callout"><div class="eyebrow">Grade ${esc(lead)}</div>
     <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="big ${GRADE_CLS[g]}-text">${esc(gradeLabel(g))}</span>
       <span class="muted">${score}/6 · intensity ${inten != null ? Math.round(inten) : '–'}</span></div>
     ${better.length ? `<div style="margin-top:8px">${better.map(lv => `${gradeBadge(lv.grade)} at <b>${px(lv.price)}</b> <span class="muted">(${pct(lv.price / r.price - 1)})</span>`).join('&nbsp;&nbsp;')}</div>` : '<div style="margin-top:8px" class="muted">Best grade on the ladder already reached.</div>'}
-    ${now}${edge ? `<div class="small-line">${esc(edge)}</div>` : ''}${mkt ? `<div class="muted small-line">${esc(mkt)}</div>` : ''}${hist ? `<div class="muted small-line">${esc(hist)}</div>` : ''}${ceil ? `<div class="muted small-line">${esc(ceil)}</div>` : ''}</div>`;
+    ${now}${edge ? `<div class="small-line">${esc(edge)}</div>` : ''}${watch ? `<div class="muted small-line">${esc(watch)}</div>` : ''}${mkt ? `<div class="muted small-line">${esc(mkt)}</div>` : ''}${hist ? `<div class="muted small-line">${esc(hist)}</div>` : ''}${ceil ? `<div class="muted small-line">${esc(ceil)}</div>` : ''}</div>`;
 }
 function ladderCard(r) {
   const levels = r.ladder?.levels || [];
@@ -947,6 +965,15 @@ function bestFilters() {
     `<select data-bf="sort" aria-label="Sort">${[['move', 'By move'], ['newest', 'By date'], ['rules', 'By rules R']].map(([v, l]) =>
       `<option value="${v}"${f.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>`;
 }
+const DAY_TAG = { breadth: 'breadth day', elevated: 'elevated day', normal: 'normal day' };
+function bestDaySplit(rows) {
+  if (PREFS.best.side !== 'bounce') return '';
+  const parts = ['breadth', 'elevated', 'normal'].map(st => {
+    const rs = rows.filter(r => r.day_state === st && r.rules_r != null).map(r => r.rules_r);
+    return rs.length ? `${st} ${rs.length} · avg ${rr(rs.reduce((a, b) => a + b, 0) / rs.length)}` : null;
+  }).filter(Boolean);
+  return parts.length ? `<div class="muted small-line day-split">Rules R by day type (names B or better market-wide at that open): ${esc(parts.join(' | '))}</div>` : '';
+}
 function bestCard(r) {
   const bounce = r.side === 'bounce';
   const sys = intradaySetup(r) ? '<span class="badge nogo" title="Forms after the open: the open grade doesn’t apply">intraday</span>'
@@ -956,7 +983,8 @@ function bestCard(r) {
   return `<div class="card name${wide() && S.sel.best === r.key ? ' sel' : ''}" role="button" tabindex="0" data-best="${esc(r.key)}">` +
     `<div class="l1"><span class="tk">${esc(r.ticker)}</span><span class="badge mine" title="Your grade">You ${esc(r.grade || '?')}</span>` +
     `${sys ? `<span class="sys">${intradaySetup(r) ? 'setup' : bounce ? 'system' : 'open'}</span>${sys}` : ''}<span class="cap">${esc(r.cap || '')}</span></div>` +
-    `<div class="l2 num">${[dayLabelY(r.date), move, rules].filter(Boolean).map(esc).join(' · ')}` +
+    `<div class="l2 num">${[dayLabelY(r.date), move, rules,
+      bounce && r.day_state ? `${DAY_TAG[r.day_state]}${r.day_n != null ? ` (${r.day_n})` : ''}` : null].filter(Boolean).map(esc).join(' · ')}` +
     `${r.setup ? `<br><span class="muted">${esc(shortSetup(r.setup))}</span>` : ''}</div></div>`;
 }
 async function renderBest() {
@@ -973,7 +1001,7 @@ async function renderBest() {
   const rows = bestRows();
   if (wide() && rows.length && !linked) S.sel.best = rows[0].key;
   const side = PREFS.best.side === 'bounce' ? 'bounces' : 'reversals';
-  list.innerHTML = listHead('Best trades', `Your ${side}`, esc(bestSummary(rows))) + bestFilters() +
+  list.innerHTML = listHead('Best trades', `Your ${side}`, esc(bestSummary(rows))) + bestFilters() + bestDaySplit(rows) +
     (!S.lib.length ? '<div class="empty">Not built yet. On the mini: python -m method.library</div>'
       : rows.length ? rows.map(bestCard).join('') : '<div class="empty">No trades match these filters.</div>');
   if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });

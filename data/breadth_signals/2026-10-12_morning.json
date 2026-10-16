@@ -1,0 +1,125 @@
+{
+ "date": "2026-10-12",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 4,
+ "n_etf": 2,
+ "state": "normal",
+ "candidates": 36,
+ "priced": 24,
+ "live": null,
+ "generated_at": "2026-10-16T18:34:30-04:00",
+ "signals": [
+  {
+   "ticker": "AXTI",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.09722517841492427,
+    "gap_pct": -0.03155127081507445,
+    "pct_change_3": -0.14199774407820542,
+    "prior_day_range_atr": 1.0952465270511713,
+    "prior_day_rvol": 1.0417987250766187,
+    "selloff_total_pct": -0.2200956937799044,
+    "pct_off_30d_high": -0.2252150294250793,
+    "pct_off_52wk_high": -0.5217937971500419,
+    "prior_close": 68.46,
+    "open": 66.3
+   }
+  },
+  {
+   "ticker": "AXTX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.22590418316965988,
+    "gap_pct": -0.051652107861754636,
+    "pct_change_3": -0.27803674252810534,
+    "prior_day_range_atr": 0.9784707611609071,
+    "prior_day_rvol": 1.4231509646036022,
+    "selloff_total_pct": -0.4042986425339367,
+    "pct_off_30d_high": -0.4096412556053812,
+    "pct_off_52wk_high": -0.914021682340648,
+    "prior_close": 26.33,
+    "open": 24.97
+   }
+  },
+  {
+   "ticker": "INTW",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.11967460655040409,
+    "gap_pct": -0.04338579327945568,
+    "pct_change_3": -0.14757070340826675,
+    "prior_day_range_atr": 0.6785022480496166,
+    "prior_day_rvol": 0.8708761391569532,
+    "selloff_total_pct": -0.10540334855403347,
+    "pct_off_30d_high": -0.3388638920134983,
+    "pct_off_52wk_high": -0.5532541567695962,
+    "prior_close": 23.51,
+    "open": 22.49
+   }
+  },
+  {
+   "ticker": "SDEV",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.959642857142857,
+    "gap_pct": -0.006493506493506499,
+    "pct_change_3": -0.44604316546762585,
+    "prior_day_range_atr": 0.31126298338802993,
+    "prior_day_rvol": 0.42712959890644314,
+    "selloff_total_pct": -0.8414006179196706,
+    "pct_off_30d_high": -0.8431771894093687,
+    "pct_off_52wk_high": -0.8431771894093687,
+    "prior_close": 1.54,
+    "open": 1.53
+   }
+  },
+  {
+   "ticker": "XRPN",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.4743876953941319,
+    "gap_pct": -0.02399063779988298,
+    "pct_change_3": -0.31667333066773296,
+    "prior_day_range_atr": 0.6167292206304735,
+    "prior_day_rvol": 1.7829162262746077,
+    "selloff_total_pct": -0.25921109666233205,
+    "pct_off_30d_high": -0.6775471698113207,
+    "pct_off_52wk_high": -0.6775471698113207,
+    "prior_close": 17.09,
+    "open": 16.68
+   }
+  }
+ ]
+}

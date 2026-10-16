@@ -1,0 +1,59 @@
+{
+ "date": "2026-07-15",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 52,
+ "priced": 41,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:07-04:00",
+ "signals": [
+  {
+   "ticker": "ARMG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.2534400863620007,
+    "gap_pct": -0.005037783375314903,
+    "pct_change_3": -0.2544600938967136,
+    "prior_day_range_atr": 1.0303228218634786,
+    "prior_day_rvol": 1.1901823239717848,
+    "selloff_total_pct": -0.2600186393289841,
+    "pct_off_30d_high": -0.6388167381603308,
+    "pct_off_52wk_high": -0.6388167381603308,
+    "prior_close": 23.82,
+    "open": 23.7
+   }
+  },
+  {
+   "ticker": "SUNE",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.16958866995073896,
+    "gap_pct": -0.04137931034482763,
+    "pct_change_3": -0.2428198433420366,
+    "prior_day_range_atr": 2.4603140022947443,
+    "prior_day_rvol": 1.1917157025567424,
+    "selloff_total_pct": -0.13173652694610777,
+    "pct_off_30d_high": -0.693121693121693,
+    "pct_off_52wk_high": -0.693121693121693,
+    "prior_close": 2.9,
+    "open": 2.78
+   }
+  }
+ ]
+}

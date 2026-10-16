@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-09",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 37,
+ "priced": 25,
+ "live": null,
+ "generated_at": "2026-10-16T18:31:53-04:00",
+ "signals": [
+  {
+   "ticker": "NBIZ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.1812673707615342,
+    "gap_pct": -0.03501945525291823,
+    "pct_change_3": -0.2770745428973278,
+    "prior_day_range_atr": 1.164520085863232,
+    "prior_day_rvol": 0.9601768203984703,
+    "selloff_total_pct": -0.38072289156626515,
+    "pct_off_30d_high": -0.8822990611403709,
+    "pct_off_52wk_high": -0.9957166666666666,
+    "prior_close": 20.56,
+    "open": 19.84
+   }
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "date": "2026-07-27",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 71,
+ "priced": 59,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:55-04:00",
+ "signals": [
+  {
+   "ticker": "ZCMD",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.9753163265306125,
+    "gap_pct": -0.03571428571428559,
+    "pct_change_3": -0.6736596736596737,
+    "prior_day_range_atr": 0.417446982140802,
+    "prior_day_rvol": 1.2644184312795275,
+    "selloff_total_pct": -0.6286472148541115,
+    "pct_off_30d_high": -0.882943143812709,
+    "pct_off_52wk_high": -0.9987645457093378,
+    "prior_close": 2.8,
+    "open": 2.7
+   }
+  }
+ ]
+}

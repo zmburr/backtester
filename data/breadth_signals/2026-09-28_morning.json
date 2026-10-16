@@ -1,0 +1,37 @@
+{
+ "date": "2026-09-28",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 21,
+ "priced": 9,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:23-04:00",
+ "signals": [
+  {
+   "ticker": "TRUG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5563539520627104,
+    "gap_pct": -0.06331340133661631,
+    "pct_change_3": -0.3751648351648351,
+    "prior_day_range_atr": 0.4545700867052025,
+    "prior_day_rvol": 0.1594961433211378,
+    "selloff_total_pct": -0.33121618442719364,
+    "pct_off_30d_high": -0.8437826254189791,
+    "pct_off_52wk_high": -0.9966552941176471,
+    "prior_close": 2.843,
+    "open": 2.663
+   }
+  }
+ ]
+}

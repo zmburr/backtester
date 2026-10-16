@@ -1,0 +1,81 @@
+{
+ "date": "2026-09-29",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 26,
+ "priced": 14,
+ "live": null,
+ "generated_at": "2026-10-16T18:33:30-04:00",
+ "signals": [
+  {
+   "ticker": "FRVO",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.09476224236592899,
+    "gap_pct": -0.008153137185395265,
+    "pct_change_3": -0.15589467384799524,
+    "prior_day_range_atr": 1.1184917195273807,
+    "prior_day_rvol": 1.366155084592781,
+    "selloff_total_pct": -0.19789593403468866,
+    "pct_off_30d_high": -0.29720976581963127,
+    "pct_off_52wk_high": -0.669284876905041,
+    "prior_close": 14.105,
+    "open": 13.99
+   }
+  },
+  {
+   "ticker": "GRML",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.23612778782399044,
+    "gap_pct": -0.11392405063291136,
+    "pct_change_3": -0.2041638683680323,
+    "prior_day_range_atr": 1.07114995813507,
+    "prior_day_rvol": 0.3973842089391852,
+    "selloff_total_pct": -0.2809466019417476,
+    "pct_off_30d_high": -0.34925507553583496,
+    "pct_off_52wk_high": -0.5687772925764192,
+    "prior_close": 11.85,
+    "open": 10.5
+   }
+  },
+  {
+   "ticker": "TRUG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.585751907986671,
+    "gap_pct": -0.014296463506395716,
+    "pct_change_3": -0.34483608577766833,
+    "prior_day_range_atr": 0.233793641326788,
+    "prior_day_rvol": 0.06309449049657329,
+    "selloff_total_pct": -0.3747353563867326,
+    "pct_off_30d_high": -0.8539480191219299,
+    "pct_off_52wk_high": -0.9968729411764705,
+    "prior_close": 2.658,
+    "open": 2.62
+   }
+  }
+ ]
+}

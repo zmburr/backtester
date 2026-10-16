@@ -1,0 +1,37 @@
+{
+ "date": "2026-10-07",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 24,
+ "priced": 12,
+ "live": null,
+ "generated_at": "2026-10-16T18:34:10-04:00",
+ "signals": [
+  {
+   "ticker": "AEHG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.19221784272255338,
+    "gap_pct": -0.048452220726783235,
+    "pct_change_3": -0.27441406250000006,
+    "prior_day_range_atr": 2.0480632173847804,
+    "prior_day_rvol": 2.6917641677642496,
+    "selloff_total_pct": -0.2855769230769231,
+    "pct_off_30d_high": -0.3003766478342749,
+    "pct_off_52wk_high": -0.6688343235617916,
+    "prior_close": 7.43,
+    "open": 7.07
+   }
+  }
+ ]
+}

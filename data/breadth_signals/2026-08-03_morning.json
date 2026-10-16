@@ -1,0 +1,59 @@
+{
+ "date": "2026-08-03",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 31,
+ "priced": 19,
+ "live": null,
+ "generated_at": "2026-10-16T18:29:24-04:00",
+ "signals": [
+  {
+   "ticker": "CAPR",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6198682745825603,
+    "gap_pct": -0.019480519480519525,
+    "pct_change_3": -0.4140030441400305,
+    "prior_day_range_atr": 0.36036143893160627,
+    "prior_day_rvol": 1.347409192891781,
+    "selloff_total_pct": -0.8052910266978875,
+    "pct_off_30d_high": -0.8755253798900743,
+    "pct_off_52wk_high": -0.9046321525885558,
+    "prior_close": 3.85,
+    "open": 3.775
+   }
+  },
+  {
+   "ticker": "NCRA",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.20389285714285707,
+    "gap_pct": -0.13,
+    "pct_change_3": -0.358974358974359,
+    "prior_day_range_atr": 1.7165878437554742,
+    "prior_day_rvol": 0.1266190953063093,
+    "selloff_total_pct": -0.1701244813278009,
+    "pct_off_30d_high": -0.49748743718592964,
+    "pct_off_52wk_high": -0.9722222222222222,
+    "prior_close": 2.0,
+    "open": 1.74
+   }
+  }
+ ]
+}

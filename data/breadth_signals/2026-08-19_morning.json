@@ -1,0 +1,125 @@
+{
+ "date": "2026-08-19",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 4,
+ "n_etf": 3,
+ "state": "normal",
+ "candidates": 37,
+ "priced": 25,
+ "live": null,
+ "generated_at": "2026-10-16T18:30:29-04:00",
+ "signals": [
+  {
+   "ticker": "DFNS",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6153471638655463,
+    "gap_pct": -0.03676470588235294,
+    "pct_change_3": -0.19478981645944352,
+    "prior_day_range_atr": 0.11949256628209974,
+    "prior_day_rvol": 0.021811501495032977,
+    "selloff_total_pct": -0.20281359906213361,
+    "pct_off_30d_high": -0.701098901098901,
+    "pct_off_52wk_high": -0.9188059701492538,
+    "prior_close": 27.2,
+    "open": 26.2
+   }
+  },
+  {
+   "ticker": "NBIG",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.19913523459061644,
+    "gap_pct": -0.1301747930082796,
+    "pct_change_3": -0.20482809070958308,
+    "prior_day_range_atr": 1.2932874434075579,
+    "prior_day_rvol": 0.5478057683487211,
+    "selloff_total_pct": -0.1977859778597787,
+    "pct_off_30d_high": -0.22134670487106028,
+    "pct_off_52wk_high": -0.5452834135118176,
+    "prior_close": 21.74,
+    "open": 18.91
+   }
+  },
+  {
+   "ticker": "NBIL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.19989526535805158,
+    "gap_pct": -0.12786259541984732,
+    "pct_change_3": -0.20686175580221997,
+    "prior_day_range_atr": 1.3080482213627407,
+    "prior_day_rvol": 0.9005943943783122,
+    "selloff_total_pct": -0.20223293580309556,
+    "pct_off_30d_high": -0.2238953344853122,
+    "pct_off_52wk_high": -0.5409548839246605,
+    "prior_close": 31.44,
+    "open": 27.42
+   }
+  },
+  {
+   "ticker": "NEBX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.19964848404607444,
+    "gap_pct": -0.12820512820512817,
+    "pct_change_3": -0.2046683046683048,
+    "prior_day_range_atr": 1.3075189523932673,
+    "prior_day_rvol": 0.659934769821303,
+    "selloff_total_pct": -0.2007407407407408,
+    "pct_off_30d_high": -0.2218750000000001,
+    "pct_off_52wk_high": -0.5425950418828637,
+    "prior_close": 32.37,
+    "open": 28.22
+   }
+  },
+  {
+   "ticker": "RITR",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.992830622347949,
+    "gap_pct": -0.13366336633663356,
+    "pct_change_3": -0.3597464342313788,
+    "prior_day_range_atr": 0.38269417410893153,
+    "prior_day_rvol": 0.07861752412598418,
+    "selloff_total_pct": -0.5006180469715699,
+    "pct_off_30d_high": -0.797290516808831,
+    "pct_off_52wk_high": -0.9903464755077658,
+    "prior_close": 0.0808,
+    "open": 0.07
+   }
+  }
+ ]
+}

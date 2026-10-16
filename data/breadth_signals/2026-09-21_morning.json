@@ -1,0 +1,103 @@
+{
+ "date": "2026-09-21",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 2,
+ "state": "normal",
+ "candidates": 25,
+ "priced": 13,
+ "live": null,
+ "generated_at": "2026-10-16T18:32:49-04:00",
+ "signals": [
+  {
+   "ticker": "CONI",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.1898095026783733,
+    "gap_pct": -0.1089416463279344,
+    "pct_change_3": -0.32021116138763195,
+    "prior_day_range_atr": 1.4331279328022977,
+    "prior_day_rvol": 2.8097207480923023,
+    "selloff_total_pct": -0.27633269107257546,
+    "pct_off_30d_high": -0.5826851851851852,
+    "pct_off_52wk_high": -0.8409106953759267,
+    "prior_close": 22.535,
+    "open": 20.08
+   }
+  },
+  {
+   "ticker": "MSTZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": false,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.23787871098705915,
+    "gap_pct": -0.14031971580817051,
+    "pct_change_3": -0.3900325027085591,
+    "prior_day_range_atr": 1.6725690148056493,
+    "prior_day_rvol": 2.283647099186918,
+    "selloff_total_pct": -0.3521288837744534,
+    "pct_off_30d_high": -0.7668737060041408,
+    "pct_off_52wk_high": -0.9019505398815744,
+    "prior_close": 2.815,
+    "open": 2.42
+   }
+  },
+  {
+   "ticker": "SMST",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.23928364987613546,
+    "gap_pct": -0.14017341040462425,
+    "pct_change_3": -0.39404553415061294,
+    "prior_day_range_atr": 1.6969907427378375,
+    "prior_day_rvol": 3.131070460447918,
+    "selloff_total_pct": -0.3550792171481827,
+    "pct_off_30d_high": -0.7702904564315353,
+    "pct_off_52wk_high": -0.9102227953663545,
+    "prior_close": 13.84,
+    "open": 11.9
+   }
+  },
+  {
+   "ticker": "SNDQ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.17620380584666295,
+    "gap_pct": -0.040540540540540536,
+    "pct_change_3": -0.3148148148148148,
+    "prior_day_range_atr": 1.6242379659266102,
+    "prior_day_rvol": 1.7205208250209552,
+    "selloff_total_pct": -0.27093596059113306,
+    "pct_off_30d_high": -0.6674157303370787,
+    "pct_off_52wk_high": -0.9625316455696202,
+    "prior_close": 10.36,
+    "open": 9.94
+   }
+  }
+ ]
+}

@@ -1,0 +1,169 @@
+{
+ "date": "2026-10-16",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 7,
+ "n_etf": 5,
+ "state": "elevated",
+ "candidates": 44,
+ "priced": 32,
+ "live": null,
+ "generated_at": "2026-10-16T18:26:58-04:00",
+ "signals": [
+  {
+   "ticker": "AXTX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.3056344881276762,
+    "gap_pct": -0.0544959128065395,
+    "pct_change_3": -0.20459471174685734,
+    "prior_day_range_atr": 0.6882542108447163,
+    "prior_day_rvol": 1.7754160973904887,
+    "selloff_total_pct": -0.12116858237547881,
+    "pct_off_30d_high": -0.5885650224215246,
+    "pct_off_52wk_high": -0.9400796760710554,
+    "prior_close": 18.35,
+    "open": 17.35
+   }
+  },
+  {
+   "ticker": "FMC",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.11320793085917635,
+    "gap_pct": -0.029359430604982212,
+    "pct_change_3": -0.32370637785800244,
+    "prior_day_range_atr": 1.3438566552901037,
+    "prior_day_rvol": 5.273900268970995,
+    "selloff_total_pct": -0.3783185840707964,
+    "pct_off_30d_high": -0.5812220566318926,
+    "pct_off_52wk_high": -0.870327641901246,
+    "prior_close": 5.62,
+    "open": 5.455
+   }
+  },
+  {
+   "ticker": "LITX",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.21155368778404424,
+    "gap_pct": -0.03219624377155998,
+    "pct_change_3": -0.2337738619676945,
+    "prior_day_range_atr": 0.8382378633426554,
+    "prior_day_rvol": 1.6687459895038346,
+    "selloff_total_pct": -0.39155783582089554,
+    "pct_off_30d_high": -0.43362639748181914,
+    "pct_off_52wk_high": -0.5844873140425451,
+    "prior_close": 26.09,
+    "open": 25.25
+   }
+  },
+  {
+   "ticker": "MVLL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.1537593984962406,
+    "gap_pct": -0.055707450444292636,
+    "pct_change_3": -0.2025074952303079,
+    "prior_day_range_atr": 0.8334963325183375,
+    "prior_day_rvol": 0.8748261531310344,
+    "selloff_total_pct": -0.16376107459274078,
+    "pct_off_30d_high": -0.36238831989540204,
+    "pct_off_52wk_high": -0.6232619642652514,
+    "prior_close": 29.26,
+    "open": 27.63
+   }
+  },
+  {
+   "ticker": "MXL",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.10635602821328068,
+    "gap_pct": -0.045983627526221704,
+    "pct_change_3": -0.1180054151624548,
+    "prior_day_range_atr": 1.0090302451361068,
+    "prior_day_rvol": 1.5033805386154344,
+    "selloff_total_pct": -0.16358189793516628,
+    "pct_off_30d_high": -0.30893662158578616,
+    "pct_off_52wk_high": -0.39064692127825407,
+    "prior_close": 78.18,
+    "open": 74.585
+   }
+  },
+  {
+   "ticker": "SNDU",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.14496275197195435,
+    "gap_pct": -0.0748466257668712,
+    "pct_change_3": -0.11268372346216658,
+    "prior_day_range_atr": 1.2017049319085271,
+    "prior_day_rvol": 1.8314811855411053,
+    "selloff_total_pct": -0.3087362171331636,
+    "pct_off_30d_high": -0.47989789406509253,
+    "pct_off_52wk_high": -0.7936708860759494,
+    "prior_close": 16.3,
+    "open": 15.08
+   }
+  },
+  {
+   "ticker": "SNXX",
+   "bucket": "bounce",
+   "cap": "Large",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.14557385903321632,
+    "gap_pct": -0.06852551984877123,
+    "pct_change_3": -0.11316010058675605,
+    "prior_day_range_atr": 1.2011649909101025,
+    "prior_day_rvol": 1.5713968518381165,
+    "selloff_total_pct": -0.3093994778067885,
+    "pct_off_30d_high": -0.47830374753451677,
+    "pct_off_52wk_high": -0.7855690830342178,
+    "prior_close": 10.58,
+    "open": 9.855
+   }
+  }
+ ]
+}

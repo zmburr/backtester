@@ -1,0 +1,37 @@
+{
+ "date": "2026-07-09",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 59,
+ "priced": 48,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:45-04:00",
+ "signals": [
+  {
+   "ticker": "UBXG",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.4619189765458423,
+    "gap_pct": -0.029850746268656636,
+    "pct_change_3": -0.16597510373443997,
+    "prior_day_range_atr": 1.200917035942885,
+    "prior_day_rvol": 0.46738792790040073,
+    "selloff_total_pct": -0.2555555555555557,
+    "pct_off_30d_high": -0.6878881987577641,
+    "pct_off_52wk_high": -0.6878881987577641,
+    "prior_close": 4.02,
+    "open": 3.9
+   }
+  }
+ ]
+}

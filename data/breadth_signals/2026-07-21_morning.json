@@ -1,0 +1,59 @@
+{
+ "date": "2026-07-21",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 38,
+ "priced": 27,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:31-04:00",
+ "signals": [
+  {
+   "ticker": "SOBR",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6675571708591964,
+    "gap_pct": -0.05259719046063379,
+    "pct_change_3": -0.38780000000000003,
+    "prior_day_range_atr": 0.32543918997451543,
+    "prior_day_rvol": 0.0620089942303042,
+    "selloff_total_pct": -0.4224528301886793,
+    "pct_off_30d_high": -0.7672243346007604,
+    "pct_off_52wk_high": -0.884272211720227,
+    "prior_close": 0.6122,
+    "open": 0.58
+   }
+  },
+  {
+   "ticker": "TGHL",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.29902570884057406,
+    "gap_pct": -0.14810781377620474,
+    "pct_change_3": -0.5167105263157895,
+    "prior_day_range_atr": 0.8868077911098103,
+    "prior_day_rvol": 0.1657650254345014,
+    "selloff_total_pct": -0.47528571428571426,
+    "pct_off_30d_high": -0.5678823529411764,
+    "pct_off_52wk_high": -0.8271529411764706,
+    "prior_close": 0.7346,
+    "open": 0.6258
+   }
+  }
+ ]
+}

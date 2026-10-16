@@ -504,6 +504,15 @@ def market_breadth(session: str, mode: str, today: str, now: datetime.datetime, 
             logger.warning(f"breadth snapshot failed: {e}")
     mb = breadth.evaluate(session, mode, now, feed, prev=prev, snap_prices=prices)
     core.write_json(MARKET_BREADTH, mb)
+    if mb.get("status") == "ok" and mb.get("locked"):
+        # what the card said at the open, kept for the day's record (the evening pass moves
+        # market_breadth.json on to the next session before the record is written)
+        core.write_json(breadth.live_path(session), {k: mb.get(k) for k in (
+            "n", "n_etf", "state", "basis", "asof", "names", "relaxed", "trillium", "pushed")})
+        cutoff = (datetime.date.fromisoformat(session) - datetime.timedelta(days=14)).isoformat()
+        for p in breadth.METHOD_DIR.glob("breadth_live_*.json"):
+            if p.stem.rsplit("_", 1)[-1] < cutoff:
+                p.unlink()
     return mb
 
 
@@ -526,6 +535,10 @@ def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
         e = breadth.edge_for(table, state, score, relaxed=r.get("breadth_flag") == "relaxed")
         if e:
             r["edge"] = {k: e.get(k) for k in ("mean_r", "win", "n", "shrunk", "entry_mean_r", "entry_win")}
+            w = (table.get("watchlist") or {}).get(state) or {}
+            if not r.get("market") and w.get("n"):
+                # your priority report's GO/CAUTION bounces on days like this (the scorecard)
+                r["edge"]["watch"] = {k: w.get(k) for k in ("n", "mean_r", "win")}
     return rows
 
 

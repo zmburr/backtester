@@ -1,0 +1,59 @@
+{
+ "date": "2026-07-01",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 35,
+ "priced": 22,
+ "live": null,
+ "generated_at": "2026-10-16T18:27:16-04:00",
+ "signals": [
+  {
+   "ticker": "IRE",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.24024279729845255,
+    "gap_pct": -0.06882106523040098,
+    "pct_change_3": -0.07321131447587355,
+    "prior_day_range_atr": 0.4128827238694431,
+    "prior_day_rvol": 0.9437188196435357,
+    "selloff_total_pct": -0.45302782324058916,
+    "pct_off_30d_high": -0.6244943820224719,
+    "pct_off_52wk_high": -0.8659769008662175,
+    "prior_close": 16.71,
+    "open": 15.56
+   }
+  },
+  {
+   "ticker": "STI",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.37094264185760417,
+    "gap_pct": -0.027987082884822368,
+    "pct_change_3": -0.24716369529983798,
+    "prior_day_range_atr": 0.35983152588465506,
+    "prior_day_rvol": 0.06407289958707178,
+    "selloff_total_pct": -0.23286540049545834,
+    "pct_off_30d_high": -0.7980434782608696,
+    "pct_off_52wk_high": -0.7980434782608696,
+    "prior_close": 9.29,
+    "open": 9.03
+   }
+  }
+ ]
+}

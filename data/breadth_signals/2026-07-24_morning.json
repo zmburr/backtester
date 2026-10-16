@@ -1,0 +1,37 @@
+{
+ "date": "2026-07-24",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 35,
+ "priced": 23,
+ "live": null,
+ "generated_at": "2026-10-16T18:28:49-04:00",
+ "signals": [
+  {
+   "ticker": "BIYA",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5830170575692963,
+    "gap_pct": -0.09328358208955223,
+    "pct_change_3": -0.13268608414239472,
+    "prior_day_range_atr": 0.479940388026405,
+    "prior_day_rvol": 0.1684560021002225,
+    "selloff_total_pct": -0.6555269922879177,
+    "pct_off_30d_high": -0.8400477469412115,
+    "pct_off_52wk_high": -0.9982310231023102,
+    "prior_close": 2.68,
+    "open": 2.43
+   }
+  }
+ ]
+}

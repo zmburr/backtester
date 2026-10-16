@@ -21,10 +21,21 @@ on breadth days a name averaged 1.5 entries, so +1.2R a name was +0.8R an entry.
 under SHRINK_N names is pulled toward its day's average, so a tiny cell can't headline;
 both the raw and the shown numbers are written.
 
+The table keeps learning. The study is frozen into two small files (--freeze, once, where
+the population file lives). Every session since (method/breadth.py writes a record a day to
+data/breadth_signals/) adds its counted names, replayed the same way once the day is over.
+The nightly build rebuilds the table from both. Each state also gets a since_study cell (the
+recorded days alone) and a watchlist cell (your priority report's GO/CAUTION bounce rows
+from the signal scorecard, by the day's state). The rules (the 11-name line, the relaxed
+x0.5, the checks) don't change here: that takes a review and the trader's OK.
+
 Usage:
-    python -m scripts.bounce_day_edge --population ../backtester/data/bounce_population_2022_2026.csv
-Writes data/bounce_day_edge.json, data/bounce_day_edge_replays.csv (the replays it ran) and
-data/bounce_day_edge_entries.csv (each name-day's entries, from cached 1-min bars).
+    python -m scripts.bounce_day_edge                # rebuild from the frozen study + the records
+    python -m scripts.bounce_day_edge --freeze --population ../backtester/data/bounce_population_2022_2026.csv
+Writes data/bounce_day_edge.json; --freeze also writes data/bounce_day_edge_history.csv and
+data/bounce_breadth_days.csv. data/bounce_day_edge_entries.csv caches each name-day's
+entries (first entry and re-entry R) from the 1-min bars; data/bounce_day_edge_replays.csv
+holds the study replays the freeze ran.
 """
 from __future__ import annotations
 
@@ -40,7 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from analyzers.bounce_scorer import SETUP_PROFILES  # noqa: E402
-from method.breadth import BREADTH_DAY, ELEVATED, FLAG_SCORE, RELAX  # noqa: E402
+from method.breadth import BREADTH_DAY, ELEVATED, FLAG_SCORE, LOOP_START, RELAX  # noqa: E402
 
 DATA = ROOT / "data"
 EV = DATA / "score_ev_study.csv"
@@ -108,18 +119,19 @@ def split_entries(rows: pd.DataFrame) -> pd.DataFrame:
     todo = todo[[k not in have for k in zip(todo.date, todo.ticker)]]
     out = []
     for i, r in enumerate(todo.itertuples(index=False), 1):
-        rec = {"date": r.date, "ticker": r.ticker, "trades": 0, "r1": None, "r2": None}
         try:
             bars = fetch_day(r.ticker, r.date)
-            if bars is not None and not bars.empty:
-                two = build_2min(bars)
-                atr_abs = float(r.atr_pct) * float(two["open"].iloc[0]) if r.atr_pct == r.atr_pct and r.atr_pct else None
-                taken = rule_trades(two, atr_abs)
-                rec.update(trades=len(taken), r1=round(taken[0].r, 3) if taken else None,
-                           r2=round(taken[1].r, 3) if len(taken) > 1 else None)
+            if bars is None or bars.empty:
+                continue                       # not kept, so a later run tries again
+            two = build_2min(bars)
+            atr_abs = float(r.atr_pct) * float(two["open"].iloc[0]) if r.atr_pct == r.atr_pct and r.atr_pct else None
+            taken = rule_trades(two, atr_abs)
         except Exception as e:  # noqa: BLE001 - one bad day must not stop the sweep
             print(f"  {r.ticker} {r.date}: {e}")
-        out.append(rec)
+            continue
+        out.append({"date": r.date, "ticker": r.ticker, "trades": len(taken),
+                    "r1": round(taken[0].r, 3) if taken else None,
+                    "r2": round(taken[1].r, 3) if len(taken) > 1 else None})
         if i % 200 == 0:
             print(f"  split {i}/{len(todo)}", flush=True)
     if out:
@@ -172,19 +184,24 @@ def shrink(c: dict, base: dict) -> dict:
     return out
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--population", default=str(DATA / "bounce_population_2022_2026.csv"))
-    args = ap.parse_args()
+HISTORY = DATA / "bounce_day_edge_history.csv"      # the study's entered name-days, frozen
+STUDY_DAYS = DATA / "bounce_breadth_days.csv"       # the study's days and their counts, frozen
+SIGNALS = DATA / "breadth_signals"                  # one record a session since (method/breadth.py)
+OUTCOMES = DATA / "signal_outcomes.csv"             # the scorecard: your watchlist's GO/CAUTION R
+NAME_COLS = ["date", "ticker", "kind", "score", "n_flag", "state", "exit_r", "r1", "r2"]
+DRIFT_DAYS = 5                                      # recorded breadth days before the card can warn
 
-    pop = pd.read_csv(args.population)
+
+def freeze(population: str) -> None:
+    """The study's name-days and days, from the population file and the replays already run,
+    written to two small files so the table can be rebuilt anywhere (the mini has no
+    population file). Run once; the study doesn't change."""
+    pop = pd.read_csv(population)
     pop["ok"] = score(pop)
     pop["relaxed"] = score(pop, {"gap_pct": RELAX, "pct_change_3": RELAX})
     n_flag = pop[pop.ok >= FLAG_SCORE].groupby("date").size()
     pop["n_flag"] = pop.date.map(n_flag).fillna(0).astype(int)
     pop["state"] = pop.n_flag.map(state_of)
-    days_by_state = pd.Series({d: state_of(int(n_flag.get(d, 0))) for d in pop.date.unique()}).value_counts()
-    print(f"{len(pop)} name-days on {pop.date.nunique()} days; days by state {days_by_state.to_dict()}")
 
     ev_all = pd.read_csv(EV)
     ev = ev_all[["date", "ticker", "exit_r", "entry_signals"]]
@@ -208,37 +225,131 @@ def main() -> int:
         m["exit_r"] = pd.to_numeric(m["exit_r"], errors="coerce")
         return m[pd.to_numeric(m.entry_signals, errors="coerce").fillna(0) > 0]
 
-    s = with_r(surfaced)
     control = set(zip(*[ev_all.loc[ev_all.cohort == "nogo_control", c] for c in ("date", "ticker")]))
-    low = with_r(pop[(pop.ok < FLAG_SCORE) & [k in control for k in zip(pop.date, pop.ticker)]])
-    a = with_r(added)
-    print(f"entries: surfaced {len(s)} of {len(surfaced)}, low-score control {len(low)}, relaxed {len(a)} of {len(added)}")
-    ent = split_entries(pd.concat([s, low, a])[["date", "ticker", "atr_pct"]])[["date", "ticker", "r1", "r2"]]
-    s, low, a = (x.merge(ent, on=["date", "ticker"], how="left") for x in (s, low, a))
-    for x in (s, low, a):
-        x["r1"], x["r2"] = pd.to_numeric(x.r1, errors="coerce"), pd.to_numeric(x.r2, errors="coerce")
-    split_ok = ((s.r1.fillna(0) + s.r2.fillna(0) - s.exit_r).abs() < 0.02).mean()
-    print(f"entries split for {s.r1.notna().sum()} of {len(s)} surfaced name-days; r1 + r2 = exit_r on {split_ok:.1%}")
+    parts = [with_r(surfaced).assign(kind="strict", score=lambda x: x.ok),
+             with_r(pop[(pop.ok < FLAG_SCORE) & [k in control for k in zip(pop.date, pop.ticker)]])
+             .assign(kind="low", score=lambda x: x.ok),
+             with_r(added).assign(kind="relaxed", score=lambda x: x.relaxed)]
+    names = pd.concat(parts, ignore_index=True)
+    ent = split_entries(names[["date", "ticker", "atr_pct"]])[["date", "ticker", "r1", "r2"]]
+    names = names.merge(ent, on=["date", "ticker"], how="left")[NAME_COLS]
+    names.sort_values(["date", "ticker", "kind"]).to_csv(HISTORY, index=False)
+    days = pd.DataFrame({"date": sorted(pop.date.unique())})
+    days["n_flag"] = days.date.map(n_flag).fillna(0).astype(int)
+    days["state"] = days.n_flag.map(state_of)
+    days.to_csv(STUDY_DAYS, index=False)
+    print(f"froze {len(names)} entered name-days ({names.kind.value_counts().to_dict()}) and {len(days)} days")
 
+
+def recorded(today: str | None = None, signals_dir: Path | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(name-days, days) from the session records. The names in the study's universe only
+    (counted), so the cells mean what the study's did; each replayed once its day is over."""
+    days, names = [], []
+    for p in sorted((signals_dir or SIGNALS).glob("*_morning.json")):
+        rec = json.loads(p.read_text())
+        d = rec["date"]
+        days.append({"date": d, "n_flag": int(rec["n"]), "state": rec["state"], "n_etf": rec.get("n_etf")})
+        for s in rec.get("signals") or []:
+            if s.get("counted"):
+                names.append({"date": d, "ticker": s["ticker"], "kind": str(s["recommendation"]).lower(),
+                              "score": int(s["score"]), "n_flag": int(rec["n"]), "state": rec["state"],
+                              "atr_pct": (s.get("metrics") or {}).get("atr_pct")})
+    days = pd.DataFrame(days, columns=["date", "n_flag", "state", "n_etf"])
+    names = pd.DataFrame(names, columns=["date", "ticker", "kind", "score", "n_flag", "state", "atr_pct"])
+    today = today or datetime.date.today().isoformat()
+    done = names[names.date < today]                # bars are final once the day is over
+    if len(done):
+        ent = split_entries(done[["date", "ticker", "atr_pct"]])
+        done = done.merge(ent[["date", "ticker", "trades", "r1", "r2"]], on=["date", "ticker"], how="inner")
+        done = done[pd.to_numeric(done.trades, errors="coerce").fillna(0) > 0].copy()
+        for c in ("r1", "r2"):
+            done[c] = pd.to_numeric(done[c], errors="coerce")
+        done["exit_r"] = done.r1.fillna(0) + done.r2.fillna(0)
+    return done.reindex(columns=NAME_COLS), days
+
+
+def watchlist_rows(day_state: dict, outcomes: Path = OUTCOMES) -> pd.DataFrame:
+    """Your watchlist's GO/CAUTION bounce signals the rules entered (the scorecard's surfaced
+    cohort), with the day's market-wide state."""
+    if not outcomes.exists():
+        return pd.DataFrame(columns=["date", "exit_r", "state"])
+    o = pd.read_csv(outcomes, dtype=str, keep_default_na=False)
+    o = o[(o.bucket == "bounce") & (o.cohort.isin(["", "surfaced"])) & (o.recommendation.isin(["GO", "CAUTION"]))
+          & (pd.to_numeric(o.entry_signals, errors="coerce").fillna(0) > 0)]
+    out = pd.DataFrame({"date": o.target_date, "exit_r": pd.to_numeric(o.exit_r, errors="coerce")})
+    out["state"] = out.date.map(day_state)
+    return out[out.state.notna() & out.exit_r.notna()]
+
+
+def build_table(hist: pd.DataFrame, study_days: pd.DataFrame, rec: pd.DataFrame, rec_days: pd.DataFrame,
+                watch: pd.DataFrame | None = None) -> dict:
+    """The card's table: every cell from the study plus the recorded days, and each state's
+    since-the-study cell from the recorded days alone."""
+    names = (hist if rec.empty else pd.concat([hist, rec], ignore_index=True)).copy()
+    for c in ("exit_r", "r1", "r2", "score"):
+        names[c] = pd.to_numeric(names[c], errors="coerce")
+    days = study_days[["date", "n_flag", "state"]]
+    if len(rec_days):
+        days = pd.concat([days, rec_days[["date", "n_flag", "state"]]]).drop_duplicates("date", keep="last")
+    by_state = days.state.value_counts()
+    rec_by_state = rec_days.state.value_counts()
+    strict, low, relaxed = (names[names.kind == k] for k in ("strict", "low", "relaxed"))
+    last = rec_days.date.max() if len(rec_days) else None
     table = {"built": datetime.date.today().isoformat(),
              "unit": "R per name-day under the live rules (first entry + one re-entry after a stop-out), "
                      "when the rules entered; entry_* = each single entry",
-             "population": Path(args.population).name, "shrink_n": SHRINK_N,
-             "thresholds": {"elevated": ELEVATED, "breadth": BREADTH_DAY}, "states": {}, "relaxed": {}}
+             "sources": {"study": f"{study_days.date.min()}..{study_days.date.max()}",
+                         "recorded": {"since": LOOP_START, "sessions": int(len(rec_days)), "last": last}},
+             "shrink_n": SHRINK_N, "thresholds": {"elevated": ELEVATED, "breadth": BREADTH_DAY},
+             "states": {}, "relaxed": {}, "watchlist": {}, "drift": None}
     for name, _, _ in STATES:
-        x = s[s.state == name]
-        base = cell(x.exit_r, days=int(days_by_state.get(name, 0)), dates=x.date, entries=per_entry(x))
+        x = strict[strict.state == name]
+        base = cell(x.exit_r, days=int(by_state.get(name, 0)), dates=x.date, entries=per_entry(x))
         by = {}
-        for k, part in (("4", x[x.ok == 4]), ("5", x[x.ok == 5]), ("6", x[x.ok >= 6]),
+        for k, part in (("4", x[x.score == 4]), ("5", x[x.score == 5]), ("6", x[x.score >= 6]),
                         ("low", low[low.state == name])):
             by[k] = shrink(cell(part.exit_r, entries=per_entry(part)), base)
-        table["states"][name] = {**base, "by_score": by}
-        print(f"{name:9} {base}  " + "  ".join(f"{k}: {v['mean_r']:+.2f}R n={v['n']}" for k, v in by.items()))
-    if len(a):
-        ab = a[a.state == "breadth"]
-        table["relaxed"]["breadth"] = cell(ab.exit_r, dates=ab.date, entries=per_entry(ab))
-        print("relaxed on breadth days", table["relaxed"]["breadth"])
-    OUT.write_text(json.dumps(table, indent=1))
+        y = rec[(rec.kind == "strict") & (rec.state == name)] if len(rec) else rec
+        since = cell(pd.to_numeric(y.exit_r, errors="coerce"), days=int(rec_by_state.get(name, 0)), dates=y.date,
+                     entries=per_entry(y) if len(y) else None)
+        table["states"][name] = {**base, "by_score": by, "since_study": {**since, "since": LOOP_START}}
+        if watch is not None:
+            w = watch[watch.state == name]
+            table["watchlist"][name] = cell(w.exit_r, dates=w.date)
+    rb = relaxed[relaxed.state == "breadth"]
+    if len(rb):
+        table["relaxed"]["breadth"] = cell(rb.exit_r, dates=rb.date, entries=per_entry(rb))
+    s = table["states"]["breadth"]["since_study"]
+    if s.get("days", 0) >= DRIFT_DAYS and s.get("mean_r") is not None and s["mean_r"] < 0:
+        table["drift"] = {"state": "breadth", "days": s["days"], "n": s["n"], "mean_r": s["mean_r"],
+                          "history_mean_r": table["states"]["breadth"]["mean_r"]}
+    return table
+
+
+def rebuild(today: str | None = None, out: Path = OUT, signals_dir: Path | None = None,
+            outcomes: Path = OUTCOMES) -> dict:
+    """Nightly (method/breadth.py --build): the frozen study + every recorded session."""
+    hist = pd.read_csv(HISTORY)
+    study_days = pd.read_csv(STUDY_DAYS)
+    rec, rec_days = recorded(today, signals_dir)
+    day_state = dict(zip(study_days.date, study_days.state)) | dict(zip(rec_days.date, rec_days.state))
+    table = build_table(hist, study_days, rec, rec_days, watchlist_rows(day_state, outcomes))
+    out.write_text(json.dumps(table, indent=1))
+    return table
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--freeze", action="store_true", help="re-freeze the study from the population file first")
+    ap.add_argument("--population", default=str(DATA / "bounce_population_2022_2026.csv"))
+    args = ap.parse_args()
+    if args.freeze:
+        freeze(args.population)
+    table = rebuild()
+    for name, st in table["states"].items():
+        s = st["since_study"]
+        print(f"{name:9} {st['mean_r']:+.2f}R n={st['n']} on {st['days']} days | since the study: "
+              f"{s.get('days', 0)} days, n={s['n']}" + (f" {s['mean_r']:+.2f}R" if s.get("mean_r") is not None else ""))
     print(f"wrote {OUT}")
     return 0
 

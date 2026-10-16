@@ -105,7 +105,7 @@ def load_outcome_index(path: Path = OUTCOMES) -> dict:
     if not path.exists():
         return {}
     with path.open(newline="", encoding="utf-8") as fh:
-        rows = [r for r in csv.DictReader(fh) if r.get("cohort") != "control"]
+        rows = [r for r in csv.DictReader(fh) if core.surfaced(r)]
     return core.index_outcomes(rows)
 
 
@@ -161,6 +161,17 @@ def load_trades(side: str, path: Path | None = None) -> list[dict]:
             "open_close": close, "next_open": nxt, "atr_pct": atr, "log": log,
         })
     return out
+
+
+def tag_days(rows: list[dict], states: dict | None = None) -> list[dict]:
+    """Each trade's day type: how many names market-wide were B or better at that open
+    (method/breadth.py; the study's days from 2022, the recorded ones since)."""
+    from method import breadth
+    states = breadth.day_states() if states is None else states
+    for r in rows:
+        n, st = states.get(r.get("date"), (None, None))
+        r["day_n"], r["day_state"] = n, st
+    return rows
 
 
 def system_fields(side: str, data: dict) -> dict:

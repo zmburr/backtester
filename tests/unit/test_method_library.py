@@ -141,10 +141,11 @@ def test_review_adds_the_next_day_once_it_is_over(stub_review):
 def test_library_endpoint_serves_the_built_list(csvs, monkeypatch):
     monkeypatch.setenv("METHOD_DEV_LOGIN", "zmburr@gmail.com")
     from method import server as sv
-    core.write_json(lib.LIBRARY, {"built_at": "x", "rows": [{"key": "bounce:ALAB:2026-07-20"}]})
+    core.write_json(lib.LIBRARY, {"built_at": "x", "rows": [{"key": "bounce:ALAB:2026-07-20", "date": "2025-04-07"}]})
     app = sv.create_app()
     app.testing = True
-    assert app.test_client().get("/api/library").get_json()["rows"] == [{"key": "bounce:ALAB:2026-07-20"}]
+    rows = app.test_client().get("/api/library").get_json()["rows"]      # each tagged with its day type
+    assert rows == [{"key": "bounce:ALAB:2026-07-20", "date": "2025-04-07", "day_n": 39, "day_state": "breadth"}]
 
 
 def test_live_chart_falls_back_a_day_after_midnight(monkeypatch):

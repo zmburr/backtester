@@ -65,7 +65,9 @@ def load_complete_rows() -> list[dict]:
     with open(OUTCOMES_FILE, newline="") as f:
         return [r for r in csv.DictReader(f)
                 if str(r.get("complete")).lower() == "true"
-                and str(r.get("days_available") or "0") != "0"]  # skip no-data (delisted) rows
+                and str(r.get("days_available") or "0") != "0"  # skip no-data (delisted) rows
+                # the market-wide breadth cohort is Method's lane, not part of this analysis
+                and _cohort(r) in (COHORT_SURFACED, COHORT_CONTROL)]
 
 
 def _extract_section(filepath: Path, start_marker: str, max_lines: int) -> str:
