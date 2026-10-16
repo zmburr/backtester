@@ -3,10 +3,10 @@ Method server: one page for bounce and reversal setups, always current.
 
 It serves what method/refresh.py writes (data/method/snapshot.json) plus the
 lessons notes, past setup days, chart bars and the day's shot counter. It
-does no scoring itself. Tailnet only: launchd runs it on 127.0.0.1:8505 and
+does no scoring itself. Tailnet only: launchd runs it on 127.0.0.1:8506 and
 `tailscale serve` puts it on https://zacharys-mac-mini.<tailnet>.ts.net:8445.
 
-Run:  python -m method.server [--port 8505]
+Run:  python -m method.server [--port 8506]
 With METHOD_AUTORESTART=1 (launchd) it exits when the repo's HEAD moves, so a
 git pull goes live on the next KeepAlive restart.
 """
@@ -213,7 +213,7 @@ def _watch_head(start: str):
 def main():
     ap = argparse.ArgumentParser(description="Method server")
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=int(os.environ.get("METHOD_PORT", "8505")))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("METHOD_PORT", "8506")))
     args = ap.parse_args()
     if os.environ.get("METHOD_AUTORESTART") == "1":
         threading.Thread(target=_watch_head, args=(git_head(),), daemon=True).start()
