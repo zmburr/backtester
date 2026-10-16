@@ -1,12 +1,7 @@
 {
- "date": "2026-10-15",
+ "date": "2026-10-16",
  "alerted": {
-  "SOXL": 5,
-  "MXL": 5,
-  "NBIS": 6,
-  "KEEL": 6,
-  "BE": 5,
-  "BRUN": 5
+  "SOXL": 5
  },
- "brief_sent": true
+ "brief_sent": false
 }
