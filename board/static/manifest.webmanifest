@@ -1,0 +1,9 @@
+{
+  "name": "Setup Board",
+  "short_name": "Board",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111418",
+  "theme_color": "#111418",
+  "icons": [{"src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+}
