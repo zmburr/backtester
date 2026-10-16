@@ -32,6 +32,7 @@ const gradeBadge = g => g ? `<span class="badge ${GRADE_CLS[g] || 'gN'}">${esc(g
 const hhmm = t => new Date(t * 1000).toISOString().slice(11, 16);     // ET-shifted epoch -> "HH:MM"
 
 async function api(path, opts) {
+  if (opts?.method === 'POST') opts.headers = { 'Content-Type': 'application/json', 'X-Method': '1', ...(opts.headers || {}) };
   const r = await fetch(path, opts);
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
   return r.json();
@@ -142,7 +143,7 @@ function shotStats(side) {
 const locked = (side, tk) => (shotStats(side).stops[tk] || 0) >= 2;
 async function loadShots() { try { S.shots = await api('/api/shots'); } catch (e) { /* keep last copy */ } }
 async function postShot(body) {
-  S.shots = await api('/api/shots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  S.shots = await api('/api/shots', { method: 'POST', body: JSON.stringify(body) });
   render();
 }
 function shotsCard(side, tk = null) {
@@ -465,7 +466,7 @@ async function renderPlaybook() {
   }
   const L = S.lessons[side];
   let h = `<div class="col"><div class="pb-top"><div class="seg"><button data-lside="bounce" class="${side === 'bounce' ? 'on' : ''}">Bounce</button>` +
-    `<button data-lside="reversal" class="${side === 'reversal' ? 'on' : ''}">Reversal</button></div></div>${shotsCard(side)}`;
+    `<button data-lside="reversal" class="${side === 'reversal' ? 'on' : ''}">Reversal</button></div></div>${pushCard()}${shotsCard(side)}`;
   if (!L.found) h += `<div class="card callout warn">Lessons note not found (${esc(L.note)}).</div>`;
   for (const sec of L.sections) {
     const risk = sec.heading.toLowerCase().startsWith('risk budget') && L.tiers;
@@ -474,6 +475,56 @@ async function renderPlaybook() {
   }
   h += `<p class="foot-note">From ${esc(L.note)}. Edit it in Obsidian; Method reads it fresh.</p></div>`;
   reader.innerHTML = h;
+  paintPush().catch(() => {});
+}
+
+// ── push: iOS delivers only to the home-screen app, and permission must come from a tap ──
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function pushCard() {
+  return `<div class="card"><div class="eyebrow">Notifications</div><div id="push-status" class="muted" style="margin-top:6px">Checking…</div>
+    <div class="shots-row"><button class="btn primary small" id="push-enable" hidden>Turn on notifications</button>
+    <button class="btn ghost small" id="push-test" hidden>Send a test</button></div></div>`;
+}
+async function paintPush() {
+  const st = $('#push-status'), en = $('#push-enable'), te = $('#push-test');
+  if (!st) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    st.textContent = standalone() ? "This device can't receive notifications."
+      : 'Add Method to your home screen (Share → Add to Home Screen) and open it from there to turn these on.';
+    return;
+  }
+  const info = await api('/api/push');
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub && Notification.permission === 'granted') {
+    st.textContent = `On. Setups forming and grade upgrades arrive here instead of email (${info.subscriptions} device${info.subscriptions === 1 ? '' : 's'}).`;
+    en.hidden = true; te.hidden = false;
+  } else if (Notification.permission === 'denied') {
+    st.textContent = 'Blocked. Turn them on in iPhone Settings → Notifications → Method.';
+    en.hidden = true; te.hidden = true;
+  } else {
+    st.textContent = 'Off. Setups forming go to your email until you turn these on.';
+    en.hidden = false; te.hidden = true;
+  }
+}
+function b64ToBytes(b64) {
+  const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4));
+  return Uint8Array.from(s, c => c.charCodeAt(0));
+}
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return paintPush();
+    const { public_key } = await api('/api/push');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(public_key) });
+    await api('/api/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
+  } catch (e) {
+    const st = $('#push-status');
+    if (st) st.textContent = `Couldn't turn on notifications: ${e.message}`;
+    return;
+  }
+  paintPush();
 }
 
 // ── history ──────────────────────────────────────────────────────────────
@@ -598,6 +649,9 @@ document.addEventListener('click', e => {
   if (t.dataset.lside) { S.lessonSide = t.dataset.lside; return render(); }
   if (t.dataset.shot) return postShot({ side: S.route === 'playbook' ? S.lessonSide : S.route, ticker: t.dataset.tk, kind: t.dataset.shot });
   if (t.dataset.undo) return postShot({ kind: 'undo' });
+  if (t.id === 'push-enable') return enablePush();
+  if (t.id === 'push-test') return api('/api/push/test', { method: 'POST', body: '{}' })
+    .then(r => { $('#push-status').textContent = r.sent ? 'Test sent.' : 'No device is subscribed.'; });
 });
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -638,6 +692,7 @@ async function poll() {
   }
 }
 
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 applyRoute();
 poll();
 setInterval(poll, 60e3);

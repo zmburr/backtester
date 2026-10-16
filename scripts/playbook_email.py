@@ -461,14 +461,48 @@ def run(session: str, asof: datetime.date, dry: bool = False, force: bool = Fals
             sent.append(side)
             continue
 
-        send_email(EMAIL_TO, subject, body, is_html=True)
-        logger.info(f"sent: {subject}")
+        how = deliver(side, session, target, subject, body, rows)
+        logger.info(f"sent by {how}: {subject}")
         sent.append(side)
         if not force:
-            state[side] = {"target": target.isoformat(), "session": session,
+            state[side] = {"target": target.isoformat(), "session": session, "via": how,
                            "sent_at": datetime.datetime.now().isoformat(timespec="seconds")}
             save_state(state)
     return sent
+
+
+def push_text(side: str, session: str, target: datetime.date, rows: list[dict]) -> tuple[str, str]:
+    """The notification: who's GO, each bounce name's grade and the next one down."""
+    when = _day_word(target) if session == "evening" else "today"
+    title = f"{SIDE_WORD[side].title()} setup for {when}"
+    bits = []
+    for r in rows:
+        if r.get("rec") != "GO":
+            continue
+        bit = r["ticker"]
+        if r.get("grade"):
+            bit += f" {r['grade'] if r['grade'] != '-' else 'no grade'}"
+            if r.get("better"):
+                g, p = r["better"][0]
+                bit += f" ({g} at {_px(p)})"
+        bits.append(bit)
+    return title, " · ".join(bits) + ". Open Method for the plan."
+
+
+def deliver(side: str, session: str, target: datetime.date, subject: str, body: str,
+            rows: list[dict]) -> str:
+    """Push to Method on the phone when one is subscribed (user, 2026-10-15: push
+    replaces the email); the email goes out only when no device gets the push."""
+    try:
+        from method import push
+        if push.count():
+            title, text = push_text(side, session, target, rows)
+            if push.send(title, text, url=f"/#/{side}", tag=f"setup-{side}-{target}"):
+                return "push"
+    except Exception as e:                           # a push failure must never cost the alert
+        logger.warning(f"push failed, emailing instead: {e}")
+    send_email(EMAIL_TO, subject, body, is_html=True)
+    return "email"
 
 
 def replay() -> dict:

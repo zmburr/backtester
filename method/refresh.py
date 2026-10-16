@@ -39,9 +39,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyzers.bounce_ladder import historical_grade_stats, lookup_bounce_odds
+from analyzers.bounce_ladder import GRADE_RANK, historical_grade_stats, lookup_bounce_odds
 from analyzers.bounce_scorer import BouncePretrade
 from method import core
+from method import push
 from method.ladder import grade_at, ladder_payload, next_better
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
@@ -321,6 +322,39 @@ def _report_view(rep: dict) -> dict:
     return view
 
 
+def grade_alerts(rows: list[dict], session: str, mode: str) -> list[str]:
+    """Push when a name the priority report rated GO or CAUTION reaches A or A+ at the
+    live price, overnight or premarket (user, 2026-10-15). Once per name per grade per
+    session; an A that becomes an A+ pushes again. Nothing is recorded unless a phone got it."""
+    if mode not in ("premarket", "overnight"):
+        return []
+    path = METHOD_DIR / f"grade_alerts_{session}.json"
+    state = core.read_json(path, {}) or {}
+    sent = []
+    for r in rows:
+        g = r.get("grade")
+        if r.get("report_rec") not in ("GO", "CAUTION") or g not in ("A", "A+"):
+            continue
+        if GRADE_RANK[g] <= GRADE_RANK.get(state.get(r["ticker"], "-"), 0):
+            continue
+        nxt = r.get("next")
+        body = (f"{r['ticker']} at {r['price']:,.2f} ({(r['gap'] or 0) * 100:+.1f}% vs the close) is an {g}. "
+                + (f"{nxt['grade']} at {nxt['price']:,.2f}." if nxt else "Best grade on the ladder."))
+        try:
+            n = push.send(f"{r['ticker']} is an {g}", body, url=f"/#/bounce/{r['ticker']}",
+                          tag=f"grade-{r['ticker']}-{session}")
+        except Exception as e:
+            logger.warning(f"grade alert push failed: {e}")
+            n = 0
+        if n:
+            state[r["ticker"]] = g
+            sent.append(r["ticker"])
+    if sent:
+        core.write_json(path, state)
+        logger.info(f"grade alerts pushed: {', '.join(sent)}")
+    return sent
+
+
 def _counts(rows):
     return {"GO": sum(r["rec"] == "GO" for r in rows),
             "CAUTION": sum(r["rec"] == "CAUTION" for r in rows)}
@@ -384,6 +418,8 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
                 if r["ticker"] in v["analogs"]:
                     r["analogs"] = v["analogs"][r["ticker"]]
 
+    if not dry:
+        grade_alerts(bounce, session, mode)
     bc, rc = _counts(bounce), _counts(reversal)
     entry = {"t": now.strftime("%H:%M"), "date": today.isoformat(), "mode": mode,
              "bounce_go": bc["GO"], "bounce_caution": bc["CAUTION"],

@@ -160,6 +160,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "grade_at", fake_grade_at)
     monkeypatch.setattr(rf, "historical_grade_stats", lambda: {"A": {"n": 15, "med_open_close": 0.117}})
     monkeypatch.setattr(rf, "lookup_bounce_odds", lambda score, cap: {"p_bounce5": 0.6})
+    monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))       # no phone subscribed: no pushes
     monkeypatch.setattr(rf.time, "sleep", lambda s: None)
     rev = []
     monkeypatch.setattr(rf, "reversal_pass", lambda cands, caps, today, setups: rev.append(cands) or [])
@@ -277,6 +278,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(sv, "SIGNALS_DIR", sig)
     monkeypatch.setattr(sv, "OUTCOMES", tmp_path / "signal_outcomes.csv")
     monkeypatch.setattr(sv, "next_trading_day", lambda d: d + datetime.timedelta(days=1))
+    monkeypatch.setenv("METHOD_DEV_LOGIN", "zmburr@gmail.com")
+    monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))
     sv._history_cache.update(key=None, data=None)
     sv._bars_cache.clear()
     app = sv.create_app()
@@ -317,7 +320,7 @@ def test_lessons_route_reads_the_note(client, monkeypatch, tmp_path):
 
 def test_shots_count_undo_and_validate(client):
     c = client["c"]
-    post = lambda body: c.post("/api/shots?date=2026-10-15", json=body)
+    post = lambda body: c.post("/api/shots?date=2026-10-15", json=body, headers={"X-Method": "1"})
     post({"side": "bounce", "ticker": "soxl", "kind": "shot"})
     post({"side": "bounce", "ticker": "SOXL", "kind": "stop"})
     r = post({"side": "bounce", "ticker": "KORU", "kind": "stop"}).get_json()

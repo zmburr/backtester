@@ -6,6 +6,11 @@ lessons notes, past setup days, chart bars and the day's shot counter. It
 does no scoring itself. Tailnet only: launchd runs it on 127.0.0.1:8506 and
 `tailscale serve` puts it on https://zacharys-mac-mini.<tailnet>.ts.net:8445.
 
+Only the owner's tailnet login gets in (as Intrinsic): tailscale serve adds a
+Tailscale-User-Login header; METHOD_ALLOWED_LOGINS lists who may pass (default the
+owner) and METHOD_DEV_LOGIN stands in for the header on local runs. Writes must be
+JSON with X-Method: 1.
+
 Run:  python -m method.server [--port 8506]
 With METHOD_AUTORESTART=1 (launchd) it exits when the repo's HEAD moves, so a
 git pull goes live on the next KeepAlive restart.
@@ -24,9 +29,10 @@ import time
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, abort, jsonify, request, send_from_directory
+from flask import Flask, abort, jsonify, make_response, request, send_from_directory
 
 from method import core
+from method import push
 from method import review as rv
 from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, read_breadth
 from data_queries import polygon_queries as pq
@@ -118,6 +124,11 @@ def history() -> list[dict]:
     return data
 
 
+def allowed_logins() -> set[str]:
+    raw = os.environ.get("METHOD_ALLOWED_LOGINS", "zmburr@gmail.com")
+    return {x.strip().lower() for x in raw.split(",") if x.strip()}
+
+
 def _valid_ticker(t: str) -> bool:
     return bool(t) and t.isascii() and t.replace(".", "").isalnum() and len(t) <= 10
 
@@ -125,6 +136,45 @@ def _valid_ticker(t: str) -> bool:
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=None)
     version = git_head()
+    logins = allowed_logins()
+
+    @app.before_request
+    def gate():
+        if request.path == "/api/health":
+            return None
+        login = (request.headers.get("Tailscale-User-Login") or os.environ.get("METHOD_DEV_LOGIN") or "").lower()
+        if login not in logins:
+            # fail closed: not via tailscale serve, or someone else on the tailnet
+            return ("Not available", 403)
+        if request.method == "POST" and (not request.is_json or request.headers.get("X-Method") != "1"):
+            return jsonify(error="Expected a Method JSON request"), 400
+        return None
+
+    @app.get("/sw.js")
+    def service_worker():
+        resp = make_response(send_from_directory(STATIC, "sw.js", mimetype="application/javascript"))
+        resp.headers["Cache-Control"] = "no-cache"
+        resp.headers["Service-Worker-Allowed"] = "/"
+        return resp
+
+    @app.get("/api/push")
+    def push_info():
+        return jsonify(public_key=push.ensure_keys(), subscriptions=push.count())
+
+    @app.post("/api/push/subscribe")
+    def push_subscribe():
+        body = request.get_json(silent=True) or {}
+        try:
+            n = push.subscribe(body.get("endpoint", ""), body.get("keys") or {})
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(ok=True, subscriptions=n)
+
+    @app.post("/api/push/test")
+    def push_test():
+        sent = push.send("Method", "Notifications are on. Setups forming and grade upgrades arrive here.",
+                         url="/#/bounce", tag="method-test")
+        return jsonify(sent=sent)
 
     @app.get("/")
     def index():

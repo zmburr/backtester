@@ -125,6 +125,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(sv, "REVIEW_DIR", bdir / "review")
     monkeypatch.setattr(sv, "OUTCOMES", tmp_path / "signal_outcomes.csv")
     sv._outcomes_cache.update(mtime=None, rows=[], index={})
+    monkeypatch.setenv("METHOD_DEV_LOGIN", "zmburr@gmail.com")
     monkeypatch.setattr(pbs, "get_cap", lambda t, c: "ETF")
     monkeypatch.setattr(pbs, "_load_json", lambda p: {})
     calls = []

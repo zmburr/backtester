@@ -63,6 +63,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(pe, "DATA_DIR", tmp_path)
     monkeypatch.setattr(pe, "VAULT_CANDIDATES", (vault,))
     monkeypatch.delenv("OBSIDIAN_VAULT", raising=False)
+    monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))       # no phone subscribed: email
     monkeypatch.setattr(pe, "next_trading_day", lambda d: d + datetime.timedelta(days=1))
     monkeypatch.setattr(pe, "build_static", lambda t, date: dict(STATIC))
     monkeypatch.setattr(pe, "go_gap_trigger", lambda t, s, cap, checker: -0.05)
