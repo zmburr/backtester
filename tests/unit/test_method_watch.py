@@ -183,6 +183,16 @@ def test_an_entry_is_kept_only_once_a_phone_got_it(tmp_path):
                               lambda *a, **k: 1, path) == ["MUU#1"]
 
 
+def test_a_relaxed_name_says_so_instead_of_its_strict_score():
+    # HIMS 10/15 was flagged under the relaxed rules; "2/6" (its strict score) read as a skip
+    e1 = {"n": 1, "entry": 26.99, "stop": 26.42, "risk": 0.57}
+    row = {"score_open": 2, "atr": 1.0, "breadth_flag": "relaxed"}
+    assert watch.entry_line("HIMS", e1, row, "16+").startswith("HIMS relaxed buy 26.99 stop 26.42")
+    assert watch.entry_line("HIMS", dict(e1, n=2), row, "16+").startswith("HIMS re-entry buy")
+    assert watch.entry_line("MUU", e1, {"score_open": 6, "atr": 1.0, "breadth_flag": "strict"},
+                            "16+").startswith("MUU 6/6 buy")
+
+
 def test_a_long_batch_fits_the_push_and_says_how_many_more():
     lines = [f"N{i:02d} 5/6 buy 123.45 stop 120.10 · 2,600 sh (3R)" for i in range(12)]
     body = watch.fit(lines)

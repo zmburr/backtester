@@ -141,7 +141,8 @@ function render() {
   const r = S.route;
   if (r === 'bounce' || r === 'reversal') {
     const rows = S.snap?.[r]?.rows || [];
-    if (wide() && !rows.some(x => x.ticker === S.sel[r])) S.sel[r] = (rows.find(isActive) || rows[0])?.ticker || null;
+    // a link's name (a push opens /#/bounce/TK) holds until the snapshot is in to check it against
+    if (wide() && S.snap && !rows.some(x => x.ticker === S.sel[r])) S.sel[r] = (rows.find(isActive) || rows[0])?.ticker || null;
     renderSideList(r);
     renderDetail(r);
   } else if (r === 'playbook') {
@@ -315,16 +316,20 @@ const shs = n => n ? `${Number(n).toLocaleString('en-US')} sh` : null;
 function rulesTally(s, mb) {
   const rows = (s.bounce?.rows || []).filter(r => r.rules);
   if (!rows.length) {
-    return mb.locked ? '<div class="rules-tally muted">Entry alerts need live prices from the PC (Trillium). None have come in yet.</div>' : '';
+    if (!mb.locked) return '';
+    return s.src === 'T'
+      ? '<div class="rules-tally muted">Entry alerts on. The rule needs two 2-min bars, so the first entries can come at 9:34.</div>'
+      : '<div class="rules-tally muted">Entry alerts need live prices from the PC (Trillium). None have come in yet.</div>';
   }
-  const es = rows.flatMap(r => (r.rules.entries || []).map(e => ({ ...e, tk: r.ticker, score: r.score_open ?? r.score })));
+  const es = rows.flatMap(r => (r.rules.entries || []).map(e => ({ ...e, tk: r.ticker, score: r.score_open ?? r.score,
+    relaxed: r.breadth_flag === 'relaxed' })));
   const terms = rows.find(r => r.rules.risk_r)?.rules;
   const head = `Entry alerts on${terms ? ` · ${terms.risk_r}R an attempt, ${terms.alerted > 1 ? 'first entry and re-entry' : 'first entry only'}` : ''}`;
   const tally = `Rules today: ${rows.filter(r => r.rules.entries?.length).length} of ${rows.length} names in · ` +
     `${es.filter(e => e.state === 'stopped').length} stopped · ${es.filter(e => e.n > 1).length} re-entries`;
   const open = es.filter(e => e.state === 'open').sort((a, b) => (b.score || 0) - (a.score || 0) || b.t.localeCompare(a.t));
   const list = open.slice(0, 10).map(e => `<button class="ent" data-btk="${esc(e.tk)}"><span><b>${esc(e.tk)}</b> ` +
-    `<span class="muted">${e.n > 1 ? 're-entry' : `${e.score ?? '–'}/6`} · ${esc(e.t)}</span></span>` +
+    `<span class="muted">${e.n > 1 ? 're-entry' : e.relaxed ? 'relaxed' : `${e.score ?? '–'}/6`} · ${esc(e.t)}</span></span>` +
     `<span class="num">${px(e.entry)} · stop ${px(e.stop)}${e.shares ? ` · ${esc(shs(e.shares))}` : ''} · <b class="${e.r >= 0 ? 'go' : 'neg'}">${esc(rr(e.r))}</b></span></button>`);
   return `<div class="rules-tally"><div class="rt-head">${esc(head)}</div><div class="muted">${esc(tally)}</div>` +
     `${list.length ? `<div class="eyebrow" style="margin-top:8px">Open now · best score first</div><div class="ents">${list.join('')}</div>` : ''}` +

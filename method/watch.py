@@ -160,6 +160,9 @@ def px(p: float) -> str:
 
 def entry_line(t: str, e: dict, row: dict, band: str) -> str:
     score = row.get("score_open") if row.get("score_open") is not None else row.get("score")
+    if row.get("breadth_flag") == "relaxed":      # flagged under the relaxed rules: its strict score reads low
+        score = None
+        t = f"{t} relaxed" if e["n"] == 1 else t
     head = f"{t} re-entry" if e["n"] > 1 else f"{t} {score}/6" if score is not None else t
     r = core.ENTRY_RISK_R[band]
     n = shares(e["entry"], e["stop"], e.get("risk"), row.get("atr"), r * core.R_DOLLARS)
