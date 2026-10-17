@@ -208,7 +208,8 @@ button.line.link:hover b { color: var(--brand); }
 .empty { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
 
 .chart-card { padding: 12px 12px 8px; }
-.chart { height: 280px; }
+.chart { height: 280px; position: relative; }
+.chart-host { position: absolute; inset: 0; }
 .shots-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .tally { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .tally b { font: 800 26px/1 var(--display); }

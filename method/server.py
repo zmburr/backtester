@@ -36,6 +36,7 @@ from flask import Flask, abort, jsonify, make_response, request, send_from_direc
 from method import core
 from method import library as lib
 from method import live
+from method import livebars
 from method import push
 from method import review as rv
 from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, apply_live, read_breadth
@@ -55,6 +56,8 @@ BARS_TTL_S = 300
 TZ = "US/Eastern"
 
 _bars_cache: dict[str, tuple[float, dict]] = {}
+_daily_cache: dict[str, tuple[float, list]] = {}
+LIVE_BARS = livebars.Store(METHOD_DIR / "live_bars")      # today's Trillium bars from the PC
 _history_cache: dict = {"key": None, "data": None}
 _outcomes_cache: dict = {"mtime": None, "rows": [], "index": {}}
 _library_cache: dict = {"mtime": None, "data": None}
@@ -77,8 +80,8 @@ def _et_epoch(ts: pd.Timestamp) -> int:
         int(ts.tz_convert(TZ).tz_localize(None).timestamp())
 
 
-def chart_bars(ticker: str) -> dict:
-    """~6 months of daily bars and the latest session's 1-min bars (ext hours)."""
+def daily_rows(ticker: str) -> list[dict]:
+    """~6 months of daily bars from Polygon."""
     today = pd.Timestamp.now(tz=TZ).date()
     # Polygon's delayed plan refuses a range ending on a day that hasn't traded yet
     # (after midnight until the 4 AM bars arrive), so fall back a day.
@@ -89,10 +92,16 @@ def chart_bars(ticker: str) -> dict:
             break
         except Exception as e:
             logger.info(f"bars {ticker}: daily to {end} refused ({e}); trying a day earlier")
-    day_rows = [] if daily is None else [
+    return [] if daily is None else [
         {"time": ts.strftime("%Y-%m-%d"), "open": float(r.open), "high": float(r.high),
          "low": float(r.low), "close": float(r.close), "value": float(r.volume)}
         for ts, r in daily.iterrows()]
+
+
+def chart_bars(ticker: str) -> dict:
+    """~6 months of daily bars and the latest session's 1-min bars (ext hours), from Polygon."""
+    today = pd.Timestamp.now(tz=TZ).date()
+    day_rows = daily_rows(ticker)
     intra, day = None, today
     for back in range(6):
         day = today - datetime.timedelta(days=back)
@@ -107,7 +116,7 @@ def chart_bars(ticker: str) -> dict:
          "low": float(r.low), "close": float(r.close), "value": float(r.volume)}
         for ts, r in intra.iterrows()]
     return {"ticker": ticker, "daily": day_rows, "intraday": min_rows,
-            "intraday_date": day.isoformat()}
+            "intraday_date": day.isoformat(), "src": "P"}
 
 
 def outcomes() -> tuple[list[dict], dict]:
@@ -151,7 +160,15 @@ def _valid_ticker(t: str) -> bool:
     return bool(t) and t.isascii() and t.replace(".", "").isalnum() and len(t) <= 10
 
 
+def live_frame(ticker: str, date: str):
+    """Today's replay runs on the PC's Trillium bars while that name is streaming."""
+    if date != pd.Timestamp.now(tz=TZ).date().isoformat() or not LIVE_BARS.fresh(date, ticker):
+        return None
+    return livebars.frame(LIVE_BARS.rows(date, ticker))
+
+
 def create_app() -> Flask:
+    rv.LIVE_FRAME = live_frame
     app = Flask(__name__, static_folder=None)
     version = git_head()
     logins = allowed_logins()
@@ -202,9 +219,11 @@ def create_app() -> Flask:
             day, names = live.clean_post(request.get_json(silent=True) or {})
         except (TypeError, ValueError) as e:
             return jsonify(error=str(e)), 400
+        bars = {t: s.pop("bars") for t, s in names.items() if "bars" in s}
+        have = LIVE_BARS.merge(day, bars) if bars else LIVE_BARS.have(day)
         with _live_lock:
             out = apply_live(day, names)
-        return jsonify(ok=True, **out)
+        return jsonify(ok=True, have=have, **out)
 
     @app.get("/")
     def index():
@@ -303,6 +322,25 @@ def create_app() -> Flask:
         ticker = (request.args.get("ticker") or "").upper()
         if not _valid_ticker(ticker):
             abort(400)
+        since = request.args.get("since", type=int)
+        day = pd.Timestamp.now(tz=TZ).date().isoformat()
+        if LIVE_BARS.fresh(day, ticker):               # the PC is streaming this name: Trillium, live
+            intra = livebars.chart_rows(LIVE_BARS.rows(day, ticker))
+            if since is not None:
+                return jsonify(ticker=ticker, src="T", intraday_date=day,
+                               intraday=[b for b in intra if b["time"] >= since])
+            hit = _daily_cache.get(ticker)
+            if not hit or time.time() - hit[0] >= BARS_TTL_S:
+                try:
+                    hit = (time.time(), core.clean(daily_rows(ticker)))
+                except Exception as e:
+                    logger.warning(f"daily bars {ticker}: {e}")
+                    hit = (time.time(), [])
+                _daily_cache[ticker] = hit
+            return jsonify(ticker=ticker, src="T", intraday_date=day, intraday=intra,
+                           daily=livebars.with_today(hit[1], intra, day))
+        if since is not None:                          # no live bars now: the page keeps what it has
+            return jsonify(ticker=ticker, src="P", intraday=[], intraday_date=day)
         hit = _bars_cache.get(ticker)
         if hit and time.time() - hit[0] < BARS_TTL_S:
             return jsonify(hit[1])

@@ -109,8 +109,34 @@ def clean_post(body: dict) -> tuple[str, dict]:
         rules = clean_rules(summ.get("rules"))
         if rules:
             s["rules"] = rules
+        bars = clean_bars(summ.get("bars"), day)
+        if bars:
+            s["bars"] = bars
         out[t] = s
     return day, out
+
+
+MAX_BARS = 1000                  # a whole session is 960 1-min bars (4 AM-8 PM)
+
+
+def clean_bars(x, day: str) -> list[list] | None:
+    """A name's posted 1-min bars for the live chart (method/livebars.py): [epoch, o, h, l, c, v]
+    with epoch the bar's start in UTC seconds, on `day`. Rows that don't make sense are dropped."""
+    if not isinstance(x, list) or not x or len(x) > MAX_BARS:
+        return None
+    lo = int(pd.Timestamp(day, tz=TZ).timestamp())
+    out = []
+    for r in x:
+        if not (isinstance(r, list) and len(r) == 6 and isinstance(r[0], int) and not isinstance(r[0], bool)
+                and lo <= r[0] < lo + 86400 and all(_num(v) for v in r[1:5])):
+            continue
+        o, h, l, c = (float(v) for v in r[1:5])
+        v = r[5]
+        if (not isinstance(v, (int, float)) or isinstance(v, bool) or not 0 <= v < 1e12
+                or l > min(o, c) or h < max(o, c)):
+            continue
+        out.append([r[0], o, h, l, c, int(v) if float(v).is_integer() else float(v)])
+    return out or None
 
 
 def _r(v) -> bool:

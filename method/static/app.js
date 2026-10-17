@@ -472,13 +472,20 @@ class Bands {                        // the bounce grade zones, painted faintly 
   }
 }
 function makeChart(el, bars, { daily = false, lines = [], markers = [], segments = [], bands = [], series = [], fitDays = 90,
-  offEl = null, legendEl = null, volume = true, refs = {} } = {}) {
-  if (S.chart) { S.chart.remove(); S.chart = null; }
-  el.innerHTML = '';
+  offEl = null, legendEl = null, volume = true, refs = {}, keepView = false } = {}) {
+  // A live redraw (new Trillium bars) keeps the view where it was, and is drawn over the old
+  // chart, which goes once the new one has painted, so the chart never blinks.
+  const prev = keepView && S.chart ? { range: S.chart.timeScale().getVisibleLogicalRange(), len: S.chartLen } : null;
+  const retire = S.chart, oldNodes = [...el.children];
+  S.chart = null;
+  const drop = () => { try { retire?.remove(); } catch (e) { /* already gone */ } oldNodes.forEach(n => n.remove()); };
   if (legendEl) legendEl.innerHTML = '';
   if (offEl) offEl.innerHTML = '';
-  if (!bars?.length) { el.innerHTML = '<div class="empty">No bars.</div>'; return null; }
-  const c = LightweightCharts.createChart(el, {
+  if (!bars?.length) { drop(); el.innerHTML = '<div class="empty">No bars.</div>'; return null; }
+  const host = document.createElement('div');
+  host.className = 'chart-host';
+  el.appendChild(host);
+  const c = LightweightCharts.createChart(host, {
     autoSize: true,
     layout: { background: { type: 'solid', color: 'transparent' }, textColor: CH.text, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 11, attributionLogo: false },
     grid: { vertLines: { visible: false }, horzLines: { color: CH.grid } },
@@ -554,9 +561,18 @@ function makeChart(el, bars, { daily = false, lines = [], markers = [], segments
     c.subscribeCrosshairMove(p => show(p.point && p.logical != null ? Math.max(0, Math.min(bars.length - 1, Math.round(p.logical))) : bars.length - 1));
   }
   const fit = () => daily ? c.timeScale().setVisibleLogicalRange({ from: bars.length - fitDays, to: bars.length + 2 }) : c.timeScale().fitContent();
-  fit();
-  requestAnimationFrame(() => requestAnimationFrame(fit));     // autoSize sets the width a frame later
+  if (prev?.range) {                   // pinned to the right edge: slide along with the new bars
+    const d = prev.range.to >= prev.len - 1.5 ? bars.length - prev.len : 0;
+    const view = () => c.timeScale().setVisibleLogicalRange({ from: prev.range.from + d, to: prev.range.to + d });
+    view();
+    requestAnimationFrame(() => requestAnimationFrame(() => { view(); drop(); }));
+  } else {
+    drop();
+    fit();
+    requestAnimationFrame(() => requestAnimationFrame(fit));     // autoSize sets the width a frame later
+  }
   S.chart = c;
+  S.chartLen = bars.length;
   return c;
 }
 function gradeLines(ladder) {        // where each better grade starts, moving down
@@ -621,7 +637,7 @@ function levelLines(side, r, sess = null) {
   if (pmLow != null) out.push({ price: pmLow, color: '#ffb547', title: 'PM low', style: 1, intraday: true });
   return out;
 }
-function drawChart({ side, tf, bars1 = [], next1 = [], dailyBars = [], levels = [], ladder = null, trades = null, tradeDay = null, refs = {} }) {
+function drawChart({ side, tf, bars1 = [], next1 = [], dailyBars = [], levels = [], ladder = null, trades = null, tradeDay = null, refs = {}, keepView = false }) {
   if (!$('#chart')) return;
   const ov = PREFS.ov, daily = tf === 'D', m = daily ? 1 : Number(tf);
   const hasTrades = !daily && !!trades?.length;
@@ -659,7 +675,7 @@ function drawChart({ side, tf, bars1 = [], next1 = [], dailyBars = [], levels = 
     }
   }
   makeChart($('#chart'), bars, { daily, lines, markers, segments, bands, series, fitDays: 70, offEl: $('#chart-off'),
-    legendEl: $('#chart-legend'), volume: ov.volume, refs: r2 });
+    legendEl: $('#chart-legend'), volume: ov.volume, refs: r2, keepView });
 }
 
 // ── name detail ──────────────────────────────────────────────────────────
@@ -780,31 +796,61 @@ async function drawDetailChart(side, r) {
     data._t = Date.now(); S.bars[tk] = data;
   }
   if (!$('#chart') || S.sel[side] !== tk) return;
-  let live = null;
-  if (S.snap.mode === 'market') {
-    live = await liveReview(side, tk);
-    if (!$('#chart') || S.sel[side] !== tk) return;
-  }
-  S.redraw = () => {                   // reads the row fresh: live ticks move the levels
+  const market = S.snap.mode === 'market';
+  S.live = { side, tk, review: market ? S.reviews[`${side}:${tk}:live`] || null : null };
+  S.redraw = (keepView = false) => {   // reads the row fresh: live ticks move the levels
     const row = (S.snap?.[side]?.rows || []).find(x => x.ticker === tk);
     if (!row || !$('#chart') || S.sel[side] !== tk) return;
-    const tf = PREFS.tf.live;
-    $('#chart-title').textContent = tf === 'D' ? 'Daily' : `${tf}-min${S.snap.mode === 'market' ? ' · rules so far' : ''}`;
-    drawChart({ side, tf, bars1: data.intraday || [], dailyBars: data.daily || [], levels: levelLines(side, row),
-      ladder: side === 'bounce' ? row.ladder : null, trades: live?.trades, refs: { prior: row.prior_close, open: row.open } });
+    const tf = PREFS.tf.live, d = S.bars[tk] || data;
+    const feed = d.src === 'T' ? ' · Trillium, live' : S.snap.mode === 'market' || S.snap.mode === 'premarket' ? ' · Polygon, 15 min behind' : '';
+    $('#chart-title').textContent = tf === 'D' ? `Daily${feed}` : `${tf}-min${S.snap.mode === 'market' ? ' · rules so far' : ''}${feed}`;
+    drawChart({ side, tf, bars1: d.intraday || [], dailyBars: d.daily || [], levels: levelLines(side, row),
+      ladder: side === 'bounce' ? row.ladder : null, trades: S.live?.tk === tk ? S.live.review?.trades : null,
+      refs: { prior: row.prior_close, open: row.open }, keepView });
   };
-  S.redraw();
+  S.redraw();                          // the candles first; the rules' trades land when the replay does
+  if (!market) return liveNote(side, r, null);
+  const live = await liveReview(side, tk);
+  if (!$('#chart') || S.sel[side] !== tk) return;
+  if (live !== S.live?.review) { S.live = { side, tk, review: live }; S.redraw(true); }
+  liveNote(side, r, live);
+}
+function liveNote(side, r, live) {
   const box = $('#live-rules');
-  if (box && r.rules) box.innerHTML = '<div class="muted small-line">Chart: Polygon, 15 min behind. The rules card above is live from Trillium.</div>';
-  else if (box && live) {
+  if (box && r.rules) {
+    box.innerHTML = S.bars[r.ticker]?.src === 'T' ? '' : '<div class="muted small-line">Chart: Polygon, 15 min behind. The rules card above is live from Trillium.</div>';
+  } else if (box && live) {
     box.innerHTML = live.trades?.length
       ? `<div class="lines" style="margin-top:8px">${tradeLines(live.trades, side).map(([a, b2, c]) => `<div class="line"><div>${esc(a)}<small>${esc(b2)}</small></div><div class="r">${esc(c)}</div></div>`).join('')}</div>`
       : '<div class="muted small-line">No rules entry yet today.</div>';
   }
 }
+// While the PC streams a name, the chart takes each poll's new Trillium bars (from the last one
+// it has, which may have been forming) and the rules replayed on them, keeping the view.
+async function liveTick(side, tk) {
+  const data = S.bars[tk];
+  if (!data || data.src !== 'T' || S.sel[side] !== tk || !$('#chart')) return;
+  const have = data.intraday || [], last = have.length ? have[have.length - 1].time : 0;
+  let d;
+  try { d = await api(`/api/bars?ticker=${encodeURIComponent(tk)}&since=${last}`); } catch (e) { return; }
+  if (S.sel[side] !== tk || !$('#chart')) return;
+  if (d.src !== 'T') { data._t = 0; return; }          // the feed stopped: the next render fetches Polygon
+  const fresh = d.intraday || [];
+  const merged = fresh.length ? [...have.filter(b => b.time < fresh[0].time), ...fresh] : have;
+  const moved = merged.length !== have.length || JSON.stringify(merged.slice(-2)) !== JSON.stringify(have.slice(-2));
+  data.intraday = merged; data._t = Date.now();
+  let review = S.live?.tk === tk ? S.live.review : null;
+  const before = review;
+  if (S.snap.mode === 'market') {
+    const r2 = await liveReview(side, tk);
+    if (r2 && r2 !== review) { review = r2; S.live = { side, tk, review }; }
+  }
+  if (S.sel[side] === tk && (moved || review !== before)) S.redraw?.(true);
+}
 async function liveReview(side, tk) {
   const key = `${side}:${tk}:live`, hit = S.reviews[key];
-  if (hit && Date.now() - hit._t < 120e3) return hit;
+  const ttl = S.bars[tk]?.src === 'T' ? 30e3 : 120e3;        // live bars: the rules catch up within a 2-min bar
+  if (hit && Date.now() - hit._t < ttl) return hit;
   try {
     const d = await api(`/api/review?side=${side}&ticker=${encodeURIComponent(tk)}&date=${etToday()}`);
     d._t = Date.now(); S.reviews[key] = d; return d;
@@ -1181,6 +1227,7 @@ async function poll() {
     if (changed && board) render();
     else if (ticked && board) { renderStatus(); renderSideList(S.route); renderDetail(S.route, true); }
     else renderStatus();
+    if (board && S.sel[S.route]) liveTick(S.route, S.sel[S.route]);
   } catch (e) {
     S.reachable = false;
     renderStatus();

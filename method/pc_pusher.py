@@ -11,6 +11,11 @@ state (method/watch.rule_state, from the same bars), and the server pushes new
 entries to the phone. Passes start 3 s after each 15-s mark, so one lands right
 after every 2-min bar closes.
 
+Each summary also carries the 1-min bars the server doesn't have yet, for Method's
+live chart (method/livebars.py). The server's reply says how far it has each name
+(`have`); the next pass sends from that bar on, so the bar still forming last time
+is replaced, and a restart on either side heals itself.
+
 Runs 04:00-20:00 ET on session days. Task Scheduler starts it at 4 AM (waking
 the PC); while it runs it keeps Windows from sleeping, and it exits at 8 PM.
 With --update it first moves its own checkout to origin/master, so a push goes
@@ -52,6 +57,7 @@ TOKEN_FILE = Path.home() / ".method" / "live_token"
 LOG_DIR = Path.home() / "logs" / "method_pusher"
 ACTIVE_EVERY_S = 15
 FULL_EVERY_S = 120
+BARS_RETRY_S = 600               # a server that doesn't keep bars yet (no `have` in its reply): ask again later
 PASS_OFFSET_S = 3                # past each 15-s mark: a 2-min bar's last 1-min bar is in by then
 START, STOP = datetime.time(4, 0), datetime.time(20, 0)
 
@@ -117,16 +123,29 @@ def fetch_snapshot() -> dict:
 # ---------------------------------------------------------------- Trillium
 
 def bars_frame(aggs: list) -> pd.DataFrame | None:
-    """SHEL bar-1min messages -> OHLC indexed by bar START (ET), like Polygon's.
+    """SHEL bar-1min messages -> OHLC (and volume) indexed by bar START (ET), like Polygon's.
     SHEL stamps a bar with its close time, so each stamp moves back one minute."""
     rows = [a if isinstance(a, dict) else vars(a) for a in aggs]
     df = pd.DataFrame(rows)
     if df.empty or "close-time" not in df.columns:
         return None
     start = pd.to_datetime(df["close-time"], unit="ns", utc=True).dt.tz_convert(TZ) - pd.Timedelta(minutes=1)
-    out = df[["open", "high", "low", "close"]].astype(float)
+    cols = ["open", "high", "low", "close"] + (["volume"] if "volume" in df.columns else [])
+    out = df[cols].astype(float)
     out.index = pd.DatetimeIndex(start)
     return out.sort_index()
+
+
+def bar_rows(bars: pd.DataFrame, since: int | None = None) -> list[list]:
+    """1-min bars as the server keeps them, [epoch, o, h, l, c, v] (epoch = bar start, UTC s),
+    from the bar at `since` on (the server's last one, which may have been forming), else all."""
+    if since is not None:
+        bars = bars[bars.index >= pd.Timestamp(since, unit="s", tz="UTC")]
+    vol = bars["volume"] if "volume" in bars else pd.Series(0.0, index=bars.index)
+    return [[int(ts.timestamp()), round(float(o), 4), round(float(h), 4), round(float(l), 4),
+             round(float(c), 4), int(v) if v == v else 0]
+            for ts, o, h, l, c, v in zip(bars.index, bars["open"], bars["high"], bars["low"],
+                                         bars["close"], vol)]
 
 
 def trillium_bars(tickers: list[str], day: str):
@@ -151,8 +170,10 @@ def trillium_bars(tickers: list[str], day: str):
                 yield t, bars
 
 
-def trillium_summaries(tickers: list[str], day: str, rules_for: dict | None = None) -> dict:
-    """{ticker: bar summary}; names in `rules_for` ({ticker: ATR}) also carry the entry rule's state."""
+def trillium_summaries(tickers: list[str], day: str, rules_for: dict | None = None,
+                       have: dict | None = None) -> dict:
+    """{ticker: bar summary}; names in `rules_for` ({ticker: ATR}) also carry the entry rule's state.
+    With `have` (the server's {ticker: last bar epoch}) each also carries the bars it lacks."""
     rule_state, failed = None, []
     if rules_for:
         try:
@@ -175,6 +196,8 @@ def trillium_summaries(tickers: list[str], day: str, rules_for: dict | None = No
                     summ["rules"] = rules
             except Exception as e:
                 failed.append(f"{t}: {e}")
+        if have is not None:
+            summ["bars"] = bar_rows(bars, have.get(t))
         out[t] = summ
     if failed:
         logger.warning(f"entry rule failed on {len(failed)} names, first {failed[0]}")
@@ -206,6 +229,7 @@ def run_loop(dry: bool = False, once: bool = False) -> int:
     token = "" if dry else read_token()
     stop = datetime.datetime.combine(day, STOP, tzinfo=now.tzinfo)
     active, board, rules_for, last_full, fails = [], [], {}, 0.0, 0
+    have, bars_off_until = {}, 0.0            # what the server has of each name's bars
     keep_awake(True)
     try:
         while once or now_et() < stop:
@@ -217,13 +241,19 @@ def run_loop(dry: bool = False, once: bool = False) -> int:
                     active, board = pick_names(snap)
                     rules_for = rule_names(snap)
                 tickers = board if full else active
-                summ = trillium_summaries(tickers, day.isoformat(), rules_for) if tickers else {}
+                send_bars = not dry and t0 >= bars_off_until
+                summ = (trillium_summaries(tickers, day.isoformat(), rules_for, have if send_bars else None)
+                        if tickers else {})
                 if dry:
                     for t, s in list(summ.items())[:12]:
                         print(f"{t:6} {s['price']:>10.2f} @ {s['bar_time']}  pm_low {s.get('pm_low')}  open {s.get('open')}")
                     print(f"{len(summ)}/{len(tickers)} names from Trillium in {time.time() - t0:.1f} s")
                 elif summ:
                     res = post(day.isoformat(), summ, token)
+                    if isinstance(res.get("have"), dict):
+                        have = res["have"]
+                    elif send_bars:              # an older server: it dropped the bars
+                        have, bars_off_until = {}, time.time() + BARS_RETRY_S
                     if full or res.get("alerts"):
                         logger.info(f"{'board' if full else 'active'}: {len(summ)}/{len(tickers)} names, "
                                     f"re-graded {res.get('regraded')}, alerts {res.get('alerts') or []} "

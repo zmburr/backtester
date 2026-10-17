@@ -77,8 +77,9 @@ def test_token(tmp_path):
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("METHOD_DEV_LOGIN", "zmburr@gmail.com")
-    from method import server as sv
+    from method import livebars, server as sv
     calls = []
+    monkeypatch.setattr(sv, "LIVE_BARS", livebars.Store(tmp_path / "live_bars"))
     monkeypatch.setattr(sv, "apply_live", lambda day, names: calls.append((day, names)) or
                         {"stored": len(names), "regraded": len(names), "alerts": []})
     app = sv.create_app()
@@ -92,7 +93,7 @@ def test_live_posts_need_the_token(client):
     assert c.post("/api/live", json=body, headers={"X-Method": "1"}).status_code == 403
     assert c.post("/api/live", json=body, headers={"X-Method": "1", "X-Method-Token": "nope"}).status_code == 403
     r = c.post("/api/live", json=body, headers={"X-Method": "1", "X-Method-Token": tok})
-    assert r.get_json() == {"ok": True, "stored": 1, "regraded": 1, "alerts": []}
+    assert r.get_json() == {"ok": True, "have": {}, "stored": 1, "regraded": 1, "alerts": []}
     assert calls == [("2026-10-15", {"SOXL": {"price": 91.0, "bar_time": "08:34"}})]
     bad = c.post("/api/live", json={"day": "x", "names": {}}, headers={"X-Method": "1", "X-Method-Token": tok})
     assert bad.status_code == 400
@@ -124,7 +125,7 @@ def test_active_names_are_the_live_ideas():
 def test_one_pass_posts_the_whole_board(monkeypatch):
     monkeypatch.setattr(pp, "fetch_snapshot", lambda: {"bounce": {"rows": [{"ticker": "SOXL", "rec": "GO"},
                                                                            {"ticker": "INTC"}]}})
-    monkeypatch.setattr(pp, "trillium_summaries", lambda tickers, day, rules_for=None:
+    monkeypatch.setattr(pp, "trillium_summaries", lambda tickers, day, rules_for=None, have=None:
                         {t: {"price": 1.0, "bar_time": "08:00"} for t in tickers})
     monkeypatch.setattr(pp, "read_token", lambda: "tok")
     monkeypatch.setattr(pp, "keep_awake", lambda on: None)

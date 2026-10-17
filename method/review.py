@@ -64,8 +64,14 @@ def et_epoch(ts) -> int:
     return int(ts.timestamp())
 
 
+LIVE_FRAME = None    # set by the server: (ticker, date) -> today's Trillium bars, or None (method/livebars.py)
+
+
 def day_bars(ticker: str, date: str, live: bool) -> pd.DataFrame | None:
     if live:
+        lb = LIVE_FRAME(ticker, date) if LIVE_FRAME else None
+        if lb is not None and not lb.empty:
+            return lb
         return pq.get_intraday(ticker, date, 1, "minute")
     return fetch_day(ticker, date)
 
