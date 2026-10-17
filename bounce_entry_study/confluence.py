@@ -89,6 +89,7 @@ class DayResult:
     first_entry: Optional[pd.Timestamp] = None
     surviving_entry: Optional[pd.Timestamp] = None
     lag_min: Optional[float] = None  # surviving entry vs true RTH low (minutes)
+    open: bool = False               # the last attempt was still on at the last bar (closed at its close)
 
 
 def simulate_day(two: pd.DataFrame, fires: List[pd.Timestamp]) -> DayResult:

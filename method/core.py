@@ -22,6 +22,13 @@ CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15, "overnight": 15}
 MIN_GO = 2                      # same episode gate as the playbook email
 REVERSAL_GAP_GATE = 0.04        # 3DGapFade gap gate (analyzers/reversal_pretrade.py)
 
+# Entry alerts on a breadth day (method/watch.py), by the day's strength. The user's R
+# (ExitMonitor): 1R = $3k, A = 15R, 25R daily limit. 16+ days: 3R an attempt, first entry
+# and the re-entry; 11-15 days: 1R, first entry only (the re-entry cost the edge there).
+R_DOLLARS = 3000
+ENTRY_RISK_R = {"16+": 3, "11-15": 1}
+ENTRIES_ALERTED = {"16+": 2, "11-15": 1}
+
 SCENARIO_TEXT = {       # bounce names use the game plan's grades instead (method/ladder.py)
     "reversal": {
         "A": "exhaustion gap (+4% or more)",

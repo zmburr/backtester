@@ -106,8 +106,47 @@ def clean_post(body: dict) -> tuple[str, dict]:
         if any(k in s and not _num(s[k]) for k in ("pm_low", "pm_high", "open", "day_low", "rth_close", "ah_low")):
             continue
         s["price"] = float(s["price"])
+        rules = clean_rules(summ.get("rules"))
+        if rules:
+            s["rules"] = rules
         out[t] = s
     return day, out
+
+
+def _r(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) < 1e4
+
+
+def _hhmm(v) -> bool:
+    return isinstance(v, str) and len(v) == 5 and v[2] == ":" and v.replace(":", "").isdigit()
+
+
+def clean_rules(x) -> dict | None:
+    """A name's entry-rule state from the PC (method/watch.rule_state), or None if malformed."""
+    if not isinstance(x, dict) or not isinstance(x.get("entries"), list) or len(x["entries"]) > 3:
+        return None
+    entries = []
+    for e in x["entries"]:
+        if (not isinstance(e, dict) or e.get("state") not in ("open", "stopped", "out")
+                or e.get("n") not in (1, 2, 3) or not _hhmm(e.get("t"))
+                or not (_num(e.get("entry")) and _num(e.get("stop")))):
+            return None
+        keep = {k: e[k] for k in ("n", "t", "state")}
+        for k in ("entry", "stop", "risk", "exit", "arm_at", "trail"):
+            if _num(e.get(k)):
+                keep[k] = float(e[k])
+        if _r(e.get("r")):
+            keep["r"] = float(e["r"])
+        if _hhmm(e.get("exit_t")):
+            keep["exit_t"] = e["exit_t"]
+        if isinstance(e.get("armed"), bool):
+            keep["armed"] = e["armed"]
+        entries.append(keep)
+    nxt = x.get("next")
+    nxt = ({"over": float(nxt["over"]), "fresh_low": bool(nxt.get("fresh_low"))}
+           if isinstance(nxt, dict) and _num(nxt.get("over")) else None)
+    return {"asof": x["asof"] if _hhmm(x.get("asof")) else None,
+            "lod": float(x["lod"]) if _num(x.get("lod")) else None, "entries": entries, "next": nxt}
 
 
 # ---------------------------------------------------------------- token

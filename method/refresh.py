@@ -48,6 +48,7 @@ from method import breadth
 from method import core
 from method import live
 from method import push
+from method import watch
 from method.ladder import grade_at, ladder_payload, next_better
 from data_queries import polygon_queries as pq
 from scanners.premarket_bounce_scanner import (
@@ -180,6 +181,8 @@ def row_from_summary(t: str, s: dict, cap: str, b: dict, mode: str, src: str) ->
                    score_open=at_open["score"], intensity_open=at_open["intensity"])
     if mode == "evening" and b.get("ah_low") is not None:
         row["ah_low"] = b["ah_low"]
+    if mode == "market" and b.get("rules"):
+        row["rules"] = b["rules"]                       # the entry rule's state (method/watch.py)
     return row
 
 
@@ -539,7 +542,7 @@ def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
             if not r.get("market") and w.get("n"):
                 # your priority report's GO/CAUTION bounces on days like this (the scorecard)
                 r["edge"]["watch"] = {k: w.get(k) for k in ("n", "mean_r", "win")}
-    return rows
+    return watch.size_rows(rows, mb)          # the entry rule's shares at the day's risk an attempt
 
 
 def breadth_alert(mb: dict | None) -> bool:
@@ -600,7 +603,28 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
     if alerts and mb and breadth_alert(mb):
         snap["market_breadth"] = breadth.public(mb)
         core.write_json(SNAPSHOT, snap)
+    if alerts and mb and mode == "market":
+        try:
+            sent += watch.entry_alerts(session, mb, rows, fresh, now, push.send, entry_alerts_path(session))
+        except Exception as e:
+            logger.warning(f"entry alerts failed: {e}")
     return {"stored": len(names), "regraded": n, "alerts": sent}
+
+
+def entry_alerts_path(session: str) -> Path:
+    return METHOD_DIR / f"entry_alerts_{session}.json"
+
+
+def feed_check(now: datetime.datetime) -> None:
+    """Every cron pass in market hours, before the cadence gate: on a breadth day, push once
+    if the PC's live prices have stopped (entry alerts need them)."""
+    session = now.date().isoformat()
+    try:
+        if watch.feed_down_alert(session, core.read_json(MARKET_BREADTH), core.read_json(LIVE), now,
+                                 push.send, entry_alerts_path(session)):
+            logger.warning("live feed down on a breadth day: pushed")
+    except Exception as e:
+        logger.warning(f"feed check failed: {e}")
 
 
 def run(now: datetime.datetime | None = None, force: bool = False, mode: str | None = None,
@@ -614,6 +638,8 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     if mode == "closed":
         logger.info("closed; nothing to refresh")
         return None
+    if mode == "market" and not dry:
+        feed_check(now)
     prev = core.read_json(SNAPSHOT)
     if not force and prev and prev.get("mode") == mode:
         last = datetime.datetime.fromisoformat(prev["generated_at"])

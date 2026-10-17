@@ -33,7 +33,7 @@ const px = x => x == null ? '–' : Number(x).toLocaleString('en-US', { minimumF
 const rr = x => x == null ? '–' : Math.abs(x) < 0.05 ? '0.0R' : `${x >= 0 ? '+' : '−'}${Math.abs(Number(x)).toFixed(1)}R`;
 const wide = () => matchMedia('(min-width: 1024px)').matches;
 const recCls = r => r === 'GO' ? 'go' : r === 'CAUTION' ? 'caution' : 'nogo';
-const isActive = r => r.rec === 'GO' || r.rec === 'CAUTION';
+const isActive = r => r.rec === 'GO' || r.rec === 'CAUTION' || !!r.rules?.entries?.length;   // a name the rules entered stays up
 const MODE_WORD = { premarket: 'Premarket', market: 'Market hours', evening: 'Evening', overnight: 'Overnight' };
 const MOVE_WORD = { evening: 'after hours', overnight: 'overnight' };
 const GRADE_CLS = { 'A+': 'gAp', A: 'gA', B: 'gB', C: 'gC', '-': 'gN' };
@@ -295,6 +295,7 @@ function breadthCard(s) {
   const days = e.traded_days ? `${e.n} names on ${Number(e.traded_days).toLocaleString('en-US')} ${like}: ` +
     `${e.pos_days} of ${e.traded_days} days positive, typical day ${rr(e.day_mean_r)}. Your entry and trail rules.` : '';
   const etf = mb.n_etf ? ` · ${mb.n_etf} ${mb.n_etf === 1 ? 'is an ETF' : 'are ETFs'}` : '';
+  const rules = mb.state === 'breadth' && s.mode === 'market' ? rulesTally(s, mb) : '';
   return `<div class="card breadth st-${esc(mb.state)}${strong ? ' st-strong' : ''}">
     <div class="eyebrow">Market breadth · ${esc(when)}${mb.asof ? ` · ${esc(mb.asof.slice(11, 16))}` : ''}</div>
     <div class="bline"><b class="num">${mb.n}</b><span>names B or better market-wide${esc(etf)}</span><span class="badge ${cls}">${esc(word)}</span></div>
@@ -302,14 +303,69 @@ function breadthCard(s) {
       `${sinceText(e, band || mb.state) ? `<small class="since">${esc(sinceText(e, band || mb.state))}</small>` : ''}</div>` : ''}
     ${bandNote ? `<div class="band-note${band === '11-15' ? ' weak' : ''}">${esc(bandNote)}</div>` : ''}
     ${mb.drift ? `<div class="drift">${esc(`Breadth days since the study are running below history: ${mb.drift.days} days, ${rr(mb.drift.mean_r)} a name (the study: ${rr(mb.drift.history_mean_r)}).`)}</div>` : ''}
+    ${rules}
     ${chips.length ? `<div class="tickers">${chips.join('')}</div>` : ''}
     ${relaxed.length ? `<div class="muted small-line">Relaxed rules (breadth days only, not counted)</div><div class="tickers">${relaxed.join('')}</div>` : ''}
     ${extra.length ? '<div class="muted small-line">Grey: outside the counted universe (under $5 or under 500k shares a day).</div>' : ''}
     ${near.length ? `<div class="muted small-line">Next to flag: ${esc(near.join(' · '))}</div>` : ''}</div>`;
 }
 
+// The 2-min entry rule on a breadth day's names, live from the PC's Trillium bars (method/watch.py).
+const shs = n => n ? `${Number(n).toLocaleString('en-US')} sh` : null;
+function rulesTally(s, mb) {
+  const rows = (s.bounce?.rows || []).filter(r => r.rules);
+  if (!rows.length) {
+    return mb.locked ? '<div class="rules-tally muted">Entry alerts need live prices from the PC (Trillium). None have come in yet.</div>' : '';
+  }
+  const es = rows.flatMap(r => (r.rules.entries || []).map(e => ({ ...e, tk: r.ticker, score: r.score_open ?? r.score })));
+  const terms = rows.find(r => r.rules.risk_r)?.rules;
+  const head = `Entry alerts on${terms ? ` · ${terms.risk_r}R an attempt, ${terms.alerted > 1 ? 'first entry and re-entry' : 'first entry only'}` : ''}`;
+  const tally = `Rules today: ${rows.filter(r => r.rules.entries?.length).length} of ${rows.length} names in · ` +
+    `${es.filter(e => e.state === 'stopped').length} stopped · ${es.filter(e => e.n > 1).length} re-entries`;
+  const open = es.filter(e => e.state === 'open').sort((a, b) => (b.score || 0) - (a.score || 0) || b.t.localeCompare(a.t));
+  const list = open.slice(0, 10).map(e => `<button class="ent" data-btk="${esc(e.tk)}"><span><b>${esc(e.tk)}</b> ` +
+    `<span class="muted">${e.n > 1 ? 're-entry' : `${e.score ?? '–'}/6`} · ${esc(e.t)}</span></span>` +
+    `<span class="num">${px(e.entry)} · stop ${px(e.stop)}${e.shares ? ` · ${esc(shs(e.shares))}` : ''} · <b class="${e.r >= 0 ? 'go' : 'neg'}">${esc(rr(e.r))}</b></span></button>`);
+  return `<div class="rules-tally"><div class="rt-head">${esc(head)}</div><div class="muted">${esc(tally)}</div>` +
+    `${list.length ? `<div class="eyebrow" style="margin-top:8px">Open now · best score first</div><div class="ents">${list.join('')}</div>` : ''}` +
+    `${open.length > 10 ? `<div class="muted small-line">+${open.length - 10} more open</div>` : ''}</div>`;
+}
+function rulesShort(r) {             // one phrase for the list row
+  const ru = r.rules;
+  if (!ru) return null;
+  const es = ru.entries || [], last = es[es.length - 1], nx = ru.next;
+  if (last?.state === 'open') return `in ${px(last.entry)} · ${rr(last.r)}${last.armed ? ' · trailing' : ''}`;
+  const done = last ? `${last.state === 'stopped' ? 'stopped' : 'out'} ${rr(last.r)}` : null;
+  const next = nx ? (nx.fresh_low ? `next over ${px(nx.over)}` : 'waits for a new low') : null;
+  return [done, next].filter(Boolean).join(' · ') || null;
+}
+function rlCls(r) {                  // open and up: green; open and down or stopped: red; waiting: the brand
+  const last = (r.rules?.entries || []).slice(-1)[0];
+  return !last ? 'rl' : last.state === 'open' || last.state === 'out' ? (last.r >= 0 ? 'rl go' : 'rl neg') : 'rl neg';
+}
+function rulesCard(r) {
+  const ru = r.rules;
+  if (!ru) return '';
+  const rows = (ru.entries || []).map(e => {
+    const how = e.state === 'open'
+      ? (e.armed ? `open · trailing: out on a trade under ${px(e.trail)}` : e.arm_at != null ? `open · the trail arms at ${px(e.arm_at)}` : 'open')
+      : `${e.state === 'stopped' ? 'stopped' : 'trail exit'} ${e.exit_t} @ ${px(e.exit)}`;
+    return [`#${e.n} buy ${e.t} @ ${px(e.entry)} · stop ${px(e.stop)}${e.shares ? ` · ${shs(e.shares)}` : ''}`, how, rr(e.r)];
+  });
+  const nx = ru.next;
+  if (nx) {
+    rows.push(['Next entry', nx.fresh_low
+      ? `a 2-min close over ${px(nx.over)}${nx.shares ? ` · about ${shs(nx.shares)} with the stop at today’s low` : ''}`
+      : 'a new low first, then a 2-min close over the prior bar’s high', '']);
+  }
+  const note = ru.alerted === 1 && (ru.entries || []).length ? '<div class="muted small-line">11–15 names: only the first entry is alerted (the re-entry cost the edge on those days).</div>' : '';
+  return linesCard(esc(`Rules now · Trillium ${ru.asof || ''}${ru.risk_r ? ` · ${ru.risk_r}R an attempt` : ''}`),
+    rows.map(([a, b2, c]) => [esc(a), esc(b2), esc(c)]), note);
+}
+
 function nameCard(side, r) {
   const mode = S.snap.mode, move = `${pct(r.gap)} ${MOVE_WORD[mode] || 'vs close'}`;
+  const rl = side === 'bounce' ? rulesShort(r) : null;
   const src = r.src === 'Y' ? `Blue Ocean ${r.bar_time}`
     : r.src && r.src !== (S.snap.src || 'P') ? `${r.src_label || r.src} ${r.bar_time || ''}` : null;
   const nxt = r.next ? `next ${gradeLabel(r.next.grade)} at ${px(r.next.price)} (${pct(r.next.pct_away)})` : (side === 'bounce' && r.grade ? 'best grade reached' : null);
@@ -322,7 +378,8 @@ function nameCard(side, r) {
     `<div class="l1"><span class="tk">${esc(r.ticker)}</span>${side === 'bounce' ? gradeBadges(r) : ''}${recBadge(r)}${side === 'reversal' ? scenBadges(r) : ''}` +
     `${r.principal ? '<span class="badge lev">3x</span>' : ''}${locked(side, r.ticker) ? '<span class="badge lock">LOCKED</span>' : ''}` +
     `${r.market ? `<span class="badge mkt">${r.breadth_flag === 'relaxed' ? 'market · relaxed' : r.counted === false ? 'market · not counted' : 'market'}</span>` : ''}` +
-    `<span class="cap">${esc(r.cap || '')}</span></div><div class="l2 num">${l2.filter(Boolean).map(esc).join(' · ')}</div></div>`;
+    `<span class="cap">${esc(r.cap || '')}</span></div>${rl ? `<div class="l3 num ${rlCls(r)}">${esc(rl)}</div>` : ''}` +
+    `<div class="l2 num">${l2.filter(Boolean).map(esc).join(' · ')}</div></div>`;
 }
 
 // ── charts ───────────────────────────────────────────────────────────────
@@ -704,11 +761,11 @@ function renderDetail(side, soft = false) {
     `<span class="muted">${side === 'bounce' ? `high ${pct(c.open_high_pct, 0)}` : `low ${pct(c.open_low_pct, 0)}`} · close ${pct(c.open_close_pct, 0)}</span>`]);
   const top = $('#detail-top');
   if (soft && top && top.dataset.tk === r.ticker) {      // live price tick: keep the chart as it is
-    top.innerHTML = `${lead}${lev}${kpis(pairs)}`;
+    top.innerHTML = `${side === 'bounce' ? rulesCard(r) : ''}${lead}${lev}${kpis(pairs)}`;
     if (side === 'bounce') $('#ladder-slot').innerHTML = ladderCard(r);
     return;
   }
-  reader.innerHTML = `<div class="col"><div id="detail-top" data-tk="${esc(r.ticker)}">${lead}${lev}${kpis(pairs)}</div>
+  reader.innerHTML = `<div class="col"><div id="detail-top" data-tk="${esc(r.ticker)}">${side === 'bounce' ? rulesCard(r) : ''}${lead}${lev}${kpis(pairs)}</div>
     ${chartCardHtml('live', 'Chart')}
     <div id="ladder-slot">${side === 'bounce' ? ladderCard(r) : ''}</div>
     ${shotsCard(side, r.ticker)}
@@ -738,7 +795,8 @@ async function drawDetailChart(side, r) {
   };
   S.redraw();
   const box = $('#live-rules');
-  if (box && live) {
+  if (box && r.rules) box.innerHTML = '<div class="muted small-line">Chart: Polygon, 15 min behind. The rules card above is live from Trillium.</div>';
+  else if (box && live) {
     box.innerHTML = live.trades?.length
       ? `<div class="lines" style="margin-top:8px">${tradeLines(live.trades, side).map(([a, b2, c]) => `<div class="line"><div>${esc(a)}<small>${esc(b2)}</small></div><div class="r">${esc(c)}</div></div>`).join('')}</div>`
       : '<div class="muted small-line">No rules entry yet today.</div>';

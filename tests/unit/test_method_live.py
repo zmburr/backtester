@@ -124,8 +124,8 @@ def test_active_names_are_the_live_ideas():
 def test_one_pass_posts_the_whole_board(monkeypatch):
     monkeypatch.setattr(pp, "fetch_snapshot", lambda: {"bounce": {"rows": [{"ticker": "SOXL", "rec": "GO"},
                                                                            {"ticker": "INTC"}]}})
-    monkeypatch.setattr(pp, "trillium_summaries", lambda tickers, day: {t: {"price": 1.0, "bar_time": "08:00"}
-                                                                        for t in tickers})
+    monkeypatch.setattr(pp, "trillium_summaries", lambda tickers, day, rules_for=None:
+                        {t: {"price": 1.0, "bar_time": "08:00"} for t in tickers})
     monkeypatch.setattr(pp, "read_token", lambda: "tok")
     monkeypatch.setattr(pp, "keep_awake", lambda on: None)
     posts = []

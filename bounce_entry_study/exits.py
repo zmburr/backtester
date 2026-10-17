@@ -122,6 +122,7 @@ def simulate_day_exits(two: pd.DataFrame, fires: List[pd.Timestamp],
                 peak = entry
 
     if pos is not None:
+        res.open = True
         pos.exit_time, pos.exit = ends[-1], last_close
         pos.r = (last_close - pos.entry) / pos.risk
         res.attempts.append(pos)

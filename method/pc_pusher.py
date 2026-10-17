@@ -6,6 +6,11 @@ loop posts each name's bar summary (method/live.summarize_bars) to /api/live:
 the names that matter now every 15 s, the whole board every 2 min. Method
 re-grades those rows as they arrive and falls back to Polygon when posts stop.
 
+On a breadth day each flagged name's summary also carries the 2-min entry rule's
+state (method/watch.rule_state, from the same bars), and the server pushes new
+entries to the phone. Passes start 3 s after each 15-s mark, so one lands right
+after every 2-min bar closes.
+
 Runs 04:00-20:00 ET on session days. Task Scheduler starts it at 4 AM (waking
 the PC); while it runs it keeps Windows from sleeping, and it exits at 8 PM.
 With --update it first moves its own checkout to origin/master, so a push goes
@@ -16,6 +21,7 @@ Usage (from a checkout of the backtester repo):
     python -m method.pc_pusher               # the day's loop
     python -m method.pc_pusher --update      # git update, then the loop (Task Scheduler)
     python -m method.pc_pusher --once --dry  # one pass over the board: print, don't post
+    python -m method.pc_pusher --playback 2026-10-15   # rehearse a past breadth morning's entry pushes
 
 Needs SHEL_API_PWD (from the backtester .env, METHOD_ENV_FILE) and the token
 Method made in the mini's ~/.method/live_token, copied to ~/.method/live_token here.
@@ -26,6 +32,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import logging
+import math
 import os
 import subprocess
 import sys
@@ -45,6 +52,7 @@ TOKEN_FILE = Path.home() / ".method" / "live_token"
 LOG_DIR = Path.home() / "logs" / "method_pusher"
 ACTIVE_EVERY_S = 15
 FULL_EVERY_S = 120
+PASS_OFFSET_S = 3                # past each 15-s mark: a 2-min bar's last 1-min bar is in by then
 START, STOP = datetime.time(4, 0), datetime.time(20, 0)
 
 logger = logging.getLogger("method.pc_pusher")
@@ -84,7 +92,20 @@ def pick_names(snap: dict) -> tuple[list[str], list[str]]:
     mb = snap.get("market_breadth") or {}
     if mb.get("status") == "ok" and not mb.get("locked"):
         board += list(mb.get("names") or []) + [x["ticker"] for x in mb.get("near") or []]
-    return list(dict.fromkeys(active)), list(dict.fromkeys(board))
+    active += list(rule_names(snap))          # a breadth day's names are watched for entries
+    return list(dict.fromkeys(active)), list(dict.fromkeys(board + active))
+
+
+def rule_names(snap: dict) -> dict:
+    """{ticker: ATR} for the names the entry rule runs on: in market hours on a breadth day,
+    every flagged name in the counted universe (method/watch.watch_names), with its row's ATR."""
+    mb = snap.get("market_breadth") or {}
+    if snap.get("mode") != "market" or mb.get("status") != "ok" or mb.get("state") != "breadth":
+        return {}
+    detail = mb.get("detail") or {}
+    atr = {r["ticker"]: r.get("atr") for r in (snap.get("bounce") or {}).get("rows", [])}
+    names = list(mb.get("names") or []) + list(mb.get("relaxed") or [])
+    return {t: atr.get(t) for t in dict.fromkeys(names) if (detail.get(t) or {}).get("counted")}
 
 
 def fetch_snapshot() -> dict:
@@ -108,13 +129,12 @@ def bars_frame(aggs: list) -> pd.DataFrame | None:
     return out.sort_index()
 
 
-def trillium_summaries(tickers: list[str], day: str) -> dict:
-    """{ticker: bar summary} over one SHEL session; a name that fails is left out."""
+def trillium_bars(tickers: list[str], day: str):
+    """Yield (ticker, 1-min bars) for each name over one SHEL session; a name that fails is skipped."""
     import sheldatagateway
     from sheldatagateway import environments
     user, pwd = os.getenv("SHEL_USER", "zburr"), os.getenv("SHEL_API_PWD")
     d = datetime.date.fromisoformat(day)
-    out = {}
     with sheldatagateway.Session(environments.env_defs.Prod, user, pwd) as session:
         for t in tickers:
             aggs: list = []
@@ -123,12 +143,41 @@ def trillium_summaries(tickers: list[str], day: str) -> dict:
                                               end_date=d, subscriptions=["bar-1min"])
                 handle.wait()
                 handle.raise_on_error()
-                summ = summarize_bars(bars_frame(aggs), day)
+                bars = bars_frame(aggs)
             except Exception as e:
                 logger.debug(f"{t}: {e}")
                 continue
-            if summ:
-                out[t] = summ
+            if bars is not None and not bars.empty:
+                yield t, bars
+
+
+def trillium_summaries(tickers: list[str], day: str, rules_for: dict | None = None) -> dict:
+    """{ticker: bar summary}; names in `rules_for` ({ticker: ATR}) also carry the entry rule's state."""
+    rule_state, failed = None, []
+    if rules_for:
+        try:
+            from method.watch import rule_state
+        except Exception as e:                # prices still go out; the alerts are what's lost
+            logger.warning(f"entry rule unavailable, posting prices only: {e}")
+    out = {}
+    for t, bars in trillium_bars(tickers, day):
+        try:
+            summ = summarize_bars(bars, day)
+        except Exception as e:
+            logger.debug(f"{t}: {e}")
+            continue
+        if not summ:
+            continue
+        if rule_state and t in rules_for:
+            try:
+                rules = rule_state(bars, rules_for[t])
+                if rules:
+                    summ["rules"] = rules
+            except Exception as e:
+                failed.append(f"{t}: {e}")
+        out[t] = summ
+    if failed:
+        logger.warning(f"entry rule failed on {len(failed)} names, first {failed[0]}")
     return out
 
 
@@ -156,7 +205,7 @@ def run_loop(dry: bool = False, once: bool = False) -> int:
         return 0
     token = "" if dry else read_token()
     stop = datetime.datetime.combine(day, STOP, tzinfo=now.tzinfo)
-    active, board, last_full, fails = [], [], 0.0, 0
+    active, board, rules_for, last_full, fails = [], [], {}, 0.0, 0
     keep_awake(True)
     try:
         while once or now_et() < stop:
@@ -164,9 +213,11 @@ def run_loop(dry: bool = False, once: bool = False) -> int:
             full = once or t0 - last_full >= FULL_EVERY_S or not board
             try:
                 if full:
-                    active, board = pick_names(fetch_snapshot())
+                    snap = fetch_snapshot()
+                    active, board = pick_names(snap)
+                    rules_for = rule_names(snap)
                 tickers = board if full else active
-                summ = trillium_summaries(tickers, day.isoformat()) if tickers else {}
+                summ = trillium_summaries(tickers, day.isoformat(), rules_for) if tickers else {}
                 if dry:
                     for t, s in list(summ.items())[:12]:
                         print(f"{t:6} {s['price']:>10.2f} @ {s['bar_time']}  pm_low {s.get('pm_low')}  open {s.get('open')}")
@@ -187,10 +238,87 @@ def run_loop(dry: bool = False, once: bool = False) -> int:
                 logger.warning(f"pass failed ({fails} in a row): {e}")
             if once:
                 break
-            time.sleep(max(1.0, ACTIVE_EVERY_S * (1 if fails < 4 else 4) - (time.time() - t0)))
+            time.sleep(wait_s(time.time(), ACTIVE_EVERY_S * (1 if fails < 4 else 4)))
     finally:
         keep_awake(False)
     logger.info("feed stopped")
+    return 0
+
+
+def wait_s(now_s: float, every: float, offset: float = PASS_OFFSET_S) -> float:
+    """Seconds to the next pass: `offset` s past the next `every`-s mark of the clock (at
+    least 1 s away), so 15-s passes start just after each 2-min bar closes."""
+    nxt = math.floor((now_s - offset) / every + 1) * every + offset
+    if nxt - now_s < 1.0:
+        nxt += every
+    return nxt - now_s
+
+
+# ---------------------------------------------------------------- rehearsal
+
+def polygon_bars(tickers: list[str], day: str):
+    """Yield (ticker, 1-min bars, ET) from Polygon's cache: the replay's own bars, for a
+    rehearsal when Trillium is closed (nights and weekends)."""
+    from bounce_entry_study.fetch_bars import fetch_day
+    for t in tickers:
+        bars = fetch_day(t, day)
+        if bars is None or bars.empty:
+            continue
+        idx = pd.DatetimeIndex(bars.index)
+        bars = bars.set_axis(idx.tz_localize(TZ) if idx.tz is None else idx.tz_convert(TZ))
+        yield t, bars[["open", "high", "low", "close"]]
+
+
+def playback(day: str, until: str = "11:00", source: str = "trillium") -> int:
+    """Rehearse a past breadth morning: the day's flagged names (its record in
+    data/breadth_signals) on Trillium bars (or Polygon's), stepped like the live loop (3 s past
+    every 15-s mark), through the server's own alert code with a push that prints. Fetch time
+    isn't modelled."""
+    import json
+    import tempfile
+    from method import breadth, watch
+    rec = json.loads(breadth.signal_path(day).read_text())
+    sigs = {s["ticker"]: s for s in rec["signals"]}
+    mb = {"status": "ok", "session": day, "locked": True, "state": rec["state"], "n": rec["n"],
+          "band": breadth.band_for(rec["n"]),
+          "names": [t for t, s in sigs.items() if s.get("recommendation") == "STRICT"],
+          "relaxed": [t for t, s in sigs.items() if s.get("recommendation") == "RELAXED"],
+          "detail": {t: {"counted": bool(s.get("counted"))} for t, s in sigs.items()}}
+    names = watch.watch_names(mb)
+    if not names:
+        print(f"{day}: {rec['state']} day ({rec['n']} names), no entry alerts")
+        return 0
+    rows, atr = [], {}
+    for t in names:
+        m = sigs[t].get("metrics") or {}
+        atr[t] = m["atr_pct"] * m["open"] if m.get("atr_pct") and m.get("open") else None
+        rows.append({"ticker": t, "score_open": sigs[t].get("score"), "atr": atr[t]})
+    t0 = time.time()
+    bars = dict((polygon_bars if source == "polygon" else trillium_bars)(names, day))
+    print(f"{day}: {mb['band']} names ({rec['n']}), watching {len(names)}; {source} bars for "
+          f"{len(bars)} in {time.time() - t0:.1f} s")
+    path = Path(tempfile.mkdtemp()) / f"entry_alerts_{day}.json"
+    pushes, delays = [], []
+    clock = {"now": None}
+
+    def send(title, body, url="/", tag=""):
+        pushes.append(clock["now"])
+        print(f"\n{clock['now']:%H:%M:%S}  {title}\n{body}")
+        return 1
+
+    now = pd.Timestamp(f"{day} 09:30:{PASS_OFFSET_S:02d}", tz=TZ)
+    stop = pd.Timestamp(f"{day} {until}", tz=TZ)
+    while now <= stop:
+        clock["now"] = now
+        feed = {t: {"rules": watch.rule_state(b, atr.get(t), now=now)} for t, b in bars.items()}
+        for key in watch.entry_alerts(day, mb, rows, feed, now.to_pydatetime(), send, path):
+            t, n = key.split("#")
+            e = feed[t]["rules"]["entries"][int(n) - 1]
+            delays.append((now - pd.Timestamp(f"{day} {e['t']}", tz=TZ)).total_seconds())
+        now += pd.Timedelta(seconds=ACTIVE_EVERY_S)
+    late = (json.loads(path.read_text()).get("late") if path.exists() else None) or []
+    print(f"\n{len(pushes)} pushes, {len(delays)} entries pushed (each {max(delays, default=0):.0f} s or "
+          f"less after its bar closed), {len(late)} late")
     return 0
 
 
@@ -223,6 +351,9 @@ def main():
     ap.add_argument("--update", action="store_true", help="git-update this checkout first, then run")
     ap.add_argument("--once", action="store_true", help="one pass over the whole board")
     ap.add_argument("--dry", action="store_true", help="print what would be posted")
+    ap.add_argument("--playback", metavar="YYYY-MM-DD", help="rehearse a past breadth morning's entry pushes")
+    ap.add_argument("--until", default="11:00", help="--playback: stop at this ET time")
+    ap.add_argument("--polygon", action="store_true", help="--playback on Polygon's bars (Trillium closed)")
     args = ap.parse_args()
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -232,6 +363,8 @@ def main():
     from dotenv import load_dotenv
     load_dotenv(ENV_FILE)
 
+    if args.playback:
+        sys.exit(playback(args.playback, args.until, "polygon" if args.polygon else "trillium"))
     if args.update:
         self_update()
         # the updated code runs in a fresh process
