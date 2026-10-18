@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Method's Hyperliquid watch (method/hl_watch.py) on the Mac mini: pushes big
+     off-hours moves in the 24/7 equity perps. Runs from the cron jobs' backtester
+     clone, shares Method's push keys in ~/.method. Installed by
+     method/deploy/install_hl_watch.sh. -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.zach.hlwatch</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/zacharyburr/.venvs/cron312/bin/python3</string>
+		<string>-m</string>
+		<string>method.hl_watch</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/zacharyburr/.openclaw/workspace/backtester</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>PYTHONPATH</key>
+		<string>/Users/zacharyburr/.openclaw/workspace/backtester</string>
+		<key>PYTHONUNBUFFERED</key>
+		<string>1</string>
+		<key>METHOD_AUTORESTART</key>
+		<string>1</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>StandardOutPath</key>
+	<string>/Users/zacharyburr/Library/Logs/hlwatch.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/zacharyburr/Library/Logs/hlwatch.log</string>
+</dict>
+</plist>
