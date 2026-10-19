@@ -1,0 +1,53 @@
+{
+ "date": "2026-10-19",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 57,
+ "priced": 49,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-19T15:45:01-04:00",
+  "names": [
+   "FLYE"
+  ],
+  "relaxed": [
+   "CABO",
+   "MI"
+  ],
+  "trillium": 10,
+  "pushed": null
+ },
+ "generated_at": "2026-10-19T17:46:28-04:00",
+ "signals": [
+  {
+   "ticker": "FLYE",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.33834049409237377,
+    "gap_pct": -0.0639097744360902,
+    "pct_change_3": -0.26111111111111107,
+    "prior_day_range_atr": 3.422276544072128,
+    "prior_day_rvol": 0.34516658204839673,
+    "selloff_total_pct": -0.2528089887640449,
+    "pct_off_30d_high": -0.5784469096671949,
+    "pct_off_52wk_high": -0.7041156840934372,
+    "prior_close": 2.66,
+    "open": 2.49
+   }
+  }
+ ]
+}

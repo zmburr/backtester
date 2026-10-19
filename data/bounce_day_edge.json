@@ -5,8 +5,8 @@
   "study": "2022-01-03..2026-06-30",
   "recorded": {
    "since": "2026-07-01",
-   "sessions": 76,
-   "last": "2026-10-16"
+   "sessions": 77,
+   "last": "2026-10-19"
   }
  },
  "shrink_n": 30,
@@ -23,7 +23,7 @@
    "entry_n": 1304,
    "entry_mean_r": 0.099,
    "entry_win": 0.27,
-   "days": 1145,
+   "days": 1146,
    "day_mean_r": 0.263,
    "traded_days": 496,
    "pos_days": 199,
@@ -73,7 +73,7 @@
     "entry_n": 137,
     "entry_mean_r": 0.191,
     "entry_win": 0.27,
-    "days": 65,
+    "days": 66,
     "day_mean_r": 0.687,
     "traded_days": 41,
     "pos_days": 15,
@@ -303,31 +303,31 @@
  },
  "watchlist": {
   "normal": {
-   "n": 94,
-   "mean_r": 0.041,
-   "median_r": -0.48,
-   "win": 0.426,
-   "day_mean_r": 0.354,
-   "traded_days": 28,
-   "pos_days": 15
+   "n": 122,
+   "mean_r": 0.431,
+   "median_r": -0.091,
+   "win": 0.492,
+   "day_mean_r": 0.458,
+   "traded_days": 39,
+   "pos_days": 22
   },
   "elevated": {
-   "n": 30,
-   "mean_r": -0.399,
+   "n": 40,
+   "mean_r": -0.662,
    "median_r": -2.0,
-   "win": 0.333,
-   "day_mean_r": -0.724,
-   "traded_days": 5,
-   "pos_days": 1
+   "win": 0.275,
+   "day_mean_r": -0.682,
+   "traded_days": 9,
+   "pos_days": 2
   },
   "breadth": {
-   "n": 54,
-   "mean_r": 0.523,
-   "median_r": -1.5,
-   "win": 0.463,
-   "day_mean_r": 0.313,
-   "traded_days": 4,
-   "pos_days": 2
+   "n": 82,
+   "mean_r": 0.476,
+   "median_r": -2.0,
+   "win": 0.378,
+   "day_mean_r": 0.949,
+   "traded_days": 7,
+   "pos_days": 3
   }
  },
  "drift": null
