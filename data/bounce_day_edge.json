@@ -1,5 +1,5 @@
 {
- "built": "2026-10-16",
+ "built": "2026-10-19",
  "unit": "R per name-day under the live rules (first entry + one re-entry after a stop-out), when the rules entered; entry_* = each single entry",
  "sources": {
   "study": "2022-01-03..2026-06-30",
@@ -81,44 +81,44 @@
    }
   },
   "elevated": {
-   "n": 230,
-   "mean_r": -0.013,
+   "n": 237,
+   "mean_r": -0.053,
    "median_r": -2.0,
-   "win": 0.352,
-   "entry_n": 388,
-   "entry_mean_r": -0.008,
-   "entry_win": 0.224,
+   "win": 0.346,
+   "entry_n": 401,
+   "entry_mean_r": -0.031,
+   "entry_win": 0.219,
    "days": 34,
-   "day_mean_r": 0.133,
-   "traded_days": 33,
+   "day_mean_r": 0.089,
+   "traded_days": 34,
    "pos_days": 13,
    "by_score": {
     "4": {
-     "n": 157,
-     "mean_r": 0.059,
+     "n": 162,
+     "mean_r": 0.023,
      "median_r": -2.0,
-     "win": 0.363,
-     "entry_n": 267,
-     "entry_mean_r": 0.034,
-     "entry_win": 0.221
+     "win": 0.358,
+     "entry_n": 276,
+     "entry_mean_r": 0.013,
+     "entry_win": 0.217
     },
     "5": {
-     "n": 63,
-     "mean_r": -0.178,
-     "median_r": -1.0,
-     "win": 0.302,
-     "entry_n": 104,
-     "entry_mean_r": -0.108,
-     "entry_win": 0.221
+     "n": 65,
+     "mean_r": -0.234,
+     "median_r": -1.25,
+     "win": 0.292,
+     "entry_n": 108,
+     "entry_mean_r": -0.141,
+     "entry_win": 0.213
     },
     "6": {
      "n": 10,
-     "mean_r": -0.034,
+     "mean_r": -0.064,
      "median_r": -0.896,
-     "win": 0.389,
+     "win": 0.384,
      "entry_n": 17,
-     "entry_mean_r": -0.02,
-     "entry_win": 0.241,
+     "entry_mean_r": -0.037,
+     "entry_win": 0.238,
      "raw": {
       "n": 10,
       "mean_r": -0.097,
@@ -141,16 +141,16 @@
     }
    },
    "since_study": {
-    "n": 27,
-    "mean_r": -1.16,
+    "n": 34,
+    "mean_r": -1.2,
     "median_r": -2.0,
-    "win": 0.185,
-    "entry_n": 44,
-    "entry_mean_r": -0.712,
-    "entry_win": 0.114,
+    "win": 0.176,
+    "entry_n": 57,
+    "entry_mean_r": -0.716,
+    "entry_win": 0.105,
     "days": 5,
-    "day_mean_r": -1.234,
-    "traded_days": 4,
+    "day_mean_r": -1.258,
+    "traded_days": 5,
     "pos_days": 1,
     "since": "2026-07-01"
    }
