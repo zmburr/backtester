@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-19",
+  "session": "morning",
+  "generated_at": "2026-10-19T05:45:58.423837",
+  "go_count": 0,
+  "caution_count": 1,
+  "signals": [
+    {
+      "ticker": "FJET",
+      "bucket": "bounce",
+      "cap": "Micro",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.301887,
+        "pct_off_30d_high": -0.611807,
+        "pct_change_3": -0.201439,
+        "prior_day_range_atr": 1.360104,
+        "pct_off_52wk_high": -0.964762,
+        "atr_pct": 0.119228
+      },
+      "intensity": 51.3,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "AMC",
+            "date": "2022-05-12",
+            "open_high_pct": 0.3649,
+            "open_low_pct": -0.0343,
+            "open_close_pct": 0.115,
+            "time_of_low_bucket": 1,
+            "distance": 0.4622
+          },
+          {
+            "ticker": "RBLX",
+            "date": "2022-05-11",
+            "open_high_pct": 0.2943,
+            "open_low_pct": -0.0014,
+            "open_close_pct": 0.0935,
+            "time_of_low_bucket": 1,
+            "distance": 0.4648
+          },
+          {
+            "ticker": "SPCE",
+            "date": "2022-05-12",
+            "open_high_pct": 0.181,
+            "open_low_pct": -0.021,
+            "open_close_pct": 0.1124,
+            "time_of_low_bucket": 1,
+            "distance": 0.4817
+          },
+          {
+            "ticker": "FIG",
+            "date": "2026-02-04",
+            "open_high_pct": 0.0809,
+            "open_low_pct": -0.0557,
+            "open_close_pct": 0.0709,
+            "time_of_low_bucket": 1,
+            "distance": 0.5459
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2022-05-12",
+            "open_high_pct": 0.3399,
+            "open_low_pct": -0.1247,
+            "open_close_pct": 0.1174,
+            "time_of_low_bucket": 1,
+            "distance": 0.641
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.2943,
+        "med_open_low": -0.0343,
+        "med_open_close": 0.1124,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      }
+    }
+  ],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 1,
+    "total_open": 1
+  },
+  "bounce_cohort": {
+    "n": 103,
+    "low_by_10_pct": 0.7573,
+    "low_by_10_med_open_close": 0.0985,
+    "low_after_10_med_open_close": -0.0216,
+    "vol15_q25": 0.1201,
+    "vol15_med": 0.1824,
+    "vol15_q75": 0.285,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}
