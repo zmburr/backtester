@@ -1,0 +1,34 @@
+{
+ "date": "2026-10-20",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 19,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-20T15:45:00-04:00",
+  "names": [],
+  "relaxed": [
+   "APUS",
+   "CRWG",
+   "CWVX",
+   "LEU",
+   "OKLL",
+   "PENG",
+   "QMCO",
+   "XNDU"
+  ],
+  "trillium": 1,
+  "pushed": null
+ },
+ "generated_at": "2026-10-20T17:46:07-04:00",
+ "signals": []
+}
