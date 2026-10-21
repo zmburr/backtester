@@ -1,0 +1,19 @@
+{
+  "installed_at": "2026-10-21T16:10:44.105423+00:00",
+  "files": {
+    "scripts/priority_report.py": {
+      "before": "1a954c7cf5faacb6baa5d677ab327b93836bb73df6aeafd9793c83138dbf2194",
+      "after": "6ef06de44b6747c3949f7155111f2c4ab66927bfb63ff5b54722e1abf9b2a843"
+    },
+    "scripts/signal_scorecard.py": {
+      "before": "d7ad59eb5d3215d733014af8e3009b542550d1ea5156d7bc5c49cc294ef593b6",
+      "after": "31ae5f25489eae8a48b2b0362885244e2fade2a63c0271cae824a4a448d5c4c4"
+    },
+    "scripts/signal_decision_evidence.py": {
+      "before": null,
+      "after": "65f89781621ae865ad6e7915c700a66adbfa16439d242225718524da48f83f82"
+    }
+  },
+  "production_data_unchanged": true,
+  "backup": "/Users/zacharyburr/.openclaw/workspace/backtester/research/evaluations/signal_rule_study_20261021/backup"
+}

@@ -24,6 +24,7 @@ Usage:
 import csv
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -89,6 +90,8 @@ def gate_atr(bucket: str, atr: float | None) -> float | None:
 # Pre-trade criterion values captured from the signal JSONs at alert time, logged
 # per signal so criterion-level threshold analysis is possible from the outcome
 # table alone. Reversal and bounce signals populate different subsets.
+from scripts.signal_decision_evidence import DECISION_COLUMNS, scorecard_decision_fields
+
 METRIC_COLUMNS = [
     "pct_from_9ema", "pct_change_3", "gap_pct", "prior_day_range_atr",
     "prior_day_rvol", "premarket_rvol",                       # reversal features
@@ -111,7 +114,7 @@ COLUMNS = [
     # here so save_outcomes preserves them — this writer drops any column not in
     # COLUMNS, so omitting them would silently erase the backfill on the next run.
     "entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop",
-] + METRIC_COLUMNS
+] + METRIC_COLUMNS + DECISION_COLUMNS
 ENTRY_COLUMNS = ("entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop")
 
 
@@ -125,7 +128,23 @@ def trading_days() -> list[str]:
     """Sorted list of NYSE trading days (YYYY-MM-DD) covering all signal files +10d ahead."""
     global _SCHEDULE_CACHE
     if _SCHEDULE_CACHE is None:
-        sched = _NYSE.schedule(start_date="2026-03-01",
+        # Include old reports and persisted outcomes. A fixed March 2026 start
+        # silently moved the February 26 report to March 2.
+        oldest = datetime.now().date() - timedelta(days=366)
+        for directory in (SIGNAL_DIR, CONTROL_DIR, BREADTH_DIR):
+            for path in directory.glob('*.json'):
+                try:
+                    oldest = min(oldest, datetime.strptime(path.name[:10], '%Y-%m-%d').date())
+                except ValueError:
+                    continue
+        if OUTCOMES_FILE.exists():
+            with OUTCOMES_FILE.open(newline='', encoding='utf-8-sig') as handle:
+                for row in csv.DictReader(handle):
+                    try:
+                        oldest = min(oldest, datetime.strptime(row['target_date'], '%Y-%m-%d').date())
+                    except (KeyError, TypeError, ValueError):
+                        continue
+        sched = _NYSE.schedule(start_date=(oldest - timedelta(days=10)).isoformat(),
                                end_date=(datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d"))
         _SCHEDULE_CACHE = [d.strftime("%Y-%m-%d") for d in sched.index]
     return _SCHEDULE_CACHE
@@ -219,7 +238,19 @@ def collect_signals() -> dict[tuple, dict]:
             except Exception as e:
                 logger.warning(f"Failed to parse {path.name}: {e}")
                 continue
-            date, session = path.stem.rsplit("_", 1)
+            # Payload identity is authoritative. Suffixes such as
+            # 2026-10-15_morning_custom must not become an evening session.
+            parts = path.stem.split('_')
+            date = data.get('date') or parts[0]
+            session = data.get('session') or (parts[1] if len(parts) > 1 else '')
+            try:
+                date = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
+            except (TypeError, ValueError):
+                logger.warning('Skipping %s: invalid signal date', path.name)
+                continue
+            if session not in ('morning', 'evening'):
+                logger.warning('Skipping %s: unknown session %r', path.name, session)
+                continue
             # morning files target their own day (pushed to next trading day if the
             # cron fired on a holiday); evening files target the next trading day
             target = on_or_next_trading_day(date) if session == "morning" else next_trading_day(date)
@@ -243,6 +274,7 @@ def collect_signals() -> dict[tuple, dict]:
                     "score": s.get("score", ""),
                     "atr_pct": s.get("metrics", {}).get("atr_pct"),
                     "metrics": s.get("metrics", {}),
+                    **scorecard_decision_fields(s),
                 }
     return signals
 
@@ -253,17 +285,19 @@ def collect_signals() -> dict[tuple, dict]:
 def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
     """Score one signal over its multi-day window. Favorable = down for reversal, up for bounce."""
     window = trading_days_from(sig["target_date"], HORIZON_DAYS)
-    bars = [bars_by_day[d] for d in window if d in bars_by_day]
+    # Preserve each trading-day slot when a provider omits a bar. Compressing
+    # this list mislabels D1 as D0 and invents an entry open for missing D0.
+    bars = [bars_by_day.get(d) for d in window]
+    available = [b for b in bars if b is not None]
 
     row = {k: v for k, v in sig.items() if k != "metrics"}
     row["atr_pct"] = round(sig["atr_pct"], 6) if isinstance(sig["atr_pct"], (int, float)) else ""
     for k in METRIC_COLUMNS:
         v = sig.get("metrics", {}).get(k)
         row[k] = round(v, 6) if isinstance(v, (int, float)) else ""
-    row["days_available"] = len(bars)
-    # complete = full horizon scored, or window can never grow (delisted/halted with partial data)
-    row["complete"] = len(bars) >= HORIZON_DAYS or (len(window) >= HORIZON_DAYS and len(bars) < len(window))
-    if not bars:
+    row["days_available"] = len(available)
+    row["complete"] = len(available) >= HORIZON_DAYS
+    if not bars or bars[0] is None:
         for c in COLUMNS:
             row.setdefault(c, "")
         row["complete"] = False
@@ -277,17 +311,17 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
         return (o - px) / o if is_short else (px - o) / o
 
     row["entry_open"] = o
-    closes = [fav(b["close"]) for b in bars]
+    closes = [fav(b["close"]) if b is not None else None for b in bars]
     for i in range(HORIZON_DAYS):
-        signed = (-closes[i] if is_short else closes[i]) if i < len(closes) else None
+        signed = (-closes[i] if is_short else closes[i]) if i < len(closes) and closes[i] is not None else None
         row[f"d{i}_pct"] = round(signed, 6) if signed is not None else ""
 
     # excursions per day: best/worst price within each bar
-    day_mfe = [fav(b["low"] if is_short else b["high"]) for b in bars]
-    day_mae = [-fav(b["high"] if is_short else b["low"]) for b in bars]  # adverse as +pct
+    day_mfe = [fav(b["low"] if is_short else b["high"]) if b is not None else None for b in bars]
+    day_mae = [-fav(b["high"] if is_short else b["low"]) if b is not None else None for b in bars]  # adverse as +pct
 
-    mfe = max(day_mfe)
-    mae = max(max(day_mae), 0.0)
+    mfe = max(v for v in day_mfe if v is not None)
+    mae = max(max(v for v in day_mae if v is not None), 0.0)
     # 3dp, not 2: at 2dp a raw 0.997 prints as "1.00" while days_to_1atr correctly
     # declines to fire, which repeatedly read downstream as an off-by-one bug in the
     # writer below (it has always used >=). The extra digit makes the gate legible.
@@ -299,6 +333,10 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
     days_to, adverse_before = "", ""
     if atr:
         for i, m in enumerate(day_mfe):
+            if m is None:
+                # A missing earlier session makes the first-hit day and prior
+                # adverse excursion unknowable even if a later target hits.
+                break
             if m / atr >= MFE_ATR_THRESHOLD:
                 days_to = i
                 adverse_before = round(max(day_mae[: i + 1]) / atr, 2)
@@ -307,11 +345,30 @@ def compute_outcome(sig: dict, bars_by_day: dict[str, dict]) -> dict:
     row["adverse_before_fav_atr"] = adverse_before
 
     row["dir_correct_d0"] = closes[0] > 0
-    row["dir_correct_final"] = closes[-1] > 0
+    row["dir_correct_final"] = closes[-1] > 0 if closes[-1] is not None else ''
     gate = gate_atr(sig["bucket"], atr)
     row["tradeable_d0"] = bool(closes[0] > 0 and gate is not None and day_mfe[0] / atr >= gate)
     row["tradeable_3d"] = bool(gate is not None and mfe / atr >= gate)
     return row
+
+
+def preserve_entry_replay(row: dict, existing: dict | None) -> None:
+    """Keep D0 replay fields only while their opening-price/ATR basis is intact."""
+    if not existing:
+        return
+    for name in ("entry_open", "atr_pct"):
+        old, new = existing.get(name), row.get(name)
+        if name == "atr_pct" and old in (None, "") and new in (None, ""):
+            continue
+        try:
+            if not math.isclose(float(old), float(new), rel_tol=1e-9, abs_tol=1e-10):
+                return
+        except (TypeError, ValueError):
+            return
+    for name in ("entry_r", "entry_r_floored", "exit_r", "entry_signals", "entry_price", "entry_stop"):
+        if existing.get(name) not in (None, ""):
+            row[name] = existing[name]
+
 
 
 def refresh_tradeable_flags(outcomes: dict[tuple, dict]) -> int:
@@ -768,7 +825,10 @@ def main():
             continue  # window hasn't opened yet
         existing = outcomes.get(key)
         if existing and _is_true(existing.get("complete")):
-            continue
+            available = int(existing.get('days_available') or 0)
+            if available == 0 or available >= HORIZON_DAYS:
+                continue
+            # Retry partially observed windows finalized by the older writer.
         # how many window days could be scored by now?
         possible = len(trading_days_from(target, HORIZON_DAYS))
         if existing and int(existing.get("days_available") or 0) >= possible:
@@ -777,12 +837,7 @@ def main():
         window = trading_days_from(target, HORIZON_DAYS)
         bars = fetch_daily_bars(client, sig["ticker"], window[0], window[-1])
         row = compute_outcome(sig, bars)
-        if existing:
-            # the entry replay (scripts/backfill_entry_r.py) reads D0 only, so it can run as
-            # soon as D0 is over; keep its columns while the D0..D3 window fills in
-            for c in ENTRY_COLUMNS:
-                if existing.get(c) not in (None, ""):
-                    row[c] = existing[c]
+        preserve_entry_replay(row, existing)
         if row["days_available"] == 0:
             if existing is not None and len(window) >= HORIZON_DAYS:
                 # second straight miss after the window fully elapsed — likely

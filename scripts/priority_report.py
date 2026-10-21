@@ -22,6 +22,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # --- Reuse from generate_report.py ---
 import scripts.generate_report as gr
 from scanners import stock_screener as ss
+from scripts.signal_decision_evidence import build_decision_evidence
+
 from analyzers.bounce_scorer import (
     BouncePretrade,
     fetch_bounce_metrics,
@@ -1268,6 +1270,10 @@ def generate_priority_report() -> str:
                         "score_result": None, "metrics": bm, "score_str": "N/A",
                     })
 
+            if scored and scored[-1]["ticker"] == ticker:
+                scored[-1]["decision_evidence"] = build_decision_evidence(
+                    scored[-1], premarket_rvol_threshold=gr._PREMARKET_RVOL_THRESHOLD)
+
         timings["routing_scoring"] = time.time() - t0
 
         # === Unified signal ledger: log EVERY scored signal (incl. NO-GO), not just
@@ -1311,6 +1317,7 @@ def generate_priority_report() -> str:
                   f"{float(top_edge['live_intensity']):.0f}/100 ({top_edge['bucket']})")
 
         if not priority:
+            _save_signals_to_json(control, 0, 0, out_dir=_CONTROL_DIR, enrich=False)
             _save_signals_to_json([], 0, 0, cluster=cluster)
             html = build_priority_report_html([], {})
             _send_report(html, 0, 0)
@@ -1880,6 +1887,12 @@ def _save_signals_to_json(priority: List[Dict], go_count: int, caution_count: in
                 "score": item.get("score_str", ""),
                 "metrics": metrics,
             }
+
+            # Exact result from the scoring step, including NO-GO decisions.
+            # Never reconstruct a profile from the display setup matcher.
+            evidence = item.get("decision_evidence")
+            if evidence is not None:
+                signal_entry["decision_evidence"] = evidence
 
             # Continuous intensity + high-edge flag, so the morning watcher and
             # the scorecard see the same number the report surfaces (7/17: the

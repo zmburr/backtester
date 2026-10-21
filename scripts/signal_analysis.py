@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -43,7 +44,7 @@ OUTCOMES_FILE = PROJECT_ROOT / "data" / "signal_outcomes.csv"
 STATE_FILE = PROJECT_ROOT / "data" / "signal_analysis_state.json"
 EMAIL_TO = "zmburr@gmail.com"
 SIGNAL_GATE = 15
-CLAUDE_BIN = "/opt/homebrew/bin/claude"
+CLAUDE_BIN = os.getenv("CLAUDE_BIN", "")
 MIN_CELL_N = 20
 EPISODE_GAP = 3  # keep in sync with signal_scorecard.EPISODE_GAP
 CLUSTER_DAY_THRESHOLD = 15  # keep in sync with priority_report.CLUSTER_DAY_THRESHOLD
@@ -59,13 +60,21 @@ def save_state(state: dict):
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
+def _has_complete_window(row: dict) -> bool:
+    """Old writers could mark a two- or three-bar window complete."""
+    try:
+        return str(row.get("complete")).lower() == "true" and int(row.get("days_available") or 0) >= 4
+    except (TypeError, ValueError):
+        return False
+
+
+
 def load_complete_rows() -> list[dict]:
     if not OUTCOMES_FILE.exists():
         return []
     with open(OUTCOMES_FILE, newline="") as f:
         return [r for r in csv.DictReader(f)
-                if str(r.get("complete")).lower() == "true"
-                and str(r.get("days_available") or "0") != "0"  # skip no-data (delisted) rows
+                if _has_complete_window(r)
                 # the market-wide breadth cohort is Method's lane, not part of this analysis
                 and _cohort(r) in (COHORT_SURFACED, COHORT_CONTROL)]
 
@@ -464,6 +473,21 @@ def _log_usage(record: dict) -> None:
         logger.warning(f"Could not write usage log: {e}")
 
 
+def _resolve_claude_bin() -> str:
+    """Find native and package installs even with cron's minimal PATH."""
+    if CLAUDE_BIN:
+        candidates = [os.path.expanduser(CLAUDE_BIN)]
+    else:
+        candidates = ["claude", str(Path.home() / ".local/bin/claude"),
+                      "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
+    for candidate in candidates:
+        executable = shutil.which(candidate)
+        if executable:
+            return executable
+    raise FileNotFoundError("Claude CLI not found; checked " + ", ".join(candidates))
+
+
+
 def run_claude(prompt: str) -> str:
     """Run claude -p in its own process group so a timeout kills MCP children too."""
     import signal as _signal
@@ -473,14 +497,15 @@ def run_claude(prompt: str) -> str:
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     started = time.time()
     try:
+        executable = _resolve_claude_bin()
         proc = subprocess.Popen(
-            [CLAUDE_BIN, "-p", prompt, "--permission-mode", "bypassPermissions",
+            [executable, "-p", prompt, "--permission-mode", "bypassPermissions",
              "--model", model, "--output-format", "stream-json", "--verbose"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             env=env, cwd="/tmp", start_new_session=True,
         )
-    except FileNotFoundError:
-        logger.error(f"Claude CLI not found at {CLAUDE_BIN}")
+    except FileNotFoundError as exc:
+        logger.error("%s", exc)
         return ""
     try:
         stdout, stderr = proc.communicate(timeout=1800)

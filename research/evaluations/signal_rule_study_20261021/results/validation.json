@@ -1,0 +1,39 @@
+{
+  "local_targeted_tests": 51,
+  "staged_mac_notification_tests": 13,
+  "staged_mac_core_tests": 47,
+  "production_before_and_after": "passed",
+  "independent_exit_spot_checks": [
+    {
+      "ticker": "NBIS",
+      "date": "2026-08-10",
+      "fill_time": "2026-08-10 09:46:00-04:00",
+      "next_minute_open": 188.24,
+      "independent_early_exit_r": 1.2355508104952628
+    },
+    {
+      "ticker": "RXT",
+      "date": "2026-07-14",
+      "fill_time": "2026-07-14 09:42:00-04:00",
+      "next_minute_open": 4.795,
+      "independent_early_exit_r": 1.1915341556447228
+    },
+    {
+      "ticker": "BE",
+      "date": "2026-10-15",
+      "fill_time": "2026-10-15 10:02:00-04:00",
+      "next_minute_open": 220.81,
+      "independent_early_exit_r": 3.019519487068719
+    }
+  ],
+  "independent_primary_rule_recalculation": "passed",
+  "source_and_cache_hash_recheck": "passed",
+  "chart_review": {
+    "count": 20,
+    "largest_winners": 5,
+    "random": 12,
+    "givebacks": 3,
+    "obvious_isolated_print_driver": false
+  },
+  "notes": "No live signals, outcome rows or analysis state were written by verification; the production sender was stubbed."
+}

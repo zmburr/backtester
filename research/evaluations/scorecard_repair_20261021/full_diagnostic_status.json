@@ -1,0 +1,4 @@
+{
+  "status": "stopped_after_repair_verified",
+  "reason": "Targeted regression checks, installed production dry runs, and the real model connectivity check passed. The optional comprehensive report is not required to validate the repair."
+}

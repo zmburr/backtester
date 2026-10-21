@@ -1,0 +1,1244 @@
+{
+  "created_at": "2026-10-21T16:12:05.641147+00:00",
+  "snapshot": [
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\AGENTS.md",
+      "bytes": 16383,
+      "sha256": "51e1a92440afe982add6a42749573a0ec1aeb6d434ddc6550997628f27fb2aeb"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\analyzers\\bounce_scorer.py",
+      "bytes": 48098,
+      "sha256": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\analyzers\\reversal_pretrade.py",
+      "bytes": 20784,
+      "sha256": "e8b3c389264b3f00d9d679ff9835d4d1b4332de1e59c5db12bafa6870abeef17"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\analyzers\\reversal_scorer.py",
+      "bytes": 35897,
+      "sha256": "208c8c9259f2e0c8b4ef670961b9347ed846c953927b17a9407fd9a4e2a92125"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\signal_outcomes.csv",
+      "bytes": 862678,
+      "sha256": "dcebdf8c22cb2d0149aa10ee7a54e85724c9d012c611221a9ed7ffd8e152f874"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-09_evening.json",
+      "bytes": 24304,
+      "sha256": "ac33e0e0c8611bc09df5d5d948d4305138457a993c488dfb2552992e807c7276"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-09_morning.json",
+      "bytes": 25708,
+      "sha256": "bb1594684bc3f7bad4da52d8beaa130b1105758a8759b5e350afce824bd1b4a2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-10_evening.json",
+      "bytes": 24320,
+      "sha256": "e994f64ec9d1f1fcec8c78ac16522512207db338926c423f40ebd7788b9c1b88"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-10_morning.json",
+      "bytes": 24983,
+      "sha256": "063be56e223117364043a0b10d7c0864d47d19a90df713518d24b252dec9a8f6"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-13_evening.json",
+      "bytes": 24356,
+      "sha256": "7cea9bd0e5ce0884ccae0a6cd3a565a27392c89954c34ca779c548d28860b8f6"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-13_morning.json",
+      "bytes": 25772,
+      "sha256": "4123d4b88fbbcd5f59171aa950807a15c981c100a53e6c9a77eee7617d6d6e38"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-14_evening.json",
+      "bytes": 25050,
+      "sha256": "02d9624b469481d89e40672aae05601661be4668936467f0f02af5eebc933c3c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-14_morning.json",
+      "bytes": 25649,
+      "sha256": "14d0657563cc24889d5a1bb595eaf23b2bebcfd47c64e2ff658015d28491203e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-15_evening.json",
+      "bytes": 23203,
+      "sha256": "2fab87caefdf6311a58d86893d417abfa83a5d410ae3f60622717e707794f948"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-15_morning.json",
+      "bytes": 24627,
+      "sha256": "10dd818c16984c720c694a249250b26c5d896551bd45a654678f375f47e7831c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-16_evening.json",
+      "bytes": 22865,
+      "sha256": "6b8146d29aec27895d0506f77ac0e401b73acfe4daf30f4c54886b3766acf4f9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-16_morning.json",
+      "bytes": 24201,
+      "sha256": "0f1dfe85ee4befb06b1f453c0ef6675af7c7bc8f63135645da58924ad3a8c2f2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-17_evening.json",
+      "bytes": 24739,
+      "sha256": "803363029358f6ce00d6db5e272317bf6ad411d1aca29f41b142e442f205d89b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-17_morning.json",
+      "bytes": 23276,
+      "sha256": "852b9fa5d073bdb5e5a1d61c2011f64956261d05e3a42fd7c40b9b4d2b063331"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-20_evening.json",
+      "bytes": 25426,
+      "sha256": "d5c3e1dfe08ac61e9961ac8110e36735a814ebf08de1789a247a45ad874bfb66"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-20_morning.json",
+      "bytes": 25293,
+      "sha256": "27afb4888be43ab87c77258d406f62317d93968a537e55ee24eabc2ab6040e37"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-21_evening.json",
+      "bytes": 27259,
+      "sha256": "6b893a4eeb58ac6dbdc7f2276ba706fc5ad9d3106ee3d54cbea732b774d622b3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-21_morning.json",
+      "bytes": 27607,
+      "sha256": "71491b126366026e50d7ac12d5b8c0b754162b1cd3910b95b4556a172941c365"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-22_evening.json",
+      "bytes": 26178,
+      "sha256": "9236abb685a207dd09b82c6e935fff77b48cccfe0bdc5e5682c3d7d56598ff06"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-22_morning.json",
+      "bytes": 26837,
+      "sha256": "09a145e026205bea75589d18553aeb530d305ef33e4550b4d6b0a0a8bc41e832"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-23_evening.json",
+      "bytes": 23969,
+      "sha256": "f96917e1d170110cab67ec10de5a163e0c150246afd2d23aa60ecac934d043a3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-23_morning.json",
+      "bytes": 24957,
+      "sha256": "64b85c1ced2750782b53b6ed2b21146a9fae5fe34855b5e683772d72b1aa5858"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-24_evening.json",
+      "bytes": 25460,
+      "sha256": "363bd8d5d2d5b40a74d8e60b9d95b7bf1bd17479a4ca9cf3134bf9efc8296649"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-24_morning.json",
+      "bytes": 27237,
+      "sha256": "8bb368474585cf8439dccc2379f9a1f52ade42770b731edb876af4f718814108"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-27_evening.json",
+      "bytes": 25063,
+      "sha256": "a24f66e22b7d7f7ad1e135486dc6dd7a5dcdb01f7016e132ba8ba8aaef41837a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-27_morning.json",
+      "bytes": 26892,
+      "sha256": "b19336d4a4181ee9fed5d54f71d1e4ef2e80cd4a7d623445f87968b769e43279"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-28_evening.json",
+      "bytes": 21014,
+      "sha256": "22e330e398f043aadc57475949ca7f67aab586243d44a6dfd2d151aa0adb4d4e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-28_morning.json",
+      "bytes": 25533,
+      "sha256": "52b53234c0319abec504012fc9d28be86dcd279b84224c6dd8929760f7f202f5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-29_evening.json",
+      "bytes": 27319,
+      "sha256": "c8c50c549a808420e8e171b509b0095937e000596458c3e045e25ed43c2593f6"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-29_morning.json",
+      "bytes": 26201,
+      "sha256": "52d0d4a49d54815b174c964aae41ae69ce05acd43fbb7a0a7729545855203d47"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-30_evening.json",
+      "bytes": 28711,
+      "sha256": "96d268be598958c7f7e7ef099ce1402f0f1de9ee790ff39649c2b424a21f33aa"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-30_morning.json",
+      "bytes": 39163,
+      "sha256": "25b62a08032c588ee43acb08d0c96cd3b7bab0ffdec2f3d96f8502a56a8167fc"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-31_evening.json",
+      "bytes": 28237,
+      "sha256": "0cdc9cacd25560e5aad10983082bdbf9f99828510172514134379c3e629840c1"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-07-31_morning.json",
+      "bytes": 31672,
+      "sha256": "bd13111e500bb61353abb9756039579b34e50a976380bacd640d9419e027714d"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-08-03_morning.json",
+      "bytes": 28256,
+      "sha256": "48421184f855c01f61283cda99c02599e1343b1accdf64af4813cb9dac1897f0"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-12_evening.json",
+      "bytes": 24446,
+      "sha256": "3685c1faf3e0cfaa6f6f217a909567fc721724df54af4e1614e301579957c3ff"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-12_morning.json",
+      "bytes": 24730,
+      "sha256": "b69ea7413a238314faf0a84202dea12fd6ee61483a3a34e71073a789ffe8f895"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-13_evening.json",
+      "bytes": 27384,
+      "sha256": "38cadf376d927465188271374957fd4db3accb5396120ea347a81df5df4f6d00"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-13_morning.json",
+      "bytes": 28119,
+      "sha256": "86eedbb6a08cd07630e3fed92d7080cf9e07c7eac269be791442fb867f0425ea"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-14_evening.json",
+      "bytes": 26960,
+      "sha256": "faa3ff42323e68be0947154af106406ff4239810cdf8813aa65e4d9cd030e0fe"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-14_morning.json",
+      "bytes": 28492,
+      "sha256": "4b12e918a95bdef6256eaf121b1d9f24c023cfd01cfebebdfab3e56018880b81"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-15_evening.json",
+      "bytes": 27800,
+      "sha256": "c20e59139748ee6e62fa5d37fa691e56a177718fae510e0e6e2e9a6f9e310c69"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-15_morning.json",
+      "bytes": 28981,
+      "sha256": "82c338f7aead6627f75b37c1ea73b756ce9f9a098952005e113514bb3d74c416"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-16_evening.json",
+      "bytes": 26933,
+      "sha256": "005e5ff20be33aa17856e5edc41437f1a0b19fca2bc87950c6d8fc261635cdbb"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-16_morning.json",
+      "bytes": 29332,
+      "sha256": "3b220b7028f4672760fc2ef19cc3292e463fac095f266145fd764278816c880f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-19_evening.json",
+      "bytes": 30666,
+      "sha256": "57f18e527aaf4eeff634fc834a7ebb68c4e6689481f114ec9126e75c489bdde4"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-19_morning.json",
+      "bytes": 31414,
+      "sha256": "965cf97fe9ef15940e3eaf846c8951d545813b0002b002ca44d1197aabf10d54"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-20_evening.json",
+      "bytes": 31152,
+      "sha256": "31fee54ae28a1f042b97bf7cc2df29b0212dfce1e966bca5afacef6b34a9ffe5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\control_signals\\2026-10-20_morning.json",
+      "bytes": 31038,
+      "sha256": "3432bbc1ba1925f646efc4007ddb175f5568e5fc8abf1d9aa503b2a61535e812"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-02-26_morning.json",
+      "bytes": 2299,
+      "sha256": "8d63ef8ea7be43d31349d09a0a15abc0286c583e36731145502838caf0f5d782"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-18_evening.json",
+      "bytes": 1785,
+      "sha256": "00f2ae0a9a7340343c881cbdee243ebcd6f2058de6b5dbc09ca891c946fbeac8"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-19_evening.json",
+      "bytes": 1785,
+      "sha256": "4a845c66ac846d2bbc5f0f3547499744976ea6f8407168f7f2058d40ca760013"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-19_morning.json",
+      "bytes": 967,
+      "sha256": "71d74295c8ed6645bdddee0664271f9a61ab1c4e7b32f0a9636c8c50320f5f55"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-20_evening.json",
+      "bytes": 974,
+      "sha256": "7ed7f783663297f973a243bfd11f02861cc6d95e125889e810dda2ed5291f2db"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-20_morning.json",
+      "bytes": 561,
+      "sha256": "a4a1df78a24c85467a02ed75a3c09683fbfe80f5a1054c71b590f50a6e12f04b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-23_evening.json",
+      "bytes": 560,
+      "sha256": "f584eee6aeb94ca287a1df9a8a5f668e45136c7e81431a913c1ffd9c7a5cf779"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-24_evening.json",
+      "bytes": 971,
+      "sha256": "cf4457c54f3e104e7e15f57c3f7fea87c9e1de0e560bb885fb516c4c6d4d27d5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-24_morning.json",
+      "bytes": 558,
+      "sha256": "cfe5b8c89cb1b6e0ae3e01afaf5ef3e86e43bc5469185a26053bd2b5c89943a8"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-25_evening.json",
+      "bytes": 1387,
+      "sha256": "9dd38f54ba3289cbc04c69a7f6d6773c011f5082d43be9227447cdd9705f756e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-25_morning.json",
+      "bytes": 565,
+      "sha256": "b37187f25e8cc79cb90c4f76b12d5583ca01bcdc5cd81f246a6bda01f7b34cfd"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-26_morning.json",
+      "bytes": 565,
+      "sha256": "446da9943ad508803d30407c2a9df616af13c71b0191f9b3b82a3663c99a89b2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-30_evening.json",
+      "bytes": 1414,
+      "sha256": "ab9b7a6bc4cba2b9896286b0fb29cbbc3dbc4c00e39b0570ed78cba54a5bab05"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-03-31_morning.json",
+      "bytes": 939,
+      "sha256": "268650f4300ab2473f2dc5e8de95ef8d050ba5d8e0e5fc5eb08b6650a6881425"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-01_evening.json",
+      "bytes": 987,
+      "sha256": "6ba601c40597e7bbb80b5ccf6344f62d1caea89b97f866a6ad8b139202772cf3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-02_evening.json",
+      "bytes": 2202,
+      "sha256": "ea72f44f74703b231f0f4aa1237e61f0adf52e8545356e91582a895c6c19b0de"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-02_morning.json",
+      "bytes": 959,
+      "sha256": "df323c8c8c3123a7ddf257624f8b97763021d34ff296b058cccb82f0b8669c34"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-03_evening.json",
+      "bytes": 952,
+      "sha256": "2247aa57f2bf42e1189e61176fcef5b9fc6e1da3146f4eaecd543f171b255524"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-03_morning.json",
+      "bytes": 952,
+      "sha256": "42fb20f5e19d12e3442eb66990944568683c81b49c2fd73efbd0f9929daef79a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-06_evening.json",
+      "bytes": 574,
+      "sha256": "1f16b5cbf84bc8bde4c449f31a304a67e32f42bac1ca7363c7e73fb73f4e2b3b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-07_evening.json",
+      "bytes": 1379,
+      "sha256": "8738fd5c58c6a5c38e8fb6478362b69be07a2631e5f3af0b337b2e169ffeab87"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-20_evening.json",
+      "bytes": 3417,
+      "sha256": "d77a9957acf31edbe154fb10943cabb2fef0058cbcfde5762d779ba62a1b5f9f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-20_morning.json",
+      "bytes": 3013,
+      "sha256": "0a71f5f791eb03664a1a3c7276d261ce496a4e375f958cecde32c89a0a1789ac"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-21_morning.json",
+      "bytes": 2169,
+      "sha256": "2c03552af0e7343322b09425a0930a5cbec31592e4ae455417e84ec0f0ec877c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-23_morning.json",
+      "bytes": 543,
+      "sha256": "e4fb1198d82feee07466782ac9734fa8ee1bba3ced397f7fb91157275b17ce34"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-28_evening.json",
+      "bytes": 578,
+      "sha256": "ee46c6c4eac46023a49068658afa06baceb55ee4f66e4ffd6f8c4cd9afe38085"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-29_evening.json",
+      "bytes": 578,
+      "sha256": "1854c541ac3d1892c0e9b4c9af5d798b9d0a9f5e11d4a8f59274a1fbac92c0e6"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-04-30_morning.json",
+      "bytes": 3146,
+      "sha256": "92449a4fdac8169a61126c984e17ce7c4cb8c0f0fe30523b8c1deee03f374580"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-01_morning.json",
+      "bytes": 2411,
+      "sha256": "f44694ce2be7e520ab0d985f90603be423109aa7ab3657568144e31941969c55"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-04_morning.json",
+      "bytes": 3965,
+      "sha256": "a2656fcac82ce03ee1b64afbc55e785d189d83d8e5089ffa5179e0c4ad6c78b3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-05_morning.json",
+      "bytes": 2403,
+      "sha256": "1bb3dec1736330ef2417d942dbb6b25c7153309a16c27d5032567fcefab22f2f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-06_morning.json",
+      "bytes": 3892,
+      "sha256": "58383a01e23a32ff71fccddc18796c1b911910f7ec5871f6766b735b1700e627"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-11_morning.json",
+      "bytes": 6154,
+      "sha256": "1b2c1b18b4908bb763c6a4479d9351f69d118909e81556202d3aadcef041fe0e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-12_morning.json",
+      "bytes": 3909,
+      "sha256": "847d6a4e3ee4f5fc7dc669eaa8e32a2aa52ec0c2bd0b32f6eb5b66cc79ed59fb"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-13_evening.json",
+      "bytes": 5401,
+      "sha256": "2e95383c7b29489d9ba035b73ed9e9f886c26c0203d6f63e8b5e0878386c461d"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-14_evening.json",
+      "bytes": 3208,
+      "sha256": "22d5560e0dbc6a9afaeb3a990796541bb1197e409856c3e3e8909eac95f1718e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-14_morning.json",
+      "bytes": 3912,
+      "sha256": "c27d4016456db3f393c784c153d5b452a0fa826ea571c39d8e09ce6546d7e44b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-15_evening.json",
+      "bytes": 2447,
+      "sha256": "062da58449bc393edef69b327f5edae01344946aae5b5b5cae13ee37a679f629"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-15_morning.json",
+      "bytes": 1675,
+      "sha256": "7e40fb05ec7ea00ff9d8d22ce9628a74c7b8deeddd7b36b0b9dcd032b90eacf9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-18_morning.json",
+      "bytes": 908,
+      "sha256": "ef61271b8820214a5b9f6c01c99af7bb2238046dd82a304e5644d0b51cc0bd0b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-26_morning.json",
+      "bytes": 3909,
+      "sha256": "abc05e2b1682bbc8421d95390a63321a0f2c86c2d38b41fc199dec9b2e8e0009"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-27_morning.json",
+      "bytes": 5385,
+      "sha256": "05d93004a4be8329940692920c6cbef609d61c1d35e53e532c7313c5abd33e9b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-28_morning.json",
+      "bytes": 1656,
+      "sha256": "3b96704659513b591597b15f4826e670e42b13413df6f39d8608b81b3abecb7c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-05-29_morning.json",
+      "bytes": 906,
+      "sha256": "86d861365b089a2d118377aae1d78398b677b41880c8f4ca07a0758e990c63ae"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-02_morning.json",
+      "bytes": 4294,
+      "sha256": "0eebf986e608f29e3cbb829afc8526b73d002a112749fab49bbcc8354b290085"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-03_morning.json",
+      "bytes": 4649,
+      "sha256": "860d0ba63851b4ea66a814e312baa71f3a18d3d015045aea0d6c3f48a0a72c28"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-04_morning.json",
+      "bytes": 1300,
+      "sha256": "5c6b273cfb51693937f6abfe8ce8ecbcc8d49b34849b1245913603c26426b7a7"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-05_morning.json",
+      "bytes": 907,
+      "sha256": "ce81a3dc0ea008bab8151bd4111c9420653290f63fa75033d61ee14ee7db19c8"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-08_morning.json",
+      "bytes": 2487,
+      "sha256": "1eefb80debfed73a11f6b706fe121b500850d6a5657dd35783acfb99cf04a08b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-09_morning.json",
+      "bytes": 549,
+      "sha256": "8239e88b8064977dbdc817434857e1679fa1e0031775b4b8eebd2011a011f128"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-10_morning.json",
+      "bytes": 3284,
+      "sha256": "3667ce0d101419da6fd75195b4dcee26dd602c5bf6df108387c9c91f6355b25a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-11_evening.json",
+      "bytes": 2238,
+      "sha256": "03ce251b531a3bd84448c0a07741e73c739ca80dc333d6a7e6f9d98efdd0527f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-15_evening.json",
+      "bytes": 972,
+      "sha256": "b7210c68b93fe1f46368b626b41997def32d44dc5c602a907de27954ad235e02"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-15_morning.json",
+      "bytes": 968,
+      "sha256": "03e56e0376b2d2e4cf19a286855e96c1a0b1e19c145a42a17d331cd1dd85d044"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-16_evening.json",
+      "bytes": 970,
+      "sha256": "09239f0b8aa1a3134609bb9dd6e1b2495c452c9b64b1475a849148d2eb0148ef"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-16_morning.json",
+      "bytes": 964,
+      "sha256": "73fa46f6e86f9bf6c970d726cd16b96ea0e3a716f0938fdf2666e9485b73c294"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-17_evening.json",
+      "bytes": 1788,
+      "sha256": "6b44636ddb20d8ab26a66e92f2764b618511752d83ea076a520ded9afb2cff6e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-17_morning.json",
+      "bytes": 1781,
+      "sha256": "babff7a621c32e8cfa3d175a74c471c2d756a65d3996bc66864330b381f056dc"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-18_evening.json",
+      "bytes": 1770,
+      "sha256": "e21195072ced58ff618ba21cf15b58de3045a253d6861794881c8e2195a2c5f9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-18_morning.json",
+      "bytes": 2578,
+      "sha256": "3660f6a7ada51590915fdb255b54167edc1d2eca8ef67a72d8d3d070e1601a37"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-19_evening.json",
+      "bytes": 1356,
+      "sha256": "ea8ccc38ebf3188bbc2e309b776a58054f49ddc57b44965f161d3aeae49a25c0"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-19_morning.json",
+      "bytes": 1356,
+      "sha256": "9b5acf586631d0eb2033bc18579e9990c3b5cc4210027af4e3d3f6dff2dd1180"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-22_evening.json",
+      "bytes": 1396,
+      "sha256": "86c97f228c2fa68af93981f452010e5f877e398e8055118bb11d730d344a80e0"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-22_morning.json",
+      "bytes": 1390,
+      "sha256": "8646014256eed9dddd27b521b09f9c406538da6d332fcc92b3ab64249d1dfbdc"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-23_evening.json",
+      "bytes": 2211,
+      "sha256": "3dac601587bff8546f551d3378781e04c3af3409a9228d0cfded5d03ba7992eb"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-23_morning.json",
+      "bytes": 999,
+      "sha256": "0da5ac7a6786e7264923756a1c32e7218620c07ad8b29ab54e68e0d35659ac00"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-24_evening.json",
+      "bytes": 996,
+      "sha256": "c4aba1333b49c0609d4970f4f5813f437de202b0839d1df76e6bda580bf850af"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-24_morning.json",
+      "bytes": 579,
+      "sha256": "4a78bd32274aa568cb06b0cd0a2ae225770384d232e938ed1186f30df6a071fd"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-25_evening.json",
+      "bytes": 2669,
+      "sha256": "add8eee7abf158dcab567b37f8627683e8ef951caf48a15bb5b4defee3cd4ab3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-25_morning.json",
+      "bytes": 2671,
+      "sha256": "f449cd002c294a2e85433c0344c8a6034a53652119c753484c15fbb283b3b5be"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-26_evening.json",
+      "bytes": 2682,
+      "sha256": "041594c832739072c4fdc408c065ff6510ca93f7d7eefbb3c70da12af2a4abce"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-26_morning.json",
+      "bytes": 3098,
+      "sha256": "4e3267b2f21ae0315af4e394d85f9cbfd84b4b980f5be43df6c701c537f649f7"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-29_evening.json",
+      "bytes": 2235,
+      "sha256": "d211a0f3bef151ed81f2b624031a23a8c4dac2e483582fe5e5a010c026bd603d"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-29_morning.json",
+      "bytes": 1808,
+      "sha256": "8a8a18d76d743025f465a63427b6de1ee20e6e1135f63abf99a24ce2a4329d33"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-30_evening.json",
+      "bytes": 3453,
+      "sha256": "5fd27f764ec7b371f0ee756ecb106d1794944fd1662d1157b22844c7166887ba"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-06-30_morning.json",
+      "bytes": 1807,
+      "sha256": "9de336895b12cff759993df6b399e7915ccac679cbe88b125d45eb81e1b89940"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-01_evening.json",
+      "bytes": 976,
+      "sha256": "d1a39dc7c47710ba40f7a74ab0b020dd99eefd02d144ba9af9fdd63a12a3b052"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-01_morning.json",
+      "bytes": 969,
+      "sha256": "323bbd43ca047f246bed1027ad2fcaa4f2a98843b844517056062e6db95a249c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-02_evening.json",
+      "bytes": 578,
+      "sha256": "2fc1ad353404a6777f3c8ef2eba5fbb7c88e6aa125b4cffa8ff1302a9538cdcc"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-03_evening.json",
+      "bytes": 4437,
+      "sha256": "fa10fa56cb1497ed706f87b346301367c80c32048778148e319518421b4c391c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-03_morning.json",
+      "bytes": 4437,
+      "sha256": "d12e5cb73e1bf6ab6a4aa0e79d69b8c8ee43aa3a7a8acfc2f472d089d8ecfefc"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-06_evening.json",
+      "bytes": 4755,
+      "sha256": "291323de2f86b4413cb67e659d62e25c4ef649c342ef3d24dcac9b59590f7173"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-06_morning.json",
+      "bytes": 4755,
+      "sha256": "f15a163cd2b60ae7e8f36341a7a7d228162b23e2053dc1a3e13288bdf21d2119"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-07_evening.json",
+      "bytes": 5133,
+      "sha256": "c9aedbbca270718b938b0fb029f5ae07087b165075a7da2f02cd15553b15ccaf"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-07_morning.json",
+      "bytes": 2966,
+      "sha256": "fd95eff1ef06ca35d774ac37045088ed9975ada0e08627b4e1df6604ec62876e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-08_evening.json",
+      "bytes": 7312,
+      "sha256": "4f4e62a1399906c827f7a533e0607d0d8ae0be71844dd91f6eb0578fd695eba2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-08_morning.json",
+      "bytes": 18116,
+      "sha256": "ef5d8e418d75fa821a9554dcaceded3e0299bf0fe443a42808a60cd86f90aba4"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-10_morning.json",
+      "bytes": 2987,
+      "sha256": "580a76b9d2b37acd74cf261da40ba0580259312ed74c366887194a175ad2c894"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-13_evening.json",
+      "bytes": 9471,
+      "sha256": "1ac13dc3f5aac77757b856ed7d3807618bb8e367bfa459a7b1e48b56a6fc0f1a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-13_morning.json",
+      "bytes": 2983,
+      "sha256": "bdf95c0b976b0b6b65328a9c0e0649127da895ed1611dda8f7bbf1d56c7f1fa1"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-14_evening.json",
+      "bytes": 2988,
+      "sha256": "9c01829f5cf099f23135116d929b931cb221cece084eb89d6b5a7affe4a570a9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-14_morning.json",
+      "bytes": 2988,
+      "sha256": "b67d6c4500001b9d5b5368b1a8f392259d6884e868a771d121eef4b90fa845e4"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-15_evening.json",
+      "bytes": 2973,
+      "sha256": "271f4a4d698c542ded9feb6dffd029baa7ddc7609671f4d29736a062647b31d2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-16_evening.json",
+      "bytes": 31023,
+      "sha256": "66ad65856720076c0282159e221e02e63cfa97037280ec3db39f27d2c11f4ab9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-16_morning.json",
+      "bytes": 9430,
+      "sha256": "7d201665ee765053d00cea3a999b1a89074862b8edd49c44e700b90aa7d87e1e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-17_evening.json",
+      "bytes": 15936,
+      "sha256": "99086682e5f2549a102225aff971a5f73b7ae67319d7b31efac5f17d36d3e3ec"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-17_morning.json",
+      "bytes": 26708,
+      "sha256": "8869b841c663d53a3a67515f628d7be8df4f243875652f43c71f20b9c6d189aa"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-20_evening.json",
+      "bytes": 14192,
+      "sha256": "7365da4baba8159d85e7e712e79d1577e3f1b60e14a0857d4fe022c54e6dba54"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-20_morning.json",
+      "bytes": 7535,
+      "sha256": "c3d9bcd217a601b0595b1b461c4f86d05385ff5a1126030fc8419e1d69acafba"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-21_morning.json",
+      "bytes": 3117,
+      "sha256": "6f0e6b25f48070d1615d44509059d6ff36fa20128b538f322efc4e0947878def"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-22_evening.json",
+      "bytes": 5312,
+      "sha256": "103ad2cbbf33756132f62bcd30a222a40202f2dc1d552c7f05cb8556f4cf2bff"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-22_morning.json",
+      "bytes": 5301,
+      "sha256": "801c23f4b1d90d01a97e2365c7e9e5291820bff403d475b02419a6d15456b464"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-23_evening.json",
+      "bytes": 7545,
+      "sha256": "75c5dc74db712f5b724f8d9d46f6262403d2cd0a22f20ddf5a78f69ebc4e11b8"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-23_morning.json",
+      "bytes": 5296,
+      "sha256": "12386a577faf0d2a18add63e328cdef0be27c28d9a70a8606d91fc7971a55426"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-24_evening.json",
+      "bytes": 9766,
+      "sha256": "2e98a97eed24dab604eab7a5151c8eb7594c26f690edcc1d958e87a2e6d18cb1"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-27_evening.json",
+      "bytes": 16383,
+      "sha256": "83744db7b3589d5c196d8c3f65aa412ea43f277f30a75168cce71f8c3669108f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-27_morning.json",
+      "bytes": 3124,
+      "sha256": "8f4639643fd9523524ce166d7be1cd0c930c3e6829008c1512938b0a6c025f4e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-28_evening.json",
+      "bytes": 42827,
+      "sha256": "0cd125f0185f92b353c8077f4bd0734b313215c0f40367892c5421a471339911"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-28_morning.json",
+      "bytes": 45052,
+      "sha256": "a344e17e91a66ed6966309f8ff5434f0c461f2e35c5cde8fcee3ffc498216b22"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-29_evening.json",
+      "bytes": 14172,
+      "sha256": "e80f6f067f46261f6a73c66ee9db8d292dd9ce0f6c829329889c7780600e2b3b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-29_morning.json",
+      "bytes": 9762,
+      "sha256": "f5fa21ff81dc0f6902e77e2571e91d3516ddc57d7d1c8fc76d603957df1e87f2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-30_morning.json",
+      "bytes": 20761,
+      "sha256": "fa5f65c00833a5e225fecb8e484d26cb6be600b2fca0a75a11bbf6be03c94ca9"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-07-31_evening.json",
+      "bytes": 3110,
+      "sha256": "31b4b70874b8f9c9925b1ea3133afc1b4969f35c2c4eef60dbbb1c8d70c7065c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-03_evening.json",
+      "bytes": 12098,
+      "sha256": "00c9e08bd221ddcde8f48e81c6c2a67f5e87abc8ef9559eaf6eba4d96411dba1"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-03_morning.json",
+      "bytes": 5363,
+      "sha256": "66468877445c227110b66f781cad0ace02386174de17dd2efab723ce9afe11a3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-04_evening.json",
+      "bytes": 6999,
+      "sha256": "4962d35f0c996cccb1186d3f03fdc46b77416073215013a91bc5823868c4bb47"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-05_evening.json",
+      "bytes": 5388,
+      "sha256": "879f9b66ca03b72e2127a5ed936d2f40cd0e7c809f7297e49aedc59f13776e08"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-05_morning.json",
+      "bytes": 5381,
+      "sha256": "18cbf6809d741d3bd6ef55b69e1ee3180e33d2e83279ecf3d9ac4dc365cd7a4a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-06_evening.json",
+      "bytes": 9778,
+      "sha256": "113100066e334c0602672a89727d4316e42699bc6fc7bae7cbec3ac2bc4da162"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-06_morning.json",
+      "bytes": 5382,
+      "sha256": "94e520fd9d88c58b17ceb1601de7db97f59522a8676a5841323d02c543272783"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-07_evening.json",
+      "bytes": 7622,
+      "sha256": "10a4841593594730cbe4e1b9ffbe32997663820cfb0ddfc42c6ed61d6924daf2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-07_morning.json",
+      "bytes": 5380,
+      "sha256": "08f072f132373713ef1e60c58a839669d231c2183db8cc8e2e9f895abe0fb3e5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-11_morning.json",
+      "bytes": 2493,
+      "sha256": "a48c786d74feafadd6e2f35d4d362ca244def90098d257c15e410bcf87e6f506"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-12_evening.json",
+      "bytes": 2489,
+      "sha256": "e47e62869f2220eca4fe487ce33c986a853a26df8511d4130840f01390911054"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-13_evening.json",
+      "bytes": 2499,
+      "sha256": "777b459b3f325dca127c3a391ace8f4b2b3cdd89f7925196dc8e84d608071fcf"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-13_morning.json",
+      "bytes": 2495,
+      "sha256": "7093a9e359898041cff39493e2fa458a0999c933e2a65f2a082aef51ff38a398"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-14_evening.json",
+      "bytes": 6981,
+      "sha256": "3012d67d850b75124bc660a62c7cec0e1aeef80cf48bf44e29c64cbb914fb7d5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-14_morning.json",
+      "bytes": 4730,
+      "sha256": "b1625641244f8216b3728b7505fc76a613ef443bbed9ecbaea6b1c31c09b4634"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-17_evening.json",
+      "bytes": 6991,
+      "sha256": "e7e7615d03ee654c4e2030b2396ba7dad34743f4873ef6569bb88d2e15a76108"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-17_morning.json",
+      "bytes": 2483,
+      "sha256": "ea88e34863df13110b2490199dd85df995095195bd8664ed25a501cc7f2933c7"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-18_evening.json",
+      "bytes": 5412,
+      "sha256": "6da4d40e42019cbafbaabff0dc1dfa9d447d8752abbc918547e50058fdb1c5b4"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-18_morning.json",
+      "bytes": 3151,
+      "sha256": "5f247849e27df6ebac701831c3015977f4cb190c04a90715e13b03d381c4a003"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-19_evening.json",
+      "bytes": 3150,
+      "sha256": "9813a60e8df30702e0e193f97937225bb11d40d52da0a218f2a62d82221f3ce3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-20_evening.json",
+      "bytes": 7608,
+      "sha256": "bf80ca9d3299cf24e08ba2f9bc66761d552bf556dcf8b538d79c8ec5514592e5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-20_morning.json",
+      "bytes": 7616,
+      "sha256": "a4f33ecd9f767799e71b9b06c212bb7bfe56240398371cdbb24866a0461ab32a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-21_evening.json",
+      "bytes": 5408,
+      "sha256": "e98756db7fa7acc192bc76060bcf65d3a9b5c7fce74b293d4cd4362ff7ee76e3"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-08-21_morning.json",
+      "bytes": 2492,
+      "sha256": "c77f4dd8f8d19b280399075ccecf41a616cb1c1a98755f6cbed7099e5198e86f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-09-30_evening.json",
+      "bytes": 242,
+      "sha256": "7438dc2e93ea6ef93d5a2ef3824d23d3c3d3f95f4e5a911634f9133d3405f6dd"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-01_evening.json",
+      "bytes": 242,
+      "sha256": "bf6bb6ecdd50e753a885f54f1ad7490d4f392abd71836394dbcc5b4a6529de89"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-01_morning.json",
+      "bytes": 242,
+      "sha256": "ea6829654a02e6f7af5e6a9223b88eaf6ec56cc83a42c937d74c547cbe09b9f5"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-02_evening.json",
+      "bytes": 3151,
+      "sha256": "6a26d5a097b10a2984f530444e5a086e6c28cf930892ce3545b8ad085131ca75"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-02_morning.json",
+      "bytes": 242,
+      "sha256": "13a045608af35cfc498a6fe20edd69a06b9db8e8552880b9a9012ffceaa2d6b7"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-05_evening.json",
+      "bytes": 242,
+      "sha256": "f40ca246dce4156134006d6b2960134c7bd655ec2ae4366415f570ab5568924c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-05_morning.json",
+      "bytes": 242,
+      "sha256": "c403d636b43fa9eb1224484cd6626372556306aa7d52517422f7f02a2a1450b0"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-06_evening.json",
+      "bytes": 2493,
+      "sha256": "9243c764bc74fa152cbfafbb8bdb080e6f0b27fa06e3974e0ae32041596c7b85"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-06_morning.json",
+      "bytes": 2487,
+      "sha256": "35797917b22972536ca75e348fea50a68b913fce903d79836ae760da244641aa"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-07_evening.json",
+      "bytes": 2498,
+      "sha256": "5d30d447ddee7ef93388e1444958e931c6309f69bf9ba4e6d9f3669059f5f44f"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-07_morning.json",
+      "bytes": 2492,
+      "sha256": "4a6c8e7cde3c53f3cb7498a42b6561190096b8a7b7c52ff1e6fb1171c184a592"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-08_evening.json",
+      "bytes": 2494,
+      "sha256": "71373f3e26950c03d16749b7d6e91a9db8b1db3fab7a5daa309c01378d63b3aa"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-08_morning.json",
+      "bytes": 2490,
+      "sha256": "c3fcf8b3d4b23c098157a9b3cd7ee32d138fe7a7c030b9f4d29cc5dfc10b315a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-09_evening.json",
+      "bytes": 2493,
+      "sha256": "20e433e278ba771ee5686e1c108786748e6cba509acd20a0e1f9c85fbab14934"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-09_morning.json",
+      "bytes": 242,
+      "sha256": "4cb4262517fa36ffa4910e8e215355437cde66be029f86650dfda20ec3078461"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-12_evening.json",
+      "bytes": 7639,
+      "sha256": "d1eac7b0542a5df191360dd8b56b3fcf4374dd6dc18ca39f9fe0561edb368a4e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-12_morning.json",
+      "bytes": 3154,
+      "sha256": "9012587da867270c6ab1258d661198eac39f12c612e3d750e1c4efabd34d6ccf"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-13_evening.json",
+      "bytes": 5377,
+      "sha256": "328670db61e077ef4a51c87bdc8e1ff19402e91615f94d3d4070de2d72b5e6d2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-13_morning.json",
+      "bytes": 3153,
+      "sha256": "38934db97f95166fefd72e917dd88a96f7172dff79392dcef5a32dae82fb05fa"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-14_evening.json",
+      "bytes": 9847,
+      "sha256": "26cacba8ed69c021a90b50610a84b2b2e3227447093cbc889ee22fc6e77d4b9c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-14_morning.json",
+      "bytes": 3129,
+      "sha256": "88c9ee553838fe9e4795ea2f0502a97a8278e5eb16df81c12101da9a2ef62c40"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-15_evening.json",
+      "bytes": 14319,
+      "sha256": "afc14e6fd33e5969dc0482b9f6c226d433703496415a0cf67e2205640be8cb07"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-15_morning.json",
+      "bytes": 12100,
+      "sha256": "2e511243b37f8f43d0731bbc2edc3e12e808fc8cd6c73c1d0fb1388acc610468"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-16_evening.json",
+      "bytes": 18763,
+      "sha256": "61ccd509f7e2be0e902e5a91faf72c1340412b4b7c5a3eeed69109fae95d18e2"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-16_morning.json",
+      "bytes": 5359,
+      "sha256": "e0895e911f86acd80f2bd4a7abbd5ca7ae8441baa7befaba52e50eea9cdece30"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-19_evening.json",
+      "bytes": 5363,
+      "sha256": "38b4968f30e17855879df7aaf2a2352566d329d42a4aa7bd586ee5e14c868567"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-19_morning.json",
+      "bytes": 3079,
+      "sha256": "40caebc7bba38cd66edcfbcb18e10741268cfaf25bb4f0b8f08242a3064dfb40"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-20_evening.json",
+      "bytes": 3127,
+      "sha256": "fdb247b116240a19738d1bad98d918e028f23887b9051a7d594e38505ece2875"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-20_morning.json",
+      "bytes": 3134,
+      "sha256": "1b5bbd4b77ea2e6fca41fcb33e646cf955c5d86673fab3c0fdb5482be3507a65"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\2026-10-21_morning.json",
+      "bytes": 242,
+      "sha256": "4a7e46731e5b8e4b12b7b02597fa421ac661afcb360c8e9c9399c5d93d3334ff"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\data\\priority_signals\\latest_tts.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scanners\\setup_screener.py",
+      "bytes": 38672,
+      "sha256": "c2eede60cb29704e7acc7653db607c9650439fc43f6a599c26098be8ec6f20af"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scripts\\backfill_entry_r.py",
+      "bytes": 12883,
+      "sha256": "633c145f5c5525a91bdb84503eed1cce0503c2c0c78aad4c9f5021c4db768710"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scripts\\generate_report.py",
+      "bytes": 131852,
+      "sha256": "a10a758abc5cf250cfbe9b0965bf75cd529e63a5371e4f684b74a7837d4da408"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scripts\\priority_report.py",
+      "bytes": 92560,
+      "sha256": "1a954c7cf5faacb6baa5d677ab327b93836bb73df6aeafd9793c83138dbf2194"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scripts\\signal_analysis.py",
+      "bytes": 35972,
+      "sha256": "f8ac6f57d868d020672c92c173cbdf2f84efc0f8447aaf75bbf1c41badbadb9c"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\snapshot\\scripts\\signal_scorecard.py",
+      "bytes": 45145,
+      "sha256": "d7ad59eb5d3215d733014af8e3009b542550d1ea5156d7bc5c49cc294ef593b6"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\results.json",
+      "bytes": 155240,
+      "sha256": "58bc089b2549e978f8f9e6419a01862d6456398669d55f56614ae88c380656ad"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\exit_results.json",
+      "bytes": 24898,
+      "sha256": "ab05fc5639afe8b24c9fbd25208d6d7bd4ae0afc7093464812c117cfac9c7f6b"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\reversal_results.json",
+      "bytes": 13856,
+      "sha256": "0c89d7a3d8463af5aa6e6f0e517fe9d10e382540b6368cfa7a54d66a60970ab4"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\report.md",
+      "bytes": 9972,
+      "sha256": "7ed73d459d35143fc7835f1e2f5563199e1527ddb2a4f0a37188dae052d9fb2e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\exit_comparison.png",
+      "bytes": 53629,
+      "sha256": "65c68e5cab5e67adf41d4c85507bbdc126598eab570dc961836c1cc57fba6524"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\replay_manifest.json",
+      "bytes": 522422,
+      "sha256": "1692d6d5703178d1150f0a67c33e39b90eb4a71d51bf100c96744ab3a0286b0a"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\audited_rows.csv",
+      "bytes": 1621684,
+      "sha256": "95d8ccc567fd8c68c8b079b2fe8ce120f8779383c25eeec0a031d43e121a2b8e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\attempts.csv",
+      "bytes": 1059696,
+      "sha256": "edd7c35d32fe72d9d6092f8b288fc72c445a55db7911393b5aac6ba66e1f811e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\exit_attempts.csv",
+      "bytes": 1230737,
+      "sha256": "0057b1c851033a90ccb8b8450550cdc8cbcb2436ef2fcce20d2fa86aafd06899"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\exit_campaigns.csv",
+      "bytes": 1228554,
+      "sha256": "ef92cfbfb1ecdf32c3d8d74ce56c719ae5ff860a7f495621f104cf5225b6f803"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\chart_review.png",
+      "bytes": 969687,
+      "sha256": "3b50923a1d22ef9829ac88373786b6e82b89bb304b73033aa3dec14a7a12cdaf"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\chart_review.csv",
+      "bytes": 2346,
+      "sha256": "8e40dd8debed3dc29dd4f0fd8145047666bd1152e921d5b8a0ec3ada07bf8e92"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\logging_manifest.json",
+      "bytes": 566,
+      "sha256": "b70436ad5bcff1359b5e965d8192a638c6e0516316dd11332ff5481366575d5e"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\installed.json",
+      "bytes": 805,
+      "sha256": "0043ac68318be4914f5d3e6fb9bdbca0667d5ec980a85c6e3d7364edef005879"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\evaluations\\signal_rule_study\\post_install_validation.json",
+      "bytes": 557,
+      "sha256": "62c68417effad9cc3f41da5237a9940c625ab89b5d493ad3bad9c12a06c15180"
+    }
+  ],
+  "analysis_code": [
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\scoring_timeline\\signal_rule_study.py",
+      "bytes": 18590,
+      "sha256": "83f613f51a8c517d78756ddc1d90a3447481677cc8b2a540cbbd67162d4db551"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\scoring_timeline\\signal_exit_study.py",
+      "bytes": 8370,
+      "sha256": "9bef214e295932f6181775440190e578c52fc6bf993c30c6ac9ffed961524e59"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\scoring_timeline\\signal_reversal_rule_study.py",
+      "bytes": 3525,
+      "sha256": "57e278d3a1d985de31ef0fc74458dfb1474dfc09b81eb782a98160ffdb1addcd"
+    },
+    {
+      "path": "C:\\Users\\zmbur\\PycharmProjects\\backtester\\research\\scoring_timeline\\write_signal_rule_report.py",
+      "bytes": 14967,
+      "sha256": "a7c8e0d749f813a9cd998b1a958712ec9bd8298ebfc8034abe5ce91512a0133a"
+    }
+  ]
+}

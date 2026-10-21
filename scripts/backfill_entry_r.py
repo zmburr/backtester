@@ -203,11 +203,21 @@ def replay_entry_day(two: pd.DataFrame, atr_abs: float | None) -> dict:
     return out
 
 
+def has_day_zero_open(row: dict) -> bool:
+    """A missing D0 must not replay with an unknown ATR-to-price basis."""
+    try:
+        return float(row.get("entry_open") or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+
 def pending(rows: list[dict], today: str, refresh: bool = False) -> list[dict]:
     """Bounce rows to replay. The rule reads D0 only, so a row is ready once its first day
     is over (the scorecard keeps these columns while the rest of its window fills in).
     Every replay sets entry_signals, so a row the rules never entered isn't redone."""
     return [r for r in rows if r.get("bucket") == "bounce"
+            and has_day_zero_open(r)
             and str(r.get("target_date") or "9") < today
             and str(r.get("days_available") or "0") != "0"
             and (refresh or not str(r.get("entry_signals") or "").strip())]

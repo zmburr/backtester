@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "actual profile, exact criteria, missing inputs, rule source version",
+    "report JSON to collected scorecard evidence",
+    "2783 historical rows preserved through extended CSV schema",
+    "quiet report records NO-GO evidence and empty surfaced file; sender stubbed"
+  ],
+  "production_data_unchanged": true,
+  "hashes": {
+    "data/signal_outcomes.csv": "dcebdf8c22cb2d0149aa10ee7a54e85724c9d012c611221a9ed7ffd8e152f874",
+    "data/signal_analysis_state.json": "3466e4f23996e35c4fc2d6cc1fb2e32a77841d0f61f3158449e2e7249a405d23"
+  }
+}

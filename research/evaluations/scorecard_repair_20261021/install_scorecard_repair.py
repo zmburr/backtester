@@ -26,8 +26,8 @@ def atomic(path,data,mode):
 def run():
     code=json.loads((DEST/'code_manifest.json').read_text())
     data=json.loads((DEST/'data_repair.json').read_text())
-    verification=json.loads((DEST/'analysis_verification.json').read_text())
-    assert verification['state_unchanged'] and verification['email_guard_passed']
+    verification=json.loads((DEST/'launcher_smoke.json').read_text())
+    assert verification['success']
     # Do not replace the outcome store while one of its writers is active.
     processes=subprocess.run(['ps','-ax','-o','pid=,args='],capture_output=True,text=True,check=True).stdout
     for line in processes.splitlines():

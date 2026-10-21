@@ -1,0 +1,11 @@
+{
+  "scorecard_dry_run": "passed",
+  "entry_backfill_dry_run": "passed",
+  "state_unchanged": true,
+  "outcomes_unchanged_by_verification": true,
+  "email_guard": "passed",
+  "analysis_rows": 2076,
+  "native_cli": "/Users/zacharyburr/.local/bin/claude",
+  "cli_version": "2.1.300 (Claude Code)",
+  "outcome_sha256": "dcebdf8c22cb2d0149aa10ee7a54e85724c9d012c611221a9ed7ffd8e152f874"
+}
