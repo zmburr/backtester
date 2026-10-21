@@ -1,0 +1,27 @@
+{
+ "date": "2026-10-21",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 15,
+ "priced": 7,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-21T15:45:01-04:00",
+  "names": [],
+  "relaxed": [
+   "AXTQ"
+  ],
+  "trillium": 1,
+  "pushed": null
+ },
+ "generated_at": "2026-10-21T17:46:05-04:00",
+ "signals": []
+}
