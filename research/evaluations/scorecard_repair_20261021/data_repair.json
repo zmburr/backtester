@@ -1,0 +1,430 @@
+{
+  "source_sha256": "a1db786840d07da4d65d6e454044c5d2fd48e7a3649677e2a49a98c651768970",
+  "proposed_sha256": "dcebdf8c22cb2d0149aa10ee7a54e85724c9d012c611221a9ed7ffd8e152f874",
+  "rows_before": 2783,
+  "rows_after": 2783,
+  "repairs": [
+    {
+      "old_key": [
+        "2026-03-02",
+        "EWY",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-02-26",
+        "EWY",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 4,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "144.12",
+      "new_open": 153.305,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-07-28",
+        "CAPR",
+        "bounce",
+        "control"
+      ],
+      "new_key": [
+        "2026-07-28",
+        "CAPR",
+        "bounce",
+        "control"
+      ],
+      "old_days": 3,
+      "new_days": 3,
+      "complete": false,
+      "missing_days": [
+        "2026-07-29"
+      ],
+      "old_open": "6.78",
+      "new_open": 6.78,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-07-28",
+        "REPL",
+        "bounce",
+        "breadth"
+      ],
+      "new_key": [
+        "2026-07-28",
+        "REPL",
+        "bounce",
+        "breadth"
+      ],
+      "old_days": 3,
+      "new_days": 3,
+      "complete": false,
+      "missing_days": [
+        "2026-07-30"
+      ],
+      "old_open": "6.61",
+      "new_open": 6.61,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-07-30",
+        "REPL",
+        "bounce",
+        "control"
+      ],
+      "new_key": [
+        "2026-07-30",
+        "REPL",
+        "bounce",
+        "control"
+      ],
+      "old_days": 3,
+      "new_days": 3,
+      "complete": false,
+      "missing_days": [
+        "2026-07-30"
+      ],
+      "old_open": "11.379",
+      "new_open": "",
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-18",
+        "AAOI",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-18",
+        "AAOI",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "135.85",
+      "new_open": 146.2,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-18",
+        "ALAB",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-18",
+        "ALAB",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "304.03",
+      "new_open": 304,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-18",
+        "MXL",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-18",
+        "MXL",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "74.45",
+      "new_open": 79.09,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-18",
+        "STX",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-18",
+        "STX",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "911.4",
+      "new_open": 929.5,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-19",
+        "ALAB",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-19",
+        "ALAB",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "289.99",
+      "new_open": 304.03,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-19",
+        "SNDK",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-19",
+        "SNDK",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "1569",
+      "new_open": 1682.405,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-20",
+        "MXL",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-20",
+        "MXL",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "67.28",
+      "new_open": 67.21,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-20",
+        "PENG",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-20",
+        "PENG",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "51.81",
+      "new_open": 52.67,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-20",
+        "SOXL",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-20",
+        "SOXL",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "126.59",
+      "new_open": 119.99,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-21",
+        "ETHE",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-21",
+        "ETHE",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "19.78",
+      "new_open": 19.21,
+      "entry_replay": "not_applicable"
+    },
+    {
+      "old_key": [
+        "2026-08-21",
+        "MXL",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-21",
+        "MXL",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "66.62",
+      "new_open": 67.28,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-21",
+        "PENG",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-21",
+        "PENG",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "52.42",
+      "new_open": 51.81,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-21",
+        "SOXL",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-21",
+        "SOXL",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 2,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "117.37",
+      "new_open": 126.59,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-24",
+        "AXTI",
+        "bounce",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-24",
+        "AXTI",
+        "bounce",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "68.2",
+      "new_open": 66.63,
+      "entry_replay": "recomputed"
+    },
+    {
+      "old_key": [
+        "2026-08-24",
+        "ETHE",
+        "reversal",
+        "surfaced"
+      ],
+      "new_key": [
+        "2026-08-24",
+        "ETHE",
+        "reversal",
+        "surfaced"
+      ],
+      "old_days": 3,
+      "new_days": 4,
+      "complete": true,
+      "missing_days": [],
+      "old_open": "19.78",
+      "new_open": 20.21,
+      "entry_replay": "not_applicable"
+    }
+  ],
+  "rekeyed": [
+    {
+      "old": [
+        "2026-03-02",
+        "EWY",
+        "reversal",
+        "surfaced"
+      ],
+      "new": [
+        "2026-02-26",
+        "EWY",
+        "reversal",
+        "surfaced"
+      ]
+    }
+  ],
+  "episode_changes": []
+}

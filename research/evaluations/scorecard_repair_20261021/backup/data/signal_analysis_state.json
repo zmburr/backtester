@@ -1,0 +1,247 @@
+{
+  "analysis_number": 18,
+  "signal_count_at_last_analysis": 441,
+  "past_recommendations": [
+    {
+      "analysis": 10,
+      "text": "RVOL-tier restructure still deferred \u2014 reversal first-flags at 79 of the ~100 trigger (one added this cycle); gap_pct flat for a seventh cycle."
+    },
+    {
+      "analysis": 11,
+      "text": "9EMA \u22640.10 reversal floor held at 3/19 for a fourth cycle (no new reversal first-flags anywhere) \u2014 adopt the moment the cell reaches n=20; no re-derivation."
+    },
+    {
+      "analysis": 11,
+      "text": "CLOSE the #9 bounce depth re-key question \u2014 shallow cell reached n=20 at 17/20 (85%) vs deep 30/42 (71%); no inversion under the re-based gate; keep depth thresholds as-is and revisit criterion weighting only when bounce losers reach n\u226530 (currently 15)."
+    },
+    {
+      "analysis": 11,
+      "text": "Re-test bounce GO-vs-CAUTION at the next bounce GO first-flag (GO cell hits n=20) \u2014 currently 14/19 vs 33/43, score non-separating; if it stays flat at n\u226520, evaluate demoting the bounce score to informational."
+    },
+    {
+      "analysis": 11,
+      "text": "Data QA \u2014 CAR_reversal_2026-04-08 days_to_1atr now populated (0), so the #10 writer bug appears fixed; residual boundary case: MU_reversal_2026-05-27 first-flag has mfe_atr_3d exactly 1.00, tradeable_3d=True, blank days_to_1atr \u2014 check for a strict-> vs >= comparison at exactly 1.0 ATR."
+    },
+    {
+      "analysis": 11,
+      "text": "Track regime \u2014 second consecutive cycle with zero new reversal first-flags (stuck at 79 of the ~100 RVOL-tier-restructure trigger); Large-reversal regime-gate deferral and gap_pct (eighth flat cycle) both unchanged."
+    },
+    {
+      "analysis": 11,
+      "text": "Large-cap bounce cell grew to 6/8 tradeable \u2014 keep accumulating toward n\u226520 before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 12,
+      "text": "9EMA \u22640.10 reversal floor frozen at 3/19 for a fifth cycle \u2014 adopt the moment the cell reaches n=20; no re-derivation."
+    },
+    {
+      "analysis": 12,
+      "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at n=19 (14/19 vs 35/45); execute the #11 retest at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational if flat."
+    },
+    {
+      "analysis": 12,
+      "text": "Add pct_change_3 \u22650.20 (post-veto 19/27 = 70% vs 13/29 = 45%) to the deferred RVOL-tier/score restructure agenda at ~100 reversal first-flags (counter still 79); gap_pct flat a ninth cycle and remains the demotion candidate in that same restructure."
+    },
+    {
+      "analysis": 12,
+      "text": "Track regime \u2014 reversal scanner dark since 07-01 (one July first-flag); Large-reversal regime-gate deferral unchanged (12/38, still predominantly pre-veto data); Large GapFade cell at n=8 (6/8), keep accumulating toward n\u226520."
+    },
+    {
+      "analysis": 13,
+      "text": "REOPEN the bounce selloff-depth question closed in #11 \u2014 sign has reversed (deep 22/24 = 92% vs shallow 29/46 = 63% pooled; 18/20 vs 19/34 ex-wave; this cycle's new first-flags 0/5, all shallow); re-test next cycle on out-of-sample completions before any re-key."
+    },
+    {
+      "analysis": 13,
+      "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at 14/19 vs CAUTION 37/51 (74% vs 73%, fully flat); execute at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational."
+    },
+    {
+      "analysis": 13,
+      "text": "Reconcile two counters against this file: (a) reversal first-flag count is 81 here vs the 79 carried for the ~100-flag restructure trigger; (b) the 9EMA \u22640.10 cell is 4/19 here vs the 3/19 carried since #10 (WDC_reversal_2026-06-05 is in-cell and tradeable)."
+    },
+    {
+      "analysis": 13,
+      "text": "Track regime \u2014 reversal scanner dark since 07-01 (third cycle); gap_pct flat a tenth cycle; Large-cap bounce cell now 6/9 tradeable, keep accumulating toward n\u226520 before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 14,
+      "text": "Bounce GO-vs-CAUTION retest EXECUTED at GO n=29 (from 8 clusters): 24/29 vs 46/60 pooled, 67.5% vs 69.2% cluster-weighted \u2014 flat/inverted; demote the bounce score to informational (keep logging it), and stop carrying this retest forward."
+    },
+    {
+      "analysis": 14,
+      "text": "Depth question stays OPEN \u2014 deep (\u2264 -25%) 22/24 (92%, 16 clusters) vs shallow cluster-weighted 57%; this cycle's OOS test was contaminated by the 19-signal 07-28 cluster (all shallow, all tradeable = one observation); re-test on the next non-wave completions and require \u226520 clusters in the deep cell before any re-key."
+    },
+    {
+      "analysis": 14,
+      "text": "Adopt the reversal pct_from_9ema \u2264 0.10 floor the moment the cell reaches n=20 \u2014 confirmed at 4/19 (14 clusters), unchanged for a sixth cycle."
+    },
+    {
+      "analysis": 14,
+      "text": "Counter reconciliation from #13 complete \u2014 official reversal first-flag count is 81 (81 distinct reversal episodes verified); 9EMA cell is 4/19 with WDC_reversal_2026-06-05 in-cell and tradeable; carry these values forward."
+    },
+    {
+      "analysis": 14,
+      "text": "Watch bounce gap_pct \u2264 -0.04 as a criterion-level cut (36/40 vs 14/23, but only 11 vs 16 clusters) \u2014 flag for testing once it spans \u226520 clusters outside the July waves."
+    },
+    {
+      "analysis": 14,
+      "text": "pct_change_3 \u2265 0.20 evidence strengthened (63% vs 37%, holds cluster-weighted 61% vs 39%) \u2014 keep it bundled with the RVOL-tier/score restructure at the ~100 reversal first-flag trigger (counter: 81)."
+    },
+    {
+      "analysis": 14,
+      "text": "Regime note \u2014 one reversal first-flag since 07-01 (FCEL); bounce bucket carried the cycle including the 19-flag 07-28 wave; Large-cap bounce cell now 13/16 tradeable but from only 5 clusters (7 rows from 07-28) \u2014 keep accumulating toward n\u226520 by clusters before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 14,
+      "text": "Keep episode_signal_num + prior-print-tradeable as the top scanner output \u2014 reversal 39/42 (93%) vs 21/46 (46%); bounce 62/77 (81%) vs 18/27 (67%) this file."
+    },
+    {
+      "analysis": 15,
+      "text": "Restate the pct_from_9ema \u22640.10 adoption trigger in clusters, not rows \u2014 cell is 19 rows but only 14 clusters (max single cluster 3/19); the row-count trigger fires ~6 clusters early and would breach the cluster guardrail."
+    },
+    {
+      "analysis": 15,
+      "text": "Promote reversal persistence (episode_signal_num \u22652 + prior-print-tradeable) from \"top scanner output\" to a scored/gated input \u2014 39/42, cw 87.5% on 20 clusters vs 21/46, cw 44.6% on 22 clusters against a 48.5% first-flag baseline; first reversal-side discriminator to clear \u226520 clusters on both cells."
+    },
+    {
+      "analysis": 15,
+      "text": "Close the bounce gap_pct \u2264 \u22120.04 watch item from #14 as a cluster artifact \u2014 90.2% vs 60.9% pooled collapses to cw 70.8% vs 66.7% on 12 vs 16 clusters; stop carrying it."
+    },
+    {
+      "analysis": 15,
+      "text": "Stage bounce pct_change_3 \u2192 \u22120.15 for adoption; execute at the next non-wave bounce completion landing in the >\u22120.15 cell (FAIL cell needs 1 more cluster to reach 20)."
+    },
+    {
+      "analysis": 15,
+      "text": "Open a watch on bounce pct_off_30d_high \u2014 inverted at its shallow end (deeper \u2264\u22120.35 cw 61.2%/22cl vs shallower cw 84.4%/15cl); test for demotion once the shallow cell spans \u226520 clusters."
+    },
+    {
+      "analysis": 15,
+      "text": "Bounce depth question gained zero new evidence this cycle (the lone new first-flag AMAT was shallow) \u2014 keep OPEN at 22/24, 16 clusters; do not re-report it as if it moved."
+    },
+    {
+      "analysis": 15,
+      "text": "Carry gap_pct into the ~100-first-flag RVOL-tier/score restructure as the primary reversal demotion candidate \u2014 eleventh cycle flat, now actively inverted (cw 41.2% pass vs 57.8% fail); add premarket_rvol as a second null-signal note."
+    },
+    {
+      "analysis": 15,
+      "text": "Large-cap bounce cell now 14/17 but from only **6 clusters** (7 rows from 07-28 alone) \u2014 keep accumulating toward 20 clusters before touching Large GapFade thresholds."
+    },
+    {
+      "analysis": 15,
+      "text": "Reversal first-flag counter unchanged at 81; three first-flags since 07-01. Regime-explained, no finding."
+    },
+    {
+      "analysis": 15,
+      "text": "Close the #11 days_to_1atr boundary item \u2014 the two blank-days_to_1atr/mfe=1.00 rows (MU@2026-05-27 reversal, MXL@2026-07-21 bounce) are the documented pre-07-31 2-decimal display artifact, not a comparison bug; stop carrying it as QA."
+    },
+    {
+      "analysis": 16,
+      "text": "Retire the reversal `pct_from_9ema \u2264 0.10` floor as an adoption candidate \u2014 it is a cap-mix confound (14/19 in-cell rows are Large-cap; within-cap gaps are 8pp cw on 11 clusters and n=4). Stop carrying it forward and add it to the settled-questions record alongside the score-tier inversion."
+    },
+    {
+      "analysis": 16,
+      "text": "Open a Medium-cap-only watch on reversal `pct_from_9ema` in the opposite direction \u2014 Medium \u22640.20 cw 46% (14 cl) vs >0.20 cw 76% (14 cl); revisit once either cell reaches 20 clusters."
+    },
+    {
+      "analysis": 16,
+      "text": "Promote reversal `prior_day_rvol \u2265 1.5` to primary candidate inside the ~100-first-flag RVOL-tier restructure; require \u226520 clusters *within Large and within Medium separately* before any re-key, since the pooled result is cap-confounded (counter: 81 reversal first-flags)."
+    },
+    {
+      "analysis": 16,
+      "text": "Keep bounce `pct_change_3` \u2192 \u22120.15 staged; execute on the next non-wave bounce first-flag landing in the >\u22120.15 cell (needs exactly 1 more cluster)."
+    },
+    {
+      "analysis": 16,
+      "text": "Report bounce rates cluster-weighted by default in the next cycle \u2014 `bounce_2026-07-28` and `bounce_2026-07-17` supply 35% of first-flags and 44% of winners, and the pooled figure overstates the bucket by 9.3pp."
+    },
+    {
+      "analysis": 16,
+      "text": "Re-affirm the 1.5-ATR stop with this cycle's earliness numbers (36/38 reversal winners and 73/73 bounce winners survive it); no confirmation-trigger or entry-delay work is warranted."
+    },
+    {
+      "analysis": 16,
+      "text": "No first-flags added since #15 \u2014 before the next analysis, confirm whether the pipeline is producing signals at all or only reprints, since three consecutive staged items are now blocked purely on sample arrival."
+    },
+    {
+      "analysis": 17,
+      "text": "reversal | Large | GO eligibility (all score tiers) | GO at score >= 4/5 | suspend Large-cap reversal GO; route to CAUTION/no-trade pending a Large-specific discriminator | Large 12/37 pooled, cw 27.2% over 23 clusters vs Medium 25/38, cw 64.4% over 22 clusters \u2014 both cells clear the 20-cluster gate; within Large the scorer is flat (5/5 5/15 cw 26.9%/13cl, 4/5 5/14 cw 34.4%/8cl, 3/5 2/8 cw 26.7%/5cl), so no score-tier restructure recovers it"
+    },
+    {
+      "analysis": 17,
+      "text": "Execute the Large-cap reversal suspension above; it is the only change this cycle clearing both the 20-cluster gate and cap-stratification."
+    },
+    {
+      "analysis": 17,
+      "text": "Kill the staged bounce pct_change_3 \u2192 \u22120.15 item and move it to the settled-questions record as \"knife-edge at \u22120.15, no separation at \u22120.12/\u22120.17/\u22120.20; cap-mix driven\" \u2014 do not re-stage it on a row-count trigger."
+    },
+    {
+      "analysis": 17,
+      "text": "Add a neighborhood-sweep requirement to the guardrails \u2014 before adopting any threshold, report the pass/fail cluster-weighted rates at the candidate cut and at two nearby cuts on each side; reject cuts whose separation does not degrade monotonically."
+    },
+    {
+      "analysis": 17,
+      "text": "Hold #15's promotion of reversal persistence to a scored input for one more cycle \u2014 the prior-print-tradeable cell fell from 20 to 19 clusters as new episodes chained; re-check at the next analysis."
+    },
+    {
+      "analysis": 17,
+      "text": "Downgrade the #16 Medium-cap reversal pct_from_9ema watch from 30pp to 11pp (cw 69.0%/14cl vs 57.7%/13cl); keep it open but stop treating it as a promotion candidate."
+    },
+    {
+      "analysis": 17,
+      "text": "Keep accumulating bounce Large toward 20 clusters before touching Large GapFade thresholds \u2014 now 10 clusters (18/21, cw 85.0%), up from 6 at #15."
+    },
+    {
+      "analysis": 17,
+      "text": "Track the reversal gap_pct inversion toward its own adoption test \u2014 the negative-gap cell is now 15 clusters (cw 64.4% vs 37.4%); at 20 clusters it becomes the strongest demotion candidate in the reversal criteria set, ahead of the RVOL re-key."
+    },
+    {
+      "analysis": 17,
+      "text": "Re-affirm the 1.5-ATR stop in the playbook with this cycle's numbers (35/37 reversal and 41/41 bounce first-flag winners survive it) and close the confirmation-trigger question again \u2014 D0 confirmation forfeits 34% of reversal and 46% of bounce winners."
+    },
+    {
+      "analysis": 18,
+      "text": "reversal | Large | GO eligibility (all score tiers) | GO at score >= 4/5 | suspend Large-cap reversal GO; route to CAUTION/no-trade | re-confirmed and strengthened vs #17: Large 11/33 pooled, cw 25.8% over 21 clusters vs Medium 24/35, cw 64.3% over 21 clusters \u2014 both clear the 20-cluster gate; flat within Large across score tiers (5/5 cw 25.0%/14 cl, 4/5 cw 32.5%/10 cl); no discriminator rescues it (rvol>=1.5 cw 38.5%/13 cl, gap<0 cw 42.9%/7 cl, pct_change_3>=0.20 cw 44.4%/9 cl); August cohort 2/6 confirms out-of-sample"
+    },
+    {
+      "analysis": 18,
+      "text": "Execute the Large-cap reversal GO suspension from #17 \u2014 it was not shipped, six Large reversal GOs fired in August and went 2/6, and the evidence is now stronger (21 clusters per side)."
+    },
+    {
+      "analysis": 18,
+      "text": "Retire the reversal `prior_day_rvol >= 1.5` promotion from #16 and move it to the settled-questions record as \"Large-only, and inverted within Medium (cw 60.4% vs 68.2%); the pooled result was a cap confound.\""
+    },
+    {
+      "analysis": 18,
+      "text": "Downgrade the reversal `gap_pct` inversion from #17's \"strongest demotion candidate\" to a Large-cap restatement \u2014 Medium is +4.2pp, the negative-gap cell fell from 15 to 14 clusters, and suspending Large removes the effect entirely. Stop tracking it toward a 20-cluster adoption test."
+    },
+    {
+      "analysis": 18,
+      "text": "Close the #16/#17 Medium-cap reversal `pct_from_9ema` watch \u2014 separation is now \u22121.5pp at 0.20 and flips sign at 0.22."
+    },
+    {
+      "analysis": 18,
+      "text": "Kill bounce persistence as a scored-input candidate and record it as an overlap artifact \u2014 at target-date lag \u22652 days the effect is \u22121.9pp (76.7% vs 78.6%); the pooled +26.7pp comes entirely from 1-day-lag reprints whose windows overlap the prior print's."
+    },
+    {
+      "analysis": 18,
+      "text": "Hold reversal persistence one more cycle with a specific trigger \u2014 it survives the overlap control in both lag strata (+28.5pp at 1-day, +59.7pp at \u22652-day) but the clean \u22652-day-lag stratum is only 7 clusters; promote to a scored input when that stratum reaches 20 clusters, not when the pooled cell does."
+    },
+    {
+      "analysis": 18,
+      "text": "Open a bounce watch on the \"sharp flush, intact chart\" pair \u2014 `selloff_total_pct <= -0.25` (cw 90.5%, 14 cl) combined with `pct_off_52wk_high >= -0.35` (cw 83.3%, 14 cl); both sweeps are monotonic and the second runs against the current criterion direction. Revisit at 20 clusters per cell."
+    },
+    {
+      "analysis": 18,
+      "text": "Fix the earliness instrumentation for bounces \u2014 `adverse_before_fav_atr` and `days_to_1atr` are emitted only on the 1-ATR hit, so 36 of 75 bounce first-flag winners have no stop/earliness data; emit an `adverse_before_gate_atr` and `days_to_gate` keyed to the actual per-bucket gate so stop-placement claims cover the full winner set."
+    },
+    {
+      "analysis": 18,
+      "text": "Keep accumulating bounce Large toward 20 clusters \u2014 unchanged at 10 clusters (18/21, cw 85.0%) since #17, i.e. no new Large bounce first-flags this cycle; do not touch Large GapFade thresholds."
+    },
+    {
+      "analysis": 18,
+      "text": "Report the reversal first-flag counter as recovered \u2014 14 August first-flags after 1 in July; the #17 note about three staged items blocked on sample arrival no longer applies to the reversal bucket."
+    }
+  ],
+  "last_analysis_at": "2026-09-29"
+}

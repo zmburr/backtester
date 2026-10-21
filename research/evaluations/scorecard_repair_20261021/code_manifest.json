@@ -1,0 +1,14 @@
+{
+  "signal_scorecard.py": {
+    "before_sha256": "990902192dc45a684b01853a8607784b0f6c72e55a14e11d07b19fd68782cc9f",
+    "after_sha256": "d7ad59eb5d3215d733014af8e3009b542550d1ea5156d7bc5c49cc294ef593b6"
+  },
+  "signal_analysis.py": {
+    "before_sha256": "70db03743390067d4a4112a6b4c87a955ee33d44c8392ac8e7428c255135219f",
+    "after_sha256": "f8ac6f57d868d020672c92c173cbdf2f84efc0f8447aaf75bbf1c41badbadb9c"
+  },
+  "backfill_entry_r.py": {
+    "before_sha256": "152525afb7a49cf1b9740bd3a74f6cb1093af318201f80ee91a74145f1f1890b",
+    "after_sha256": "633c145f5c5525a91bdb84503eed1cce0503c2c0c78aad4c9f5021c4db768710"
+  }
+}
