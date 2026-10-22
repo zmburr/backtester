@@ -1,43 +1,7 @@
 {
-  "analysis_number": 18,
-  "signal_count_at_last_analysis": 441,
+  "analysis_number": 19,
+  "signal_count_at_last_analysis": 2152,
   "past_recommendations": [
-    {
-      "analysis": 10,
-      "text": "RVOL-tier restructure still deferred \u2014 reversal first-flags at 79 of the ~100 trigger (one added this cycle); gap_pct flat for a seventh cycle."
-    },
-    {
-      "analysis": 11,
-      "text": "9EMA \u22640.10 reversal floor held at 3/19 for a fourth cycle (no new reversal first-flags anywhere) \u2014 adopt the moment the cell reaches n=20; no re-derivation."
-    },
-    {
-      "analysis": 11,
-      "text": "CLOSE the #9 bounce depth re-key question \u2014 shallow cell reached n=20 at 17/20 (85%) vs deep 30/42 (71%); no inversion under the re-based gate; keep depth thresholds as-is and revisit criterion weighting only when bounce losers reach n\u226530 (currently 15)."
-    },
-    {
-      "analysis": 11,
-      "text": "Re-test bounce GO-vs-CAUTION at the next bounce GO first-flag (GO cell hits n=20) \u2014 currently 14/19 vs 33/43, score non-separating; if it stays flat at n\u226520, evaluate demoting the bounce score to informational."
-    },
-    {
-      "analysis": 11,
-      "text": "Data QA \u2014 CAR_reversal_2026-04-08 days_to_1atr now populated (0), so the #10 writer bug appears fixed; residual boundary case: MU_reversal_2026-05-27 first-flag has mfe_atr_3d exactly 1.00, tradeable_3d=True, blank days_to_1atr \u2014 check for a strict-> vs >= comparison at exactly 1.0 ATR."
-    },
-    {
-      "analysis": 11,
-      "text": "Track regime \u2014 second consecutive cycle with zero new reversal first-flags (stuck at 79 of the ~100 RVOL-tier-restructure trigger); Large-reversal regime-gate deferral and gap_pct (eighth flat cycle) both unchanged."
-    },
-    {
-      "analysis": 11,
-      "text": "Large-cap bounce cell grew to 6/8 tradeable \u2014 keep accumulating toward n\u226520 before touching Large GapFade thresholds."
-    },
-    {
-      "analysis": 12,
-      "text": "9EMA \u22640.10 reversal floor frozen at 3/19 for a fifth cycle \u2014 adopt the moment the cell reaches n=20; no re-derivation."
-    },
-    {
-      "analysis": 12,
-      "text": "Bounce GO-vs-CAUTION retest still pending \u2014 GO cell stalled at n=19 (14/19 vs 35/45); execute the #11 retest at the next completed bounce GO first-flag and evaluate demoting the bounce score to informational if flat."
-    },
     {
       "analysis": 12,
       "text": "Add pct_change_3 \u22650.20 (post-veto 19/27 = 70% vs 13/29 = 45%) to the deferred RVOL-tier/score restructure agenda at ~100 reversal first-flags (counter still 79); gap_pct flat a ninth cycle and remains the demotion candidate in that same restructure."
@@ -241,7 +205,43 @@
     {
       "analysis": 18,
       "text": "Report the reversal first-flag counter as recovered \u2014 14 August first-flags after 1 in July; the #17 note about three staged items blocked on sample arrival no longer applies to the reversal bucket."
+    },
+    {
+      "analysis": 19,
+      "text": "reversal | Large | GO eligibility (all score tiers) | GO at score >= 4/5 | suspend Large-cap reversal GO; route to CAUTION/no-trade | third consecutive confirmation \u2014 visible-window Large 11/29 = 37.9% vs Medium 21/30 = 70.0%; #18 measured 11/33 cw 25.8% over 21 clusters vs Medium 24/35 cw 64.3% over 21 clusters, both past the 20-cluster gate; flat within Large across score tiers at #18 (5/5 cw 25.0%/14 cl, 4/5 cw 32.5%/10 cl) and no discriminator rescues it; October added only 1 Large first-flag (SPCX 10-06, tradeable), which does not move a 21-cluster estimate"
+    },
+    {
+      "analysis": 19,
+      "text": "Execute the Large-cap reversal GO suspension \u2014 it has now been recommended at #17, #18 and #19 and remains unshipped; every cycle it stays live costs Large-cap reversal GOs at roughly half the Medium hit rate."
+    },
+    {
+      "analysis": 19,
+      "text": "Correct the CLUSTER DAY rationale \u2014 the 7-14 breadth band has flipped sign from -0.50R/10 sessions (the figure quoted in the priority_report comment justifying the 7\u219215 raise) to +0.40R/11 sessions; update the comment to the current numbers and note that the band is single-session-sensitive."
+    },
+    {
+      "analysis": 19,
+      "text": "Withhold CLUSTER DAY threshold recalibration \u2014 the 15+ band is at 3 sessions against a 20-session requirement; re-check when it reaches 20, not on row count (it already has 254 rows)."
+    },
+    {
+      "analysis": 19,
+      "text": "Split the #18 bounce depth pair \u2014 keep `selloff_total_pct <= -0.25` as an open watch (14 clusters, cw 97.6%, monotonic sweep: -0.22 \u2192 75.0%, -0.25 \u2192 95.8%, -0.28 \u2192 92.3%) and retire the `pct_off_52wk_high >= -0.35` leg to the settled-questions record as \"decayed to +6.7 pp pooled / 79.2% cw over 16 clusters once 2026-10-16 landed; not a candidate.\""
+    },
+    {
+      "analysis": 19,
+      "text": "Ship the earliness instrumentation fix from #18 \u2014 emit `adverse_before_gate_atr` and `days_to_gate` keyed to the actual per-bucket gate; it is still unshipped and October bounce winners (BE, CRWV 2026-10-15) still have no usable stop-placement data, which is why earliness analysis remains reversal-only."
+    },
+    {
+      "analysis": 19,
+      "text": "Hold reversal persistence for another cycle \u2014 the clean \u22652-day-lag stratum moved 7 \u2192 8 clusters against a 20-cluster promotion trigger; do not promote on the pooled cell."
+    },
+    {
+      "analysis": 19,
+      "text": "Keep accumulating bounce Large \u2014 zero new Large bounce first-flags this cycle, still ~10 clusters; Large GapFade thresholds stay frozen."
+    },
+    {
+      "analysis": 19,
+      "text": "Record that the bounce scorer carries no information below the bar \u2014 cluster-weighted tradeable_3d is flat across scores 0-3 (53.3 / 59.8 / 53.8 / 55.4) and so is median entry_r (1.52 / 1.63 / 1.52 / 1.49); treat score 4+ as a binary gate plus quantity limiter and stop reporting below-bar score tiers as a curve."
     }
   ],
-  "last_analysis_at": "2026-09-29"
+  "last_analysis_at": "2026-10-22"
 }
