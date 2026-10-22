@@ -1,0 +1,25 @@
+{
+ "date": "2026-10-22",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 17,
+ "priced": 10,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-22T15:45:01-04:00",
+  "names": [],
+  "relaxed": [],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-10-22T17:46:04-04:00",
+ "signals": []
+}
