@@ -1,0 +1,29 @@
+{
+ "date": "2026-10-23",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 19,
+ "priced": 12,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-23T15:45:01-04:00",
+  "names": [],
+  "relaxed": [
+   "AMOD",
+   "JAGX",
+   "JZ"
+  ],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-10-23T17:46:06-04:00",
+ "signals": []
+}
