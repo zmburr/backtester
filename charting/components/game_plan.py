@@ -254,7 +254,7 @@ def render_reversal_game_plan(ticker: str, date: str, cap: str):
                         metrics['atr_pct'] = atr / entry
 
                 # Try typed classification first
-                setup_type = classify_reversal_setup(metrics)
+                setup_type = classify_reversal_setup(metrics, cap=cap)
                 typed_result = None
                 generic_result = None
                 intensity = None

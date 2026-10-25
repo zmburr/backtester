@@ -241,14 +241,14 @@ Key classes:
 Per-setup-type reversal pre-trade validator. Mirrors the `BouncePretrade` pattern but for reversal (parabolic short) setups. Uses per-setup, per-cap thresholds derived from historical Grade A+B trades instead of generic one-size-fits-all thresholds.
 
 Starting setup type: **3DGapFade** (2+ euphoric up days + gap up on fade day)
-- Classification: `consecutive_up_days >= 2` AND `gap_pct > 0` AND `pct_from_9ema > 0.04`
+- Classification: per-cap gate (`GATE_THRESHOLDS`) on consecutive up days, gap, 9EMA/50MA extension, ATR bounds
 - 33 historical trades (23 A, 8 B) — GO trades: 90% WR, +16% avg P&L
 - Per-cap thresholds for 5 criteria: pct_from_9ema, range/ATR, RVOL, up days, gap %
 
 Key classes/functions:
 - `ReversalPretrade` - Pre-trade validator with `validate()` and `print_checklist()`
 - `ReversalSetupProfile` - Per-cap threshold dataclass
-- `classify_reversal_setup(metrics)` - Auto-detects setup type from metrics
+- `classify_reversal_setup(metrics, cap=None)` - Auto-detects setup type from metrics (per-cap gate via `GATE_THRESHOLDS`)
 - `REVERSAL_SETUP_PROFILES` - Dict of profiles keyed by setup type
 
 ### `data_collectors/bounce_collector.py`
