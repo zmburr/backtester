@@ -1,0 +1,57 @@
+{
+ "date": "2026-10-26",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 27,
+ "priced": 20,
+ "live": {
+  "n": 1,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-26T15:45:01-04:00",
+  "names": [
+   "MRNA"
+  ],
+  "relaxed": [
+   "CRWG",
+   "CWVX",
+   "IRE",
+   "IREX",
+   "NBIL",
+   "SECZ"
+  ],
+  "trillium": 4,
+  "pushed": null
+ },
+ "generated_at": "2026-10-26T17:46:05-04:00",
+ "signals": [
+  {
+   "ticker": "MRNA",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.11725440851003069,
+    "gap_pct": -0.06594702648675661,
+    "pct_change_3": -0.18595663317196212,
+    "prior_day_range_atr": 1.02162559574277,
+    "prior_day_rvol": 1.0841378181801429,
+    "selloff_total_pct": -0.16668401874023947,
+    "pct_off_30d_high": -0.21369066331342343,
+    "pct_off_52wk_high": -0.21369066331342343,
+    "prior_close": 200.1,
+    "open": 186.904
+   }
+  }
+ ]
+}
