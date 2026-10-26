@@ -88,5 +88,8 @@
  "MNDR": "Micro",
  "PDSB": "Micro",
  "PFAI": "Micro",
- "CORT": "Medium"
+ "CORT": "Medium",
+ "AMOD": "Micro",
+ "BEX": "ETF",
+ "MRNA": "Medium"
 }
