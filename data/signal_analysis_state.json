@@ -1,47 +1,7 @@
 {
-  "analysis_number": 21,
-  "signal_count_at_last_analysis": 2313,
+  "analysis_number": 22,
+  "signal_count_at_last_analysis": 2388,
   "past_recommendations": [
-    {
-      "analysis": 15,
-      "text": "Reversal first-flag counter unchanged at 81; three first-flags since 07-01. Regime-explained, no finding."
-    },
-    {
-      "analysis": 15,
-      "text": "Close the #11 days_to_1atr boundary item \u2014 the two blank-days_to_1atr/mfe=1.00 rows (MU@2026-05-27 reversal, MXL@2026-07-21 bounce) are the documented pre-07-31 2-decimal display artifact, not a comparison bug; stop carrying it as QA."
-    },
-    {
-      "analysis": 16,
-      "text": "Retire the reversal `pct_from_9ema \u2264 0.10` floor as an adoption candidate \u2014 it is a cap-mix confound (14/19 in-cell rows are Large-cap; within-cap gaps are 8pp cw on 11 clusters and n=4). Stop carrying it forward and add it to the settled-questions record alongside the score-tier inversion."
-    },
-    {
-      "analysis": 16,
-      "text": "Open a Medium-cap-only watch on reversal `pct_from_9ema` in the opposite direction \u2014 Medium \u22640.20 cw 46% (14 cl) vs >0.20 cw 76% (14 cl); revisit once either cell reaches 20 clusters."
-    },
-    {
-      "analysis": 16,
-      "text": "Promote reversal `prior_day_rvol \u2265 1.5` to primary candidate inside the ~100-first-flag RVOL-tier restructure; require \u226520 clusters *within Large and within Medium separately* before any re-key, since the pooled result is cap-confounded (counter: 81 reversal first-flags)."
-    },
-    {
-      "analysis": 16,
-      "text": "Keep bounce `pct_change_3` \u2192 \u22120.15 staged; execute on the next non-wave bounce first-flag landing in the >\u22120.15 cell (needs exactly 1 more cluster)."
-    },
-    {
-      "analysis": 16,
-      "text": "Report bounce rates cluster-weighted by default in the next cycle \u2014 `bounce_2026-07-28` and `bounce_2026-07-17` supply 35% of first-flags and 44% of winners, and the pooled figure overstates the bucket by 9.3pp."
-    },
-    {
-      "analysis": 16,
-      "text": "Re-affirm the 1.5-ATR stop with this cycle's earliness numbers (36/38 reversal winners and 73/73 bounce winners survive it); no confirmation-trigger or entry-delay work is warranted."
-    },
-    {
-      "analysis": 16,
-      "text": "No first-flags added since #15 \u2014 before the next analysis, confirm whether the pipeline is producing signals at all or only reprints, since three consecutive staged items are now blocked purely on sample arrival."
-    },
-    {
-      "analysis": 17,
-      "text": "reversal | Large | GO eligibility (all score tiers) | GO at score >= 4/5 | suspend Large-cap reversal GO; route to CAUTION/no-trade pending a Large-specific discriminator | Large 12/37 pooled, cw 27.2% over 23 clusters vs Medium 25/38, cw 64.4% over 22 clusters \u2014 both cells clear the 20-cluster gate; within Large the scorer is flat (5/5 5/15 cw 26.9%/13cl, 4/5 5/14 cw 34.4%/8cl, 3/5 2/8 cw 26.7%/5cl), so no score-tier restructure recovers it"
-    },
     {
       "analysis": 17,
       "text": "Execute the Large-cap reversal suspension above; it is the only change this cycle clearing both the 20-cluster gate and cap-stratification."
@@ -241,7 +201,47 @@
     {
       "analysis": 21,
       "text": "Record that Analysis #21 added zero new first-flags in either bucket \u2014 all criterion cells reproduce #20 exactly \u2014 and consider spacing the next analysis to signal arrival rather than to a fixed cadence, since re-running on an unchanged sample produces no new information."
+    },
+    {
+      "analysis": 22,
+      "text": "bounce | POOLED | composite of gap_pct / pct_change_3 / selloff_total_pct | three independently scored criteria | score the COUNT of the three that pass (gap_pct \u2264 -0.03, pct_change_3 \u2264 -0.15, selloff_total_pct \u2264 -0.25) rather than weighting any one of them | 0-of-3 3/13 cw 27.3% (11 cl), 1-of-3 33/47 cw 64.5% (26 cl), 2-of-3 42/46 cw 90.0% (20 cl); the 1\u21922 step is +25.5 pp with both cells over the 20-cluster gate, while the 2x2 shows gap and pct_change_3 individually add nothing to each other (70.0% / 73.3% / 77.3% across the three non-empty corners). This supersedes the #20 recommendation to promote pct_change_3 alone."
+    },
+    {
+      "analysis": 22,
+      "text": "Execute the Large-cap reversal GO suspension \u2014 now outstanding at #17 through #22, six cycles. Large runs cw 35.8% over 17 clusters against Medium's cw 68.5% over 18, with no score inversion inside either cap. The cell is still 3 clusters short of the formal gate, which is exactly why six cycles of inaction has cost more than a decision either way would have."
+    },
+    {
+      "analysis": 22,
+      "text": "Ship the earliness instrumentation fix \u2014 emit `adverse_before_gate_atr` and `days_to_gate` keyed to the per-bucket gate. Unshipped since #18; earliness analysis is now reversal-only for a fifth consecutive cycle because bounce winners still carry no stop-placement data."
+    },
+    {
+      "analysis": 22,
+      "text": "Close the #21 watch on moving the bounce entry bar from 4 to 5 \u2014 RESOLVED AGAINST raising it. The magnitude gap is real and cluster-robust (score \u22655 cluster-weighted median 3.22R over 21 clusters vs score 4 1.77R over 51; all 52 leave-one-cluster-out refits positive, +1.22R to +1.54R), but score-4 first-flags still run cw 64.6% tradeable at 1.77R. Size by tier, do not exclude. Drop CAUTION first when quantity must be capped."
+    },
+    {
+      "analysis": 22,
+      "text": "Emit cluster-weighted `entry_r` by score tier in the pre-aggregated tables \u2014 requested at #20 and #21, still row-pooled. I derived it by hand this cycle (table above); it should not need hand-derivation again."
+    },
+    {
+      "analysis": 22,
+      "text": "Update the priority_report CLUSTER DAY comment \u2014 the 7\u201314 band it cites as \u22120.50R/10 sessions has read +0.10R/12 sessions for three straight cycles. Also drop any \"monotonic gradient\" language: 3\u20136 (+0.23R) now exceeds 7\u201314 (+0.10R)."
+    },
+    {
+      "analysis": 22,
+      "text": "Add the thin-day damp on the 0\u20132 breadth band (26 sessions, EV \u22120.24R, win 37.3%) \u2014 the only band above 20 sessions. Justify it on its own numbers, not on a cross-band gradient."
+    },
+    {
+      "analysis": 22,
+      "text": "Open a bounce watch on `prior_day_range_atr >= 1.0` separating backwards \u2014 pass cw 64.2% (30 cl) vs fail cw 73.7% (19 cl). This is a *required* criterion at 1.0 for every cap in both profiles, so a reversed sign matters more than usual. Revisit when the failing cell reaches 20 clusters (currently 19 \u2014 one session away)."
+    },
+    {
+      "analysis": 22,
+      "text": "Keep `selloff_total_pct <= -0.25` (15 clusters, cw 93.3%) and the 0-of-3 / fails-both veto (11 clusters, cw 27.3%) as open watches at 20 clusters. Unchanged from #20."
+    },
+    {
+      "analysis": 22,
+      "text": "Stop running this analysis on cadence. Analysis #22 adds zero new first-flags in either bucket \u2014 every criterion cell reproduces #20 digit-for-digit, for the second consecutive cycle. The only movement was one new session in the 0\u20132 breadth band. Trigger the next run on first-flag arrival (suggest: 10 new bounce first-flags or 5 new reversal first-flags), not on a date."
     }
   ],
-  "last_analysis_at": "2026-10-26"
+  "last_analysis_at": "2026-10-27"
 }
