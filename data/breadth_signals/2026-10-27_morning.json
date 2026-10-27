@@ -1,0 +1,73 @@
+{
+ "date": "2026-10-27",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 19,
+ "priced": 11,
+ "live": {
+  "n": 1,
+  "n_etf": 1,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-27T15:50:01-04:00",
+  "names": [
+   "LITZ",
+   "SHFS"
+  ],
+  "relaxed": [],
+  "trillium": 2,
+  "pushed": null
+ },
+ "generated_at": "2026-10-27T17:46:04-04:00",
+ "signals": [
+  {
+   "ticker": "LITZ",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.14218678246980135,
+    "gap_pct": -0.06830887491264856,
+    "pct_change_3": -0.17283236994219653,
+    "prior_day_range_atr": 1.8934061651986789,
+    "prior_day_rvol": 0.6957955428126354,
+    "selloff_total_pct": -0.15724381625441694,
+    "pct_off_30d_high": -0.20499999999999996,
+    "pct_off_52wk_high": -0.7641727092946605,
+    "prior_close": 28.62,
+    "open": 26.665
+   }
+  },
+  {
+   "ticker": "SHFS",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 1.3268996960486321,
+    "gap_pct": -0.08191489361702126,
+    "pct_change_3": -0.7258675998833479,
+    "prior_day_range_atr": 0.3415416332607949,
+    "prior_day_rvol": 0.9777300919397609,
+    "selloff_total_pct": -0.6746278989269643,
+    "pct_off_30d_high": -0.955831218870407,
+    "pct_off_52wk_high": -0.9944444444444444,
+    "prior_close": 0.094,
+    "open": 0.0863
+   }
+  }
+ ]
+}
