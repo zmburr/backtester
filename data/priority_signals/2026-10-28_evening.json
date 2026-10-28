@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-28",
+  "session": "evening",
+  "generated_at": "2026-10-28T15:15:52.846789",
+  "go_count": 0,
+  "caution_count": 0,
+  "signals": [],
+  "cluster_signal": {
+    "level": null,
+    "bounce_open": 0,
+    "total_open": 0
+  }
+}
