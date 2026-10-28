@@ -1,23 +1,7 @@
 {
-  "analysis_number": 22,
-  "signal_count_at_last_analysis": 2388,
+  "analysis_number": 23,
+  "signal_count_at_last_analysis": 2465,
   "past_recommendations": [
-    {
-      "analysis": 17,
-      "text": "Execute the Large-cap reversal suspension above; it is the only change this cycle clearing both the 20-cluster gate and cap-stratification."
-    },
-    {
-      "analysis": 17,
-      "text": "Kill the staged bounce pct_change_3 \u2192 \u22120.15 item and move it to the settled-questions record as \"knife-edge at \u22120.15, no separation at \u22120.12/\u22120.17/\u22120.20; cap-mix driven\" \u2014 do not re-stage it on a row-count trigger."
-    },
-    {
-      "analysis": 17,
-      "text": "Add a neighborhood-sweep requirement to the guardrails \u2014 before adopting any threshold, report the pass/fail cluster-weighted rates at the candidate cut and at two nearby cuts on each side; reject cuts whose separation does not degrade monotonically."
-    },
-    {
-      "analysis": 17,
-      "text": "Hold #15's promotion of reversal persistence to a scored input for one more cycle \u2014 the prior-print-tradeable cell fell from 20 to 19 clusters as new episodes chained; re-check at the next analysis."
-    },
     {
       "analysis": 17,
       "text": "Downgrade the #16 Medium-cap reversal pct_from_9ema watch from 30pp to 11pp (cw 69.0%/14cl vs 57.7%/13cl); keep it open but stop treating it as a promotion candidate."
@@ -241,7 +225,23 @@
     {
       "analysis": 22,
       "text": "Stop running this analysis on cadence. Analysis #22 adds zero new first-flags in either bucket \u2014 every criterion cell reproduces #20 digit-for-digit, for the second consecutive cycle. The only movement was one new session in the 0\u20132 breadth band. Trigger the next run on first-flag arrival (suggest: 10 new bounce first-flags or 5 new reversal first-flags), not on a date."
+    },
+    {
+      "analysis": 23,
+      "text": "Stop running this analysis on cadence and wire the #22 trigger into the pipeline \u2014 fire the next run on 10 new bounce first-flags or 5 new reversal first-flags, not on a date. Analysis #23 adds **zero new first-flags in either bucket for the third consecutive cycle**; the only movement since #22 is the 2026-10-22 session, which contributed two reprints (FJET episode_signal_num=3, PENG =3) and one session to the 0\u20132 breadth band. Every cap cell, criterion cell and cluster-weighted entry_r tier above reproduces #22 digit-for-digit. Three cycles of analyst time has bought one data point on a band that was already the only one above its sample gate."
+    },
+    {
+      "analysis": 23,
+      "text": "Record the bounce entry-bar verdict as answered-with-conditions and close the pooled form of the question \u2014 on tradeable_3d the bar is a coin flip (14/25 decided sessions, p\u22480.35); on entry_r it is a modest real edge (17/25, +0.85R mean per-session, p\u22480.054). Size by score tier per #22; do not use tradeable_3d to defend the bar."
+    },
+    {
+      "analysis": 23,
+      "text": "Add the day-conditioning result to the scorer's documentation \u2014 the surfaced-vs-control paired edge is +12.3 pp on the 11 sessions where control itself ran \u226555% tradeable and \u22123.7 pp on the other 15. The bar amplifies breadth rather than selecting within a session, which is the same object the 0\u20132 breadth damp addresses from the other side."
+    },
+    {
+      "analysis": 23,
+      "text": "Record that the control cohort's own score curve (53.6 / 58.9 / 54.7 / 54.4 across scores 0\u20133, one identical 27-session set) is flat \u2014 the cleanest available evidence that the 6-point bounce score does not rank signals below the bar, and that its only defensible role there is as a quantity limiter."
     }
   ],
-  "last_analysis_at": "2026-10-27"
+  "last_analysis_at": "2026-10-28"
 }
