@@ -1,0 +1,99 @@
+{
+ "date": "2026-10-28",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 3,
+ "n_etf": 2,
+ "state": "normal",
+ "candidates": 17,
+ "priced": 9,
+ "live": {
+  "n": 3,
+  "n_etf": 2,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-28T15:55:01-04:00",
+  "names": [
+   "AAOZ",
+   "LITZ",
+   "PICS"
+  ],
+  "relaxed": [
+   "BEZ",
+   "IREZ"
+  ],
+  "trillium": 3,
+  "pushed": null
+ },
+ "generated_at": "2026-10-28T17:46:02-04:00",
+ "signals": [
+  {
+   "ticker": "AAOZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.172090562672288,
+    "gap_pct": -0.026674233825198772,
+    "pct_change_3": -0.24797268459240285,
+    "prior_day_range_atr": 1.1113911705884156,
+    "prior_day_rvol": 0.7294068279835688,
+    "selloff_total_pct": -0.2524395417904115,
+    "pct_off_30d_high": -0.2725020644095788,
+    "pct_off_52wk_high": -0.6548481880509304,
+    "prior_close": 17.62,
+    "open": 17.15
+   }
+  },
+  {
+   "ticker": "LITZ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.17010422567123598,
+    "gap_pct": -0.02478191911181602,
+    "pct_change_3": -0.2638645650904845,
+    "prior_day_range_atr": 1.0282449001338654,
+    "prior_day_rvol": 0.574622243511109,
+    "selloff_total_pct": -0.25736160188457013,
+    "pct_off_30d_high": -0.29944444444444446,
+    "pct_off_52wk_high": -0.792188529993408,
+    "prior_close": 25.22,
+    "open": 24.595
+   }
+  },
+  {
+   "ticker": "PICS",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.15764728025597594,
+    "gap_pct": -0.014492753623188331,
+    "pct_change_3": -0.45,
+    "prior_day_range_atr": 1.4345495355667515,
+    "prior_day_rvol": 2.871616354249544,
+    "selloff_total_pct": -0.14334085778781033,
+    "pct_off_30d_high": -0.4745586708203531,
+    "pct_off_52wk_high": -0.6195488721804511,
+    "prior_close": 7.59,
+    "open": 7.48
+   }
+  }
+ ]
+}
