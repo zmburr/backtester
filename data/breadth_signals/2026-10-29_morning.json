@@ -1,0 +1,27 @@
+{
+ "date": "2026-10-29",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 20,
+ "priced": 12,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-29T15:45:01-04:00",
+  "names": [],
+  "relaxed": [
+   "LITZ"
+  ],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-10-29T17:46:07-04:00",
+ "signals": []
+}
