@@ -1,0 +1,98 @@
+{
+ "date": "2026-10-30",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 15,
+ "priced": 8,
+ "live": {
+  "n": 2,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-10-30T15:45:00-04:00",
+  "names": [
+   "FTNT",
+   "SHFS",
+   "SLS"
+  ],
+  "relaxed": [
+   "UMC"
+  ],
+  "trillium": 4,
+  "pushed": null
+ },
+ "generated_at": "2026-10-30T17:46:08-04:00",
+ "signals": [
+  {
+   "ticker": "FTNT",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.07537039129095202,
+    "gap_pct": -0.014450035945362984,
+    "pct_change_3": -0.24810810810810813,
+    "prior_day_range_atr": 1.1485859774364116,
+    "prior_day_rvol": 3.6669023538947987,
+    "selloff_total_pct": -0.24303439268611232,
+    "pct_off_30d_high": -0.2943742707857759,
+    "pct_off_52wk_high": -0.2943742707857759,
+    "prior_close": 139.1,
+    "open": 137.09
+   }
+  },
+  {
+   "ticker": "SHFS",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 1.2928571428571427,
+    "gap_pct": -0.16025641025641021,
+    "pct_change_3": -0.32642487046632124,
+    "prior_day_range_atr": 0.10313075506445679,
+    "prior_day_rvol": 0.5122107777991477,
+    "selloff_total_pct": -0.1333333333333333,
+    "pct_off_30d_high": -0.9633493092754442,
+    "pct_off_52wk_high": -0.9953900709219858,
+    "prior_close": 0.078,
+    "open": 0.0655
+   }
+  },
+  {
+   "ticker": "SLS",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.1091840754026869,
+    "gap_pct": -0.05169867060561286,
+    "pct_change_3": -0.16557107641741994,
+    "prior_day_range_atr": 1.1227814748722853,
+    "prior_day_rvol": 1.2549406856049665,
+    "selloff_total_pct": -0.16762295081967213,
+    "pct_off_30d_high": -0.2005888326471491,
+    "pct_off_52wk_high": -0.3603753976002268,
+    "prior_close": 10.155,
+    "open": 9.63
+   }
+  }
+ ]
+}
