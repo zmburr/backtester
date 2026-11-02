@@ -1,9 +1,7 @@
 {
- "date": "2026-10-30",
+ "date": "2026-11-02",
  "alerted": {
-  "INTC": 5,
-  "SOXL": 5,
-  "MXL": 5
+  "SOXL": 5
  },
- "brief_sent": true
+ "brief_sent": false
 }
