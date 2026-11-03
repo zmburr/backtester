@@ -108,5 +108,14 @@
  "CBRG": "ETF",
  "DNA": "Small",
  "TXG": "Medium",
- "TWST": "Medium"
+ "TWST": "Medium",
+ "AXTX": "ETF",
+ "DELL": "Large",
+ "NBIG": "ETF",
+ "NBIL": "ETF",
+ "SAIQ": "Micro",
+ "ASST": "Medium",
+ "CWVX": "ETF",
+ "DDOG": "Medium",
+ "XRPN": "Small"
 }
