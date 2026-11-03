@@ -1,5 +1,7 @@
 {
  "date": "2026-11-03",
- "alerted": {},
+ "alerted": {
+  "PENG": 5
+ },
  "brief_sent": false
 }
