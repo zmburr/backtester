@@ -1,0 +1,124 @@
+{
+ "date": "2026-11-03",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 102,
+ "priced": 96,
+ "live": {
+  "n": 2,
+  "n_etf": 1,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-03T15:45:01-05:00",
+  "names": [
+   "BURU",
+   "DDOG",
+   "PTIR",
+   "SAIQ"
+  ],
+  "relaxed": [
+   "GRML",
+   "NCPL",
+   "PCLA",
+   "VRRM"
+  ],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-11-03T17:46:05-05:00",
+ "signals": [
+  {
+   "ticker": "BURU",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.597934936350778,
+    "gap_pct": -0.0744554455445545,
+    "pct_change_3": -0.32068872746838845,
+    "prior_day_range_atr": 0.3801864029900177,
+    "prior_day_rvol": 0.39466105300964505,
+    "selloff_total_pct": -0.5570175438596491,
+    "pct_off_30d_high": -0.7947154471544716,
+    "pct_off_52wk_high": -0.9940608917365248,
+    "prior_close": 0.2525,
+    "open": 0.2337
+   }
+  },
+  {
+   "ticker": "DDOG",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.08347527599656243,
+    "gap_pct": -0.014345210550670959,
+    "pct_change_3": -0.18710502557929576,
+    "prior_day_range_atr": 1.1453790020911045,
+    "prior_day_rvol": 1.5375079781527068,
+    "selloff_total_pct": -0.2277730131503716,
+    "pct_off_30d_high": -0.2812957296793934,
+    "pct_off_52wk_high": -0.2812957296793934,
+    "prior_close": 216.1,
+    "open": 213.0
+   }
+  },
+  {
+   "ticker": "PTIR",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.11534542380696226,
+    "gap_pct": -0.11941904249596551,
+    "pct_change_3": -0.17888692579505303,
+    "prior_day_range_atr": 0.9350495339742433,
+    "prior_day_rvol": 0.8241687710511759,
+    "selloff_total_pct": -0.19471518301927662,
+    "pct_off_30d_high": -0.31333547569709935,
+    "pct_off_52wk_high": -0.5441392839627268,
+    "prior_close": 18.59,
+    "open": 16.37
+   }
+  },
+  {
+   "ticker": "SAIQ",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.2855313231850117,
+    "gap_pct": -0.02868852459016387,
+    "pct_change_3": -0.22662440570522976,
+    "prior_day_range_atr": 0.5712674612328594,
+    "prior_day_rvol": 0.09180790762629173,
+    "selloff_total_pct": -0.277037037037037,
+    "pct_off_30d_high": -0.5090543259557344,
+    "pct_off_52wk_high": -0.5090543259557344,
+    "prior_close": 4.88,
+    "open": 4.74
+   }
+  }
+ ]
+}
