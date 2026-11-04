@@ -1,67 +1,7 @@
 {
-  "analysis_number": 27,
-  "signal_count_at_last_analysis": 2765,
+  "analysis_number": 28,
+  "signal_count_at_last_analysis": 2837,
   "past_recommendations": [
-    {
-      "analysis": 22,
-      "text": "Update the priority_report CLUSTER DAY comment \u2014 the 7\u201314 band it cites as \u22120.50R/10 sessions has read +0.10R/12 sessions for three straight cycles. Also drop any \"monotonic gradient\" language: 3\u20136 (+0.23R) now exceeds 7\u201314 (+0.10R)."
-    },
-    {
-      "analysis": 22,
-      "text": "Add the thin-day damp on the 0\u20132 breadth band (26 sessions, EV \u22120.24R, win 37.3%) \u2014 the only band above 20 sessions. Justify it on its own numbers, not on a cross-band gradient."
-    },
-    {
-      "analysis": 22,
-      "text": "Open a bounce watch on `prior_day_range_atr >= 1.0` separating backwards \u2014 pass cw 64.2% (30 cl) vs fail cw 73.7% (19 cl). This is a *required* criterion at 1.0 for every cap in both profiles, so a reversed sign matters more than usual. Revisit when the failing cell reaches 20 clusters (currently 19 \u2014 one session away)."
-    },
-    {
-      "analysis": 22,
-      "text": "Keep `selloff_total_pct <= -0.25` (15 clusters, cw 93.3%) and the 0-of-3 / fails-both veto (11 clusters, cw 27.3%) as open watches at 20 clusters. Unchanged from #20."
-    },
-    {
-      "analysis": 22,
-      "text": "Stop running this analysis on cadence. Analysis #22 adds zero new first-flags in either bucket \u2014 every criterion cell reproduces #20 digit-for-digit, for the second consecutive cycle. The only movement was one new session in the 0\u20132 breadth band. Trigger the next run on first-flag arrival (suggest: 10 new bounce first-flags or 5 new reversal first-flags), not on a date."
-    },
-    {
-      "analysis": 23,
-      "text": "Stop running this analysis on cadence and wire the #22 trigger into the pipeline \u2014 fire the next run on 10 new bounce first-flags or 5 new reversal first-flags, not on a date. Analysis #23 adds **zero new first-flags in either bucket for the third consecutive cycle**; the only movement since #22 is the 2026-10-22 session, which contributed two reprints (FJET episode_signal_num=3, PENG =3) and one session to the 0\u20132 breadth band. Every cap cell, criterion cell and cluster-weighted entry_r tier above reproduces #22 digit-for-digit. Three cycles of analyst time has bought one data point on a band that was already the only one above its sample gate."
-    },
-    {
-      "analysis": 23,
-      "text": "Record the bounce entry-bar verdict as answered-with-conditions and close the pooled form of the question \u2014 on tradeable_3d the bar is a coin flip (14/25 decided sessions, p\u22480.35); on entry_r it is a modest real edge (17/25, +0.85R mean per-session, p\u22480.054). Size by score tier per #22; do not use tradeable_3d to defend the bar."
-    },
-    {
-      "analysis": 23,
-      "text": "Add the day-conditioning result to the scorer's documentation \u2014 the surfaced-vs-control paired edge is +12.3 pp on the 11 sessions where control itself ran \u226555% tradeable and \u22123.7 pp on the other 15. The bar amplifies breadth rather than selecting within a session, which is the same object the 0\u20132 breadth damp addresses from the other side."
-    },
-    {
-      "analysis": 23,
-      "text": "Record that the control cohort's own score curve (53.6 / 58.9 / 54.7 / 54.4 across scores 0\u20133, one identical 27-session set) is flat \u2014 the cleanest available evidence that the 6-point bounce score does not rank signals below the bar, and that its only defensible role there is as a quantity limiter."
-    },
-    {
-      "analysis": 24,
-      "text": "bounce | POOLED | prior_day_range_atr | 1.0 required, all caps, both SETUP_PROFILES | demote to a zero-weight bonus check (do NOT invert to <1.0) | passes \u22651.0 cw 64.2% (30 clusters) vs fails <1.0 cw 75.0% (20 clusters) = \u221210.8 pp in the wrong direction, both cells now at/over the 20-cluster gate; gate cleared this cycle by `MXL_bounce_2026-10-23` (range 0.477, tradeable) \u2014 re-express the bar as 4-of-5 CAUTION / 5-of-5 GO and re-run the cohort tables before shipping"
-    },
-    {
-      "analysis": 24,
-      "text": "bounce | POOLED | composite of gap_pct / pct_change_3 / selloff_total_pct | three independently scored criteria | score the COUNT of the three that pass (gap_pct \u2264 \u22120.03, pct_change_3 \u2264 \u22120.15, selloff_total_pct \u2264 \u22120.25) rather than weighting any one | 0-of-3 3/13 cw 27.3% (11 cl), 1-of-3 33/47 cw 64.5% (26 cl), 2-of-3 43/47 cw 90.5% (21 cl); 1\u21922 step +26.0 pp with both cells over the gate; re-affirmed and marginally strengthened versus #22"
-    },
-    {
-      "analysis": 24,
-      "text": "Ship the `prior_day_range_atr` demotion above \u2014 it is the only gated, actionable finding in #24 and the only reason this cycle produced value."
-    },
-    {
-      "analysis": 24,
-      "text": "Replace the cadence trigger with a cell-gate watcher. #22/#23 asked to fire the next run on 10 new bounce first-flags or 5 new reversal first-flags; #24 arrived with 1 and 0, so that trigger would have deferred the `prior_day_range_atr` resolution indefinitely. The right mechanism is narrower: watch the *named open cells* (`prior_day_range_atr` fail, `selloff_total_pct \u2264 \u22120.25`, 0-of-3 veto, reversal `prior_day_rvol \u2265 2.0`, reversal Large cap) and fire when any crosses 20 clusters. That costs one query per session instead of a full analyst cycle, and it is what #22 was actually predicting when it wrote \"one session away.\""
-    },
-    {
-      "analysis": 24,
-      "text": "Force the Large-cap reversal GO decision \u2014 outstanding #17 through #24, seven cycles. Large cw 35.8%/17 clusters vs Medium cw 68.5%/18 clusters. With reversal first-flags arriving at zero per cycle the cell will not reach 20 clusters on its own; continuing to defer is itself a decision to keep trading the worse cap. Either suspend Large-cap reversal GO on the 17-cluster evidence and label it provisional, or record explicitly that it will be traded unchanged until the drought ends."
-    },
-    {
-      "analysis": 24,
-      "text": "Ship the earliness instrumentation fix \u2014 emit `adverse_before_gate_atr` and `days_to_gate` keyed to the per-bucket gate. Unshipped since #18; bounce earliness has now been unanalyzable for six consecutive cycles because bounce winners carry no stop-placement data."
-    },
     {
       "analysis": 24,
       "text": "Emit cluster-weighted `entry_r` by score tier in the pre-aggregated tables. Requested at #20, #21 and #22, still row-pooled at #24. `entry_r` is heavily right-skewed and the score-5 jump to 2.50R is the single number driving the size-by-tier policy \u2014 it cannot be audited for cluster concentration without this."
@@ -241,7 +181,67 @@
     {
       "analysis": 27,
       "text": "Add the standing cluster-concentration note to the bounce performance headline \u2014 `bounce_2026-07-28` (19/19) and `bounce_2026-07-17` (13/13) supply 26.9% of bounce first-flags and 36.0% of its wins from 2 of 46 clusters; 68.0% cluster-weighted is the quotable figure."
+    },
+    {
+      "analysis": 28,
+      "text": "bounce | POOLED | prior_day_range_atr | 1.0 required, all caps, both SETUP_PROFILES | demote to zero-weight bonus check (do NOT invert to <1.0) | re-derived this cycle from 112/119 first-flags (94% coverage): pass \u22651.0 = 57/80 (71.3%), cw 64.2% across 30 clusters; fail <1.0 = 26/32 (81.3%), cw 73.7% across 19 clusters \u2192 \u22129.5 pp wrong-signed. Re-express the bar as 4-of-5 CAUTION / 5-of-5 GO and re-run the cohort tables before shipping."
+    },
+    {
+      "analysis": 28,
+      "text": "Treat #28 as a null cycle and stop the cadence now \u2014 zero new first-flags in either bucket, zero new paired sessions, and every headline figure identical to #27. Implement the #24 cell-gate watcher: one query per session over the named open cells (bounce prior_day_range_atr fail, bounce selloff_total_pct \u2264 \u22120.25, bounce pct_change_3 \u2264 \u22120.20, 0-of-3 veto, reversal prior_day_rvol \u2265 2.0, reversal Large cap, the control-\u226555% day-conditioning cell) plus the 0\u20132 breadth band, firing only on a gate crossing."
+    },
+    {
+      "analysis": 28,
+      "text": "Ship the bounce prior_day_range_atr demotion. Fifth consecutive cycle as the only gated actionable finding (#24\u2013#28), now backed by a fresh row-level re-derivation rather than a carried figure. Nothing has landed in four prior attempts."
+    },
+    {
+      "analysis": 28,
+      "text": "Correct the SETUP_PROFILES annotation for pct_change_3 \u2014 the inline \"V2: 3-day momentum crash (rho=\u22120.700, #2 predictor)\" does not reproduce. On 112 first-flags at 94% coverage the cut runs wrong-signed (65.5% vs 77.1%; cw 56.5% on 13 clusters). Mark it unvalidated pending the cell reaching 20 clusters; do not change the threshold yet."
+    },
+    {
+      "analysis": 28,
+      "text": "Pair the range demotion with a depth reweight when the selloff_total_pct cell reaches 20 clusters (currently 15) \u2014 deep selloff is the only bounce criterion that separates (cw 93.3% vs 62.3%, +31.0 pp) and is the natural recipient of the weight freed by demoting range."
+    },
+    {
+      "analysis": 28,
+      "text": "Force the Large-cap reversal GO decision \u2014 outstanding #17 through #28, eleven cycles. Large 42.9% visible / cw 39.4% at 18 clusters vs Medium 69.2% / cw 66.7% at 17, with zero new reversal first-flags this cycle. The cell will not reach 20 clusters on this trajectory. Either suspend Large-cap reversal GO on the 18-cluster evidence and label it provisional, or record explicitly that it will be traded unchanged until the drought ends. A twelfth deferral is itself a decision to keep trading the worse cap."
+    },
+    {
+      "analysis": 28,
+      "text": "Emit a T1-equivalent reversal gate (0.5\u00d7ATR) alongside the 1.0\u00d7ATR gate for reporting comparability only \u2014 16/26 visible non-tradeable reversal first-flags reached \u22650.5 ATR (15/26 strictly above it), moving the visible reversal rate from 53.6% to 80.4\u201382.1%. Eighth cycle requested. Reporting change, not a trading change. Note for the record: #27's \"15/25\" denominator was a slip \u2014 the non-tradeable count is 26."
+    },
+    {
+      "analysis": 28,
+      "text": "Ship the bounce earliness instrumentation \u2014 emit adverse_before_gate_atr and days_to_gate keyed to the per-bucket gate. Unshipped since #18; bounce earliness is unanalyzable for the eighth consecutive cycle."
+    },
+    {
+      "analysis": 28,
+      "text": "Emit cluster-weighted entry_r by score tier in the pre-aggregated tables. Requested at #20\u2013#27, now #28. The score-5 median of 2.50R is the sole basis for size-by-tier, is non-monotonic against both score 4 (1.77R) and score 6 (1.72R), and cannot be audited for cluster concentration without it."
+    },
+    {
+      "analysis": 28,
+      "text": "Fix the priority_report CLUSTER DAY comment \u2014 delete the \"7\u201314 = \u22120.50R across 10 sessions\" justification for the 7\u219215 raise (now +0.10R across 12 sessions, eighth consecutive opposite-sign cycle), remove any monotonic-gradient language (3\u20136 at +0.27R exceeds both higher bands, and 15+ has the worst win rate at 38.6%), and document the 15-window threshold as judgment-set and unvalidated at 3 sessions."
+    },
+    {
+      "analysis": 28,
+      "text": "Close the 0\u20132 breadth damp permanently. EV \u22120.34R \u2192 \u22120.20R \u2192 \u22120.06R \u2192 +0.01R \u2192 +0.03R across five readings (27 \u2192 31 sessions); the sign flipped at #27 and has held positive. Re-open only if it returns negative at 35+ sessions."
+    },
+    {
+      "analysis": 28,
+      "text": "Record the entry-bar verdict in the scorer documentation \u2014 on tradeable_3d the bar is a coin flip (17/29 decided sessions, p \u2248 0.46, 30 paired; question answered, not open). On entry_r it is a modest edge, flat for four cycles (19/29, +0.94R mean, p \u2248 0.14, unchanged from #27). Size by score tier; never defend the bar on tradeable_3d. The score is not selecting within a session \u2014 document its role as a quantity limiter."
+    },
+    {
+      "analysis": 28,
+      "text": "Record the day-conditioning result \u2014 paired edge +11.2 pp on the 14 sessions where control itself ran \u226555% tradeable (12/14 won, p \u2248 0.013) vs \u22120.5 pp on the other 16 (5 won / 10 lost / 1 tie). The bar amplifies breadth rather than selecting within a session. Both cells under the 20-session gate; 9 of the 16 low-breadth sessions have surfaced n \u2264 2."
+    },
+    {
+      "analysis": 28,
+      "text": "Narrow the omitted-row caveat in the output contract to reversal only \u2014 bounce coverage is 112/119 first-flags (94.1%) running 74.1% against the cohort's 74.8%, effectively unbiased; reversal coverage is 56/98 (57.1%) running 53.6% against 46.9%, optimistic by 6.7 pp. Stop labelling bounce criterion work as coverage-limited."
+    },
+    {
+      "analysis": 28,
+      "text": "Add the standing cluster-concentration note to the bounce performance headline \u2014 bounce_2026-07-28 (19/19) and bounce_2026-07-17 (13/13) supply 26.9% of bounce first-flags and 36.0% of its wins from 2 of 46 clusters; 68.0% cluster-weighted is the quotable figure."
     }
   ],
-  "last_analysis_at": "2026-11-03"
+  "last_analysis_at": "2026-11-04"
 }
