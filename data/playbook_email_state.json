@@ -1,8 +1,8 @@
 {
  "bounce": {
-  "target": "2026-11-02",
-  "session": "evening",
-  "via": "push",
-  "sent_at": "2026-10-30T17:00:03"
+  "target": "2026-11-05",
+  "session": "morning",
+  "via": "email",
+  "sent_at": "2026-11-05T07:30:05"
  }
 }

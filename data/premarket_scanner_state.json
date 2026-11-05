@@ -2,7 +2,8 @@
  "date": "2026-11-05",
  "alerted": {
   "SOXL": 5,
-  "DRAM": 5
+  "DRAM": 5,
+  "PENG": 5
  },
  "brief_sent": false
 }
