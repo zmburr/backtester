@@ -16,7 +16,8 @@ Usage:
   python3 flip_tracker.py --dry-run  # print only, no email, no state update
 
 Env (or .env next to this file): POLYGON_API_KEY, GMAIL_PASSWORD,
-TRACKER_EMAIL (default zmburr@gmail.com).
+TRACKER_EMAIL (default zmburr@gmail.com), GMAIL_USER (the sending account,
+default agentzachary6@gmail.com).
 
 Study reference: backtester/despac_study/ - 90%+ redemption deals show median
 10-day max runup +39.5% vs +15.7% baseline; sell into the flip-day pop.
@@ -44,6 +45,7 @@ LOG_FILE = HERE / "flip_tracker.log"
 EDGAR_UA = "zmburr despac flip tracker zmburr@gmail.com"
 LOOKBACK_DAYS = 12
 EMAIL_TO = os.getenv("TRACKER_EMAIL", "zmburr@gmail.com")
+EMAIL_FROM = os.getenv("GMAIL_USER") or "agentzachary6@gmail.com"   # GMAIL_PASSWORD is its app password
 MIN_SCORE_TO_ALERT = 2.0
 
 HOT_THEMES = {
@@ -320,13 +322,13 @@ def send_email(subject, html):
         return False
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = EMAIL_TO
+    msg["From"] = EMAIL_FROM
     msg["To"] = EMAIL_TO
     msg.attach(MIMEText(html, "html"))
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
             s.starttls()
-            s.login(EMAIL_TO, pw)
+            s.login(EMAIL_FROM, pw.replace(" ", ""))
             s.send_message(msg)
         return True
     except Exception as e:

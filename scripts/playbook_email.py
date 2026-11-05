@@ -462,6 +462,9 @@ def run(session: str, asof: datetime.date, dry: bool = False, force: bool = Fals
             continue
 
         how = deliver(side, session, target, subject, body, rows)
+        if how is None:                              # not marked sent: the next session's run tries again
+            logger.error(f"NOT sent (push and email both failed): {subject}")
+            continue
         logger.info(f"sent by {how}: {subject}")
         sent.append(side)
         if not force:
@@ -490,9 +493,10 @@ def push_text(side: str, session: str, target: datetime.date, rows: list[dict]) 
 
 
 def deliver(side: str, session: str, target: datetime.date, subject: str, body: str,
-            rows: list[dict]) -> str:
+            rows: list[dict]) -> str | None:
     """Push to Method on the phone when one is subscribed (user, 2026-10-15: push
-    replaces the email); the email goes out only when no device gets the push."""
+    replaces the email); the email goes out only when no device gets the push.
+    None when neither went out."""
     try:
         from method import push
         if push.count():
@@ -501,8 +505,7 @@ def deliver(side: str, session: str, target: datetime.date, subject: str, body: 
                 return "push"
     except Exception as e:                           # a push failure must never cost the alert
         logger.warning(f"push failed, emailing instead: {e}")
-    send_email(EMAIL_TO, subject, body, is_html=True)
-    return "email"
+    return "email" if send_email(EMAIL_TO, subject, body, is_html=True) else None
 
 
 def replay() -> dict:

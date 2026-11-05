@@ -14,7 +14,7 @@ around June 15, 2026, so the 20/30 count is still accumulating.
 Data: Polygon daily aggregates. Each daily bar IS one trading day, so the last
 30 bars == the last 30 trading days -- no market-calendar dependency needed.
 
-Delivery: HTML email via support.config.send_email (Gmail, from zmburr@gmail.com).
+Delivery: HTML email via support.config.send_email (Gmail, from agentzachary6@gmail.com).
 
 Usage:
     python scripts/hq_lockup_tracker.py            # compute + email (default)

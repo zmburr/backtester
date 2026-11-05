@@ -19,9 +19,19 @@ CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY")
 GROQ_API_KEY     = os.getenv("GROQ_API_KEY")
 PPLX_API_KEY     = os.getenv("PPLX_API_KEY")
 
+# The Gmail account every email is sent from; GMAIL_PASSWORD is its app password.
+# zmburr@gmail.com stays the inbox the reports go to (each caller's to_email).
+GMAIL_USER = os.getenv("GMAIL_USER") or "agentzachary6@gmail.com"
+
+
 def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
-               from_email='zmburr@gmail.com', password=os.getenv('GMAIL_PASSWORD'),
-               inline_images=None):
+               from_email=None, password=None, inline_images=None):
+    """Send through Gmail as GMAIL_USER. Returns True only when Gmail accepted the message."""
+    from_email = from_email or GMAIL_USER
+    password = (password or os.getenv('GMAIL_PASSWORD') or '').replace(' ', '')   # app passwords are shown with spaces
+    if not password:
+        print("Failed to send email: GMAIL_PASSWORD not set")
+        return False
 
     # Email server settings for Gmail
     smtp_server = "smtp.gmail.com"
@@ -82,9 +92,11 @@ def send_email(to_email, subject, body, attachments=None, is_html: bool = False,
         # Send email
         server.send_message(msg)
         print(f"Email successfully sent to {to_email}")
+        return True
 
     except Exception as e:
         print(f"Failed to send email: {str(e)}")
+        return False
 
     finally:
         # Close the connection

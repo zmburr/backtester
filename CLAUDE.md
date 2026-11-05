@@ -357,6 +357,7 @@ CEREBRAS_API_KEY=...       # LLM fallback
 PPLX_API_KEY=...           # Perplexity for news queries (charting app)
 SERP_API_KEY=...           # Search API
 GMAIL_PASSWORD=...         # Email report delivery (app password)
+GMAIL_USER=agentzachary6@gmail.com  # the account that sends (GMAIL_PASSWORD is its app password; the default)
 ```
 
 Python venv: `venv/Scripts/python.exe` (Windows)

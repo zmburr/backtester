@@ -96,6 +96,18 @@ def test_two_go_on_one_side_sends_once_for_the_next_session(env):
     assert env["mail"].call_count == 1
 
 
+def test_a_failed_send_is_not_recorded_so_the_next_run_retries(env):
+    """11/05: Gmail refused the old login, the log still said "sent by email" and the
+    state blocked the catch-up."""
+    _report(env["dir"] / "2026-10-14_evening.json", [_sig("SOXL", "GO", "6/6"), _sig("MXL", "GO")])
+    env["mail"].return_value = False
+    assert pe.run("evening", DAY) == []
+    assert not pe.STATE_FILE.exists()
+    env["mail"].return_value = True
+    assert pe.run("evening", DAY) == ["bounce"]
+    assert env["mail"].call_count == 2
+
+
 def test_one_go_is_quiet_and_sides_never_mix(env):
     _report(env["dir"] / "2026-10-14_evening.json",
             [_sig("SOXL", "GO"), _sig("NBIS", "CAUTION"),
