@@ -79,6 +79,40 @@ def count() -> int:
     return len(_load_subs())
 
 
+def known(endpoint: str) -> bool:
+    """Whether this server still has the subscription a phone thinks it has."""
+    return any(s["endpoint"] == endpoint for s in _load_subs())
+
+
+GONE_ALERT_TO = "zmburr@gmail.com"
+
+
+def _alert_all_gone(status) -> bool:
+    """The last phone just dropped out (11/05: Apple answered 410 and every alert went nowhere
+    without a word). Say so by email, once a day; nothing is recorded unless Gmail took it."""
+    import datetime
+    path = home() / "push_gone_alert.json"
+    today = datetime.date.today().isoformat()
+    try:
+        if json.loads(path.read_text()).get("date") == today:
+            return False
+    except (OSError, ValueError):
+        pass
+    body = (f"Apple answered Method's push with HTTP {status}: the subscription on your phone is gone, "
+            "so breadth, grade and entry alerts are not reaching the phone (the playbook falls back to email).\n\n"
+            "Fix: open Method from the home screen and tap Reconnect on the banner "
+            "(or Playbook > Notifications > Reconnect), then Send a test.")
+    try:
+        from support.config import send_email
+        ok = send_email(GONE_ALERT_TO, "Method: phone notifications stopped", body)
+    except Exception as exc:
+        log.warning("push-gone email failed: %s", exc)
+        return False
+    if ok:
+        path.write_text(json.dumps({"date": today, "status": status}))
+    return bool(ok)
+
+
 def _webpush(sub: dict, payload: str, vapid, claims: dict) -> None:
     from pywebpush import webpush
     webpush(sub, payload, vapid_private_key=vapid, vapid_claims=claims, ttl=3600, timeout=10)
@@ -94,7 +128,7 @@ def send(title: str, body: str, url: str = "/", tag: str = "method") -> int:
     from py_vapid import Vapid02
     vapid = Vapid02.from_file(str(priv))
     payload = json.dumps({"title": title, "body": body[:240], "url": url, "tag": tag})
-    sent, keep = 0, []
+    sent, keep, gone = 0, [], None
     for s in subs:
         try:
             _webpush(s, payload, vapid, {"sub": VAPID_SUB})
@@ -104,9 +138,12 @@ def send(title: str, body: str, url: str = "/", tag: str = "method") -> int:
             status = getattr(getattr(exc, "response", None), "status_code", None)
             if status in (404, 410):
                 log.info("push subscription gone (%s); dropped", status)
+                gone = status
                 continue
             log.warning("push to %s failed: %s", s["endpoint"][:40], exc)
             keep.append(s)
     if len(keep) != len(subs):
         _save_subs(keep)
+    if gone and not keep:
+        _alert_all_gone(gone)
     return sent

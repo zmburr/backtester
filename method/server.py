@@ -194,7 +194,10 @@ def create_app() -> Flask:
 
     @app.get("/api/push")
     def push_info():
-        return jsonify(public_key=push.ensure_keys(), subscriptions=push.count())
+        out = {"public_key": push.ensure_keys(), "subscriptions": push.count()}
+        if request.args.get("endpoint"):            # does the server still have this phone's subscription?
+            out["known"] = push.known(request.args["endpoint"])
+        return jsonify(out)
 
     @app.post("/api/push/subscribe")
     def push_subscribe():

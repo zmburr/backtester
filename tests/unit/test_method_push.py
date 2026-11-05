@@ -65,6 +65,62 @@ def test_send_without_subscribers_or_keys_is_a_no_op(home):
     assert push.send("T", "B") == 0
 
 
+def test_known_says_whether_the_server_has_this_phone(home):
+    assert not push.known(SUB["endpoint"])
+    push.subscribe(SUB["endpoint"], SUB["keys"])
+    assert push.known(SUB["endpoint"])
+    assert not push.known("https://web.push.apple.com/other")
+
+
+class _Gone(Exception):
+    response = types.SimpleNamespace(status_code=410)
+
+
+def _all_gone(*a, **k):
+    raise _Gone()
+
+
+def test_losing_the_last_phone_emails_once_a_day(home, fake_vapid, monkeypatch):
+    """11/05: Apple 410'd the only phone and every alert went nowhere without a word."""
+    import support.config as cfg
+    mail = Mock(return_value=True)
+    monkeypatch.setattr(cfg, "send_email", mail)
+    monkeypatch.setattr(push, "_webpush", _all_gone)
+    push.subscribe(SUB["endpoint"], SUB["keys"])
+    assert push.send("T", "B") == 0
+    assert push.count() == 0
+    mail.assert_called_once()
+    assert mail.call_args.args[1] == "Method: phone notifications stopped"
+    assert "Reconnect" in mail.call_args.args[2]
+    push.subscribe(SUB["endpoint"], SUB["keys"])                     # dropped again the same day
+    push.send("T", "B")
+    assert mail.call_count == 1
+
+
+def test_a_gone_phone_with_another_still_subscribed_stays_quiet(home, fake_vapid, monkeypatch):
+    import support.config as cfg
+    mail = Mock(return_value=True)
+    monkeypatch.setattr(cfg, "send_email", mail)
+    push.subscribe(SUB["endpoint"], SUB["keys"])
+    push.subscribe("https://web.push.apple.com/gone", SUB["keys"])
+    monkeypatch.setattr(push, "_webpush", lambda sub, *a: _all_gone() if sub["endpoint"].endswith("gone") else None)
+    assert push.send("T", "B") == 1
+    mail.assert_not_called()
+
+
+def test_a_failed_gone_email_is_retried_next_time(home, fake_vapid, monkeypatch):
+    import support.config as cfg
+    mail = Mock(return_value=False)                                  # Gmail refused
+    monkeypatch.setattr(cfg, "send_email", mail)
+    monkeypatch.setattr(push, "_webpush", _all_gone)
+    push.subscribe(SUB["endpoint"], SUB["keys"])
+    push.send("T", "B")
+    assert not (home / "push_gone_alert.json").exists()
+    push.subscribe(SUB["endpoint"], SUB["keys"])
+    push.send("T", "B")
+    assert mail.call_count == 2
+
+
 # ---------------------------------------------------------------- server
 
 @pytest.fixture
@@ -90,6 +146,8 @@ def test_writes_need_the_method_header(client, monkeypatch):
     r = client.post("/api/push/subscribe", json=SUB, headers={"X-Method": "1"})
     assert r.get_json() == {"ok": True, "subscriptions": 1}
     assert client.get("/api/push").get_json() == {"public_key": "PUBKEY", "subscriptions": 1}
+    assert client.get("/api/push", query_string={"endpoint": SUB["endpoint"]}).get_json()["known"] is True
+    assert client.get("/api/push", query_string={"endpoint": "https://web.push.apple.com/x"}).get_json()["known"] is False
 
 
 def test_service_worker_is_served_at_the_root(client, monkeypatch):

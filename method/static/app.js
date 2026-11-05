@@ -894,27 +894,61 @@ function pushCard() {
     <div class="shots-row"><button class="btn primary small" id="push-enable" hidden>Turn on notifications</button>
     <button class="btn ghost small" id="push-test" hidden>Send a test</button></div></div>`;
 }
+// The phone's own subscription can outlive the server's copy: on 11/05 Apple answered a push with
+// 410 Gone, the server dropped it, and this card still said "On" with no way to reconnect. So ask
+// the server whether it knows this phone's endpoint, not just whether the phone has one.
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window;
+async function pushState() {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  const info = await api('/api/push' + (sub ? `?endpoint=${encodeURIComponent(sub.endpoint)}` : ''));
+  const perm = Notification.permission;
+  const state = perm === 'denied' ? 'blocked' : !sub || perm !== 'granted' ? 'off' : info.known ? 'on' : 'lost';
+  return { state, info };
+}
 async function paintPush() {
   const st = $('#push-status'), en = $('#push-enable'), te = $('#push-test');
   if (!st) return;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!pushSupported()) {
     st.textContent = standalone() ? "This device can't receive notifications."
       : 'Add Method to your home screen (Share → Add to Home Screen) and open it from there to turn these on.';
     return;
   }
-  const info = await api('/api/push');
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  if (sub && Notification.permission === 'granted') {
+  const { state, info } = await pushState();
+  if (state === 'on') {
     st.textContent = `On. Setups forming and grade upgrades arrive here instead of email (${info.subscriptions} device${info.subscriptions === 1 ? '' : 's'}).`;
     en.hidden = true; te.hidden = false;
-  } else if (Notification.permission === 'denied') {
+  } else if (state === 'lost') {
+    st.textContent = "Not connected. This phone still has a subscription, but Method can't reach it (Apple ended it), so nothing arrives. Tap Reconnect.";
+    en.textContent = 'Reconnect'; en.hidden = false; te.hidden = true;
+  } else if (state === 'blocked') {
     st.textContent = 'Blocked. Turn them on in iPhone Settings → Notifications → Method.';
     en.hidden = true; te.hidden = true;
   } else {
     st.textContent = 'Off. Setups forming go to your email until you turn these on.';
-    en.hidden = false; te.hidden = true;
+    en.textContent = 'Turn on notifications'; en.hidden = false; te.hidden = true;
   }
+}
+// The same check on the home screen, so a dead subscription shows without opening Playbook.
+async function paintPushBanner() {
+  if (!standalone() || !pushSupported()) return;
+  let state;
+  try { ({ state } = await pushState()); } catch (e) { return; }
+  let el = $('#push-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'push-banner';
+    el.className = 'card callout warn push-banner';
+    $('#list').before(el);
+  }
+  const msg = {
+    lost: "Notifications stopped: Method can't reach this phone.",
+    off: 'Notifications are off on this phone.',
+    blocked: 'Notifications are blocked: iPhone Settings → Notifications → Method.',
+  }[state];
+  el.hidden = !msg;
+  if (msg) el.innerHTML = `<span>${esc(msg)}</span>`
+    + (state === 'blocked' ? '' : `<button class="btn primary small" id="push-enable-b">${state === 'lost' ? 'Reconnect' : 'Turn on'}</button>`);
 }
 function b64ToBytes(b64) {
   const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4));
@@ -926,14 +960,19 @@ async function enablePush() {
     if (perm !== 'granted') return paintPush();
     const { public_key } = await api('/api/push');
     const reg = await navigator.serviceWorker.ready;
+    // subscribe() hands back the existing subscription when there is one, and a dead one stays
+    // dead, so drop it first: a fresh subscribe gets Apple to issue a new endpoint.
+    const old = await reg.pushManager.getSubscription();
+    if (old) await old.unsubscribe().catch(() => {});
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(public_key) });
     await api('/api/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
   } catch (e) {
-    const st = $('#push-status');
+    const st = $('#push-status') || $('#push-banner span');
     if (st) st.textContent = `Couldn't turn on notifications: ${e.message}`;
     return;
   }
-  paintPush();
+  paintPush().catch(() => {});
+  paintPushBanner();
 }
 
 // ── history ──────────────────────────────────────────────────────────────
@@ -1179,7 +1218,7 @@ document.addEventListener('click', e => {
   if (t.dataset.lside) { S.lessonSide = t.dataset.lside; return render(); }
   if (t.dataset.shot) return postShot({ side: S.route === 'playbook' ? S.lessonSide : S.route, ticker: t.dataset.tk, kind: t.dataset.shot });
   if (t.dataset.undo) return postShot({ kind: 'undo' });
-  if (t.id === 'push-enable') return enablePush();
+  if (t.id === 'push-enable' || t.id === 'push-enable-b') return enablePush();
   if (t.id === 'push-test') return api('/api/push/test', { method: 'POST', body: '{}' })
     .then(r => { $('#push-status').textContent = r.sent ? 'Test sent.' : 'No device is subscribed.'; });
 });
@@ -1252,6 +1291,8 @@ addEventListener('resize', fitViewport);
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 applyRoute();
+paintPushBanner();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) paintPushBanner(); });
 (async function pollLoop() {        // every 15 s while the PC streams Trillium, else every minute
   await poll();
   setTimeout(pollLoop, S.snap?.src === 'T' ? 15e3 : 60e3);

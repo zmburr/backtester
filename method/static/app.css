@@ -291,3 +291,9 @@ ul.items li.tiers { list-style: none; margin-left: -18px; padding: 10px 12px; bo
 .sys { font-size: 11px; color: var(--text-3); margin-left: 2px; }
 .callout { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .legend .ohl { display: none; } }
+
+/* phone push health: shown on the list when this phone can't get notifications */
+.push-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: auto; flex: 0 0 auto;
+  margin: 8px calc(16px + var(--sar)) 0 calc(16px + var(--sal)); padding: 12px 14px; font-size: 13.5px; }
+.push-banner[hidden] { display: none; }
+.push-banner .btn { flex: 0 0 auto; }
