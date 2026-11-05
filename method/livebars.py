@@ -110,9 +110,11 @@ def chart_rows(rows: list[list]) -> list[dict]:
     reads ET wall-clock time (server._et_epoch)."""
     if not rows:
         return []
-    idx = pd.to_datetime([r[0] for r in rows], unit="s", utc=True).tz_convert(TZ).tz_localize(None)
-    shift = (idx.asi8 // 10**9).tolist()
-    return [{"time": int(e), "open": r[1], "high": r[2], "low": r[3], "close": r[4], "value": r[5]}
+    # epoch + the ET offset at that moment. Not idx.asi8: its unit follows pandas' datetime
+    # resolution (ns in 2.x, s in 3.x), and on the mini's pandas 3 `asi8 // 10**9` made every bar time 1.
+    idx = pd.to_datetime([r[0] for r in rows], unit="s", utc=True).tz_convert(TZ)
+    shift = [int(r[0]) + int(ts.utcoffset().total_seconds()) for r, ts in zip(rows, idx)]
+    return [{"time": e, "open": r[1], "high": r[2], "low": r[3], "close": r[4], "value": r[5]}
             for e, r in zip(shift, rows)]
 
 

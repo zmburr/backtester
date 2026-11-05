@@ -87,6 +87,17 @@ def test_chart_rows_today_candle_and_replay_frame():
     assert livebars.frame([], now=None) is None
 
 
+def test_chart_rows_times_dont_depend_on_pandas_datetime_unit(monkeypatch):
+    """pandas 3 (the mini) builds second-resolution datetimes from unit="s"; pandas 2 (the PC)
+    builds ns. The chart times must be the same ET wall-clock epoch either way."""
+    rows = [row("09:30", 10, 11, 9, 10.5, 100), row("15:59", 10, 11, 9, 10.5, 100)]
+    want = [int(pd.Timestamp(f"{DAY} {t}").timestamp()) for t in ("09:30", "15:59")]   # naive = wall clock
+    assert [b["time"] for b in livebars.chart_rows(rows)] == want
+    real = pd.to_datetime
+    monkeypatch.setattr(livebars.pd, "to_datetime", lambda *a, **k: real(*a, **k).as_unit("s"))
+    assert [b["time"] for b in livebars.chart_rows(rows)] == want
+
+
 # ---------------------------------------------------------------- the PC
 
 def _ns(hhmm):
