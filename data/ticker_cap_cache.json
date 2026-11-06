@@ -155,5 +155,13 @@
  "AEHR": "Small",
  "ILMN": "Medium",
  "INLF": "Micro",
- "VICR": "Medium"
+ "VICR": "Medium",
+ "APLD": "Medium",
+ "CRWG": "ETF",
+ "GLWG": "ETF",
+ "IESC": "Medium",
+ "ONTO": "Medium",
+ "UCTT": "Medium",
+ "EQPT": "Medium",
+ "ZS": "Medium"
 }
