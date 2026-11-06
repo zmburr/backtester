@@ -1,0 +1,2293 @@
+{
+  "date": "2026-11-06",
+  "session": "evening",
+  "generated_at": "2026-11-06T15:15:51.261705",
+  "go_count": 7,
+  "caution_count": 5,
+  "signals": [
+    {
+      "ticker": "U",
+      "bucket": "reversal",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/5",
+      "metrics": {
+        "pct_from_9ema": 0.2552,
+        "pct_change_3": 0.255467,
+        "gap_pct": 0.081967,
+        "prior_day_range_atr": 1.97195,
+        "atr_pct": 0.044853,
+        "prior_day_rvol": 5.177498,
+        "premarket_rvol": 0.210048
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:33.422779-05:00",
+        "scorer_timestamp": null,
+        "ticker": "U",
+        "bucket": "reversal",
+        "cap": "Medium",
+        "setup_profile": "generic_reversal_pretrade",
+        "rule_version": "ad3a1c7356a56965445d34134ccfb5db533c73ddf6c09dee5f1ecc6286e25c01",
+        "rule_files": {
+          "scripts/generate_report.py": "a10a758abc5cf250cfbe9b0965bf75cd529e63a5371e4f684b74a7837d4da408",
+          "analyzers/reversal_scorer.py": "208c8c9259f2e0c8b4ef670961b9347ed846c953927b17a9407fd9a4e2a92125",
+          "data/reversal_data.csv": "05acbedc23c6ad8bcb326e9ef5a33cc7350cbc72c798d0ef20edd2943f28c451"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 5,
+        "recommendation": "GO",
+        "inputs": {
+          "pct_from_9ema": 0.25519974642275267,
+          "gap_pct": 0.0819672131147541,
+          "prior_day_range_atr": 1.9719499321369338,
+          "atr_pct": 0.04485254329004328,
+          "pct_change_3": 0.2554669410856702,
+          "close_3_ago": 38.87,
+          "pct_change_30": 0.17817479478512785,
+          "pct_from_200mav": 0.6678222442633072,
+          "breaks_fifty_two_wk": true,
+          "pct_to_52wk_high": -0.06423777564717165,
+          "prior_close": 48.8,
+          "ema_9": 42.065018058262815,
+          "prior_day_rvol": 5.17749792001681,
+          "premarket_rvol": 0.21004813624480198
+        },
+        "classification": {},
+        "criteria": [
+          {
+            "name": "9EMA Distance",
+            "key": "pct_from_9ema",
+            "passed": true,
+            "threshold": 0.15,
+            "actual": 0.25519974642275267,
+            "operator": ">=",
+            "input_present": true
+          },
+          {
+            "name": "Range (ATR)",
+            "key": "prior_day_range_atr",
+            "passed": true,
+            "threshold": 1.2,
+            "actual": 1.9719499321369338,
+            "operator": ">=",
+            "input_present": true
+          },
+          {
+            "name": "3-Day Run-Up",
+            "key": "pct_change_3",
+            "passed": true,
+            "threshold": 0.1,
+            "actual": 0.2554669410856702,
+            "operator": ">=",
+            "input_present": true
+          },
+          {
+            "name": "Gap Up",
+            "key": "gap_pct",
+            "passed": true,
+            "threshold": 0.05,
+            "actual": 0.0819672131147541,
+            "operator": ">=",
+            "input_present": true
+          },
+          {
+            "name": "Vol Signal",
+            "key": "vol_signal",
+            "passed": true,
+            "threshold": 2.0,
+            "actual": 5.17749792001681,
+            "display_actual": "Prior: 5.2x | PM: 0.21x",
+            "display_threshold": "2.0x / 0.05x",
+            "operator": "any",
+            "input_present": true,
+            "alternatives": [
+              {
+                "key": "prior_day_rvol",
+                "operator": ">=",
+                "threshold": 2.0,
+                "actual": 5.17749792001681
+              },
+              {
+                "key": "premarket_rvol",
+                "operator": ">=",
+                "threshold": 0.05,
+                "actual": 0.21004813624480198
+              }
+            ]
+          }
+        ],
+        "gates": {
+          "range_gate_passed": true,
+          "momentum_pctile_passed": true,
+          "momentum_pctile_3": 38.1,
+          "archetype_passed": true,
+          "archetype_detail": {
+            "breaks_fifty_two_wk": true,
+            "pct_from_200mav": 0.6678222442633072,
+            "pct_change_30": 0.17817479478512785,
+            "passed_by_52wk": true,
+            "passed_by_200mav": true,
+            "passed_by_30d": false,
+            "threshold_200mav": 0.5,
+            "threshold_30d": 0.3
+          }
+        },
+        "decision_id": "edc82c9b08c4d5c9089804fee90572decdfa12697a7bba92459a0501499fce84"
+      },
+      "intensity": 51.7,
+      "high_edge": false,
+      "archetype_passed": true,
+      "archetype_detail": {
+        "breaks_fifty_two_wk": true,
+        "pct_from_200mav": 0.6678222442633072,
+        "pct_change_30": 0.17817479478512785,
+        "passed_by_52wk": true,
+        "passed_by_200mav": true,
+        "passed_by_30d": false,
+        "threshold_200mav": 0.5,
+        "threshold_30d": 0.3
+      },
+      "setup_type": "2DBreakoutIB",
+      "setup_match": "2DBreakoutIB (conf 312%)",
+      "odds": {
+        "n": 751,
+        "p_fade": 0.5806,
+        "p_fade5": 0.3955,
+        "p_close_low": 0.3302,
+        "med_return": -0.0229,
+        "base_p_fade5": 0.0853,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RIVN",
+            "date": "2023-07-10",
+            "open_low_pct": -0.076,
+            "open_close_pct": -0.0004,
+            "distance": 0.1341
+          },
+          {
+            "ticker": "NVAX",
+            "date": "2024-06-06",
+            "open_low_pct": -0.1879,
+            "open_close_pct": -0.1763,
+            "distance": 0.182
+          },
+          {
+            "ticker": "GME",
+            "date": "2022-03-29",
+            "open_low_pct": -0.1341,
+            "open_close_pct": -0.0443,
+            "distance": 0.2226
+          },
+          {
+            "ticker": "SPCE",
+            "date": "2021-02-02",
+            "open_low_pct": -0.1927,
+            "open_close_pct": -0.1708,
+            "distance": 0.2961
+          },
+          {
+            "ticker": "TEM",
+            "date": "2024-08-20",
+            "open_low_pct": -0.0183,
+            "open_close_pct": 0.0122,
+            "distance": 0.3041
+          }
+        ],
+        "n": 5,
+        "med_open_low": -0.1341,
+        "med_open_close": -0.0443
+      }
+    },
+    {
+      "ticker": "SOXL",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.543508,
+        "pct_off_30d_high": -0.727551,
+        "gap_pct": 0.193663,
+        "pct_change_3": -0.367205,
+        "prior_day_range_atr": 1.253927,
+        "pct_off_52wk_high": -0.846788,
+        "atr_pct": 0.297315
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:35.340737-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:35",
+        "ticker": "SOXL",
+        "bucket": "bounce",
+        "cap": "ETF",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 46.27,
+          "pct_from_200mav": -0.6277308720285651,
+          "pct_change_30": -0.6944866292505777,
+          "pct_change_3": -0.36720459518599563,
+          "pct_change_15": -0.506031813814455,
+          "pct_off_52wk_high": -0.8467880794701986,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 101.36,
+          "selloff_total_pct": -0.5435082872928176,
+          "high_30d": 169.83,
+          "pct_off_30d_high": -0.7275510804922569,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.9889603163922813,
+          "prior_day_close_vs_low_pct": 0.01623188405797067,
+          "day_of_range_pct": 1.253927284678878,
+          "prior_day_range_atr": 1.253927284678878,
+          "atr_pct": 0.29731529222884306,
+          "prior_day_rvol": 2.7864881707110256,
+          "premarket_rvol": 0.5264936062936226,
+          "gap_pct": 0.19366283337411302,
+          "prior_close": 40.87
+        },
+        "classification": {
+          "pct_from_200mav": -0.6277308720285651,
+          "signals": [
+            "Below 200MA by 63% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 15%",
+            "operator": "<=",
+            "threshold": -0.15,
+            "actual": -0.5435082872928176,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.7275510804922569,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 4%",
+            "operator": "<=",
+            "threshold": -0.04,
+            "actual": 0.19366283337411302,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.253927284678878,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 15%",
+            "operator": "<=",
+            "threshold": -0.15,
+            "actual": -0.36720459518599563,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 34%",
+            "operator": "<=",
+            "threshold": -0.34,
+            "actual": -0.8467880794701986,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "1aaf00dbbf28caed1da81b2c84224685eefe0f4084f48e28b807d1876bc8bae6"
+      },
+      "intensity": 71.5,
+      "high_edge": true,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "KWEB",
+            "date": "2022-03-15",
+            "open_high_pct": 0.1,
+            "open_low_pct": -0.0187,
+            "open_close_pct": 0.0663,
+            "time_of_low_bucket": 1,
+            "distance": 5.3161
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1286,
+            "open_low_pct": -0.0228,
+            "open_close_pct": 0.0855,
+            "time_of_low_bucket": 1,
+            "distance": 5.6464
+          },
+          {
+            "ticker": "SOXL",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0159,
+            "open_low_pct": -0.1027,
+            "open_close_pct": -0.0319,
+            "time_of_low_bucket": 2,
+            "distance": 6.6249
+          },
+          {
+            "ticker": "SOXL",
+            "date": "2026-07-17",
+            "open_high_pct": 0.1577,
+            "open_low_pct": -0.0662,
+            "open_close_pct": 0.0861,
+            "time_of_low_bucket": 1,
+            "distance": 6.8566
+          },
+          {
+            "ticker": "DRAM",
+            "date": "2026-07-17",
+            "open_high_pct": 0.1118,
+            "open_low_pct": -0.024,
+            "open_close_pct": 0.058,
+            "time_of_low_bucket": 1,
+            "distance": 7.5904
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1118,
+        "med_open_low": -0.024,
+        "med_open_close": 0.0663,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 467,
+        "p_green": 0.5096,
+        "p_bounce5": 0.6381,
+        "med_return": 0.0053,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6"
+      },
+      "mid_bb": 94.9805
+    },
+    {
+      "ticker": "TEAM",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.251284,
+        "pct_off_30d_high": -0.321578,
+        "gap_pct": -0.154782,
+        "pct_change_3": -0.183407,
+        "prior_day_range_atr": 0.72927,
+        "pct_off_52wk_high": -0.321578,
+        "atr_pct": 0.062996
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:34.490863-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:34",
+        "ticker": "TEAM",
+        "bucket": "bounce",
+        "cap": "Medium",
+        "setup_profile": "GapFade_strongstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 156.01,
+          "pct_from_200mav": 0.30987767072499794,
+          "pct_change_30": -0.16901033343986374,
+          "pct_change_3": -0.18340748495158346,
+          "pct_change_15": -0.24930228081994035,
+          "pct_off_52wk_high": -0.32157766568098806,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 208.37,
+          "selloff_total_pct": -0.25128377405576624,
+          "high_30d": 229.96,
+          "pct_off_30d_high": -0.32157766568098806,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.2668081086217645,
+          "prior_day_close_vs_low_pct": 0.34563922258032886,
+          "day_of_range_pct": 0.7292697941097152,
+          "prior_day_range_atr": 0.7292697941097152,
+          "atr_pct": 0.06299628228959679,
+          "prior_day_rvol": 0.7854862749055109,
+          "premarket_rvol": 0.07713302030901636,
+          "gap_pct": -0.15478203939112883,
+          "prior_close": 183.29
+        },
+        "classification": {
+          "pct_from_200mav": 0.30987767072499794,
+          "signals": [
+            "Above 200MA by 31% -> STRONG"
+          ],
+          "classification": "GapFade_strongstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 16%",
+            "operator": "<=",
+            "threshold": -0.16,
+            "actual": -0.25128377405576624,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 28%",
+            "operator": "<=",
+            "threshold": -0.28,
+            "actual": -0.32157766568098806,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 4%",
+            "operator": "<=",
+            "threshold": -0.04,
+            "actual": -0.15478203939112883,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 0.7292697941097152,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 14%",
+            "operator": "<=",
+            "threshold": -0.14,
+            "actual": -0.18340748495158346,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 32%",
+            "operator": "<=",
+            "threshold": -0.32,
+            "actual": -0.32157766568098806,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "ebf72fbbbc482d855f2358845e23237c550e54353aafcf257beb71d48d557d0c"
+      },
+      "intensity": 52.1,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MARA",
+            "date": "2024-01-03",
+            "open_high_pct": 0.1473,
+            "open_low_pct": -0.015,
+            "open_close_pct": 0.1321,
+            "time_of_low_bucket": 1,
+            "distance": 0.1883
+          },
+          {
+            "ticker": "BE",
+            "date": "2025-11-14",
+            "open_high_pct": 0.2375,
+            "open_low_pct": -0.021,
+            "open_close_pct": 0.167,
+            "time_of_low_bucket": 1,
+            "distance": 0.2243
+          },
+          {
+            "ticker": "CRDO",
+            "date": "2026-07-17",
+            "open_high_pct": 0.0849,
+            "open_low_pct": -0.0396,
+            "open_close_pct": 0.0473,
+            "time_of_low_bucket": 1,
+            "distance": 0.3442
+          },
+          {
+            "ticker": "AXSM",
+            "date": "2025-04-07",
+            "open_high_pct": 0.0818,
+            "open_low_pct": -0.0206,
+            "open_close_pct": 0.0427,
+            "time_of_low_bucket": 1,
+            "distance": 0.4907
+          },
+          {
+            "ticker": "XPEV",
+            "date": "2020-12-02",
+            "open_high_pct": 0.2206,
+            "open_low_pct": -0.0213,
+            "open_close_pct": 0.1912,
+            "time_of_low_bucket": 1,
+            "distance": 0.4931
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1473,
+        "med_open_low": -0.021,
+        "med_open_close": 0.1321,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "mid_bb": 208.719
+    },
+    {
+      "ticker": "AAOI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.393691,
+        "pct_off_30d_high": -0.622646,
+        "gap_pct": 0.045319,
+        "pct_change_3": -0.226356,
+        "prior_day_range_atr": 1.476749,
+        "pct_off_52wk_high": -0.788206,
+        "atr_pct": 0.150648
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:38.541764-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:38",
+        "ticker": "AAOI",
+        "bucket": "bounce",
+        "cap": "Medium",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 49.49,
+          "pct_from_200mav": -0.5680973242804531,
+          "pct_change_30": -0.5119329388560158,
+          "pct_change_3": -0.22635610442394868,
+          "pct_change_15": -0.3451104935821092,
+          "pct_off_52wk_high": -0.788205589078615,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 81.625,
+          "selloff_total_pct": -0.3936906584992343,
+          "high_30d": 131.15,
+          "pct_off_30d_high": -0.6226458253907738,
+          "closed_outside_lower_band": false,
+          "bollinger_width": 0.7646274011914219,
+          "prior_day_close_vs_low_pct": 0.09173478655767468,
+          "day_of_range_pct": 1.4767493885199834,
+          "prior_day_range_atr": 1.4767493885199834,
+          "atr_pct": 0.1506478942354877,
+          "prior_day_rvol": 2.6586428773774218,
+          "premarket_rvol": 0.2725814045720901,
+          "gap_pct": 0.04531883130731499,
+          "prior_close": 46.89
+        },
+        "classification": {
+          "pct_from_200mav": -0.5680973242804531,
+          "signals": [
+            "Below 200MA by 57% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.3936906584992343,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.6226458253907738,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 3%",
+            "operator": "<=",
+            "threshold": -0.03,
+            "actual": 0.04531883130731499,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.4767493885199834,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 21%",
+            "operator": "<=",
+            "threshold": -0.21,
+            "actual": -0.22635610442394868,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 72%",
+            "operator": "<=",
+            "threshold": -0.72,
+            "actual": -0.788205589078615,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "4cd74f12799e01f6b41f8c220c162644aba184f219ba678244edadb499d43fa7"
+      },
+      "intensity": 47.9,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "QS",
+            "date": "2022-05-12",
+            "open_high_pct": 0.122,
+            "open_low_pct": -0.0079,
+            "open_close_pct": 0.0933,
+            "time_of_low_bucket": 1,
+            "distance": 0.2793
+          },
+          {
+            "ticker": "S",
+            "date": "2022-05-12",
+            "open_high_pct": 0.2443,
+            "open_low_pct": -0.0122,
+            "open_close_pct": 0.1399,
+            "time_of_low_bucket": 1,
+            "distance": 0.2841
+          },
+          {
+            "ticker": "PLUG",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1168,
+            "open_low_pct": -0.0276,
+            "open_close_pct": 0.0398,
+            "time_of_low_bucket": 1,
+            "distance": 0.3316
+          },
+          {
+            "ticker": "AMC",
+            "date": "2022-05-12",
+            "open_high_pct": 0.3649,
+            "open_low_pct": -0.0343,
+            "open_close_pct": 0.115,
+            "time_of_low_bucket": 1,
+            "distance": 0.4476
+          },
+          {
+            "ticker": "RBLX",
+            "date": "2022-05-11",
+            "open_high_pct": 0.2943,
+            "open_low_pct": -0.0014,
+            "open_close_pct": 0.0935,
+            "time_of_low_bucket": 1,
+            "distance": 0.482
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.2443,
+        "med_open_low": -0.0122,
+        "med_open_close": 0.0935,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "mid_bb": 76.672
+    },
+    {
+      "ticker": "SNDK",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.400277,
+        "pct_off_30d_high": -0.543518,
+        "gap_pct": 0.113885,
+        "pct_change_3": -0.264536,
+        "prior_day_range_atr": 1.526135,
+        "pct_off_52wk_high": -0.648098,
+        "atr_pct": 0.129719
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:32.080057-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:32",
+        "ticker": "SNDK",
+        "bucket": "bounce",
+        "cap": "Large",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 828.515,
+          "pct_from_200mav": -0.3478865343899899,
+          "pct_change_30": -0.533966137923276,
+          "pct_change_3": -0.2645359159180485,
+          "pct_change_15": -0.3623374124528592,
+          "pct_off_52wk_high": -0.648097793827607,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 1381.495,
+          "selloff_total_pct": -0.40027651203949344,
+          "high_30d": 1815.0002,
+          "pct_off_30d_high": -0.5435179566371398,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.5586747090570604,
+          "prior_day_close_vs_low_pct": 0.014998170954761145,
+          "day_of_range_pct": 1.526135235381975,
+          "prior_day_range_atr": 1.526135235381975,
+          "atr_pct": 0.1297189463765205,
+          "prior_day_rvol": 0.9187532236446918,
+          "premarket_rvol": 0.14228479596138668,
+          "gap_pct": 0.11388465210867656,
+          "prior_close": 806.43
+        },
+        "classification": {
+          "pct_from_200mav": -0.3478865343899899,
+          "signals": [
+            "Below 200MA by 35% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 18%",
+            "operator": "<=",
+            "threshold": -0.18,
+            "actual": -0.40027651203949344,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 38%",
+            "operator": "<=",
+            "threshold": -0.38,
+            "actual": -0.5435179566371398,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 8%",
+            "operator": "<=",
+            "threshold": -0.08,
+            "actual": 0.11388465210867656,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.526135235381975,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 25%",
+            "operator": "<=",
+            "threshold": -0.25,
+            "actual": -0.2645359159180485,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.648097793827607,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "9dcad67b21dd1176769118480d5d368bdc77f3adcf4bff83e4ba1fd2018ca51a"
+      },
+      "intensity": 46.9,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RGTI",
+            "date": "2024-12-20",
+            "open_high_pct": 0.3884,
+            "open_low_pct": -0.0455,
+            "open_close_pct": 0.2906,
+            "time_of_low_bucket": 1,
+            "distance": 2.6751
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 3.5625
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 3.7015
+          },
+          {
+            "ticker": "SNDK",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0123,
+            "open_low_pct": -0.1047,
+            "open_close_pct": -0.066,
+            "time_of_low_bucket": 2,
+            "distance": 3.7035
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 4.2174
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.0426,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 467,
+        "p_green": 0.5096,
+        "p_bounce5": 0.6381,
+        "med_return": 0.0053,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6"
+      },
+      "mid_bb": 1287.7095
+    },
+    {
+      "ticker": "AXTI",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.365082,
+        "pct_off_30d_high": -0.559416,
+        "gap_pct": 0.089325,
+        "pct_change_3": -0.241574,
+        "prior_day_range_atr": 1.061774,
+        "pct_off_52wk_high": -0.728066,
+        "atr_pct": 0.180477
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:34.928504-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:34",
+        "ticker": "AXTI",
+        "bucket": "bounce",
+        "cap": "Medium",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 38.93,
+          "pct_from_200mav": -0.404160621032074,
+          "pct_change_30": -0.5068406384595896,
+          "pct_change_3": -0.2415741281901422,
+          "pct_change_15": -0.24363707013794442,
+          "pct_off_52wk_high": -0.7280664990220731,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 61.315,
+          "selloff_total_pct": -0.3650819538448993,
+          "high_30d": 88.36,
+          "pct_off_30d_high": -0.5594160253508375,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.5160654480657677,
+          "prior_day_close_vs_low_pct": 0.021447721179624204,
+          "day_of_range_pct": 1.0617738047674092,
+          "prior_day_range_atr": 1.0617738047674092,
+          "atr_pct": 0.1804772301933874,
+          "prior_day_rvol": 2.0326947541803166,
+          "premarket_rvol": 0.12545637663094233,
+          "gap_pct": 0.08932461873638348,
+          "prior_close": 36.72
+        },
+        "classification": {
+          "pct_from_200mav": -0.404160621032074,
+          "signals": [
+            "Below 200MA by 40% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.3650819538448993,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.5594160253508375,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 3%",
+            "operator": "<=",
+            "threshold": -0.03,
+            "actual": 0.08932461873638348,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.0617738047674092,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 21%",
+            "operator": "<=",
+            "threshold": -0.21,
+            "actual": -0.2415741281901422,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 72%",
+            "operator": "<=",
+            "threshold": -0.72,
+            "actual": -0.7280664990220731,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "7abc969806f58045a53f0d832d32bfa230c7d1a764671a60dbf4a0b1617b5ed8"
+      },
+      "intensity": 41.3,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "QS",
+            "date": "2022-05-12",
+            "open_high_pct": 0.122,
+            "open_low_pct": -0.0079,
+            "open_close_pct": 0.0933,
+            "time_of_low_bucket": 1,
+            "distance": 0.2896
+          },
+          {
+            "ticker": "S",
+            "date": "2022-05-12",
+            "open_high_pct": 0.2443,
+            "open_low_pct": -0.0122,
+            "open_close_pct": 0.1399,
+            "time_of_low_bucket": 1,
+            "distance": 0.4064
+          },
+          {
+            "ticker": "LCID",
+            "date": "2022-05-12",
+            "open_high_pct": 0.21,
+            "open_low_pct": -0.0236,
+            "open_close_pct": 0.1562,
+            "time_of_low_bucket": 1,
+            "distance": 0.4399
+          },
+          {
+            "ticker": "PLUG",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1168,
+            "open_low_pct": -0.0276,
+            "open_close_pct": 0.0398,
+            "time_of_low_bucket": 1,
+            "distance": 0.4864
+          },
+          {
+            "ticker": "RBLX",
+            "date": "2022-05-11",
+            "open_high_pct": 0.2943,
+            "open_low_pct": -0.0014,
+            "open_close_pct": 0.0935,
+            "time_of_low_bucket": 1,
+            "distance": 0.4959
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.21,
+        "med_open_low": -0.0122,
+        "med_open_close": 0.0935,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 339,
+        "p_green": 0.4985,
+        "p_bounce5": 0.6136,
+        "med_return": 0.0,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6 \u00b7 Medium"
+      },
+      "mid_bb": 56.0725
+    },
+    {
+      "ticker": "DRAM",
+      "bucket": "bounce",
+      "cap": "ETF",
+      "recommendation": "GO",
+      "score": "5/6",
+      "metrics": {
+        "selloff_total_pct": -0.252239,
+        "pct_off_30d_high": -0.3721,
+        "gap_pct": 0.086328,
+        "pct_change_3": -0.176113,
+        "prior_day_range_atr": 1.679512,
+        "pct_off_52wk_high": -0.517458,
+        "atr_pct": 0.081461
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:40.741879-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:40",
+        "ticker": "DRAM",
+        "bucket": "bounce",
+        "cap": "ETF",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 5,
+        "max_score": 6,
+        "recommendation": "GO",
+        "inputs": {
+          "current_price": 39.25,
+          "pct_change_30": -0.3660151833306412,
+          "pct_change_3": -0.17611251049538204,
+          "pct_change_15": -0.15500538213132406,
+          "pct_off_52wk_high": -0.5174575854438161,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 52.49,
+          "selloff_total_pct": -0.25223852162316635,
+          "high_30d": 62.51,
+          "pct_off_30d_high": -0.37210046392577184,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.3484954251584297,
+          "prior_day_close_vs_low_pct": 0.0,
+          "day_of_range_pct": 1.679512097044435,
+          "prior_day_range_atr": 1.679512097044435,
+          "atr_pct": 0.08146132848043679,
+          "prior_day_rvol": 1.044704277803086,
+          "premarket_rvol": 0.21772738750520235,
+          "gap_pct": 0.08632801945420158,
+          "prior_close": 37.01
+        },
+        "classification": {
+          "pct_from_200mav": null,
+          "signals": [
+            "200MA N/A, 30d change -37% -> WEAK (fallback)"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 15%",
+            "operator": "<=",
+            "threshold": -0.15,
+            "actual": -0.25223852162316635,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.37210046392577184,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 4%",
+            "operator": "<=",
+            "threshold": -0.04,
+            "actual": 0.08632801945420158,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.679512097044435,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 15%",
+            "operator": "<=",
+            "threshold": -0.15,
+            "actual": -0.17611251049538204,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 34%",
+            "operator": "<=",
+            "threshold": -0.34,
+            "actual": -0.5174575854438161,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "f565f70bb681f9cd051b1dc2dffd567eda57f13f412e286432e7a48f7ab61907"
+      },
+      "intensity": 17.7,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "KWEB",
+            "date": "2022-03-15",
+            "open_high_pct": 0.1,
+            "open_low_pct": -0.0187,
+            "open_close_pct": 0.0663,
+            "time_of_low_bucket": 1,
+            "distance": 2.2606
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1286,
+            "open_low_pct": -0.0228,
+            "open_close_pct": 0.0855,
+            "time_of_low_bucket": 1,
+            "distance": 2.3894
+          },
+          {
+            "ticker": "SMH",
+            "date": "2025-04-07",
+            "open_high_pct": 0.123,
+            "open_low_pct": -0.0195,
+            "open_close_pct": 0.0658,
+            "time_of_low_bucket": 1,
+            "distance": 2.4131
+          },
+          {
+            "ticker": "DRAM",
+            "date": "2026-07-17",
+            "open_high_pct": 0.1118,
+            "open_low_pct": -0.024,
+            "open_close_pct": 0.058,
+            "time_of_low_bucket": 1,
+            "distance": 2.5323
+          },
+          {
+            "ticker": "ARKK",
+            "date": "2025-04-07",
+            "open_high_pct": 0.143,
+            "open_low_pct": -0.0166,
+            "open_close_pct": 0.078,
+            "time_of_low_bucket": 1,
+            "distance": 2.6803
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.123,
+        "med_open_low": -0.0195,
+        "med_open_close": 0.0663,
+        "n_low_by_10": 5
+      },
+      "odds": {
+        "n": 467,
+        "p_green": 0.5096,
+        "p_bounce5": 0.6381,
+        "med_return": 0.0053,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 5-6"
+      },
+      "mid_bb": 48.8715
+    },
+    {
+      "ticker": "LITE",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.436585,
+        "pct_off_30d_high": -0.532765,
+        "gap_pct": 0.080439,
+        "pct_change_3": -0.214817,
+        "prior_day_range_atr": 1.10669,
+        "pct_off_52wk_high": -0.532765,
+        "atr_pct": 0.152498
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:28.356412-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:28",
+        "ticker": "LITE",
+        "bucket": "bounce",
+        "cap": "Medium",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 4,
+        "max_score": 6,
+        "recommendation": "CAUTION",
+        "inputs": {
+          "current_price": 534.0501,
+          "pct_from_200mav": -0.3380184175996704,
+          "pct_change_30": -0.4328571125152657,
+          "pct_change_3": -0.21481695483415658,
+          "pct_change_15": -0.35198318226493386,
+          "pct_off_52wk_high": -0.5327645669291339,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 947.88,
+          "selloff_total_pct": -0.4365846942650968,
+          "high_30d": 1143.0,
+          "pct_off_30d_high": -0.5327645669291339,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.655089287707656,
+          "prior_day_close_vs_low_pct": 0.03340264016882178,
+          "day_of_range_pct": 1.106690480996519,
+          "prior_day_range_atr": 1.106690480996519,
+          "atr_pct": 0.15249797858718822,
+          "prior_day_rvol": 1.790590354814745,
+          "premarket_rvol": 0.0757589154806723,
+          "gap_pct": 0.08043947420051022,
+          "prior_close": 509.7
+        },
+        "classification": {
+          "pct_from_200mav": -0.3380184175996704,
+          "signals": [
+            "Below 200MA by 34% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.4365846942650968,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.5327645669291339,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 3%",
+            "operator": "<=",
+            "threshold": -0.03,
+            "actual": 0.08043947420051022,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.106690480996519,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 21%",
+            "operator": "<=",
+            "threshold": -0.21,
+            "actual": -0.21481695483415658,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 72%",
+            "operator": "<=",
+            "threshold": -0.72,
+            "actual": -0.5327645669291339,
+            "input_present": true,
+            "passed": false
+          }
+        ],
+        "gates": {},
+        "decision_id": "fe47580bf3a86c581dd89079e7500a40fd6776a8132f6dd88bc383940a14159d"
+      },
+      "intensity": 44.0,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "MARA",
+            "date": "2024-01-19",
+            "open_high_pct": 0.0313,
+            "open_low_pct": -0.0851,
+            "open_close_pct": 0.0094,
+            "time_of_low_bucket": 4,
+            "distance": 0.4627
+          },
+          {
+            "ticker": "PLUG",
+            "date": "2022-05-12",
+            "open_high_pct": 0.1168,
+            "open_low_pct": -0.0276,
+            "open_close_pct": 0.0398,
+            "time_of_low_bucket": 1,
+            "distance": 0.5748
+          },
+          {
+            "ticker": "SI",
+            "date": "2022-05-12",
+            "open_high_pct": 0.065,
+            "open_low_pct": -0.1507,
+            "open_close_pct": -0.0365,
+            "time_of_low_bucket": 2,
+            "distance": 0.6448
+          },
+          {
+            "ticker": "ROOT",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1367,
+            "open_low_pct": -0.0465,
+            "open_close_pct": 0.0539,
+            "time_of_low_bucket": 1,
+            "distance": 0.6896
+          },
+          {
+            "ticker": "S",
+            "date": "2022-05-12",
+            "open_high_pct": 0.2443,
+            "open_low_pct": -0.0122,
+            "open_close_pct": 0.1399,
+            "time_of_low_bucket": 1,
+            "distance": 0.7119
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1168,
+        "med_open_low": -0.0465,
+        "med_open_close": 0.0398,
+        "n_low_by_10": 3
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 827.6327
+    },
+    {
+      "ticker": "MXL",
+      "bucket": "bounce",
+      "cap": "Medium",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.337572,
+        "pct_off_30d_high": -0.571732,
+        "gap_pct": 0.11239,
+        "pct_change_3": -0.242614,
+        "prior_day_range_atr": 1.091597,
+        "pct_off_52wk_high": -0.622369,
+        "atr_pct": 0.159753
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:36.372480-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:36",
+        "ticker": "MXL",
+        "bucket": "bounce",
+        "cap": "Medium",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 4,
+        "max_score": 6,
+        "recommendation": "CAUTION",
+        "inputs": {
+          "current_price": 48.45,
+          "pct_from_200mav": -0.20181482103848092,
+          "pct_change_30": -0.483695652173913,
+          "pct_change_3": -0.2426137251836798,
+          "pct_change_15": -0.3206674144699943,
+          "pct_off_52wk_high": -0.622369446609509,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 73.14,
+          "selloff_total_pct": -0.337571780147662,
+          "high_30d": 113.13,
+          "pct_off_30d_high": -0.5717316361707769,
+          "closed_outside_lower_band": false,
+          "bollinger_width": 0.6550438289332609,
+          "prior_day_close_vs_low_pct": 0.022369511184755605,
+          "day_of_range_pct": 1.0915970302831748,
+          "prior_day_range_atr": 1.0915970302831748,
+          "atr_pct": 0.15975305911838422,
+          "prior_day_rvol": 1.4436089570390616,
+          "premarket_rvol": 0.07405365049882974,
+          "gap_pct": 0.11238997968855781,
+          "prior_close": 44.31
+        },
+        "classification": {
+          "pct_from_200mav": -0.20181482103848092,
+          "signals": [
+            "Below 200MA by 20% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 30%",
+            "operator": "<=",
+            "threshold": -0.3,
+            "actual": -0.337571780147662,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.5717316361707769,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 3%",
+            "operator": "<=",
+            "threshold": -0.03,
+            "actual": 0.11238997968855781,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.0915970302831748,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 21%",
+            "operator": "<=",
+            "threshold": -0.21,
+            "actual": -0.2426137251836798,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 72%",
+            "operator": "<=",
+            "threshold": -0.72,
+            "actual": -0.622369446609509,
+            "input_present": true,
+            "passed": false
+          }
+        ],
+        "gates": {},
+        "decision_id": "02fefe8210d0440e6cd908ba9c818cc02036ba84bd07dda8fbcb228248f9f13f"
+      },
+      "intensity": 41.9,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "VERU",
+            "date": "2022-05-04",
+            "open_high_pct": 0.1574,
+            "open_low_pct": -0.0262,
+            "open_close_pct": 0.0741,
+            "time_of_low_bucket": 2,
+            "distance": 0.4621
+          },
+          {
+            "ticker": "VFC",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1253,
+            "open_low_pct": -0.0198,
+            "open_close_pct": 0.0378,
+            "time_of_low_bucket": 1,
+            "distance": 0.4979
+          },
+          {
+            "ticker": "LCID",
+            "date": "2022-05-12",
+            "open_high_pct": 0.21,
+            "open_low_pct": -0.0236,
+            "open_close_pct": 0.1562,
+            "time_of_low_bucket": 1,
+            "distance": 0.5264
+          },
+          {
+            "ticker": "QS",
+            "date": "2022-05-12",
+            "open_high_pct": 0.122,
+            "open_low_pct": -0.0079,
+            "open_close_pct": 0.0933,
+            "time_of_low_bucket": 1,
+            "distance": 0.5502
+          },
+          {
+            "ticker": "ENTG",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1399,
+            "open_low_pct": -0.0406,
+            "open_close_pct": 0.0556,
+            "time_of_low_bucket": 1,
+            "distance": 0.584
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1399,
+        "med_open_low": -0.0236,
+        "med_open_close": 0.0741,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 522,
+        "p_green": 0.5498,
+        "p_bounce5": 0.5709,
+        "med_return": 0.0079,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4 \u00b7 Medium"
+      },
+      "mid_bb": 71.954
+    },
+    {
+      "ticker": "MRVL",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.37417,
+        "pct_off_30d_high": -0.536761,
+        "gap_pct": 0.086222,
+        "pct_change_3": -0.188463,
+        "prior_day_range_atr": 1.024852,
+        "pct_off_52wk_high": -0.576937,
+        "atr_pct": 0.137106
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:35.547457-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:35",
+        "ticker": "MRVL",
+        "bucket": "bounce",
+        "cap": "Large",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 4,
+        "max_score": 6,
+        "recommendation": "CAUTION",
+        "inputs": {
+          "current_price": 139.56,
+          "pct_from_200mav": -0.24465202020810228,
+          "pct_change_30": -0.467196060091244,
+          "pct_change_3": -0.18846310402977262,
+          "pct_change_15": -0.3874380020190493,
+          "pct_off_52wk_high": -0.5769370680247362,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 223.0,
+          "selloff_total_pct": -0.3741704035874439,
+          "high_30d": 301.27,
+          "pct_off_30d_high": -0.5367610449098814,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.6838600388243768,
+          "prior_day_close_vs_low_pct": 0.051504334523203396,
+          "day_of_range_pct": 1.0248515488308882,
+          "prior_day_range_atr": 1.0248515488308882,
+          "atr_pct": 0.13710575072677392,
+          "prior_day_rvol": 1.824119738865916,
+          "premarket_rvol": 0.10235769515695906,
+          "gap_pct": 0.08622238861849484,
+          "prior_close": 133.55
+        },
+        "classification": {
+          "pct_from_200mav": -0.24465202020810228,
+          "signals": [
+            "Below 200MA by 24% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 18%",
+            "operator": "<=",
+            "threshold": -0.18,
+            "actual": -0.3741704035874439,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 38%",
+            "operator": "<=",
+            "threshold": -0.38,
+            "actual": -0.5367610449098814,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 8%",
+            "operator": "<=",
+            "threshold": -0.08,
+            "actual": 0.08622238861849484,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.0248515488308882,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 25%",
+            "operator": "<=",
+            "threshold": -0.25,
+            "actual": -0.18846310402977262,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.5769370680247362,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "82f6e3811ede81246f3a1f8e7b1edd950f2491f08a20a0732fba015cb70a3e5d"
+      },
+      "intensity": 38.6,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RGTI",
+            "date": "2024-12-20",
+            "open_high_pct": 0.3884,
+            "open_low_pct": -0.0455,
+            "open_close_pct": 0.2906,
+            "time_of_low_bucket": 1,
+            "distance": 2.4488
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 2.8879
+          },
+          {
+            "ticker": "SNDK",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0123,
+            "open_low_pct": -0.1047,
+            "open_close_pct": -0.066,
+            "time_of_low_bucket": 2,
+            "distance": 3.2284
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 3.2815
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 3.6806
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.0426,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      },
+      "mid_bb": 223.9467
+    },
+    {
+      "ticker": "STX",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.291986,
+        "pct_off_30d_high": -0.51221,
+        "gap_pct": 0.083585,
+        "pct_change_3": -0.23872,
+        "prior_day_range_atr": 1.192367,
+        "pct_off_52wk_high": -0.596834,
+        "atr_pct": 0.114493
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:29.442344-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:29",
+        "ticker": "STX",
+        "bucket": "bounce",
+        "cap": "Large",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 4,
+        "max_score": 6,
+        "recommendation": "CAUTION",
+        "inputs": {
+          "current_price": 461.625,
+          "pct_from_200mav": -0.33782070824172405,
+          "pct_change_30": -0.4964988056673538,
+          "pct_change_3": -0.23871994458920148,
+          "pct_change_15": -0.2775934648910033,
+          "pct_off_52wk_high": -0.5968340611353712,
+          "consecutive_down_days": 5,
+          "selloff_start_open": 652.0,
+          "selloff_total_pct": -0.2919861963190184,
+          "high_30d": 946.36,
+          "pct_off_30d_high": -0.5122099412485734,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.43351457351231,
+          "prior_day_close_vs_low_pct": 0.08600444303395685,
+          "day_of_range_pct": 1.192366626384132,
+          "prior_day_range_atr": 1.192366626384132,
+          "atr_pct": 0.1144930873080345,
+          "prior_day_rvol": 1.5223282072534385,
+          "premarket_rvol": 0.07737788316874594,
+          "gap_pct": 0.08358519280646476,
+          "prior_close": 466.53
+        },
+        "classification": {
+          "pct_from_200mav": -0.33782070824172405,
+          "signals": [
+            "Below 200MA by 34% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 18%",
+            "operator": "<=",
+            "threshold": -0.18,
+            "actual": -0.2919861963190184,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 38%",
+            "operator": "<=",
+            "threshold": -0.38,
+            "actual": -0.5122099412485734,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 8%",
+            "operator": "<=",
+            "threshold": -0.08,
+            "actual": 0.08358519280646476,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.192366626384132,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 25%",
+            "operator": "<=",
+            "threshold": -0.25,
+            "actual": -0.23871994458920148,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.5968340611353712,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "cc7b5058e49fac30819eab6fa6e75b8c6c2332649164a84430bd7c5354949d39"
+      },
+      "intensity": 34.4,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RGTI",
+            "date": "2024-12-20",
+            "open_high_pct": 0.3884,
+            "open_low_pct": -0.0455,
+            "open_close_pct": 0.2906,
+            "time_of_low_bucket": 1,
+            "distance": 2.159
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 2.2791
+          },
+          {
+            "ticker": "SNDK",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0123,
+            "open_low_pct": -0.1047,
+            "open_close_pct": -0.066,
+            "time_of_low_bucket": 2,
+            "distance": 2.578
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 2.6489
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 2.926
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.0426,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      },
+      "mid_bb": 660.554
+    },
+    {
+      "ticker": "WDC",
+      "bucket": "bounce",
+      "cap": "Large",
+      "recommendation": "CAUTION",
+      "score": "4/6",
+      "metrics": {
+        "selloff_total_pct": -0.324645,
+        "pct_off_30d_high": -0.434262,
+        "gap_pct": 0.072376,
+        "pct_change_3": -0.241176,
+        "prior_day_range_atr": 1.47589,
+        "pct_off_52wk_high": -0.670475,
+        "atr_pct": 0.103879
+      },
+      "decision_evidence": {
+        "schema_version": 1,
+        "producer": "priority_report",
+        "evaluated_at": "2026-11-06T15:15:29.226146-05:00",
+        "scorer_timestamp": "2026-11-06 15:15:29",
+        "ticker": "WDC",
+        "bucket": "bounce",
+        "cap": "Large",
+        "setup_profile": "GapFade_weakstock",
+        "rule_version": "7e81840e8e77fcd4978716c1a468a7e2e060eeeca4d38717316f49f6568f3b33",
+        "rule_files": {
+          "analyzers/bounce_scorer.py": "37a3fbb0a4a122ad9635ae14c8930e75cfa6867a705bf75c0d96dfbc9e6e5048"
+        },
+        "status": "scored",
+        "score": 4,
+        "max_score": 6,
+        "recommendation": "CAUTION",
+        "inputs": {
+          "current_price": 263.5775,
+          "pct_from_200mav": -0.37366683431301306,
+          "pct_change_30": -0.42300409360565666,
+          "pct_change_3": -0.2411760472146251,
+          "pct_change_15": -0.20609186746987956,
+          "pct_off_52wk_high": -0.6704745771187818,
+          "consecutive_down_days": 6,
+          "selloff_start_open": 390.28,
+          "selloff_total_pct": -0.32464512657579175,
+          "high_30d": 465.9,
+          "pct_off_30d_high": -0.4342616441296416,
+          "closed_outside_lower_band": true,
+          "bollinger_width": 0.3389154735733694,
+          "prior_day_close_vs_low_pct": 0.0650829002722097,
+          "day_of_range_pct": 1.4758901933939483,
+          "prior_day_range_atr": 1.4758901933939483,
+          "atr_pct": 0.10387869114126098,
+          "prior_day_rvol": 0.8353887325513668,
+          "premarket_rvol": 0.0764363207269643,
+          "gap_pct": 0.072376041549901,
+          "prior_close": 267.63
+        },
+        "classification": {
+          "pct_from_200mav": -0.37366683431301306,
+          "signals": [
+            "Below 200MA by 37% -> WEAK"
+          ],
+          "classification": "GapFade_weakstock"
+        },
+        "criteria": [
+          {
+            "key": "selloff_total_pct",
+            "description": "Deep selloff >= 18%",
+            "operator": "<=",
+            "threshold": -0.18,
+            "actual": -0.32464512657579175,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_off_30d_high",
+            "description": "Discount from 30d high >= 38%",
+            "operator": "<=",
+            "threshold": -0.38,
+            "actual": -0.4342616441296416,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "gap_pct",
+            "description": "Gap down >= 8%",
+            "operator": "<=",
+            "threshold": -0.08,
+            "actual": 0.072376041549901,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "prior_day_range_atr",
+            "description": "Prior day range >= 1.0x ATR",
+            "operator": ">=",
+            "threshold": 1.0,
+            "actual": 1.4758901933939483,
+            "input_present": true,
+            "passed": true
+          },
+          {
+            "key": "pct_change_3",
+            "description": "3-day momentum crash >= 25%",
+            "operator": "<=",
+            "threshold": -0.25,
+            "actual": -0.2411760472146251,
+            "input_present": true,
+            "passed": false
+          },
+          {
+            "key": "pct_off_52wk_high",
+            "description": "Discount from 52wk high >= 53%",
+            "operator": "<=",
+            "threshold": -0.53,
+            "actual": -0.6704745771187818,
+            "input_present": true,
+            "passed": true
+          }
+        ],
+        "gates": {},
+        "decision_id": "34f0e0e1c1a2bcf8a6438d81fcd5911ae5870c90aa1a050f21ddb4da648df1f1"
+      },
+      "intensity": 33.3,
+      "high_edge": false,
+      "analogs": {
+        "comps": [
+          {
+            "ticker": "RGTI",
+            "date": "2024-12-20",
+            "open_high_pct": 0.3884,
+            "open_low_pct": -0.0455,
+            "open_close_pct": 0.2906,
+            "time_of_low_bucket": 1,
+            "distance": 2.1355
+          },
+          {
+            "ticker": "MSTR",
+            "date": "2024-12-20",
+            "open_high_pct": 0.1425,
+            "open_low_pct": -0.0074,
+            "open_close_pct": 0.1404,
+            "time_of_low_bucket": 1,
+            "distance": 2.5328
+          },
+          {
+            "ticker": "SOFI",
+            "date": "2025-04-07",
+            "open_high_pct": 0.218,
+            "open_low_pct": -0.016,
+            "open_close_pct": 0.1281,
+            "time_of_low_bucket": 1,
+            "distance": 2.6851
+          },
+          {
+            "ticker": "SNDK",
+            "date": "2026-07-28",
+            "open_high_pct": 0.0123,
+            "open_low_pct": -0.1047,
+            "open_close_pct": -0.066,
+            "time_of_low_bucket": 2,
+            "distance": 2.7876
+          },
+          {
+            "ticker": "TSLA",
+            "date": "2025-04-07",
+            "open_high_pct": 0.1261,
+            "open_low_pct": -0.0426,
+            "open_close_pct": 0.0425,
+            "time_of_low_bucket": 1,
+            "distance": 3.0023
+          }
+        ],
+        "n": 5,
+        "med_open_high": 0.1425,
+        "med_open_low": -0.0426,
+        "med_open_close": 0.1281,
+        "n_low_by_10": 4
+      },
+      "odds": {
+        "n": 854,
+        "p_green": 0.5351,
+        "p_bounce5": 0.5913,
+        "med_return": 0.0068,
+        "base_p_bounce5": 0.1058,
+        "bucket": "score 4-4"
+      },
+      "mid_bb": 359.1365
+    }
+  ],
+  "cluster_signal": {
+    "level": "WATCH",
+    "bounce_open": 11,
+    "total_open": 12
+  },
+  "bounce_cohort": {
+    "n": 103,
+    "low_by_10_pct": 0.7573,
+    "low_by_10_med_open_close": 0.0985,
+    "low_after_10_med_open_close": -0.0216,
+    "vol15_q25": 0.1201,
+    "vol15_med": 0.1824,
+    "vol15_q75": 0.285,
+    "analog_stats": {
+      "generated": "2026-07-06T17:17:37",
+      "n": 90,
+      "med_corr_full": 0.638,
+      "med_corr_am": 0.734,
+      "in_band_11_n": 57,
+      "in_band_11_p_green": 0.895,
+      "in_band_11_med_close": 8.55,
+      "out_band_11_p_green": 0.727,
+      "out_band_11_med_close": 7.63,
+      "exit_rate": 0.411,
+      "below_band_med_drift": 2.61,
+      "exit_p_green": 0.676,
+      "nonexit_p_green": 0.943
+    }
+  }
+}
