@@ -297,3 +297,20 @@ ul.items li.tiers { list-style: none; margin-left: -18px; padding: 10px 12px; bo
   margin: 8px calc(16px + var(--sar)) 0 calc(16px + var(--sal)); padding: 12px 14px; font-size: 13.5px; }
 .push-banner[hidden] { display: none; }
 .push-banner .btn { flex: 0 0 auto; }
+
+/* Watching (method/pins.py) */
+.watching .pin-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "name px x" "meta meta meta";
+  align-items: center; column-gap: 10px; row-gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.watching .eyebrow + .pin-row { margin-top: 6px; }
+.pin-name { grid-area: name; display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.pin-tk { font: 800 16px/1 var(--display); letter-spacing: -.01em; }
+.pin-px { grid-area: px; justify-self: end; font-size: 14px; }
+.pin-meta { grid-area: meta; font-size: 12px; }
+.pin-x { grid-area: x; width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line-2); background: transparent;
+  color: var(--text-3); font-size: 16px; line-height: 1; cursor: pointer; }
+.pin-add { display: flex; gap: 8px; margin-top: 12px; }
+.pin-add input { flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2);
+  background: var(--bg-2); color: var(--text); font: 600 14px/1 var(--font); text-transform: uppercase; }
+.pin-btn { height: 26px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: transparent;
+  color: var(--text-2); font: 700 12px/1 var(--font); cursor: pointer; vertical-align: middle; }
+.pin-btn.on { border-color: rgba(165, 148, 255, .45); background: var(--brand-soft); color: var(--brand); }

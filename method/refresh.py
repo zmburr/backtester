@@ -47,6 +47,7 @@ from analyzers.bounce_scorer import BouncePretrade
 from method import breadth
 from method import core
 from method import live
+from method import pins
 from method import push
 from method import watch
 from method.ladder import grade_at, ladder_payload, next_better
@@ -172,6 +173,8 @@ def row_from_summary(t: str, s: dict, cap: str, b: dict, mode: str, src: str) ->
     open and the open's own grade once the session is running."""
     row = score_row(t, s, cap, b["price"], b["bar_time"])
     row.update(src=src, src_label=live.SRC_LABEL.get(src, src))
+    if b.get("bar_ts"):
+        row["asof"] = b["bar_ts"]                       # pin alerts fire only off a fresh print
     if b.get("pm_low") is not None and mode != "evening":    # today's PM low means nothing for tomorrow
         row.update(pm_low=b["pm_low"], pm_low_time=b.get("pm_low_time"), pm_high=b.get("pm_high"))
     if mode == "market" and b.get("open") is not None:
@@ -296,7 +299,7 @@ def overnight_pass(tickers, statics, caps, prices: dict) -> tuple[list[dict], st
             if "ladder" not in s:
                 s["ladder"] = ladder_payload(s, caps[t], t)
             row = score_row(t, s, caps[t], float(price), asof.strftime("%H:%M"))
-            row.update(src=src, src_label=SRC_LABEL.get(src, src))
+            row.update(src=src, src_label=SRC_LABEL.get(src, src), asof=pd.Timestamp(asof).isoformat())
             rows.append(row)
             if src != "P":
                 newest = max(newest, asof) if newest is not None else asof
@@ -430,7 +433,7 @@ def _report_view(rep: dict) -> dict:
     return view
 
 
-def grade_alerts(rows: list[dict], session: str, mode: str) -> list[str]:
+def grade_alerts(rows: list[dict], session: str, mode: str, skip=()) -> list[str]:
     """Push when a name the priority report rated GO or CAUTION reaches A or A+ at the
     live price, overnight or premarket (user, 2026-10-15). Once per name per grade per
     session; an A that becomes an A+ pushes again. Nothing is recorded unless a phone got it."""
@@ -441,6 +444,8 @@ def grade_alerts(rows: list[dict], session: str, mode: str) -> list[str]:
     sent = []
     for r in rows:
         g = r.get("grade")
+        if r["ticker"] in skip:               # pinned: method/pins.py pushes its own, every grade
+            continue
         if r.get("report_rec") not in ("GO", "CAUTION") or g not in ("A", "A+"):
             continue
         if GRADE_RANK[g] <= GRADE_RANK.get(state.get(r["ticker"], "-"), 0):
@@ -597,9 +602,13 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
     times = [snap.get("data_time") or ""] + [b["bar_time"] for b in fresh.values()]
     snap["data_time"] = max(times) or None
     snap["live_at"] = now.isoformat(timespec="seconds")
+    pinned = pins.tickers()
+    snap["pins"] = pins.board(snap["bounce"]["rows"], pinned)
     set_source(snap)
     core.write_json(SNAPSHOT, snap)
-    sent = grade_alerts(rows, session, mode) if alerts else []
+    sent = grade_alerts(rows, session, mode, skip=pinned) if alerts else []
+    if alerts:
+        sent += pins.pin_alerts(rows, session, mode, push.send, now, pinned)
     if alerts and mb and breadth_alert(mb):
         snap["market_breadth"] = breadth.public(mb)
         core.write_json(SNAPSHOT, snap)
@@ -660,7 +669,8 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         except Exception as e:
             logger.warning(f"market breadth failed: {e}")
     market = [t for t in breadth.board_names(mb) if t not in watchlist]
-    tickers = watchlist + market
+    pinned = pins.tickers()
+    tickers = watchlist + market + [t for t in pinned if t not in watchlist and t not in market]
     caps_cache = _load_json(CAP_CACHE_FILE)
     caps = {t: get_cap(t, caps_cache) for t in tickers}
     checker = BouncePretrade()
@@ -702,7 +712,8 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         mb = prev["market_breadth"]          # the evening's read stands until the premarket
     tag_rows(bounce, mb)
     if not dry:
-        grade_alerts(bounce, session, mode)
+        grade_alerts(bounce, session, mode, skip=pinned)
+        pins.pin_alerts(bounce, session, mode, push.send, now, pinned)
         if mode in ("premarket", "market"):
             breadth_alert(mb)
     bc, rc = _counts(bounce), _counts(reversal)
@@ -718,6 +729,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         "scenario_text": core.SCENARIO_TEXT,
         "grade_stats": historical_grade_stats(),
         "market_breadth": breadth.public(mb),
+        "pins": pins.board(bounce, pinned),
     }
     set_source(snapshot)
     if dry:

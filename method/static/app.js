@@ -201,7 +201,7 @@ function renderSideList(side) {
   let h = listHead(`${esc(MODE_WORD[s.mode] || s.mode)} · plan for`, esc(dayLabel(s.session)),
     `Data ${esc(s.data_time || '–')} ET · ${esc(s.source)} · updated ${esc(ago(lastUpdate(s)))}`);
 
-  if (side === 'bounce') h += breadthCard(s);
+  if (side === 'bounce') h += watchCard(s) + breadthCard(s);
   const b = s.breadth || [], goN = b.map(e => e[`${side}_go`] || 0), ca = b.map(e => e[`${side}_caution`] || 0);
   const runDay = (s.generated_at || '').slice(0, 10);
   const since = b.length ? (b[0].date && b[0].date !== runDay ? `${b[0].t} last evening` : b[0].t) : '';
@@ -240,6 +240,37 @@ function renderSideList(side) {
   list.innerHTML = h;
   if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });
 }
+// ── Watching (method/pins.py): names you pinned; Method pushes when their setup forms ──
+const pinned = t => (S.snap?.pins || []).some(p => p.ticker === t);
+function watchCard(s) {
+  const list = s.pins || [];
+  const row = p => {
+    const x = `<button class="pin-x" data-unpin="${esc(p.ticker)}" aria-label="Stop watching ${esc(p.ticker)}">×</button>`;
+    if (p.pending) return `<div class="pin-row"><b class="pin-tk">${esc(p.ticker)}</b>` +
+      `<span class="muted pin-meta">its ladder builds on the next pass</span>${x}</div>`;
+    const nxt = p.next ? `${esc(p.next.grade)} at ${px(p.next.price)}` : 'best grade reached';
+    return `<div class="pin-row"><button class="pin-name" data-pick="bounce" data-tk="${esc(p.ticker)}">` +
+      `<b class="pin-tk">${esc(p.ticker)}</b>${gradeBadge(p.grade)}</button>` +
+      `<span class="pin-px num">${px(p.price)} <span class="${(p.gap || 0) < 0 ? 'neg' : 'go'}">${pct(p.gap)}</span></span>` +
+      `<span class="muted pin-meta">${nxt}${p.src_label ? ` · ${esc(p.src_label)} ${esc(p.bar_time || '')}` : ''}</span>${x}</div>`;
+  };
+  return `<div class="card watching"><div class="eyebrow">Watching</div>` +
+    (list.length ? list.map(row).join('')
+      : `<div class="muted small-line">Pin a name and Method pushes when its setup forms, overnight and premarket.</div>`) +
+    `<form class="pin-add" data-pinform><input name="tk" placeholder="Add a ticker" autocapitalize="characters" ` +
+    `autocomplete="off" spellcheck="false" maxlength="10" aria-label="Ticker to watch">` +
+    `<button class="btn ghost small" type="submit">Watch</button></form>` +
+    `<div class="rep-note">Pushes on each grade upgrade, at −3 / −5 / −8 / −12% and +3 / +5% vs the close, and within 1% of the next grade. Once each a session.</div></div>`;
+}
+async function setPin(ticker, on) {
+  let r;
+  try {
+    r = await api('/api/pins', { method: 'POST', body: JSON.stringify({ ticker, on }) });
+  } catch (e) { return; }
+  if (S.snap) S.snap.pins = r.board;
+  if (S.route === 'bounce' || S.route === 'reversal') { renderSideList(S.route); renderDetail(S.route, true); }
+}
+
 // ── market breadth (method/breadth.py): the day's count and its replayed edge ──
 const STATE_WORD = { normal: 'Normal day', elevated: 'Elevated', breadth: 'Breadth day' };
 const STATE_CLS = { normal: 'nogo', elevated: 'caution', breadth: 'go' };
@@ -746,7 +777,10 @@ function renderDetail(side, soft = false) {
     reader.innerHTML = '<div class="col"><div class="empty">Pick a name from the list.</div></div>';
     return;
   }
-  setTitle(`${esc(r.ticker)} ${side === 'bounce' ? gradeBadges(r) : ''} ${recBadge(r)} ${side === 'reversal' ? scenBadges(r) : ''}`,
+  const on = pinned(r.ticker);
+  const pinBtn = `<button class="pin-btn${on ? ' on' : ''}" data-pin="${esc(r.ticker)}" aria-pressed="${on}" ` +
+    `title="${on ? 'Stop watching' : 'Watch: push when its setup forms'}">${on ? '★ Watching' : '☆ Watch'}</button>`;
+  setTitle(`${esc(r.ticker)} ${side === 'bounce' ? gradeBadges(r) : ''} ${recBadge(r)} ${side === 'reversal' ? scenBadges(r) : ''} ${pinBtn}`,
     [r.cap, r.report_rec ? `priority report ${r.report_rec}` : null, r.bar_time ? `last bar ${r.bar_time}` : null].filter(Boolean).join(' · '));
   const mode = S.snap.mode;
   let lead = '';
@@ -1191,6 +1225,8 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button');
   if (!t) return;
   if (t.dataset.btk) return go('bounce', t.dataset.btk, wide());
+  if (t.dataset.pin) return setPin(t.dataset.pin, !pinned(t.dataset.pin));
+  if (t.dataset.unpin) return setPin(t.dataset.unpin, false);
   if (t.dataset.review) return go('history', S.sel.history, false, t.dataset.review);
   if (t.dataset.pick) return go(t.dataset.pick, t.dataset.tk, wide());
   if (t.dataset.back != null) return back();
@@ -1221,6 +1257,13 @@ document.addEventListener('click', e => {
   if (t.id === 'push-enable' || t.id === 'push-enable-b') return enablePush();
   if (t.id === 'push-test') return api('/api/push/test', { method: 'POST', body: '{}' })
     .then(r => { $('#push-status').textContent = r.sent ? 'Test sent.' : 'No device is subscribed.'; });
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('[data-pinform]');
+  if (!f) return;
+  e.preventDefault();
+  const tk = (f.tk.value || '').trim().toUpperCase();
+  if (tk) setPin(tk, true);
 });
 document.addEventListener('change', e => {
   const el = e.target;

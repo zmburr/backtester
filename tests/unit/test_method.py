@@ -165,6 +165,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "historical_grade_stats", lambda: {"A": {"n": 15, "med_open_close": 0.117}})
     monkeypatch.setattr(rf, "lookup_bounce_odds", lambda score, cap: {"p_bounce5": 0.6})
     monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))       # no phone subscribed: no pushes
+    monkeypatch.setenv("METHOD_DIR", str(tmp_path / "method"))      # pins.json lives here (method/pins.py)
     monkeypatch.setattr(rf.time, "sleep", lambda s: None)
     rev = []
     monkeypatch.setattr(rf, "reversal_pass", lambda cands, caps, today, setups: rev.append(cands) or [])
@@ -279,6 +280,28 @@ def test_overnight_grades_the_newest_print_for_tomorrow(env):
     assert (rows["MXL"]["price"], rows["MXL"]["src_label"]) == (97.0, "your quote")    # newer than Yahoo
     peng = snap["reversal"]["rows"][0]
     assert peng["price"] == 52.5 and peng["gap"] == pytest.approx(0.05) and peng["scenario"] == "A"
+
+
+def test_a_pinned_name_joins_the_board_and_pushes_overnight(env):
+    """MU isn't on the watchlist or in the report: pinning it puts it on the board and
+    its Blue Ocean print pushes (user, 11/05)."""
+    from method import pins
+    mp = env["monkeypatch"]
+    ts = lambda hhmm, day="2026-10-15": pd.Timestamp(f"{day} {hhmm}", tz=ET)
+    pins.set_pin("MU", True)
+    core.write_json(rf.SNAPSHOT, {"generated_at": ts("19:59").isoformat(), "mode": "evening",
+                                  "bounce": {"rows": [{"ticker": "SOXL", "price": 99.0}]}})
+    _overnight_feeds(mp, yahoo={"SOXL": (91.0, ts("23:20")), "MU": (93.0, ts("23:25"))})
+    sent = []
+    mp.setattr(rf.push, "send", lambda title, body, url="/", tag="": sent.append((title, url)) or 1)
+    snap = rf.run(now=at("23:30"))
+    rows = {r["ticker"]: r for r in snap["bounce"]["rows"]}
+    assert ("MU", "2026-10-16") in env["built"]                       # statics built for the pin
+    assert (rows["MU"]["price"], rows["MU"]["grade"], rows["MU"]["src"]) == (93.0, "B", "Y")
+    assert snap["pins"][0]["ticker"] == "MU" and snap["pins"][0]["grade"] == "B"
+    assert ("MU 93.00 (-7.0%)", "/#/bounce/MU") in sent
+    assert ("SOXL is an A", "/#/bounce/SOXL") in sent                # not pinned: the report-gated grade alert
+    assert rf.run(now=at("23:36")) is not None                         # overnight runs every 5 min now
 
 
 def test_overnight_falls_back_to_the_evening_price(env):

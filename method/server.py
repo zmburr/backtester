@@ -37,6 +37,7 @@ from method import core
 from method import library as lib
 from method import live
 from method import livebars
+from method import pins
 from method import push
 from method import review as rv
 from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, apply_live, read_breadth
@@ -208,6 +209,21 @@ def create_app() -> Flask:
             return jsonify(error=str(e)), 400
         return jsonify(ok=True, subscriptions=n)
 
+    @app.get("/api/pins")
+    def pins_get():
+        return jsonify(pins=pins.tickers())
+
+    @app.post("/api/pins")
+    def pins_set():
+        body = request.get_json(silent=True) or {}
+        try:
+            now = pins.set_pin(body.get("ticker", ""), bool(body.get("on", True)))
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        snap = core.read_json(SNAPSHOT) or {}                 # the Watching card, redrawn without a full poll
+        return jsonify(core.clean({"ok": True, "pins": now,
+                                   "board": pins.board((snap.get("bounce") or {}).get("rows", []), now)}))
+
     @app.post("/api/push/test")
     def push_test():
         sent = push.send("Method", "Notifications are on. Setups forming and grade upgrades arrive here.",
@@ -228,13 +244,19 @@ def create_app() -> Flask:
             out = apply_live(day, names)
         return jsonify(ok=True, have=have, **out)
 
+    # no-cache = revalidate every load (a cheap 304): without it the phone can run a stale
+    # app.js for hours after a deploy (heuristic caching off Last-Modified)
     @app.get("/")
     def index():
-        return send_from_directory(STATIC, "index.html")
+        resp = send_from_directory(STATIC, "index.html")
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
     @app.get("/static/<path:name>")
     def static_file(name):
-        return send_from_directory(STATIC, name)
+        resp = send_from_directory(STATIC, name)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
     @app.get("/manifest.webmanifest")
     def manifest():
@@ -260,6 +282,7 @@ def create_app() -> Flask:
         if not snap:
             return jsonify(empty=True, version=version)
         snap["breadth"] = read_breadth(snap["session"])
+        snap["pins"] = pins.board((snap.get("bounce") or {}).get("rows", []))   # current pins, not the pass's
         snap["version"] = version
         return jsonify(core.clean(snap))
 

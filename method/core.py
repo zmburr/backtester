@@ -17,7 +17,7 @@ PREMARKET = (datetime.time(4, 0), datetime.time(9, 30))
 MARKET = (datetime.time(9, 30), datetime.time(16, 0))
 EVENING = (datetime.time(16, 30), datetime.time(20, 0))   # daily bars settle after the close
 OVERNIGHT = (datetime.time(20, 0), datetime.time(4, 0))     # Blue Ocean: Sun-Thu nights
-CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15, "overnight": 15}
+CADENCE_MIN = {"premarket": 5, "market": 15, "evening": 15, "overnight": 5}   # overnight 5: pinned names (method/pins.py)
 
 MIN_GO = 2                      # same episode gate as the playbook email
 REVERSAL_GAP_GATE = 0.04        # 3DGapFade gap gate (analyzers/reversal_pretrade.py)
