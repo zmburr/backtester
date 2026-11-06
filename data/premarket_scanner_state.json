@@ -1,9 +1,11 @@
 {
- "date": "2026-11-05",
+ "date": "2026-11-06",
  "alerted": {
-  "SOXL": 6,
+  "TEAM": 5,
+  "AAOI": 5,
+  "AXTI": 5,
   "DRAM": 5,
-  "PENG": 5
+  "SOXL": 5
  },
- "brief_sent": true
+ "brief_sent": false
 }
