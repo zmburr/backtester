@@ -1,0 +1,101 @@
+{
+ "date": "2026-11-06",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 129,
+ "priced": 123,
+ "live": {
+  "n": 1,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-06T15:45:01-05:00",
+  "names": [
+   "BWET",
+   "CHSN",
+   "CVI",
+   "SAIQ"
+  ],
+  "relaxed": [
+   "IAM",
+   "INO",
+   "NCPL"
+  ],
+  "trillium": 24,
+  "pushed": null
+ },
+ "generated_at": "2026-11-06T17:46:05-05:00",
+ "signals": [
+  {
+   "ticker": "BWET",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.08803564764364301,
+    "gap_pct": -0.014763617907417616,
+    "pct_change_3": -0.1977365269461078,
+    "prior_day_range_atr": 0.4632534226831402,
+    "prior_day_rvol": 0.8827930311669121,
+    "selloff_total_pct": -0.25634706541890073,
+    "pct_off_30d_high": -0.36318562897931744,
+    "pct_off_52wk_high": -0.36318562897931744,
+    "prior_close": 669.89,
+    "open": 660.0
+   }
+  },
+  {
+   "ticker": "CHSN",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.3201838905775076,
+    "gap_pct": -0.025531914893617044,
+    "pct_change_3": -0.30473372781065083,
+    "prior_day_range_atr": 2.4588263773192645,
+    "prior_day_rvol": 0.4443122005855911,
+    "selloff_total_pct": -0.3989769820971867,
+    "pct_off_30d_high": -0.53,
+    "pct_off_52wk_high": -0.9929003021148035,
+    "prior_close": 2.35,
+    "open": 2.29
+   }
+  },
+  {
+   "ticker": "CVI",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.10927334337349398,
+    "gap_pct": -0.018072289156626654,
+    "pct_change_3": -0.18024691358024686,
+    "prior_day_range_atr": 0.8774649990237627,
+    "prior_day_rvol": 3.5963726170444708,
+    "selloff_total_pct": -0.3036182485579444,
+    "pct_off_30d_high": -0.3726972130373169,
+    "pct_off_52wk_high": -0.3726972130373169,
+    "prior_close": 39.84,
+    "open": 39.12
+   }
+  }
+ ]
+}

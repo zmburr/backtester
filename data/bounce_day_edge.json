@@ -5,8 +5,8 @@
   "study": "2022-01-03..2026-06-30",
   "recorded": {
    "since": "2026-07-01",
-   "sessions": 90,
-   "last": "2026-11-05"
+   "sessions": 91,
+   "last": "2026-11-06"
   }
  },
  "shrink_n": 30,
@@ -23,7 +23,7 @@
    "entry_n": 1330,
    "entry_mean_r": 0.082,
    "entry_win": 0.267,
-   "days": 1159,
+   "days": 1160,
    "day_mean_r": 0.24,
    "traded_days": 503,
    "pos_days": 200,
@@ -73,7 +73,7 @@
     "entry_n": 163,
     "entry_mean_r": 0.035,
     "entry_win": 0.245,
-    "days": 79,
+    "days": 80,
     "day_mean_r": 0.386,
     "traded_days": 48,
     "pos_days": 16,
@@ -303,12 +303,12 @@
  },
  "watchlist": {
   "normal": {
-   "n": 155,
-   "mean_r": 0.207,
-   "median_r": -0.504,
-   "win": 0.445,
-   "day_mean_r": 0.226,
-   "traded_days": 50,
+   "n": 160,
+   "mean_r": 0.138,
+   "median_r": -0.613,
+   "win": 0.431,
+   "day_mean_r": 0.183,
+   "traded_days": 51,
    "pos_days": 26
   },
   "elevated": {
