@@ -22,7 +22,7 @@ const PREFS = (() => {
   } catch (e) { return base; }
 })();
 function savePrefs() { try { localStorage.setItem('method.prefs', JSON.stringify(PREFS)); } catch (e) { /* private mode */ } }
-const ROUTES = ['bounce', 'reversal', 'playbook', 'history', 'best'];
+const ROUTES = ['bounce', 'reversal', 'playbook', 'history', 'best', 'practice'];
 const app = document.getElementById('app');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -104,8 +104,10 @@ function applyRoute() {
     S.reviewTk = sub;
   }
   if (route === 'best') S.sel.best = arg || (wide() ? S.sel.best : null);
+  if (route !== 'practice') window.practiceLeave?.();
   app.dataset.route = route;
-  app.dataset.view = arg != null || route === 'playbook' ? 'detail' : 'list';
+  app.dataset.view = arg != null || route === 'playbook' || route === 'practice' ? 'detail' : 'list';
+  if (route === 'practice' && arg) app.dataset.sub = arg; else delete app.dataset.sub;
   $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === route));
   render();
 }
@@ -149,6 +151,8 @@ function render() {
     renderPlaybook();
   } else if (r === 'best') {
     renderBest();
+  } else if (r === 'practice') {
+    renderPractice(parseHash().arg);
   } else {
     renderHistory();
   }
@@ -1273,9 +1277,10 @@ document.addEventListener('change', e => {
 document.addEventListener('keydown', e => {
   if (e.target.matches?.('input, select, textarea')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (S.route === 'practice' && window.practiceKey?.(e)) return;      // the arena's keys first (method/static/practice.js)
   if (e.key === 'Enter' && e.target.classList?.contains('name')) return e.target.click();
   const i = ROUTES.indexOf(S.route);
-  if (/^[1-5]$/.test(e.key)) return go(ROUTES[Number(e.key) - 1]);
+  if (/^[1-6]$/.test(e.key)) return go(ROUTES[Number(e.key) - 1]);
   if (e.key === 'ArrowRight') { e.preventDefault(); return go(ROUTES[(i + 1) % ROUTES.length]); }
   if (e.key === 'ArrowLeft') { e.preventDefault(); return go(ROUTES[(i + ROUTES.length - 1) % ROUTES.length]); }
   if (e.key === 'Escape') return back();

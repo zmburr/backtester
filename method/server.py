@@ -38,6 +38,7 @@ from method import library as lib
 from method import live
 from method import livebars
 from method import pins
+from method import practice as pr
 from method import push
 from method import review as rv
 from method.refresh import METHOD_DIR, SIGNALS_DIR, SNAPSHOT, DATA_DIR, apply_live, read_breadth
@@ -62,6 +63,8 @@ LIVE_BARS = livebars.Store(METHOD_DIR / "live_bars")      # today's Trillium bar
 _history_cache: dict = {"key": None, "data": None}
 _outcomes_cache: dict = {"mtime": None, "rows": [], "index": {}}
 _library_cache: dict = {"mtime": None, "data": None}
+_practice_cache: dict = {"mtime": None, "rows": {}, "list": [], "fills": {}, "states": None, "states_at": 0.0}
+_practice_lock = threading.Lock()
 CAPS = ("ETF", "Large", "Medium", "Small", "Micro")
 _shots_lock = threading.Lock()
 _live_lock = threading.Lock()
@@ -159,6 +162,25 @@ def allowed_logins() -> set[str]:
 
 def _valid_ticker(t: str) -> bool:
     return bool(t) and t.isascii() and t.replace(".", "").isalnum() and len(t) <= 10
+
+
+def practice_deck() -> dict:
+    """The arena's deck (method/practice.py build), reread when the file changes."""
+    path = pr.DECK
+    mtime = path.stat().st_mtime if path.exists() else None
+    if _practice_cache["mtime"] != mtime:
+        rows = (pr.load_deck(path).get("rows") or []) if mtime else []
+        _practice_cache.update(mtime=mtime, list=rows, rows={r["key"]: r for r in rows},
+                               fills=core.read_json(pr.HOME / "fills.json", {}) or {})
+    if _practice_cache["states"] is None or time.time() - _practice_cache["states_at"] > 3600:
+        from method import breadth
+        try:
+            _practice_cache["states"] = breadth.day_states()
+        except Exception as e:
+            logger.warning(f"practice day states: {e}")
+            _practice_cache["states"] = {}
+        _practice_cache["states_at"] = time.time()
+    return _practice_cache
 
 
 def live_frame(ticker: str, date: str):
@@ -398,6 +420,49 @@ def create_app() -> Flask:
                     abort(400)
                 core.write_json(SHOTS, book)
             return jsonify(date=day, entries=book.get(day, []))
+
+    # ── Practice: old days played blind (method/practice.py) ─────────────────
+    @app.get("/api/practice/next")
+    def practice_next():
+        mode = request.args.get("mode", "play")
+        if mode not in ("play", "reads"):
+            abort(400)
+        n = max(1, min(int(request.args.get("n", 10) or 10), 40))
+        with _practice_lock:
+            deck = practice_deck()
+            keys = pr.deal(mode, n, deck["list"])
+        return jsonify(keys=keys, deck=len(deck["list"]))
+
+    @app.get("/api/practice/day")
+    def practice_day():
+        key = request.args.get("key") or ""
+        with _practice_lock:
+            deck = practice_deck()
+        row = deck["rows"].get(key)
+        if row is None:
+            abort(404)
+        _, index = outcomes()
+        try:
+            data = lib.cached_review(row["side"], row["ticker"], row["date"], REVIEW_DIR, cap=row.get("cap"),
+                                     row=index.get((row["date"], row["side"], row["ticker"])))
+            return jsonify(pr.day_payload(row, data, deck["fills"].get(key), deck["states"] or {}))
+        except Exception as e:
+            logger.warning(f"practice {key}: {e}")
+            return jsonify(key=key, ok=False, error=str(e))
+
+    @app.post("/api/practice/log")
+    def practice_log():
+        body = request.get_json(silent=True) or {}
+        if body.get("mode") not in ("play", "read") or not isinstance(body.get("key"), str):
+            abort(400)
+        keep = {k: body[k] for k in ("mode", "key", "year", "source", "side", "budget", "you_r", "rules_r", "your_real_r",
+                                     "tries", "stops", "risk_used", "flags", "fills", "card", "chosen", "answer",
+                                     "correct", "blind", "secs") if k in body}
+        return jsonify(pr.append_log(keep))
+
+    @app.get("/api/practice/stats")
+    def practice_stats():
+        return jsonify(pr.stats(pr.read_log()))
 
     return app
 
