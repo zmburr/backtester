@@ -28,7 +28,18 @@ const KEYS = { bounce: [['D', 1, 1, 'Buy 1R'], ['F', 1, 3, 'Buy 3R'], ['J', -1, 
   reversal: [['D', 1, 1, 'Cover 1R'], ['F', 1, 3, 'Cover 3R'], ['J', -1, 3, 'Short 3R'], ['K', -1, 1, 'Short 1R']] };
 
 // ── data ─────────────────────────────────────────────────────────────────
-function scaleOf(day) { return P.blind && !day.revealed && day.prior_close ? 100 / day.prior_close : 1; }
+// A blind day keeps the scale it was played on (prior close = 100) through the reveal, so the
+// chart and the stop prices you answered don't jump; `realPx` is the reveal's "Real prices" tap.
+function scaleOf(day) { return P.blind && !day.realPx && day.prior_close ? 100 / day.prior_close : 1; }
+function pxNote(d) {
+  if (!P.blind || !d.prior_close) return '';
+  return `<div class="off-chart pr-pxnote">${d.realPx ? 'Real prices.' : `Prices as you saw them: prior close ${px(d.prior_close)} = 100.`}
+    <button class="btn small ghost" data-prealpx>${d.realPx ? 'As you saw them' : 'Real prices'}</button></div>`;
+}
+function dayMarker(d) {             // the daily after a reveal runs on past the day: mark it
+  const long = d.side === 'bounce';
+  return { time: d.date, position: long ? 'belowBar' : 'aboveBar', color: '#a594ff', shape: long ? 'arrowUp' : 'arrowDown', text: 'this day' };
+}
 const sp = (day, x) => x == null ? null : x * scaleOf(day);
 function scaleBars(day, bars) {
   const f = scaleOf(day);
@@ -240,7 +251,7 @@ function drawPlay() {
   }
   reader.innerHTML = `<div class="col pr-col">
     <div class="card chart-card pr-chart-card"><div class="card-head"><span class="eyebrow" id="pr-clock">${P.phase === 'plan' ? 'Premarket' : ''}</span>${tfSeg}</div>
-      <div class="chart-wrap"><div class="chart" id="pr-chart"></div></div><div class="off-chart" id="pr-off"></div></div>
+      <div class="chart-wrap"><div class="chart" id="pr-chart"></div></div><div class="off-chart" id="pr-off"></div>${P.phase === 'reveal' ? pxNote(d) : ''}</div>
     ${body}</div>`;
   P.chart?.remove();
   P.chart = new PChart($('#pr-chart'), P.tf === 'D', P.blind && !d.revealed);
@@ -274,7 +285,7 @@ function paintPlay() {
   const v = g ? PE.view(g) : null;
   if (v) lines.push({ price: sp(d, v.stop), color: '#ff6363', title: 'stop', style: 0 }, { price: sp(d, v.avg), color: '#a594ff', title: 'avg', style: 1 });
   if (P.tf === 'D') {
-    P.chart.set(viewBars(d, 'D', upto, full), { lines: lines.slice(0, 1) });
+    P.chart.set(viewBars(d, 'D', upto, full), { lines: lines.slice(0, 1), markers: full ? [dayMarker(d)] : [] });
   } else {
     const vb = viewBars(d, P.tf, upto, full);
     const markers = playMarkers(d, g, full).map(m => ({ ...m, time: Math.floor(m.time / (vb.m * 60)) * vb.m * 60 }));
@@ -357,9 +368,9 @@ function revealHtml() {
   if (s.your_real_r != null) kp.splice(2, 0, ['Your real day', rr(s.your_real_r), s.your_real_r >= 0 ? 'go' : 'neg']);
   const flags = s.flags.length ? s.flags.map(f => `<div class="line"><div class="neg">${esc(flagWord(f.type, d.side))}<small>${esc(f.note || '')}</small></div><div class="r">${f.t ? hhmm(f.t) : 'open'}</div></div>`).join('')
     : '<div class="line"><div class="go">Clean: no rule breaks.</div><div class="r"></div></div>';
-  const rules = (d.rules || []).length ? d.rules.map((t, i) => `<div class="line"><div>Rule ${i + 1}: ${d.side === 'bounce' ? 'buy' : 'short'} ${hhmm(t.entry_t + 120)} @ ${px(t.entry)}<small>${t.kind === 'stop' ? 'stopped' : t.kind === 'trail' ? 'trail exit' : t.kind === 'tripwire' ? 'tripwire cover' : 'held to the close'} ${hhmm(t.exit_t + 120)} @ ${px(t.exit)}</small></div><div class="r">${rr(t.r_live)}</div></div>`).join('')
+  const rules = (d.rules || []).length ? d.rules.map((t, i) => `<div class="line"><div>Rule ${i + 1}: ${d.side === 'bounce' ? 'buy' : 'short'} ${hhmm(t.entry_t + 120)} @ ${px(sp(d, t.entry))}<small>${t.kind === 'stop' ? 'stopped' : t.kind === 'trail' ? 'trail exit' : t.kind === 'tripwire' ? 'tripwire cover' : 'held to the close'} ${hhmm(t.exit_t + 120)} @ ${px(sp(d, t.exit))}</small></div><div class="r">${rr(t.r_live)}</div></div>`).join('')
     : '<div class="line"><div class="muted">The rules took no trade.</div><div class="r"></div></div>';
-  const yours = (d.fills || []).length ? `<div class="card"><div class="eyebrow">What you really did</div><div class="lines">${d.fills.map(f => `<div class="line"><div>${f.side > 0 ? 'Long' : 'Short'} ${Math.abs(f.size || 0).toLocaleString()} sh @ ${px(f.entry)}<small>${f.start ? hhmm(f.start) : ''}–${f.end ? hhmm(f.end) : ''} · out @ ${px(f.exit)}</small></div><div class="r ${f.pnl >= 0 ? 'go' : 'neg'}">${rr((f.pnl || 0) / (d.one_r || 3000))}</div></div>`).join('')}</div></div>` : '';
+  const yours = (d.fills || []).length ? `<div class="card"><div class="eyebrow">What you really did</div><div class="lines">${d.fills.map(f => `<div class="line"><div>${f.side > 0 ? 'Long' : 'Short'} ${Math.abs(f.size || 0).toLocaleString()} sh @ ${px(sp(d, f.entry))}<small>${f.start ? hhmm(f.start) : ''}–${f.end ? hhmm(f.end) : ''} · out @ ${px(sp(d, f.exit))}</small></div><div class="r ${f.pnl >= 0 ? 'go' : 'neg'}">${rr((f.pnl || 0) / (d.one_r || 3000))}</div></div>`).join('')}</div></div>` : '';
   const grade = d.your_grade ? ` You graded it ${esc(d.your_grade)}.` : '';
   const sys = d.at_open?.grade ? ` The system graded the open ${esc(gradeLabel(d.at_open.grade))}.` : '';
   return `<div class="kpis dense">${kp.map(([k, v, c]) => `<div class="kpi"><div class="eyebrow">${k}</div><b class="num ${c || ''}">${esc(v)}</b></div>`).join('')}</div>
@@ -419,14 +430,14 @@ function drawCard() {
   $('#reader').innerHTML = `<div class="col pr-col">
     <div class="card chart-card pr-chart-card"><div class="card-head"><span class="eyebrow">${a ? 'The whole day' : `Frozen at ${hhmm(c.cut)}`}</span>
       <div class="seg small">${['D', '5', '2', '1'].map(x => `<button data-pctf="${x}" class="${tf === x ? 'on' : ''}">${x === 'D' ? 'Daily' : `${x}m`}</button>`).join('')}</div></div>
-      <div class="chart-wrap"><div class="chart" id="pr-chart"></div></div></div>
+      <div class="chart-wrap"><div class="chart" id="pr-chart"></div></div>${a ? pxNote(d) : ''}</div>
     <div class="card pr-q"><div class="eyebrow">${esc(dayLine(d))}</div><h3>${esc(c.q)}</h3><div class="pr-choices">${btns}</div></div>
     ${verdict}</div>`;
   P.chart?.remove();
   P.chart = new PChart($('#pr-chart'), tf === 'D', P.blind && !d.revealed);
   const upto = c.cut - 60;                  // the last 1-min bar that had closed at the cut
   const full = !!a;
-  if (tf === 'D') { P.chart.set(viewBars(d, 'D', upto, full)); return; }
+  if (tf === 'D') { P.chart.set(viewBars(d, 'D', upto, full), { markers: full ? [dayMarker(d)] : [] }); return; }
   const vb = viewBars(d, tf, upto, full);
   const m = vb.m * 60, lines = [{ price: sp(d, d.prior_close), color: '#6f7873', title: 'prior close' }];
   const markers = [];
@@ -502,6 +513,12 @@ document.addEventListener('click', e => {
   if (t.dataset.pnext != null) return renderPlay(true);
   if (t.dataset.ptf) { P.tf = t.dataset.ptf; return drawPlay(); }
   if (t.dataset.pctf) { P.cardTf = t.dataset.pctf; return drawCard(); }
+  if (t.dataset.prealpx != null) {
+    const play = parseHash().arg === 'play', d = play ? P.day : P.cardDay;
+    if (!d) return;
+    d.realPx = !d.realPx;
+    return play ? drawPlay() : drawCard();
+  }
   if (t.dataset.pchoice != null) return answerCard(Number(t.dataset.pchoice));
   if (t.dataset.pnextcard != null) return nextCard();
 });

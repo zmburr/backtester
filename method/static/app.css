@@ -354,3 +354,4 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px; border-radius: 5
   padding: 10px 16px; border-radius: 12px; background: var(--bg-3); border: 1px solid var(--line-2); font-size: 13px; pointer-events: none;
   transition: opacity .15s, transform .15s; max-width: 90vw; }
 .pr-toast.on { opacity: 1; transform: translate(-50%, 0); }
+.pr-pxnote { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
