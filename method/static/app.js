@@ -255,9 +255,11 @@ function gfState(it) {
 const gfPrice = (p, prior) => p == null ? '–' : p >= prior ? 'any gap' : px(p);
 function gfRow(it, side, onBoard, market) {
   const [word, cls] = gfState(it);
-  const g = it.grade_open ? (side === 'bounce' ? gradeBadge(it.grade_open) : `<span class="badge ${it.grade_open === 'A' ? 'go' : 'nogo'}">${esc(it.grade_open)}</span>`) : '';
+  // the grade at the open only means something when it triggered; A-ready is a night-before read
+  const g = it.status === 'on' && it.grade_open
+    ? (side === 'bounce' ? gradeBadge(it.grade_open) : `<span class="badge ${it.grade_open === 'A' ? 'go' : 'nogo'}">${esc(it.grade_open)}</span>`) : '';
   const head = `<b class="pin-tk">${esc(it.ticker)}</b><span class="badge ${cls}">${word}</span>${g}` +
-    `${it.a_ready ? '<span class="badge mkt">A-ready</span>' : ''}`;
+    `${it.a_ready && !market ? '<span class="badge mkt">A-ready</span>' : ''}`;
   const name = onBoard ? `<button class="pin-name" data-pick="${side}" data-tk="${esc(it.ticker)}">${head}</button>`
     : `<span class="pin-name">${head}</span>`;
   const move = market && it.open != null ? `opened ${px(it.open)} <span class="${it.open_gap < 0 ? 'neg' : 'go'}">${pct(it.open_gap)}</span>`
@@ -266,7 +268,8 @@ function gfRow(it, side, onBoard, market) {
   const meta = side === 'bounce'
     ? [`${it.streak} straight down`, `below ${px(it.prior_close)} triggers`, `B ${gfPrice(it.b_price, it.prior_close)}`,
        `A ${gfPrice(it.a_price, it.prior_close)}`, who]
-    : [`${it.streak} straight up`, it.ext9 != null ? `${pct(it.ext9, 0)} vs 9EMA` : null,
+    : [`${it.streak} straight up`,
+       it.ext9 != null ? `${pct(it.ext9, 0)} vs 9EMA${it.stretch != null ? ` (${Number(it.stretch).toFixed(1)} ATR)` : ''}` : null,
        `above ${px(it.prior_close)} triggers`, `A ${px(it.a_price)} (+4%)`, who];
   return `<div class="pin-row gf-row">${name}<span class="pin-px num">${move}</span>` +
     `<span class="muted pin-meta">${esc(meta.filter(Boolean).join(' · '))}</span></div>`;
@@ -274,8 +277,9 @@ function gfRow(it, side, onBoard, market) {
 function gapFadeCard(s, side) {
   const gf = s.gapfade;
   if (!gf || gf.session !== s.session) return '';
-  const items = gf[side === 'bounce' ? 'long' : 'short'] || [];
   const market = s.mode === 'market';
+  const listed = gf[side === 'bounce' ? 'long' : 'short'] || [];
+  const items = market ? [...listed.filter(it => it.status === 'on'), ...listed.filter(it => it.status !== 'on')] : listed;
   const onBoard = new Set((s[side]?.rows || []).map(r => r.ticker));
   const dir = side === 'bounce' ? 'down' : 'up';
   const rule = side === 'bounce'
@@ -285,7 +289,7 @@ function gapFadeCard(s, side) {
   const on = items.filter(it => it.status === 'on').length;
   const head = market ? `3-day gap fade · ${esc(dayLabel(gf.session))}` : `3-day gap fade · setting up for ${esc(dayLabel(gf.session))}`;
   const sub = !items.length ? ''
-    : market ? `${on} of ${items.length} opened ON${ready ? ` · ${ready} A-ready` : ''}`
+    : market ? `${on} of ${items.length} opened ON`
     : `${items.length} ${items.length === 1 ? 'name' : 'names'}${ready ? ` · ${ready} can reach A within 1 ATR` : ''}`;
   const empty = market ? `No name came into today with 2 straight ${dir} closes${side === 'bounce' ? ' and a B on a gap' : ''}.`
     : gf.built ? `Nothing setting up: no name has 2 straight ${dir} closes${side === 'bounce' ? ' and a B on a gap' : ' and a stretch over the 9EMA'}.`

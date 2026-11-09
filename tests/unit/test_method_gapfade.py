@@ -129,14 +129,27 @@ def test_annotate_carries_the_open_forward_and_reads_the_premarket():
 
 # ---------------------------------------------------------------- pushes
 
+def _long(t, adv=2e9, ready=True, prior=100.0, a=95.0):
+    return {"ticker": t, "side": "long", "streak": 2, "prior_close": prior, "b_price": prior, "a_price": a,
+            "a_ready": ready, "src": "market", "adv": adv}
+
+
 def _ready_block(session="2026-11-06"):
+    """A flush setting up: three A-ready longs at $1B+ a day, one thin one, one stretched short."""
     return {"session": session, "built": True,
-            "long": [{"ticker": "SOXL", "side": "long", "streak": 2, "prior_close": 40.87, "b_price": 40.87,
-                      "a_price": 38.5, "a_ready": True, "src": "watchlist"},
-                     {"ticker": "XYZ", "side": "long", "streak": 2, "prior_close": 10.0, "b_price": 9.8,
-                      "a_price": None, "a_ready": False, "src": "market"}],
+            "long": [_long("SOXL", prior=40.87, a=38.5), _long("MU", prior=650.0, a=620.0), _long("SNDK"),
+                     _long("XYZ", adv=50e6)],
             "short": [{"ticker": "PARA", "side": "short", "streak": 3, "prior_close": 100.0, "b_price": 100.0,
-                       "a_price": 104.0, "a_ready": True, "src": "market"}]}
+                       "a_price": 104.0, "a_ready": True, "src": "market", "adv": 3e8}]}
+
+
+def test_push_names_needs_a_cluster_or_a_pin():
+    blk = _ready_block()
+    cluster, pins = gf.push_names(blk, pinned=["PARA"])
+    assert [it["ticker"] for it in cluster] == ["SOXL", "MU", "SNDK"]
+    assert [it["ticker"] for it in pins] == ["PARA"]
+    blk["long"] = blk["long"][:2] + blk["long"][3:]                 # two A-ready names: not a cluster
+    assert gf.push_names(blk) == ([], [])
 
 
 def test_evening_push_once_and_only_when_switched_on(tmp_path, monkeypatch):
@@ -151,15 +164,21 @@ def test_evening_push_once_and_only_when_switched_on(tmp_path, monkeypatch):
     blk = _ready_block()
     assert gf.evening_push(blk, "2026-11-06", "evening", now, send, built=True)
     title, body, tag = sent[0]
-    assert title == "Gap fade setting up · Fri 11/6" and tag == "gapfade-eve-2026-11-06"
-    assert "SOXL long: below 40.87 triggers, A 38.50" in body and "PARA short: above 100.00, A 104.00" in body
-    assert "XYZ" not in body and "(3 setting up on the board)" in body
+    assert title == "Gap fade cluster setting up · Fri 11/6" and tag == "gapfade-eve-2026-11-06"
+    assert "SOXL long: below 40.87 triggers, A 38.50" in body and "MU long" in body
+    assert "XYZ" not in body and "PARA" not in body and "(5 setting up on the board)" in body
     assert blk["pushed"]
+    state = json.loads((tmp_path / "gapfade_push_2026-11-06.json").read_text())
+    assert state["evening_names"] == ["SOXL", "MU", "SNDK"]
     assert not gf.evening_push(_ready_block(), "2026-11-06", "evening", now, send, built=True)   # once a session
     assert len(sent) == 1
-    # a build that never lands still pushes by 7:30
-    assert gf.evening_push(_ready_block("2026-11-09"), "2026-11-09", "evening", at("19:31", day="2026-11-06"),
-                           send, built=False)
+    # no cluster, a pinned short: the pin alone pushes, and a build that never lands still pushes by 7:30
+    lone = _ready_block("2026-11-09")
+    lone["long"] = lone["long"][3:]
+    assert not gf.evening_push(lone, "2026-11-09", "evening", at("19:31", day="2026-11-06"), send, built=False)
+    assert gf.evening_push(lone, "2026-11-09", "evening", at("19:31", day="2026-11-06"), send, built=False,
+                           pinned=["PARA"])
+    assert sent[-1][0] == "Gap fade setting up · Mon 11/9" and "PARA short: above 100.00, A 104.00" in sent[-1][1]
 
 
 def test_evening_push_needs_a_phone(tmp_path, monkeypatch):
@@ -169,23 +188,21 @@ def test_evening_push_needs_a_phone(tmp_path, monkeypatch):
     assert not (tmp_path / "gapfade_push_2026-11-06.json").exists()      # retried on the next pass
 
 
-def test_open_pushes_ready_names_that_open_on_with_a_b(tmp_path, monkeypatch):
+def test_open_pushes_the_evening_names_and_pins_that_open_on(tmp_path, monkeypatch):
     monkeypatch.setenv("METHOD_DIR", str(tmp_path))
+    (tmp_path / "gapfade_push_2026-11-06.json").write_text(json.dumps({"evening": "x", "evening_names": ["SOXL", "MU"]}))
     sent = []
     send = lambda title, body, url="/", tag="": sent.append((title, body, url)) or 1
     blk = _ready_block()
     blk["long"][0].update(status="on", open=36.0, open_gap=36.0 / 40.87 - 1, grade_open="A")
-    blk["long"][1].update(status="on", open=9.0, open_gap=-0.1, grade_open="A")       # not ready: quiet
-    blk["short"][0].update(status="on", open=105.0, open_gap=0.05, grade_open="A")
-    got = gf.open_pushes(blk, "2026-11-06", "market", send, enabled=True)
+    blk["long"][1].update(status="on", open=600.0, open_gap=-0.08, grade_open="C")    # under B: quiet
+    blk["long"][2].update(status="on", open=90.0, open_gap=-0.1, grade_open="A")      # not in the evening push
+    blk["short"][0].update(status="on", open=105.0, open_gap=0.05, grade_open="A")    # pinned
+    got = gf.open_pushes(blk, "2026-11-06", "market", send, pinned=["PARA"], enabled=True)
     assert got == ["SOXL", "PARA"]
     assert sent[0][0] == "SOXL gap fade ON · A" and "2 straight down closes, gapped down" in sent[0][1]
     assert sent[1][2] == "/#/reversal/PARA"
-    assert gf.open_pushes(blk, "2026-11-06", "market", send, enabled=True) == []   # once a name
-    c = _ready_block("2026-11-09")
-    c["long"][0].update(status="on", open=40.0, open_gap=-0.02, grade_open="C")       # under B: quiet
-    c["short"] = []
-    assert gf.open_pushes(c, "2026-11-09", "market", send, enabled=True) == []
+    assert gf.open_pushes(blk, "2026-11-06", "market", send, pinned=["PARA"], enabled=True) == []   # once a name
 
 
 def test_entry_line_says_off_playbook():
@@ -272,3 +289,13 @@ def test_market_pass_tags_rows_on_and_off(env):
     assert rows["SOXL"]["gapfade"] == "on" and rows["MXL"]["gapfade"] == "off"
     soxl = snap["gapfade"]["long"][0]
     assert soxl["status"] == "on" and soxl["open"] == 94.0 and soxl["grade_open"] == "B"
+
+
+def test_names_that_stopped_trading_drop_off_both_lists():
+    falling = [30.0] * 22 + [28.0, 26.0, 24.0]
+    rising = [20.0] * 22 + [22.0, 25.0, 29.0]
+    long, days = _long_frame({"LIVE": falling, "GONE": falling, "UP": rising, "UPGONE": rising})
+    last = long["date"].max()
+    long = long[~((long["ticker"].isin(["GONE", "UPGONE"])) & (long["date"] == last))]   # no bar on the newest day
+    assert breadth.prefilter(long) == ["LIVE"]
+    assert breadth.prefilter_up(long) == ["UP"]

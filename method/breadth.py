@@ -191,9 +191,15 @@ def prefilter(long: pd.DataFrame) -> list[str]:
     hi30 = t30.groupby("ticker")["high"].max().reindex(n.index)
     adv = t20.groupby("ticker")["volume"].mean().reindex(n.index)
     dadv = (t20["close"] * t20["volume"]).groupby(t20["ticker"]).mean().reindex(n.index)
-    ok = (down2 & (c[0] / hi30 - 1 <= -0.05) & (n >= 14)
+    ok = (down2 & (c[0] / hi30 - 1 <= -0.05) & (n >= 14) & _traded_last_day(df, g, n)
           & ((adv >= MIN_AVG_VOLUME) | (dadv >= LIST_MIN_DOLLAR_ADV)))
     return sorted(ok[ok.fillna(False).astype(bool)].index)
+
+
+def _traded_last_day(df: pd.DataFrame, g, n: pd.Series) -> pd.Series:
+    """A name with no bar on the newest stored day stopped trading (delisted, renamed):
+    its last three bars are months old, and it would sit on the list every night."""
+    return (g["date"].max().reindex(n.index) == df["date"].max())
 
 
 def compute_candidate(ticker: str, session: str, hist: pd.DataFrame) -> dict | None:
@@ -357,7 +363,8 @@ def load_candidates(session: str) -> dict | None:
 # closes and a stretch over the 9EMA going into the session
 # ---------------------------------------------------------------------------
 
-UP_EXT_MIN = 0.10                 # 10%+ over the 9EMA (median ~7 names a night at $50M+ a day)
+UP_EXT_MIN = 0.03                 # a floor; the real cut is the stretch in ATRs
+UP_STRETCH_MIN = 2.0              # 2+ ATRs over the 9EMA (GLD's tagged fades: 2.7-4.2; a flat 10% missed them)
 
 
 def prefilter_up(long: pd.DataFrame) -> list[str]:
@@ -373,7 +380,8 @@ def prefilter_up(long: pd.DataFrame) -> list[str]:
     t20 = g.tail(20)
     adv = t20.groupby("ticker")["volume"].mean().reindex(n.index)
     dadv = (t20["close"] * t20["volume"]).groupby(t20["ticker"]).mean().reindex(n.index)
-    ok = (up2 & (n >= 14) & (((adv >= MIN_AVG_VOLUME) & (c[0] > MIN_PRICE)) | (dadv >= LIST_MIN_DOLLAR_ADV)))
+    ok = (up2 & (n >= 14) & _traded_last_day(df, g, n)
+          & (((adv >= MIN_AVG_VOLUME) & (c[0] > MIN_PRICE)) | (dadv >= LIST_MIN_DOLLAR_ADV)))
     return sorted(ok[ok.fillna(False).astype(bool)].index)
 
 
@@ -395,6 +403,8 @@ def compute_up_candidate(ticker: str, hist: pd.DataFrame) -> dict | None:
     prev = closes.shift(1)
     tr = pd.concat([hl, (hist["high"] - prev).abs(), (hist["low"] - prev).abs()], axis=1).max(axis=1)
     atr = float(tr.iloc[-14:].mean())
+    if not atr or ext / (atr / pc) < UP_STRETCH_MIN:
+        return None
     t20 = hist.iloc[-20:]
     return {"ticker": ticker, "prior_close": pc, "up": int(up), "ext9": float(ext), "ema9": ema9,
             "atr": atr, "adv_dollars": float((t20["close"] * t20["volume"]).mean())}

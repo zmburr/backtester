@@ -798,7 +798,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         pins.pin_alerts(bounce, session, mode, push.send, now, pinned)
         if mode in ("premarket", "market"):
             breadth_alert(mb)
-        gapfade.evening_push(gf, session, mode, now, push.send, built=gf["built"])
+        gapfade.evening_push(gf, session, mode, now, push.send, built=gf["built"], pinned=pinned)
         gapfade.open_pushes(gf, session, mode, push.send, pinned)
     bc, rc = _counts(bounce), _counts(reversal)
     entry = {"t": now.strftime("%H:%M"), "date": today.isoformat(), "mode": mode,

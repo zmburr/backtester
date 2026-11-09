@@ -20,14 +20,18 @@ alerts say OFF-PLAYBOOK on a name that isn't ON (method/watch.py).
 Universe: the long side is the market breadth build's candidates (method/breadth.py: 2+
 strict down closes, 5% off the 30-day high, B or better on some gap) plus watchlist and
 pinned names with the structure and a B on the ladder. The short side is the market-wide
-up-side build (breadth.build_up: 2+ strict up closes, 10%+ over the 9EMA) plus reversal
-candidates with the structure and 5%+ over the 9EMA.
+up-side build (breadth.build_up: 2+ strict up closes, 2+ ATRs over the 9EMA) at $200M+ a
+day, plus your reversal names with the structure and the same stretch. Shorts rank by
+stretch; longs by how close the A is.
 
-Pushes, off until METHOD_DIR/gapfade_push.on exists (or GAPFADE_PUSH=1), so the volume can
-be measured first (--replay):
-  evening  one a session, the names that can reach A on a gap within 1 ATR and are liquid
-           ($200M+ a day) or yours (watchlist, pinned, the priority report)
-  open     one a name, when such a name opens ON with a B or better
+Pushes, off until METHOD_DIR/gapfade_push.on exists (or GAPFADE_PUSH=1). The replay over
+9/2025-11/2026 (--replay) set the gate: "A within 1 ATR" alone fired 20 nights a month,
+so the evening push is a cluster or a pin:
+  evening  one a session: 3+ longs at $1B+ a day that can reach A within 1 ATR (a flush
+           setting up: 1.6 nights a month, e.g. 2/2-2/6, 7/17, 7/29-30, 11/06/26), plus
+           any pinned name setting up on either side
+  open     one a name, when a name from the evening push or a pinned name opens ON
+           (longs with a B or better)
 
 Usage:
     python -m method.gapfade --replay 2026-05-01 2026-11-06     # push volume over the store
@@ -48,12 +52,14 @@ logger = logging.getLogger("method.gapfade")
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 MIN_STREAK = 2
-READY_ADV = 200e6              # liquid enough to push for without being on your lists
+READY_ADV = 200e6              # liquid enough to list / mark A-ready without being on your lists
 A_WITHIN_ATR = 1.0             # A reachable on a gap of at most this many ATRs
 STATICS_MAX = 30               # liquid long candidates given statics (ladder A price) a session
 SHORT_ROWS_MAX = 15            # market short names added to the reversal pass
-SHORT_ROWS_ADV = 50e6
-SHORT_EXT_WATCH = 0.05         # your names: 5%+ over the 9EMA to be listed short
+SHORT_STRETCH = 2.0            # shorts: 2+ ATRs over the 9EMA (GLD's tagged fades sat at 2.7-4.2)
+SHORT_EXT_FALLBACK = 0.05      # your names with no ATR: 5%+ over the 9EMA
+CLUSTER_N = 3                  # evening push: this many A-ready longs at CLUSTER_ADV+ a day
+CLUSTER_ADV = 1e9
 EVENING_PUSH_BY = datetime.time(19, 30)    # push even if a build is missing by then
 RANK = {"-": 0, "C": 1, "B": 2, "A": 3, "A+": 4}
 YOURS = ("watchlist", "pin", "report")
@@ -136,6 +142,13 @@ def _ready_short(item: dict) -> bool:
     return bool(liquid and atr and item["a_price"] - item["prior_close"] <= A_WITHIN_ATR * atr)
 
 
+def stretch_atr(ext9, atr, prior) -> float | None:
+    """ATRs over the 9EMA."""
+    if ext9 is None or not atr or not prior:
+        return None
+    return ext9 / (atr / prior)
+
+
 def long_items(cands: dict, statics: dict, watchlist, pinned, report=()) -> list[dict]:
     """Every long name setting up for the session, ranked: ready first, then the nearest A."""
     watchlist, pinned, report = set(watchlist), set(pinned), set(report)
@@ -174,10 +187,12 @@ def short_items(cands: dict, statics: dict, rows: list[dict], streak_of, watchli
     watchlist, pinned, report = set(watchlist), set(pinned), set(report)
     out = {}
     for t, c in (cands or {}).items():
+        src = _src(t, watchlist, pinned, report)
+        if src not in YOURS and (c.get("adv_dollars") or 0) < READY_ADV:
+            continue
         out[t] = {"ticker": t, "side": "short", "streak": int(c.get("up") or MIN_STREAK),
                   "prior_close": float(c["prior_close"]), "ext9": c.get("ext9"),
-                  "atr": c.get("atr"), "adv": c.get("adv_dollars"), "etf": bool(c.get("etf")),
-                  "src": _src(t, watchlist, pinned, report)}
+                  "atr": c.get("atr"), "adv": c.get("adv_dollars"), "etf": bool(c.get("etf")), "src": src}
     for r in rows or []:
         t = r["ticker"]
         s = (statics or {}).get(t) or {}
@@ -185,22 +200,28 @@ def short_items(cands: dict, statics: dict, rows: list[dict], streak_of, watchli
         if up is None:
             up = (streak_of(t) or (None, None))[1] if streak_of else None
         prior = r.get("prior_close") or s.get("prior_close")
-        ext = r.get("pct_from_9ema") if r.get("pct_from_9ema") is not None else s.get("pct_from_9ema")
+        # the stretch at the prior close (what set it up), not at the live price
+        ext = s.get("pct_from_9ema") if s.get("pct_from_9ema") is not None else r.get("pct_from_9ema")
         if up is None or up < MIN_STREAK or not prior:
             continue
-        if t not in out and (ext is None or ext < SHORT_EXT_WATCH):
+        atr = s.get("atr") or ((r.get("atr_pct") or 0) * (r.get("price") or prior) or None)
+        st = stretch_atr(ext, atr, prior)
+        stretched = st >= SHORT_STRETCH if st is not None else (ext or 0) >= SHORT_EXT_FALLBACK
+        if t not in out and not stretched:
             continue
         it = out.get(t) or {"ticker": t, "side": "short", "adv": None, "etf": False,
                             "src": _src(t, watchlist, pinned, report)}
-        atr = s.get("atr") or ((r.get("atr_pct") or 0) * (r.get("price") or prior) or None)
-        it.update(streak=int(up), prior_close=float(prior), ext9=ext, atr=it.get("atr") or atr)
+        it.update(streak=int(up), prior_close=float(prior), atr=it.get("atr") or atr,
+                  ext9=it["ext9"] if it.get("ext9") is not None else ext)
         out[t] = it
     items = list(out.values())
     for it in items:
         it["b_price"] = it["prior_close"]                    # flat or small gap: B (VWAP fail)
         it["a_price"] = it["prior_close"] * (1 + core.REVERSAL_GAP_GATE)
         it["a_ready"] = _ready_short(it)
-    return rank(items)
+        it["stretch"] = stretch_atr(it.get("ext9"), it.get("atr"), it["prior_close"])
+    return sorted(items, key=lambda it: (it["src"] not in YOURS and (it.get("adv") or 0) < READY_ADV,
+                                         -(it.get("stretch") or 0), -(it.get("adv") or 0)))
 
 
 def rank(items: list[dict]) -> list[dict]:
@@ -221,11 +242,12 @@ def statics_names(cands: dict, skip=()) -> list[str]:
 
 
 def short_row_names(cands: dict, skip=()) -> list[str]:
-    """Market short names worth a reversal score (and live prices), biggest first."""
+    """Market short names worth a reversal score (and live prices), most stretched first."""
     skip = set(skip)
-    liquid = [(c.get("adv_dollars") or 0, t) for t, c in (cands or {}).items()
-              if t not in skip and (c.get("adv_dollars") or 0) >= SHORT_ROWS_ADV]
-    return [t for _, t in sorted(liquid, reverse=True)[:SHORT_ROWS_MAX]]
+    liquid = [(-(stretch_atr(c.get("ext9"), c.get("atr"), c.get("prior_close")) or 0), t)
+              for t, c in (cands or {}).items()
+              if t not in skip and (c.get("adv_dollars") or 0) >= READY_ADV]
+    return [t for _, t in sorted(liquid)[:SHORT_ROWS_MAX]]
 
 
 # ---------------------------------------------------------------------------
@@ -330,10 +352,20 @@ def evening_line(it: dict) -> str:
     return f"{it['ticker']} short: above {_px(it['prior_close'])}, A {_px(it['a_price'])}"
 
 
+def push_names(block: dict, pinned=()) -> tuple[list[dict], list[dict]]:
+    """(cluster, pins): the A-ready longs at CLUSTER_ADV+ a day when there are CLUSTER_N or
+    more of them (a flush setting up), and every pinned name setting up on either side."""
+    pinned = set(pinned)
+    big = [it for it in block.get("long") or [] if it.get("a_ready") and (it.get("adv") or 0) >= CLUSTER_ADV]
+    cluster = big if len(big) >= CLUSTER_N else []
+    pins = [it for side in ("long", "short") for it in block.get(side) or [] if it["ticker"] in pinned]
+    return cluster, pins
+
+
 def evening_push(block: dict, session: str, mode: str, now: datetime.datetime, send,
-                 built: bool, enabled: bool | None = None) -> bool:
-    """One push a session for the A-ready names, once tomorrow's lists are built (or by
-    EVENING_PUSH_BY). Recorded only when a phone got it."""
+                 built: bool, enabled: bool | None = None, pinned=()) -> bool:
+    """One push a session, once tomorrow's lists are built (or by EVENING_PUSH_BY): a cluster
+    of A-ready liquid longs, and any pinned name setting up. Recorded only when a phone got it."""
     if mode != "evening" or not (push_on() if enabled is None else enabled):
         return False
     if not built and now.time() < EVENING_PUSH_BY:
@@ -343,7 +375,8 @@ def evening_push(block: dict, session: str, mode: str, now: datetime.datetime, s
     if state.get("evening"):
         block["pushed"] = state["evening"]
         return False
-    ready = [it for side in ("long", "short") for it in block.get(side) or [] if it.get("a_ready")]
+    cluster, pins = push_names(block, pinned)
+    ready = cluster + [it for it in pins if it not in cluster]
     if not ready:
         return False
     total = len(block.get("long") or []) + len(block.get("short") or [])
@@ -351,7 +384,8 @@ def evening_push(block: dict, session: str, mode: str, now: datetime.datetime, s
     body = fit([evening_line(it) for it in ready])
     if total > len(ready):
         body = body + f" ({total} setting up on the board)"
-    title = f"Gap fade setting up · {_day(session)}"
+    title = (f"Gap fade cluster setting up · {_day(session)}" if cluster
+             else f"Gap fade setting up · {_day(session)}")
     try:
         n = send(title, body[:240], url="/#/bounce", tag=f"gapfade-eve-{session}")
     except Exception as e:
@@ -378,18 +412,19 @@ def open_line(it: dict) -> tuple[str, str]:
 
 
 def open_pushes(block: dict, session: str, mode: str, send, pinned=(), enabled: bool | None = None) -> list[str]:
-    """One push a name when a ready (or pinned) name opens ON with a B or better
-    (reversal: any gap up; +4% is the A). Recorded only when a phone got it."""
+    """One push a name when a name the evening push named (or a pinned name) opens ON, longs
+    with a B or better (reversal: any gap up; +4% is the A). Recorded only when a phone got it."""
     if mode != "market" or not (push_on() if enabled is None else enabled):
         return []
     path = push_path(session)
     state = core.read_json(path, {}) or {}
     done = set(state.get("open") or [])
+    named = set(state.get("evening_names") or []) | set(pinned)
     sent = []
     for side in ("long", "short"):
         for it in block.get(side) or []:
             t = it["ticker"]
-            if t in done or it.get("status") != "on" or not (it.get("a_ready") or t in pinned):
+            if t in done or it.get("status") != "on" or t not in named:
                 continue
             if side == "long" and RANK.get(it.get("grade_open") or "-", 0) < RANK["B"]:
                 continue
@@ -498,8 +533,12 @@ def replay(start: str, end: str, ladder_for=None) -> dict:
                     if side == "long" and it.get("b_price") is not None and o > it["b_price"]:
                         continue                                 # opened ON but under B: no push
                     on.append(f"{it['ticker']}{'' if side == 'long' else '(S)'} {(o / it['prior_close'] - 1) * 100:+.1f}%")
+        keep = ("ticker", "side", "streak", "prior_close", "b_price", "a_price", "atr", "adv", "etf", "ext9",
+                "a_ready", "src")
+        items = [{**{k: it.get(k) for k in keep}, "open": open_of.get(it["ticker"])}
+                 for side in ("long", "short") for it in block[side]]
         nights.append({"session": s, "long": len(block["long"]), "short": len(block["short"]),
-                       "ready": ready, "opened_on": on})
+                       "ready": ready, "opened_on": on, "items": items})
         logger.info(f"{s}: {len(block['long'])} long, {len(block['short'])} short setting up; "
                     f"ready {', '.join(ready) or '-'}; opened ON {', '.join(on) or '-'}")
     n = len(nights)
