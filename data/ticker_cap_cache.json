@@ -277,5 +277,7 @@
  "CAR": "Medium",
  "ASTC": "Micro",
  "ICCM": "Micro",
- "XP": "Medium"
+ "XP": "Medium",
+ "CLMT": "Medium",
+ "IAM": "Small"
 }
