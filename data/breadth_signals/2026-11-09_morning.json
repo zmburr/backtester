@@ -1,0 +1,78 @@
+{
+ "date": "2026-11-09",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 2,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 31,
+ "priced": 25,
+ "live": {
+  "n": 3,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-09T15:45:01-05:00",
+  "names": [
+   "CAI",
+   "IAM",
+   "TEAM"
+  ],
+  "relaxed": [
+   "AIOK",
+   "CLMT",
+   "MNDY"
+  ],
+  "trillium": 4,
+  "pushed": null
+ },
+ "generated_at": "2026-11-09T17:46:14-05:00",
+ "signals": [
+  {
+   "ticker": "IAM",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.17479491501615396,
+    "gap_pct": -0.010816125860373593,
+    "pct_change_3": -0.241044776119403,
+    "prior_day_range_atr": 1.2596304139058878,
+    "prior_day_rvol": 0.7881884536694542,
+    "selloff_total_pct": -0.2630434782608696,
+    "pct_off_30d_high": -0.5932,
+    "pct_off_52wk_high": -0.5932,
+    "prior_close": 10.17,
+    "open": 10.06
+   }
+  },
+  {
+   "ticker": "TEAM",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.0749668606380605,
+    "gap_pct": -0.013209266007287878,
+    "pct_change_3": -0.19064672424689272,
+    "prior_day_range_atr": 1.199558318510385,
+    "prior_day_rvol": 2.4012808727407577,
+    "selloff_total_pct": -0.19357716324710073,
+    "pct_off_30d_high": -0.33170986258479734,
+    "pct_off_52wk_high": -0.33170986258479734,
+    "prior_close": 153.68,
+    "open": 151.65
+   }
+  }
+ ]
+}
