@@ -279,5 +279,11 @@
  "ICCM": "Micro",
  "XP": "Medium",
  "CLMT": "Medium",
- "IAM": "Small"
+ "IAM": "Small",
+ "IBN": "Large",
+ "FISV": "Medium",
+ "HDB": "Large",
+ "MOS": "Medium",
+ "CPAY": "Medium",
+ "FXI": "ETF"
 }
