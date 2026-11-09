@@ -205,6 +205,7 @@ function renderSideList(side) {
   let h = listHead(`${esc(MODE_WORD[s.mode] || s.mode)} · plan for`, esc(dayLabel(s.session)),
     `Data ${esc(s.data_time || '–')} ET · ${esc(s.source)} · updated ${esc(ago(lastUpdate(s)))}`);
 
+  h += gapFadeCard(s, side);
   if (side === 'bounce') h += watchCard(s) + breadthCard(s);
   const b = s.breadth || [], goN = b.map(e => e[`${side}_go`] || 0), ca = b.map(e => e[`${side}_caution`] || 0);
   const runDay = (s.generated_at || '').slice(0, 10);
@@ -244,6 +245,81 @@ function renderSideList(side) {
   list.innerHTML = h;
   if (wide()) $('.name.sel', list)?.scrollIntoView({ block: 'nearest' });
 }
+// ── 3-day gap fade (method/gapfade.py): the one price-action setup. Long = 2+ straight down
+// closes, then any open below the prior close; short = the mirror. The grade at the open sets size.
+const GF_WORD = { on: ['ON', 'go'], no_gap: ['NO GAP', 'nogo'], off: ['OFF-PLAYBOOK', 'nogo'], unknown: ['–', 'nogo'] };
+function gfState(it) {
+  if (it.status === 'setting_up') return it.would_trigger ? ['WOULD TRIGGER', 'go'] : ['SETTING UP', 'caution'];
+  return GF_WORD[it.status] || GF_WORD.unknown;
+}
+const gfPrice = (p, prior) => p == null ? '–' : p >= prior ? 'any gap' : px(p);
+function gfRow(it, side, onBoard, market) {
+  const [word, cls] = gfState(it);
+  const g = it.grade_open ? (side === 'bounce' ? gradeBadge(it.grade_open) : `<span class="badge ${it.grade_open === 'A' ? 'go' : 'nogo'}">${esc(it.grade_open)}</span>`) : '';
+  const head = `<b class="pin-tk">${esc(it.ticker)}</b><span class="badge ${cls}">${word}</span>${g}` +
+    `${it.a_ready ? '<span class="badge mkt">A-ready</span>' : ''}`;
+  const name = onBoard ? `<button class="pin-name" data-pick="${side}" data-tk="${esc(it.ticker)}">${head}</button>`
+    : `<span class="pin-name">${head}</span>`;
+  const move = market && it.open != null ? `opened ${px(it.open)} <span class="${it.open_gap < 0 ? 'neg' : 'go'}">${pct(it.open_gap)}</span>`
+    : it.price != null ? `${px(it.price)} <span class="${(it.gap || 0) < 0 ? 'neg' : 'go'}">${pct(it.gap)}</span>` : '';
+  const who = it.src === 'market' ? (it.etf ? 'market · ETF' : 'market') : it.src;
+  const meta = side === 'bounce'
+    ? [`${it.streak} straight down`, `below ${px(it.prior_close)} triggers`, `B ${gfPrice(it.b_price, it.prior_close)}`,
+       `A ${gfPrice(it.a_price, it.prior_close)}`, who]
+    : [`${it.streak} straight up`, it.ext9 != null ? `${pct(it.ext9, 0)} vs 9EMA` : null,
+       `above ${px(it.prior_close)} triggers`, `A ${px(it.a_price)} (+4%)`, who];
+  return `<div class="pin-row gf-row">${name}<span class="pin-px num">${move}</span>` +
+    `<span class="muted pin-meta">${esc(meta.filter(Boolean).join(' · '))}</span></div>`;
+}
+function gapFadeCard(s, side) {
+  const gf = s.gapfade;
+  if (!gf || gf.session !== s.session) return '';
+  const items = gf[side === 'bounce' ? 'long' : 'short'] || [];
+  const market = s.mode === 'market';
+  const onBoard = new Set((s[side]?.rows || []).map(r => r.ticker));
+  const dir = side === 'bounce' ? 'down' : 'up';
+  const rule = side === 'bounce'
+    ? '2+ straight down closes, then any open below the prior close. The grade at the open sets the size.'
+    : '2+ straight up closes, then any open above the prior close. +4% is the A; flat or small gap is a B.';
+  const ready = items.filter(it => it.a_ready).length;
+  const on = items.filter(it => it.status === 'on').length;
+  const head = market ? `3-day gap fade · ${esc(dayLabel(gf.session))}` : `3-day gap fade · setting up for ${esc(dayLabel(gf.session))}`;
+  const sub = !items.length ? ''
+    : market ? `${on} of ${items.length} opened ON${ready ? ` · ${ready} A-ready` : ''}`
+    : `${items.length} ${items.length === 1 ? 'name' : 'names'}${ready ? ` · ${ready} can reach A within 1 ATR` : ''}`;
+  const empty = market ? `No name came into today with 2 straight ${dir} closes${side === 'bounce' ? ' and a B on a gap' : ''}.`
+    : gf.built ? `Nothing setting up: no name has 2 straight ${dir} closes${side === 'bounce' ? ' and a B on a gap' : ' and a stretch over the 9EMA'}.`
+    : 'Market names are built at 5:45 PM ET. Your names only, so far.';
+  const all = S.gfAll?.[side], shown = all ? items : items.slice(0, 8);
+  const more = items.length > 8 ? `<button class="more" data-gfmore="${side}">${all ? 'Show the top 8' : `${items.length - 8} more setting up`}</button>` : '';
+  return `<div class="card watching gapfade"><div class="eyebrow">${head}</div>` +
+    (sub ? `<div class="gf-sub">${esc(sub)}</div>` : '') +
+    (items.length ? shown.map(it => gfRow(it, side, onBoard.has(it.ticker), market)).join('') + more
+      : `<div class="muted small-line">${esc(empty)}</div>`) +
+    `<div class="rep-note">${esc(rule)}${gf.pushed ? ` Pushed ${esc(String(gf.pushed).slice(11, 16))}.` : ''}</div></div>`;
+}
+function gfBadge(r) {
+  if (!r.gapfade) return '';
+  if (r.gapfade === 'on') return '<span class="badge go">GAP FADE</span>';
+  if (r.gapfade === 'setting_up') return '<span class="badge caution">SETTING UP</span>';
+  if (S.snap?.mode === 'market' && (r.gapfade === 'off' || r.gapfade === 'no_gap')) return '<span class="badge nogo">OFF-PLAYBOOK</span>';
+  return '';
+}
+function gfCallout(side, r) {
+  if (!r.gapfade || r.gapfade === 'unknown') return '';
+  const dir = side === 'bounce' ? 'down' : 'up', way = side === 'bounce' ? 'below' : 'above';
+  const n = r.gapfade_streak, closes = `${n} straight ${dir} close${n === 1 ? '' : 's'}`;
+  const txt = {
+    on: `ON: ${closes}, then it opened ${way} the prior close${r.open_gap != null ? ` (${pct(r.open_gap)})` : ''}.`,
+    no_gap: `Off playbook: ${closes}, but it opened ${side === 'bounce' ? 'above' : 'below'} the prior close${r.open_gap != null ? ` (${pct(r.open_gap)})` : ''}.`,
+    off: `Off playbook: not a 3-day gap fade (${closes}).`,
+    setting_up: `Setting up: ${closes}. Any open ${way} ${px(r.prior_close)} triggers it.`,
+  }[r.gapfade];
+  if (!txt || (r.gapfade === 'off' && S.snap?.mode !== 'market')) return '';
+  const cls = r.gapfade === 'on' ? ' gf-on' : r.gapfade === 'setting_up' ? '' : ' warn';
+  return `<div class="card callout${cls}"><div class="eyebrow">3-day gap fade</div><div style="margin-top:6px">${esc(txt)}</div></div>`;
+}
+
 // ── Watching (method/pins.py): names you pinned; Method pushes when their setup forms ──
 const pinned = t => (S.snap?.pins || []).some(p => p.ticker === t);
 function watchCard(s) {
@@ -412,10 +488,11 @@ function nameCard(side, r) {
   const l2 = side === 'bounce'
     ? [move, r.edge?.mean_r != null ? `edge ${rr(r.edge.mean_r)}` : null, nxt, src,
        r.pm_low != null ? `PM low ${px(r.pm_low)} @ ${r.pm_low_time}` : null,
-       r.down_days != null ? `down ${r.down_days}d` : null]
-    : [move, r.pct_from_9ema != null ? `${pct(r.pct_from_9ema, 0)} vs 9EMA` : null, `+4% at ${px(r.gap_level)}`];
+       r.gapfade_streak != null ? `${r.gapfade_streak} straight down` : null]
+    : [move, r.pct_from_9ema != null ? `${pct(r.pct_from_9ema, 0)} vs 9EMA` : null, `+4% at ${px(r.gap_level)}`,
+       r.gapfade_streak != null ? `${r.gapfade_streak} straight up` : null];
   return `<div class="card name${wide() && S.sel[side] === r.ticker ? ' sel' : ''}" role="button" tabindex="0" data-side="${side}" data-tk="${esc(r.ticker)}">` +
-    `<div class="l1"><span class="tk">${esc(r.ticker)}</span>${side === 'bounce' ? gradeBadges(r) : ''}${recBadge(r)}${side === 'reversal' ? scenBadges(r) : ''}` +
+    `<div class="l1"><span class="tk">${esc(r.ticker)}</span>${side === 'bounce' ? gradeBadges(r) : ''}${recBadge(r)}${side === 'reversal' ? scenBadges(r) : ''}${gfBadge(r)}` +
     `${r.principal ? '<span class="badge lev">3x</span>' : ''}${locked(side, r.ticker) ? '<span class="badge lock">LOCKED</span>' : ''}` +
     `${r.market ? `<span class="badge mkt">${r.breadth_flag === 'relaxed' ? 'market · relaxed' : r.counted === false ? 'market · not counted' : 'market'}</span>` : ''}` +
     `<span class="cap">${esc(r.cap || '')}</span></div>${rl ? `<div class="l3 num ${rlCls(r)}">${esc(rl)}</div>` : ''}` +
@@ -795,6 +872,7 @@ function renderDetail(side, soft = false) {
     lead = `<div class="card callout"><div class="eyebrow">Open scenario · ${esc(when)}</div><div style="margin-top:8px;display:flex;align-items:center">` +
       `<span class="big">${r.scenario}</span><span>${esc(txt[r.scenario])}</span></div></div>`;
   }
+  lead = gfCallout(side, r) + lead;
   const lev = r.principal ? `<div class="card callout warn"><div class="eyebrow">Leveraged</div><div style="margin-top:6px">Check the principal: ${esc(r.principal)}.</div></div>` : '';
   const goLevel = r.go_gap == null ? 'not within −20%' : r.go_gap >= 0 ? 'flat open' : `≤ ${px(r.go_price)}`;
   const odds = r.odds?.p_bounce5 ?? r.odds_pop?.p_bounce5;
@@ -804,7 +882,7 @@ function renderDetail(side, soft = false) {
     ['PM low', r.pm_low != null ? `${px(r.pm_low)} @ ${r.pm_low_time}` : null], ['Open', r.open != null ? `${px(r.open)} (${pct(r.open_gap)})` : null],
     ['Day low', r.day_low != null ? `${px(r.day_low)} @ ${r.day_low_time || ''}` : null], ['AH low', r.ah_low != null ? px(r.ah_low) : null],
     ['Mid-BB · swing exit', r.mid_bb != null ? `${px(r.mid_bb)} (${pct(r.to_mid_bb, 0)})` : null],
-    ['ATR', r.atr != null ? `${px(r.atr)} · ${upct(r.atr_pct)}` : null], ['Down days', r.down_days != null ? String(r.down_days) : null],
+    ['ATR', r.atr != null ? `${px(r.atr)} · ${upct(r.atr_pct)}` : null], ['Straight down closes', r.gapfade_streak != null ? String(r.gapfade_streak) : null],
     ['Off 30d high', pct(r.off_30d, 0)], ['5%+ bounce odds', odds != null ? upct(odds) : null],
     ['Setup', r.setup ? r.setup.replace('GapFade_', '').replace(/stock$/, ' stock') : null],
   ] : [
@@ -1235,6 +1313,7 @@ document.addEventListener('click', e => {
   if (t.dataset.pick) return go(t.dataset.pick, t.dataset.tk, wide());
   if (t.dataset.back != null) return back();
   if (t.dataset.more) { S.showAll[t.dataset.more] = !S.showAll[t.dataset.more]; return render(); }
+  if (t.dataset.gfmore) { S.gfAll = { ...S.gfAll, [t.dataset.gfmore]: !S.gfAll?.[t.dataset.gfmore] }; return render(); }
   if (t.dataset.ctf) {                 // timeframe: redraw the chart only
     PREFS.tf[t.dataset.scope] = t.dataset.ctf; savePrefs();
     $$('[data-ctf]').forEach(b => b.classList.toggle('on', b === t));

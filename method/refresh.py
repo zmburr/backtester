@@ -46,6 +46,7 @@ from analyzers.bounce_ladder import GRADE_RANK, historical_grade_stats, lookup_b
 from analyzers.bounce_scorer import BouncePretrade
 from method import breadth
 from method import core
+from method import gapfade
 from method import live
 from method import pins
 from method import push
@@ -103,6 +104,8 @@ def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
     ema9 = hist["close"].ewm(span=9, adjust=False).mean().iloc[-1]
     s["ema9"] = float(ema9)
     s["pct_from_9ema"] = float(hist["close"].iloc[-1] / ema9 - 1)
+    # the 3-day gap fade's strict counts (consecutive_down_days above forgives one up day)
+    s["down_streak"], s["up_streak"] = gapfade.streaks(hist["close"].tolist())
     return s
 
 
@@ -119,9 +122,20 @@ def load_statics(session: str, tickers: list[str], caps: dict, checker) -> dict:
         if s:
             cache[t] = s
         time.sleep(0.05)
-    if missing:
+    # statics cached before the gap fade check have no strict streaks: one daily fetch each, once
+    stale = [t for t in tickers if t in cache and "down_streak" not in cache[t]]
+    for t in stale:
+        try:
+            hist = completed_daily(t, session)
+            cache[t]["down_streak"], cache[t]["up_streak"] = (
+                gapfade.streaks(hist["close"].tolist()) if hist is not None else (None, None))
+        except Exception as e:
+            logger.warning(f"{t}: streaks failed: {e}")
+            cache[t]["down_streak"] = cache[t]["up_streak"] = None
+        time.sleep(0.05)
+    if missing or stale:
         core.write_json(path, cache)
-        logger.info(f"statics for {session}: {len(cache)} names ({len(missing)} built)")
+        logger.info(f"statics for {session}: {len(cache)} names ({len(missing)} built, {len(stale)} streaks added)")
     return cache
 
 
@@ -550,6 +564,46 @@ def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
     return watch.size_rows(rows, mb)          # the entry rule's shares at the day's risk an attempt
 
 
+GAPFADE_SNAPSHOT_UNTIL = datetime.time(10, 30)   # one all-tickers call a pass for missing opens, till then
+
+
+def gapfade_block(session, mode, now, bounce, reversal, statics, caps, short_c, built,
+                  gf_long, watchlist, pinned, report_names, feed, mb, prev, dry) -> dict:
+    """The 3-day gap fade card's block (method/gapfade.py), with every bounce and reversal
+    row tagged on / no_gap / off (setting_up before the open)."""
+    streak_of = gapfade.StreakLookup(session, statics, completed_daily)
+    gf_short = gapfade.short_items(short_c, statics, reversal, streak_of, watchlist, pinned, report_names)
+    block = {"session": session, "mode": mode, "built": bool(built), "long": gf_long, "short": gf_short,
+             "n_long": len(gf_long), "n_short": len(gf_short)}
+    prev_gf = (prev or {}).get("gapfade")
+
+    def grade_of(it, price):
+        s = statics.get(it["ticker"])
+        if not s or "ladder" not in s:
+            return None
+        try:
+            return grade_at(s, caps.get(it["ticker"]) or it.get("cap") or "Medium", price, it["ticker"])["grade"]
+        except Exception as e:
+            logger.warning(f"{it['ticker']}: grade at the open failed: {e}")
+            return None
+
+    poly = dict((mb or {}).get("poly") or {})
+    gapfade.annotate(block, mode, bounce, reversal, feed, poly, prev_gf, grade_of)
+    if (mode == "market" and not dry and gapfade.missing_opens(block)
+            and now.time() < GAPFADE_SNAPSHOT_UNTIL):
+        try:
+            poly.update(breadth.snapshot_prices(now.date().isoformat()))
+            gapfade.annotate(block, mode, bounce, reversal, feed, poly, prev_gf, grade_of)
+        except Exception as e:
+            logger.warning(f"gap fade opens snapshot failed: {e}")
+    gapfade.tag_rows(bounce, "long", block, streak_of, mode)
+    gapfade.tag_rows(reversal, "short", block, streak_of, mode)
+    streak_of.flush()
+    if prev_gf and prev_gf.get("session") == session and prev_gf.get("pushed"):
+        block["pushed"] = prev_gf["pushed"]
+    return block
+
+
 def breadth_alert(mb: dict | None) -> bool:
     if not mb:
         return False
@@ -599,6 +653,12 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
         except Exception as e:
             logger.warning(f"live breadth re-count failed: {e}")
     snap["bounce"] = {"rows": _sort_rows(rows), "counts": _counts(rows)}
+    gf = snap.get("gapfade")
+    if gf and gf.get("session") == session:
+        # a fresh Trillium open turns a setting-up name ON (or NO GAP) on the spot
+        gapfade.annotate(gf, mode, rows, snap["reversal"]["rows"], fresh, None, gf)
+        gapfade.tag_rows(rows, "long", gf, None, mode)
+        gapfade.tag_rows(snap["reversal"]["rows"], "short", gf, None, mode)
     times = [snap.get("data_time") or ""] + [b["bar_time"] for b in fresh.values()]
     snap["data_time"] = max(times) or None
     snap["live_at"] = now.isoformat(timespec="seconds")
@@ -617,6 +677,8 @@ def apply_live(day: str, names: dict, now: datetime.datetime | None = None, aler
             sent += watch.entry_alerts(session, mb, rows, fresh, now, push.send, entry_alerts_path(session))
         except Exception as e:
             logger.warning(f"entry alerts failed: {e}")
+    if alerts and gf and gf.get("session") == session:
+        sent += gapfade.open_pushes(gf, session, mode, push.send, pinned)
     return {"stored": len(names), "regraded": n, "alerts": sent}
 
 
@@ -674,9 +736,25 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     caps_cache = _load_json(CAP_CACHE_FILE)
     caps = {t: get_cap(t, caps_cache) for t in tickers}
     checker = BouncePretrade()
-    statics = load_statics(session, tickers, caps, checker)
+    # the 3-day gap fade's lists (method/gapfade.py): the market builds for the session, and
+    # statics (the ladder's A price) for the liquid long names that aren't on the board
+    long_c = (breadth.load_candidates(session) or {}).get("candidates") or {}
+    short_built = breadth.load_short_candidates(session)
+    short_c = (short_built or {}).get("candidates") or {}
+    gf_extra = gapfade.statics_names(long_c, skip=tickers) if mode != "overnight" else []
+    for t in gf_extra:
+        caps[t] = long_c[t].get("cap") or get_cap(t, caps_cache)
+    statics = load_statics(session, tickers + gf_extra, caps, checker)
 
     reports = recent_reports(today, mode)
+    report_names = list(dict.fromkeys(s["ticker"] for rep in reports for s in rep.get("signals", [])))
+    gf_long = gapfade.long_items(long_c, statics, watchlist, pinned, report_names)
+    if mode in ("premarket", "market"):
+        # names that can reach A on a gap go on the board, so the PC prices them live
+        adds = [it["ticker"] for it in gf_long if it["a_ready"] and it["ticker"] not in tickers
+                and it["ticker"] in statics][:10]
+        market += adds
+        tickers += adds
     if mode == "overnight":
         held = [r["ticker"] for r in ((prev or {}).get("reversal") or {}).get("rows", [])]
         prices = overnight_prices(list(dict.fromkeys(tickers + held)), prev)
@@ -690,8 +768,9 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
                 r["market"] = True
         setups = {s["ticker"]: s.get("setup_type") or "" for rep in reports
                   for s in rep.get("signals", []) if s.get("bucket") == "reversal"}
-        reversal = reversal_pass(reversal_candidates(reports, statics), caps,
-                                 today.isoformat(), setups)
+        rev_names = reversal_candidates(reports, statics)
+        rev_names += gapfade.short_row_names(short_c, skip=rev_names)
+        reversal = reversal_pass(rev_names, caps, today.isoformat(), setups)
         if mode == "premarket":
             live_reversal(reversal, feed)
 
@@ -711,11 +790,16 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
     if mode == "overnight" and prev and (prev.get("market_breadth") or {}).get("session") == session:
         mb = prev["market_breadth"]          # the evening's read stands until the premarket
     tag_rows(bounce, mb)
+    gf = gapfade_block(session, mode, now, bounce, reversal, statics, caps, short_c,
+                       short_built is not None and bool(long_c), gf_long, watchlist, pinned, report_names,
+                       feed, mb, prev, dry)
     if not dry:
         grade_alerts(bounce, session, mode, skip=pinned)
         pins.pin_alerts(bounce, session, mode, push.send, now, pinned)
         if mode in ("premarket", "market"):
             breadth_alert(mb)
+        gapfade.evening_push(gf, session, mode, now, push.send, built=gf["built"])
+        gapfade.open_pushes(gf, session, mode, push.send, pinned)
     bc, rc = _counts(bounce), _counts(reversal)
     entry = {"t": now.strftime("%H:%M"), "date": today.isoformat(), "mode": mode,
              "bounce_go": bc["GO"], "bounce_caution": bc["CAUTION"],
@@ -730,6 +814,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         "grade_stats": historical_grade_stats(),
         "market_breadth": breadth.public(mb),
         "pins": pins.board(bounce, pinned),
+        "gapfade": gf,
     }
     set_source(snapshot)
     if dry:

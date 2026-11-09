@@ -252,7 +252,7 @@ def compute_candidate(ticker: str, session: str, hist: pd.DataFrame) -> dict | N
     if strict is None and relaxed is None:
         return None
     return {
-        "ticker": ticker, "prior_close": pc, "cap": cap, "setup": res.setup_type,
+        "ticker": ticker, "prior_close": pc, "cap": cap, "setup": res.setup_type, "down": down,
         "counted": bool(counted_universe), "static_score": int(base), "static_relaxed": int(base_relaxed),
         "gap_th": float(th["gap_pct"]), "flag_price": strict, "relaxed_price": relaxed,
         "failing": [i.description or i.name for i in res.items if not i.passed and i.name != "gap_pct"],
@@ -352,19 +352,127 @@ def load_candidates(session: str) -> dict | None:
     return core.read_json(candidates_path(session))
 
 
+# ---------------------------------------------------------------------------
+# The short side of the 3-day gap fade (method/gapfade.py): who has 2+ straight up
+# closes and a stretch over the 9EMA going into the session
+# ---------------------------------------------------------------------------
+
+UP_EXT_MIN = 0.10                 # 10%+ over the 9EMA (median ~7 names a night at $50M+ a day)
+
+
+def prefilter_up(long: pd.DataFrame) -> list[str]:
+    """Cheap pass: 2+ straight up closes and the same liquidity floor as prefilter()."""
+    if long.empty:
+        return []
+    df = long[~long["ticker"].str.contains(r"[.\-/]", regex=True, na=False)]
+    df = df.sort_values(["ticker", "date"], kind="stable")
+    g = df.groupby("ticker", sort=False)
+    n = g.size()
+    c = [g.nth(-k).set_index("ticker")["close"].reindex(n.index) for k in (1, 2, 3)]
+    up2 = (c[0] > c[1]) & (c[1] > c[2])
+    t20 = g.tail(20)
+    adv = t20.groupby("ticker")["volume"].mean().reindex(n.index)
+    dadv = (t20["close"] * t20["volume"]).groupby(t20["ticker"]).mean().reindex(n.index)
+    ok = (up2 & (n >= 14) & (((adv >= MIN_AVG_VOLUME) & (c[0] > MIN_PRICE)) | (dadv >= LIST_MIN_DOLLAR_ADV)))
+    return sorted(ok[ok.fillna(False).astype(bool)].index)
+
+
+def compute_up_candidate(ticker: str, hist: pd.DataFrame) -> dict | None:
+    """One name going into the session: its up streak, 9EMA stretch, ATR and dollar volume."""
+    from method.gapfade import streaks
+    if hist is None or len(hist) < 14:
+        return None
+    closes = hist["close"].astype(float)
+    pc = float(closes.iloc[-1])
+    _, up = streaks(closes.tolist())
+    if up < 2 or pc <= 0:
+        return None
+    ema9 = float(closes.ewm(span=9, adjust=False).mean().iloc[-1])
+    ext = pc / ema9 - 1 if ema9 else None
+    if ext is None or ext < UP_EXT_MIN:
+        return None
+    hl = hist["high"] - hist["low"]
+    prev = closes.shift(1)
+    tr = pd.concat([hl, (hist["high"] - prev).abs(), (hist["low"] - prev).abs()], axis=1).max(axis=1)
+    atr = float(tr.iloc[-14:].mean())
+    t20 = hist.iloc[-20:]
+    return {"ticker": ticker, "prior_close": pc, "up": int(up), "ext9": float(ext), "ema9": ema9,
+            "atr": atr, "adv_dollars": float((t20["close"] * t20["volume"]).mean())}
+
+
+def build_up_candidates(session: str, long: pd.DataFrame, split_names: set[str] | None = None,
+                        adjusted=adjusted_hist) -> dict:
+    """{ticker: up-side candidate} for `session` from the stored days before it. Names that
+    split inside the window are judged on adjusted bars (a reverse split reads as a run-up)."""
+    long = long[long["date"] < session]
+    names = prefilter_up(long)
+    split_names = split_names or set()
+    hists = ticker_hists(long, names)
+    out = {}
+    for t in names:
+        h = hists.get(t)
+        if t in split_names:
+            try:
+                h = adjusted(t, session)
+            except Exception as e:
+                logger.warning(f"{t}: adjusted history failed: {e}")
+                continue
+        try:
+            c = compute_up_candidate(t, h)
+        except Exception as e:
+            logger.warning(f"{t}: up candidate failed: {e}")
+            continue
+        if c:
+            out[t] = c
+    return out
+
+
+def short_candidates_path(session: str) -> Path:
+    return METHOD_DIR / f"gapfade_short_candidates_{session}.json"
+
+
+def load_short_candidates(session: str) -> dict | None:
+    return core.read_json(short_candidates_path(session))
+
+
+def build_up(session: str, days: list[str], missing: list[str], long: pd.DataFrame,
+             splits: set[str], etfs: set[str]) -> dict:
+    cands = build_up_candidates(session, long, splits)
+    for t, c in cands.items():
+        c["etf"] = t in etfs
+    out = {"session": session, "built_at": pd.Timestamp.now(tz=TZ).isoformat(timespec="seconds"),
+           "days": len(days) - len(missing), "missing_days": missing, "candidates": cands}
+    core.write_json(short_candidates_path(session), out)
+    for p in METHOD_DIR.glob("gapfade_short_candidates_*.json"):     # keep a week
+        if p.stem.rsplit("_", 1)[-1] < (datetime.date.fromisoformat(session) - datetime.timedelta(days=7)).isoformat():
+            p.unlink()
+    logger.info(f"gap fade short candidates for {session}: {len(cands)} names")
+    return out
+
+
 def build(session: str, force: bool = False) -> dict | None:
-    """Store + candidates for `session`. Skips when built with the full window."""
+    """Store + candidates for `session` (both sides). Skips a side built with the full window."""
     path = candidates_path(session)
     have = core.read_json(path)
-    if have and not force and not have.get("missing_days"):
+    have_up = load_short_candidates(session)
+    long_done = have and not force and not have.get("missing_days")
+    up_done = have_up and not force and not have_up.get("missing_days")
+    if long_done and up_done:
         return have
     days = window(session)
     missing = update_store(days)
     long = load_store(days)
     t0 = time.time()
     splits = split_tickers(days[0]) if days else set()
-    cands = build_candidates(session, long, splits)
     etfs = etf_tickers()
+    if not up_done:
+        try:
+            build_up(session, days, missing, long, splits, etfs)
+        except Exception as e:
+            logger.warning(f"gap fade short build failed: {e}")
+    if long_done:
+        return have
+    cands = build_candidates(session, long, splits)
     for t, c in cands.items():
         c["etf"] = t in etfs
     out = {"session": session, "built_at": pd.Timestamp.now(tz=TZ).isoformat(timespec="seconds"),

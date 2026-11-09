@@ -164,6 +164,8 @@ def entry_line(t: str, e: dict, row: dict, band: str) -> str:
         score = None
         t = f"{t} relaxed" if e["n"] == 1 else t
     head = f"{t} re-entry" if e["n"] > 1 else f"{t} {score}/6" if score is not None else t
+    if row.get("gapfade") in ("off", "no_gap"):     # not a 3-day gap fade (method/gapfade.py)
+        head = f"OFF-PLAYBOOK {head}"
     r = core.ENTRY_RISK_R[band]
     n = shares(e["entry"], e["stop"], e.get("risk"), row.get("atr"), r * core.R_DOLLARS)
     size = f" · {n:,} sh ({r}R)" if n else ""

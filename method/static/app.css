@@ -318,6 +318,15 @@ ul.items li.tiers { list-style: none; margin-left: -18px; padding: 10px 12px; bo
 .pin-x { grid-area: x; width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line-2); background: transparent;
   color: var(--text-3); font-size: 16px; line-height: 1; cursor: pointer; }
 .pin-add { display: flex; gap: 8px; margin-top: 12px; }
+
+/* 3-day gap fade (method/gapfade.py) */
+.gapfade .gf-sub { margin-top: 4px; font-size: 13px; color: var(--text-2); }
+.gapfade .gf-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name px" "meta meta"; }
+.gapfade .gf-row .pin-name { flex-wrap: wrap; row-gap: 4px; min-width: 0; cursor: default; }
+.gapfade .gf-row button.pin-name { cursor: pointer; }
+.gapfade .gf-row .pin-px { white-space: nowrap; }
+.gapfade .more { margin-top: 8px; }
+.callout.gf-on { border-color: rgba(61, 220, 151, .4); background: linear-gradient(180deg, var(--go-soft), var(--bg-1) 70%); }
 .pin-add input { flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2);
   background: var(--bg-2); color: var(--text); font: 600 14px/1 var(--font); text-transform: uppercase; }
 .pin-btn { height: 26px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: transparent;
