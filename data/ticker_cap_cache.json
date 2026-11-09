@@ -285,5 +285,12 @@
  "HDB": "Large",
  "MOS": "Medium",
  "CPAY": "Medium",
- "FXI": "ETF"
+ "FXI": "ETF",
+ "INDA": "ETF",
+ "CLX": "Medium",
+ "AU": "Medium",
+ "WPM": "Medium",
+ "SNY": "Large",
+ "SPG": "Medium",
+ "TKO": "Medium"
 }
