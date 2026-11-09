@@ -564,9 +564,6 @@ def tag_rows(rows: list[dict], mb: dict | None) -> list[dict]:
     return watch.size_rows(rows, mb)          # the entry rule's shares at the day's risk an attempt
 
 
-GAPFADE_SNAPSHOT_UNTIL = datetime.time(10, 30)   # one all-tickers call a pass for missing opens, till then
-
-
 def gapfade_block(session, mode, now, bounce, reversal, statics, caps, short_c, built,
                   gf_long, watchlist, pinned, report_names, feed, mb, prev, dry) -> dict:
     """The 3-day gap fade card's block (method/gapfade.py), with every bounce and reversal
@@ -589,8 +586,8 @@ def gapfade_block(session, mode, now, bounce, reversal, statics, caps, short_c, 
 
     poly = dict((mb or {}).get("poly") or {})
     gapfade.annotate(block, mode, bounce, reversal, feed, poly, prev_gf, grade_of)
-    if (mode == "market" and not dry and gapfade.missing_opens(block)
-            and now.time() < GAPFADE_SNAPSHOT_UNTIL):
+    if mode == "market" and not dry and gapfade.missing_opens(block):
+        # one all-tickers call a pass while any name lacks its open (Polygon's comes ~9:45)
         try:
             poly.update(breadth.snapshot_prices(now.date().isoformat()))
             gapfade.annotate(block, mode, bounce, reversal, feed, poly, prev_gf, grade_of)

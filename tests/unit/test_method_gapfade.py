@@ -299,3 +299,16 @@ def test_names_that_stopped_trading_drop_off_both_lists():
     long = long[~((long["ticker"].isin(["GONE", "UPGONE"])) & (long["date"] == last))]   # no bar on the newest day
     assert breadth.prefilter(long) == ["LIVE"]
     assert breadth.prefilter_up(long) == ["UP"]
+
+
+def test_a_missing_open_is_read_from_the_snapshot_any_time_of_day(tmp_path, monkeypatch):
+    monkeypatch.setenv("METHOD_DIR", str(tmp_path))
+    calls = []
+    monkeypatch.setattr(rf.breadth, "snapshot_prices", lambda day: calls.append(day) or {"PARA": {"price": 104.0, "open": 103.0}})
+    monkeypatch.setattr(rf, "completed_daily", lambda t, s: pd.DataFrame({"close": [90.0, 95.0, 100.0]}))
+    rows = [{"ticker": "PARA", "prior_close": 100.0, "pct_from_9ema": 0.2, "atr_pct": 0.05, "price": 104.0}]
+    blk = rf.gapfade_block("2026-11-09", "market", at("14:00", day="2026-11-09"), [], rows, {}, {}, {}, True,
+                           [], ["PARA"], [], [], {}, None, None, False)
+    assert calls == ["2026-11-09"]
+    para = blk["short"][0]
+    assert para["open"] == 103.0 and para["status"] == "on" and rows[0]["gapfade"] == "on"
