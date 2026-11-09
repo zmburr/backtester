@@ -1,0 +1,114 @@
+{
+ "run": "2026-11-09",
+ "rows": 2975,
+ "days": 74,
+ "verdicts": {
+  "selloff_total_pct": "unclear",
+  "pct_off_30d_high": "unclear",
+  "gap_pct": "unclear",
+  "prior_day_range_atr": "unclear",
+  "pct_change_3": "unclear",
+  "pct_off_52wk_high": "unclear",
+  "score_4plus": "unclear",
+  "score_5plus": "helps"
+ },
+ "results": {
+  "selloff_total_pct": {
+   "label": "Deep selloff",
+   "days": 30,
+   "passers": 186,
+   "failers": 1197,
+   "pass_r": -0.3915846825396825,
+   "fail_r": -0.4029627769350598,
+   "diff": 0.011378094395377262,
+   "lo": -0.41180910212440586,
+   "hi": 0.4304666451286049,
+   "verdict": "unclear"
+  },
+  "pct_off_30d_high": {
+   "label": "Off the 30-day high",
+   "days": 22,
+   "passers": 203,
+   "failers": 1227,
+   "pass_r": -0.403161986750623,
+   "fail_r": -0.01389740946744356,
+   "diff": -0.38926457728317954,
+   "lo": -0.9255512694583963,
+   "hi": 0.11835204929260203,
+   "verdict": "unclear"
+  },
+  "gap_pct": {
+   "label": "Gap down",
+   "days": 36,
+   "passers": 196,
+   "failers": 2581,
+   "pass_r": -0.0590048831676695,
+   "fail_r": -0.14402759717347846,
+   "diff": 0.08502271400580898,
+   "lo": -0.2705362401223515,
+   "hi": 0.5150699413726285,
+   "verdict": "unclear"
+  },
+  "prior_day_range_atr": {
+   "label": "Prior-day range of 1+ ATR",
+   "days": 51,
+   "passers": 878,
+   "failers": 2097,
+   "pass_r": -0.12020084854830823,
+   "fail_r": -0.006027999626465159,
+   "diff": -0.1141728489218431,
+   "lo": -0.40572942233834125,
+   "hi": 0.16724078838323816,
+   "verdict": "unclear"
+  },
+  "pct_change_3": {
+   "label": "3-day drop",
+   "days": 34,
+   "passers": 82,
+   "failers": 2740,
+   "pass_r": 0.5229771708683473,
+   "fail_r": 0.20417614479377982,
+   "diff": 0.3188010260745674,
+   "lo": -0.5341734662497085,
+   "hi": 1.1506362935485508,
+   "verdict": "unclear"
+  },
+  "pct_off_52wk_high": {
+   "label": "Off the 52-week high",
+   "days": 24,
+   "passers": 472,
+   "failers": 678,
+   "pass_r": -0.18312973610540959,
+   "fail_r": -0.15266321948598313,
+   "diff": -0.030466516619426422,
+   "lo": -0.18940989375199924,
+   "hi": 0.10491814351976651,
+   "verdict": "unclear"
+  },
+  "score_4plus": {
+   "label": "Score 4+/6 vs 3 or less",
+   "days": 36,
+   "passers": 319,
+   "failers": 2656,
+   "pass_r": -0.18358742034038084,
+   "fail_r": -0.05941153081603079,
+   "diff": -0.12417588952435005,
+   "lo": -0.6754908535023704,
+   "hi": 0.4019029792932568,
+   "verdict": "unclear"
+  },
+  "score_5plus": {
+   "label": "Score 5+/6 vs 4/6",
+   "days": 27,
+   "passers": 82,
+   "failers": 237,
+   "pass_r": 0.5389785473785473,
+   "fail_r": -0.08848549382716048,
+   "diff": 0.6274640412057079,
+   "lo": 0.06149670494628834,
+   "hi": 1.2204033426527174,
+   "verdict": "helps"
+  }
+ },
+ "drift": null
+}
