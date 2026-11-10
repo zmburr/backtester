@@ -1,0 +1,27 @@
+{
+ "date": "2026-11-10",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 19,
+ "priced": 19,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-10T15:45:01-05:00",
+  "names": [],
+  "relaxed": [
+   "AEHL"
+  ],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-11-10T17:46:06-05:00",
+ "signals": []
+}
