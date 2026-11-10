@@ -294,5 +294,12 @@
  "SPG": "Medium",
  "TKO": "Medium",
  "NBIZ": "ETF",
- "UVXY": "ETF"
+ "UVXY": "ETF",
+ "CYPH": "Micro",
+ "NVD": "ETF",
+ "FWONK": "Medium",
+ "UNG": "Medium",
+ "CHTR": "Medium",
+ "AER": "Medium",
+ "XLAB": "Micro"
 }
