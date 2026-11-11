@@ -1,0 +1,52 @@
+{
+ "date": "2026-11-11",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 13,
+ "priced": 13,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-11T15:45:01-05:00",
+  "names": [
+   "CYPH"
+  ],
+  "relaxed": [
+   "UVXY"
+  ],
+  "trillium": 1,
+  "pushed": null
+ },
+ "generated_at": "2026-11-11T17:46:07-05:00",
+ "signals": [
+  {
+   "ticker": "CYPH",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_strongstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.21506036217303823,
+    "gap_pct": -0.0657276995305164,
+    "pct_change_3": -0.2604166666666667,
+    "prior_day_range_atr": 1.004194539302366,
+    "prior_day_rvol": 1.3179665082921685,
+    "selloff_total_pct": -0.21691176470588244,
+    "pct_off_30d_high": -0.42276422764227645,
+    "pct_off_52wk_high": -0.4916467780429595,
+    "prior_close": 2.13,
+    "open": 1.99
+   }
+  }
+ ]
+}
