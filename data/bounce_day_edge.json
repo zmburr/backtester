@@ -1,5 +1,5 @@
 {
- "built": "2026-11-12",
+ "built": "2026-11-13",
  "unit": "R per name-day under the live rules (first entry + one re-entry after a stop-out), when the rules entered; entry_* = each single entry",
  "sources": {
   "study": "2022-01-03..2026-06-30",
@@ -16,26 +16,26 @@
  },
  "states": {
   "normal": {
-   "n": 835,
-   "mean_r": 0.137,
+   "n": 837,
+   "mean_r": 0.144,
    "median_r": -1.0,
-   "win": 0.388,
-   "entry_n": 1333,
-   "entry_mean_r": 0.086,
-   "entry_win": 0.268,
+   "win": 0.389,
+   "entry_n": 1336,
+   "entry_mean_r": 0.09,
+   "entry_win": 0.269,
    "days": 1164,
-   "day_mean_r": 0.251,
-   "traded_days": 505,
-   "pos_days": 202,
+   "day_mean_r": 0.256,
+   "traded_days": 506,
+   "pos_days": 203,
    "by_score": {
     "4": {
-     "n": 558,
-     "mean_r": 0.169,
+     "n": 559,
+     "mean_r": 0.173,
      "median_r": -1.0,
-     "win": 0.392,
-     "entry_n": 879,
-     "entry_mean_r": 0.107,
-     "entry_win": 0.274
+     "win": 0.394,
+     "entry_n": 880,
+     "entry_mean_r": 0.11,
+     "entry_win": 0.275
     },
     "5": {
      "n": 232,
@@ -47,13 +47,13 @@
      "entry_win": 0.251
     },
     "6": {
-     "n": 45,
-     "mean_r": 0.011,
-     "median_r": -0.667,
-     "win": 0.4,
-     "entry_n": 72,
-     "entry_mean_r": 0.007,
-     "entry_win": 0.278
+     "n": 46,
+     "mean_r": 0.082,
+     "median_r": -0.661,
+     "win": 0.413,
+     "entry_n": 74,
+     "entry_mean_r": 0.051,
+     "entry_win": 0.284
     },
     "low": {
      "n": 491,
@@ -66,17 +66,17 @@
     }
    },
    "since_study": {
-    "n": 102,
-    "mean_r": 0.112,
+    "n": 104,
+    "mean_r": 0.166,
     "median_r": -1.0,
-    "win": 0.402,
-    "entry_n": 166,
-    "entry_mean_r": 0.069,
-    "entry_win": 0.253,
+    "win": 0.413,
+    "entry_n": 169,
+    "entry_mean_r": 0.102,
+    "entry_win": 0.26,
     "days": 84,
-    "day_mean_r": 0.485,
-    "traded_days": 50,
-    "pos_days": 18,
+    "day_mean_r": 0.533,
+    "traded_days": 51,
+    "pos_days": 19,
     "since": "2026-07-01"
    }
   },
