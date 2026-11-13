@@ -1,0 +1,75 @@
+{
+ "date": "2026-11-13",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 9,
+ "priced": 9,
+ "live": {
+  "n": 1,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-13T15:45:01-05:00",
+  "names": [
+   "OMH",
+   "SMX"
+  ],
+  "relaxed": [
+   "TWST"
+  ],
+  "trillium": 3,
+  "pushed": null
+ },
+ "generated_at": "2026-11-13T17:46:18-05:00",
+ "signals": [
+  {
+   "ticker": "OMH",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 5,
+   "counted": true,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 3.098269339356296,
+    "gap_pct": -0.13438735177865607,
+    "pct_change_3": -0.6954559133313272,
+    "prior_day_range_atr": 0.21177193147118617,
+    "prior_day_rvol": 1.7366137515809552,
+    "selloff_total_pct": -0.8153284671532847,
+    "pct_off_30d_high": -0.9465116279069767,
+    "pct_off_52wk_high": -0.9537899543378995,
+    "prior_close": 5.06,
+    "open": 4.38
+   }
+  },
+  {
+   "ticker": "SMX",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 6,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.6466041912632822,
+    "gap_pct": -0.140495867768595,
+    "pct_change_3": -0.7485714285714286,
+    "prior_day_range_atr": 1.179109825877176,
+    "prior_day_rvol": 0.9662431643136373,
+    "selloff_total_pct": -0.7010500308832613,
+    "pct_off_30d_high": -0.7748837209302326,
+    "pct_off_52wk_high": -0.9997874781689254,
+    "prior_close": 4.84,
+    "open": 4.16
+   }
+  }
+ ]
+}
