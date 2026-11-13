@@ -303,5 +303,7 @@
  "AER": "Medium",
  "XLAB": "Micro",
  "OMH": "Micro",
- "TTWO": "Medium"
+ "TTWO": "Medium",
+ "SMX": "Micro",
+ "STAK": "Micro"
 }
