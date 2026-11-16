@@ -1,5 +1,7 @@
 {
  "date": "2026-11-16",
- "alerted": {},
+ "alerted": {
+  "BOT": 5
+ },
  "brief_sent": false
 }
