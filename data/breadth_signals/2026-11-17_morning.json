@@ -1,0 +1,75 @@
+{
+ "date": "2026-11-17",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 62,
+ "priced": 62,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-17T15:50:01-05:00",
+  "names": [
+   "LABT",
+   "OMH"
+  ],
+  "relaxed": [
+   "XLAB"
+  ],
+  "trillium": 2,
+  "pushed": null
+ },
+ "generated_at": "2026-11-17T17:46:28-05:00",
+ "signals": [
+  {
+   "ticker": "LABT",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.5490298215913529,
+    "gap_pct": -0.058796718322698366,
+    "pct_change_3": -0.38919821826280626,
+    "prior_day_range_atr": 0.3838045540796964,
+    "prior_day_rvol": 0.019555029371406567,
+    "selloff_total_pct": -0.39725274725274723,
+    "pct_off_30d_high": -0.7714583333333332,
+    "pct_off_52wk_high": -0.997765784114053,
+    "prior_close": 0.2194,
+    "open": 0.2065
+   }
+  },
+  {
+   "ticker": "OMH",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 3.9860265613783206,
+    "gap_pct": -0.16080402010050254,
+    "pct_change_3": -0.21343873517786555,
+    "prior_day_range_atr": 0.042232962061472784,
+    "prior_day_rvol": 0.32386766767584935,
+    "selloff_total_pct": -0.8547445255474452,
+    "pct_off_30d_high": -0.9579281183932347,
+    "pct_off_52wk_high": -0.9636529680365297,
+    "prior_close": 3.98,
+    "open": 3.34
+   }
+  }
+ ]
+}
