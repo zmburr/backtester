@@ -1,5 +1,5 @@
 {
- "built": "2026-11-16",
+ "built": "2026-11-17",
  "unit": "R per name-day under the live rules (first entry + one re-entry after a stop-out), when the rules entered; entry_* = each single entry",
  "sources": {
   "study": "2022-01-03..2026-06-30",
@@ -16,26 +16,26 @@
  },
  "states": {
   "normal": {
-   "n": 838,
-   "mean_r": 0.141,
+   "n": 842,
+   "mean_r": 0.136,
    "median_r": -1.0,
-   "win": 0.389,
-   "entry_n": 1338,
-   "entry_mean_r": 0.088,
+   "win": 0.388,
+   "entry_n": 1344,
+   "entry_mean_r": 0.085,
    "entry_win": 0.268,
    "days": 1166,
-   "day_mean_r": 0.252,
-   "traded_days": 507,
+   "day_mean_r": 0.249,
+   "traded_days": 508,
    "pos_days": 203,
    "by_score": {
     "4": {
-     "n": 559,
-     "mean_r": 0.173,
+     "n": 563,
+     "mean_r": 0.166,
      "median_r": -1.0,
-     "win": 0.394,
-     "entry_n": 880,
-     "entry_mean_r": 0.11,
-     "entry_win": 0.275
+     "win": 0.393,
+     "entry_n": 886,
+     "entry_mean_r": 0.105,
+     "entry_win": 0.274
     },
     "5": {
      "n": 233,
@@ -66,16 +66,16 @@
     }
    },
    "since_study": {
-    "n": 105,
-    "mean_r": 0.145,
+    "n": 109,
+    "mean_r": 0.109,
     "median_r": -1.0,
-    "win": 0.41,
-    "entry_n": 171,
-    "entry_mean_r": 0.089,
-    "entry_win": 0.257,
+    "win": 0.404,
+    "entry_n": 177,
+    "entry_mean_r": 0.067,
+    "entry_win": 0.254,
     "days": 86,
-    "day_mean_r": 0.484,
-    "traded_days": 52,
+    "day_mean_r": 0.459,
+    "traded_days": 53,
     "pos_days": 19,
     "since": "2026-07-01"
    }
