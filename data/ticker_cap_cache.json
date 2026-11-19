@@ -310,5 +310,7 @@
  "MSTU": "ETF",
  "VIK": "Medium",
  "KOLD": "Medium",
- "RCAT": "Small"
+ "RCAT": "Small",
+ "DOG": "ETF",
+ "PDD": "Large"
 }
