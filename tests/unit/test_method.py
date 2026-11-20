@@ -167,6 +167,7 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setenv("METHOD_HOME", str(tmp_path / "home"))       # no phone subscribed: no pushes
     monkeypatch.setenv("METHOD_DIR", str(tmp_path / "method"))      # pins.json lives here (method/pins.py)
     monkeypatch.setattr(rf.time, "sleep", lambda s: None)
+    monkeypatch.setattr(rf.splits, "pending", lambda session, **k: {})    # no Polygon split list in tests
     rev = []
     monkeypatch.setattr(rf, "reversal_pass", lambda cands, caps, today, setups: rev.append(cands) or [])
     (sig / "2026-10-14_evening.json").write_text(json.dumps({

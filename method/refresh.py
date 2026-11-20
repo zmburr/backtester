@@ -36,6 +36,7 @@ import argparse
 import datetime
 import json
 import logging
+import math
 import os
 import time
 from pathlib import Path
@@ -50,6 +51,7 @@ from method import gapfade
 from method import live
 from method import pins
 from method import push
+from method import splits
 from method import watch
 from method.ladder import grade_at, ladder_payload, next_better
 from data_queries import polygon_queries as pq
@@ -94,11 +96,17 @@ def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
     """The premarket scanner's statics as-of the session (setup type fixed at
     the prior close), plus the GO level, the game plan's grade ladder and the
     9EMA stretch of the last completed close (for picking reversal
-    candidates). One daily-bar fetch; the ladder costs ~0.6 s."""
+    candidates). One daily-bar fetch; the ladder costs ~0.6 s. A split executing
+    between the last bar and the session puts the history in new shares first
+    (method/splits.py: SNDK 8-for-1, 11/20/2026)."""
     hist = completed_daily(ticker, session)
     if hist is None:
         return None
+    hist, split = splits.adjust(ticker, hist, session)
     s = static_from_hist(hist)
+    s["last_bar"] = splits.bar_date(hist)
+    if split:
+        s["split"] = split
     s["go_gap"] = go_gap_trigger(ticker, s, cap, checker)
     s["ladder"] = ladder_payload(s, cap, ticker)
     ema9 = hist["close"].ewm(span=9, adjust=False).mean().iloc[-1]
@@ -112,6 +120,13 @@ def board_static(ticker: str, session: str, cap: str, checker) -> dict | None:
 def load_statics(session: str, tickers: list[str], caps: dict, checker) -> dict:
     path = _statics_path(session)
     cache = core.read_json(path, {}) or {}
+    # a static cached before a split it should have adjusted for (Polygon lists splits
+    # ahead; this list is re-read every 30 min) is rebuilt
+    split_map = splits.pending(session)
+    redo = [t for t in tickers if t in cache and splits.needs_rebuild(t, cache[t], session, split_map)]
+    for t in redo:
+        logger.info(f"{t}: split {split_map[t][-1]['ratio']} {split_map[t][-1]['date']}: rebuilding its static")
+        cache.pop(t)
     missing = [t for t in tickers if t not in cache]
     for t in missing:
         try:
@@ -156,6 +171,7 @@ def score_row(t: str, s: dict, cap: str, price: float, bar_time: str) -> dict:
     res, m = g["result"], g["metrics"]
     go_gap = s.get("go_gap")
     prior = s["prior_close"]
+    split_note = splits.warning(s)
     return {
         "ticker": t, "cap": cap, "setup": res.setup_type,
         "score": res.score, "max_score": res.max_score, "rec": res.recommendation,
@@ -169,7 +185,7 @@ def score_row(t: str, s: dict, cap: str, price: float, bar_time: str) -> dict:
         "atr_pct": s["atr"] / price if price else None,
         "mid_bb": s.get("mid_bb"),
         "to_mid_bb": (s["mid_bb"] / price - 1) if s.get("mid_bb") and price else None,
-        "failing": _failing(res), "warnings": list(res.warnings or []),
+        "failing": _failing(res), "warnings": [split_note] * bool(split_note) + list(res.warnings or []),
         "bonuses": list(res.bonuses or []), "principal": PRINCIPALS.get(t),
         "bar_time": bar_time,
     }
@@ -184,7 +200,11 @@ def _sort_rows(rows: list[dict]) -> list[dict]:
 def row_from_summary(t: str, s: dict, cap: str, b: dict, mode: str, src: str) -> dict:
     """A bounce row from one name's bar summary (method/live.summarize_bars), whichever
     feed it came from: the grade at the last price, plus the premarket low before the
-    open and the open's own grade once the session is running."""
+    open and the open's own grade once the session is running. In the evening the bars
+    are today's, in old shares when the name splits at the session's open: put them in
+    new shares first (method/splits.py)."""
+    if mode == "evening":
+        b = splits.to_session(b, s)
     row = score_row(t, s, cap, b["price"], b["bar_time"])
     row.update(src=src, src_label=live.SRC_LABEL.get(src, src))
     if b.get("bar_ts"):
@@ -231,7 +251,7 @@ def bounce_pass(tickers, statics, caps, checker, mode: str, today: str,
                 continue
 
             if mode == "evening" and b.get("rth_close"):
-                if abs(s["prior_close"] / b["rth_close"] - 1) > STATIC_DRIFT:
+                if abs(s["prior_close"] / splits.to_session(b, s)["rth_close"] - 1) > STATIC_DRIFT:
                     # daily bar wasn't final when the statics were built
                     fresh = board_static(t, session, caps[t], checker)
                     if fresh:
@@ -312,6 +332,8 @@ def overnight_pass(tickers, statics, caps, prices: dict) -> tuple[list[dict], st
         try:
             if "ladder" not in s:
                 s["ladder"] = ladder_payload(s, caps[t], t)
+            if s.get("split"):     # the night before a split a print may still be in old shares
+                price = splits.nearest(float(price), s["prior_close"], s["split"]["factor"])
             row = score_row(t, s, caps[t], float(price), asof.strftime("%H:%M"))
             row.update(src=src, src_label=SRC_LABEL.get(src, src), asof=pd.Timestamp(asof).isoformat())
             rows.append(row)
@@ -322,14 +344,20 @@ def overnight_pass(tickers, statics, caps, prices: dict) -> tuple[list[dict], st
     return _sort_rows(rows), newest.strftime("%H:%M") if newest is not None else None
 
 
-def overnight_reversal(prev: dict | None, prices: dict) -> list[dict]:
-    """Reversal rows keep their evening score; the overnight print moves price, gap, scenario."""
+def overnight_reversal(prev: dict | None, prices: dict, split_map: dict | None = None,
+                       session: str | None = None) -> list[dict]:
+    """Reversal rows keep their evening score; the overnight print moves price, gap, scenario.
+    The evening's prior close is in old shares when the name splits at the session's open,
+    and a Blue Ocean print may already be in new ones (method/splits.py)."""
     rows = []
     for r in ((prev or {}).get("reversal") or {}).get("rows", []):
         r = dict(r)
         hit = prices.get(r["ticker"])
         if hit and hit[2] != "P" and r.get("prior_close"):
             r["price"] = float(hit[0])
+            f = math.prod(x["factor"] for x in (split_map or {}).get(r["ticker"], []) if x["date"] == session)
+            if f != 1:
+                r["price"] = splits.nearest(r["price"], r["prior_close"], 1 / f)
             r["gap"] = r["price"] / r["prior_close"] - 1
             r["scenario"] = core.reversal_scenario(r["gap"])
             r.update(src=hit[2], src_label=SRC_LABEL.get(hit[2]), bar_time=hit[1].strftime("%H:%M"))
@@ -756,7 +784,7 @@ def run(now: datetime.datetime | None = None, force: bool = False, mode: str | N
         held = [r["ticker"] for r in ((prev or {}).get("reversal") or {}).get("rows", [])]
         prices = overnight_prices(list(dict.fromkeys(tickers + held)), prev)
         bounce, data_time = overnight_pass(tickers, statics, caps, prices)
-        reversal = overnight_reversal(prev, prices)
+        reversal = overnight_reversal(prev, prices, splits.pending(session), session)
     else:
         bounce, data_time = bounce_pass(tickers, statics, caps, checker, mode,
                                         today.isoformat(), now, session, feed)

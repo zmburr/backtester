@@ -304,11 +304,14 @@ def etf_tickers(client=None) -> set[str]:
 
 
 def adjusted_hist(ticker: str, session: str) -> pd.DataFrame | None:
-    """Split-adjusted completed daily bars from Polygon, per name."""
+    """Split-adjusted completed daily bars from Polygon, per name, in the session's shares
+    (a split executing at the session's open isn't in Polygon's bars yet: method/splits.py)."""
+    from method import splits
     from scanners.premarket_bounce_scanner import completed_daily
     h = completed_daily(ticker, session)
     if h is None or h.empty:
         return None
+    h, _ = splits.adjust(ticker, h, session)
     h = h.copy()
     h.index = [pd.Timestamp(i).strftime("%Y-%m-%d") for i in h.index]
     return h[["open", "high", "low", "close", "volume"]]
