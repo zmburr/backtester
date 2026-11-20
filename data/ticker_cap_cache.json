@@ -315,5 +315,14 @@
  "PDD": "Large",
  "GDXU": "ETF",
  "IRE": "Medium",
- "IREX": "ETF"
+ "IREX": "ETF",
+ "SPXS": "ETF",
+ "SPXU": "ETF",
+ "SDS": "ETF",
+ "SH": "ETF",
+ "SPDN": "ETF",
+ "SNDQ": "ETF",
+ "QID": "ETF",
+ "TZA": "ETF",
+ "PSQ": "ETF"
 }
