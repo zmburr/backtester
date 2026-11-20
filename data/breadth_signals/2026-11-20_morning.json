@@ -1,0 +1,132 @@
+{
+ "date": "2026-11-20",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 1,
+ "n_etf": 1,
+ "state": "normal",
+ "candidates": 26,
+ "priced": 26,
+ "live": {
+  "n": 1,
+  "n_etf": 1,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-20T15:45:01-05:00",
+  "names": [
+   "AAOX",
+   "AXTX",
+   "GDXU",
+   "RCAT"
+  ],
+  "relaxed": [
+   "AAOI",
+   "CBRS",
+   "CRWG",
+   "CWVX",
+   "FIG",
+   "IONQ",
+   "IONX",
+   "IRE",
+   "IREX",
+   "MSTU",
+   "RKLX",
+   "VCX"
+  ],
+  "trillium": 10,
+  "pushed": null
+ },
+ "generated_at": "2026-11-20T17:46:34-05:00",
+ "signals": [
+  {
+   "ticker": "AAOX",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.5194805194805195,
+    "gap_pct": -0.09999999999999994,
+    "pct_change_3": -0.2508960573476703,
+    "prior_day_range_atr": 0.44210526315789467,
+    "prior_day_rvol": 0.6746723467702104,
+    "selloff_total_pct": -0.4226519337016575,
+    "pct_off_30d_high": -0.9131338320864505,
+    "pct_off_52wk_high": -0.9898543689320388,
+    "prior_close": 1.045,
+    "open": 0.9405
+   }
+  },
+  {
+   "ticker": "AXTX",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.5218865207373271,
+    "gap_pct": -0.10483870967741928,
+    "pct_change_3": -0.08655616942909757,
+    "prior_day_range_atr": 0.5755716091148405,
+    "prior_day_rvol": 1.2846379566171642,
+    "selloff_total_pct": -0.3413014608233732,
+    "pct_off_30d_high": -0.844514106583072,
+    "pct_off_52wk_high": -0.98380355276907,
+    "prior_close": 4.96,
+    "open": 4.44
+   }
+  },
+  {
+   "ticker": "GDXU",
+   "bucket": "bounce",
+   "cap": "Medium",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": true,
+   "etf": true,
+   "metrics": {
+    "atr_pct": 0.22631179571065074,
+    "gap_pct": -0.05873621713316362,
+    "pct_change_3": -0.27768417828151337,
+    "prior_day_range_atr": 0.6413929585109366,
+    "prior_day_rvol": 1.4529891143233602,
+    "selloff_total_pct": -0.19439699350871203,
+    "pct_off_30d_high": -0.5718561705457745,
+    "pct_off_52wk_high": -0.9127926328636414,
+    "prior_close": 47.16,
+    "open": 44.39
+   }
+  },
+  {
+   "ticker": "RCAT",
+   "bucket": "bounce",
+   "cap": "Small",
+   "setup": "GapFade_weakstock",
+   "recommendation": "STRICT",
+   "score": 4,
+   "counted": false,
+   "etf": false,
+   "metrics": {
+    "atr_pct": 0.24839837997054495,
+    "gap_pct": -0.036082474226804044,
+    "pct_change_3": -0.19502074688796686,
+    "prior_day_range_atr": 1.0230489883643372,
+    "prior_day_rvol": 1.9550600733508343,
+    "selloff_total_pct": -0.529126213592233,
+    "pct_off_30d_high": -0.6761268781302171,
+    "pct_off_52wk_high": -0.8966986155484558,
+    "prior_close": 1.94,
+    "open": 1.87
+   }
+  }
+ ]
+}
