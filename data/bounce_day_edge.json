@@ -5,8 +5,8 @@
   "study": "2022-01-03..2026-06-30",
   "recorded": {
    "since": "2026-07-01",
-   "sessions": 101,
-   "last": "2026-11-20"
+   "sessions": 102,
+   "last": "2026-11-23"
   }
  },
  "shrink_n": 30,
@@ -16,26 +16,26 @@
  },
  "states": {
   "normal": {
-   "n": 843,
-   "mean_r": 0.134,
+   "n": 844,
+   "mean_r": 0.131,
    "median_r": -1.0,
-   "win": 0.388,
-   "entry_n": 1346,
-   "entry_mean_r": 0.084,
+   "win": 0.387,
+   "entry_n": 1348,
+   "entry_mean_r": 0.082,
    "entry_win": 0.267,
-   "days": 1170,
-   "day_mean_r": 0.245,
-   "traded_days": 509,
+   "days": 1171,
+   "day_mean_r": 0.241,
+   "traded_days": 510,
    "pos_days": 203,
    "by_score": {
     "4": {
-     "n": 564,
-     "mean_r": 0.162,
+     "n": 565,
+     "mean_r": 0.158,
      "median_r": -1.0,
-     "win": 0.392,
-     "entry_n": 888,
-     "entry_mean_r": 0.103,
-     "entry_win": 0.274
+     "win": 0.391,
+     "entry_n": 890,
+     "entry_mean_r": 0.101,
+     "entry_win": 0.273
     },
     "5": {
      "n": 233,
@@ -66,16 +66,16 @@
     }
    },
    "since_study": {
-    "n": 110,
-    "mean_r": 0.091,
+    "n": 111,
+    "mean_r": 0.072,
     "median_r": -1.0,
-    "win": 0.4,
-    "entry_n": 179,
-    "entry_mean_r": 0.056,
-    "entry_win": 0.251,
-    "days": 90,
-    "day_mean_r": 0.417,
-    "traded_days": 54,
+    "win": 0.396,
+    "entry_n": 181,
+    "entry_mean_r": 0.044,
+    "entry_win": 0.249,
+    "days": 91,
+    "day_mean_r": 0.373,
+    "traded_days": 55,
     "pos_days": 19,
     "since": "2026-07-01"
    }
