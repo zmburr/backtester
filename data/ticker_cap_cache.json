@@ -326,5 +326,9 @@
  "TZA": "ETF",
  "PSQ": "ETF",
  "NTAP": "Medium",
- "VCX": "Small"
+ "VCX": "Small",
+ "INSM": "Medium",
+ "KYMR": "Medium",
+ "BBIO": "Medium",
+ "DLTR": "Medium"
 }
