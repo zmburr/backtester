@@ -303,13 +303,13 @@
  },
  "watchlist": {
   "normal": {
-   "n": 207,
-   "mean_r": 0.173,
-   "median_r": -0.578,
-   "win": 0.454,
-   "day_mean_r": 0.109,
-   "traded_days": 61,
-   "pos_days": 30
+   "n": 212,
+   "mean_r": 0.307,
+   "median_r": -0.541,
+   "win": 0.458,
+   "day_mean_r": 0.201,
+   "traded_days": 62,
+   "pos_days": 31
   },
   "elevated": {
    "n": 40,
