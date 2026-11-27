@@ -1,0 +1,27 @@
+{
+ "date": "2026-11-27",
+ "session": "morning",
+ "source": "market_breadth",
+ "basis": "official open",
+ "n": 0,
+ "n_etf": 0,
+ "state": "normal",
+ "candidates": 32,
+ "priced": 32,
+ "live": {
+  "n": 0,
+  "n_etf": 0,
+  "state": "normal",
+  "band": null,
+  "basis": "open",
+  "asof": "2026-11-27T15:45:01-05:00",
+  "names": [],
+  "relaxed": [
+   "INLF"
+  ],
+  "trillium": 0,
+  "pushed": null
+ },
+ "generated_at": "2026-11-27T17:46:45-05:00",
+ "signals": []
+}

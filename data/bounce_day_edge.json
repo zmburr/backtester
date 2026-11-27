@@ -5,8 +5,8 @@
   "study": "2022-01-03..2026-06-30",
   "recorded": {
    "since": "2026-07-01",
-   "sessions": 104,
-   "last": "2026-11-25"
+   "sessions": 105,
+   "last": "2026-11-27"
   }
  },
  "shrink_n": 30,
@@ -23,7 +23,7 @@
    "entry_n": 1348,
    "entry_mean_r": 0.082,
    "entry_win": 0.267,
-   "days": 1173,
+   "days": 1174,
    "day_mean_r": 0.241,
    "traded_days": 510,
    "pos_days": 203,
@@ -73,7 +73,7 @@
     "entry_n": 181,
     "entry_mean_r": 0.044,
     "entry_win": 0.249,
-    "days": 93,
+    "days": 94,
     "day_mean_r": 0.373,
     "traded_days": 55,
     "pos_days": 19,
